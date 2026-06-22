@@ -1,0 +1,70 @@
+{
+  "users": [
+    {
+      "_id": "647f1a2b3c4d5e6f7a8b9c01",
+      "name": "Nguyễn Văn A",
+      "email": "giaoviena@email.com",
+      "passwordHash": "$2b$10$X7z8Y9...", 
+      "role": "teacher",
+      "createdAt": "2026-06-01T08:00:00.000Z"
+    }
+  ],
+  
+  "classrooms": [
+    {
+      "_id": "647f1b2b3c4d5e6f7a8b9c02",
+      "className": "Lớp Toán 10A",
+      "subject": "Toán học",
+      "classCode": "TOAN10A",
+      "teacherId": "647f1a2b3c4d5e6f7a8b9c01",
+      "createdAt": "2026-06-01T09:00:00.000Z"
+    }
+  ],
+  
+  "students": [
+    {
+      "_id": "647f1c2b3c4d5e6f7a8b9c03",
+      "name": "Trần Văn Bình",
+      "studentCode": "HS2026001",
+      "parentPhone": "0905123456",
+      "classId": "647f1b2b3c4d5e6f7a8b9c02",
+      "grades": {
+        "mouth": [8.0, 9.5],
+        "fifteenMin": [7.0],
+        "midTerm": 8.5,
+        "finalTerm": 9.0
+      }
+    },
+    {
+      "_id": "647f1c2b3c4d5e6f7a8b9c04",
+      "name": "Lê Thị Chi",
+      "studentCode": "HS2026002",
+      "parentPhone": "0905789123",
+      "classId": "647f1b2b3c4d5e6f7a8b9c02",
+      "grades": {
+        "mouth": [6.0],
+        "fifteenMin": [8.0, 7.5],
+        "midTerm": 7.0,
+        "finalTerm": 8.0
+      }
+    }
+  ],
+  
+  "attendances": [
+    {
+      "_id": "647f1d2b3c4d5e6f7a8b9c05",
+      "classId": "647f1b2b3c4d5e6f7a8b9c02",
+      "date": "2026-06-02T00:00:00.000Z",
+      "records": [
+        {
+          "studentId": "647f1c2b3c4d5e6f7a8b9c03",
+          "status": "present"
+        },
+        {
+          "studentId": "647f1c2b3c4d5e6f7a8b9c04",
+          "status": "late"
+        }
+      ]
+    }
+  ]
+}

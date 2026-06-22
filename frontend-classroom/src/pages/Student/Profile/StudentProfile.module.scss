@@ -1,0 +1,532 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.profileContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.profileHeader {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid #f0f0f0;
+
+  .headerLeft {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .avatarWrapper {
+    position: relative;
+    
+    img {
+      width: 120px;
+      height: 120px;
+      border-radius: 20px;
+      border: 4px solid #f8fafc;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      object-fit: cover;
+      background: #f1f5f9;
+    }
+
+    .editAvatarBtn {
+      position: absolute;
+      bottom: -8px;
+      right: -8px;
+      background: vars.$primary;
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(vars.$primary, 0.4);
+      transition: 0.2s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  .userInfo {
+    h1 {
+      margin: 0 0 8px 0;
+      font-size: 24px;
+      font-weight: 700;
+      color: vars.$dark-text;
+    }
+
+    .infoRow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      color: #64748b;
+      font-size: 14px;
+
+      .infoItem {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+    }
+  }
+}
+
+.mainGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.leftCol {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.statCards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.statCard {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  border: 1px solid #f0f0f0;
+
+  .iconWrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+
+    &.green { background: #e6f7f2; color: #1fb98f; }
+    &.red { background: #ffeae5; color: vars.$primary; }
+    &.blue { background: #eaf3ff; color: #3b82f6; }
+    &.purple { background: #f3e8ff; color: #a855f7; }
+    &.gray { background: #f1f5f9; color: #64748b; }
+  }
+
+  .statLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .statValue {
+    font-size: 24px;
+    font-weight: 700;
+    color: vars.$dark-text;
+
+    span {
+      font-size: 14px;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+  }
+}
+
+.sectionBox {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  border: 1px solid #f0f0f0;
+
+  .sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    .headerTitle {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      color: vars.$dark-text;
+
+      .titleIcon {
+        color: vars.$primary;
+        background: #ffeae5;
+        padding: 8px;
+        border-radius: 8px;
+      }
+    }
+
+    .editBtn, .seeAllBtn {
+      background: none;
+      border: none;
+      color: vars.$primary;
+      font-weight: 600;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      &:hover { text-decoration: underline; }
+    }
+    
+    .seeAllBtn {
+      color: #64748b;
+    }
+  }
+}
+
+.infoGroup {
+  margin-bottom: 24px;
+  &:last-child { margin-bottom: 0; }
+
+  .groupTitle {
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &::before {
+      content: "";
+      width: 4px;
+      height: 12px;
+      background: vars.$primary;
+      border-radius: 2px;
+    }
+  }
+
+  .infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+
+    .infoItem {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .label {
+        font-size: 13px;
+        color: #64748b;
+      }
+      .value {
+        font-size: 15px;
+        font-weight: 500;
+        color: vars.$dark-text;
+      }
+    }
+  }
+
+  .tagsGrid {
+    display: flex;
+    gap: 12px;
+    
+    .tagBox {
+      background: #f8fafc;
+      padding: 12px 16px;
+      border-radius: 8px;
+      flex: 1;
+
+      .tagLabel {
+        font-size: 12px;
+        color: #64748b;
+        margin-bottom: 4px;
+      }
+      .tagValue {
+        font-size: 14px;
+        font-weight: 600;
+        color: vars.$dark-text;
+      }
+    }
+  }
+}
+
+.badgesGrid {
+  display: flex;
+  justify-content: space-around;
+  
+  .badgeItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+
+    .badgeCircle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid;
+
+      &.green { border-color: #1fb98f; background: #e6f7f2; color: #1fb98f; }
+      &.orange { border-color: vars.$primary; background: #ffeae5; color: vars.$primary; }
+      &.blue { border-color: #3b82f6; background: #eaf3ff; color: #3b82f6; }
+      &.gray { border-color: #cbd5e1; background: #f8fafc; color: #94a3b8; }
+    }
+
+    .badgeName {
+      font-size: 13px;
+      font-weight: 600;
+      color: vars.$dark-text;
+    }
+  }
+}
+
+.rightCol {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.progressList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .progressItem {
+    .pHeader {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+
+      .pLabel { font-size: 14px; font-weight: 600; color: vars.$dark-text; }
+      .pVal { font-size: 13px; font-weight: 600; }
+      &.green .pVal { color: #1fb98f; }
+      &.orange .pVal { color: vars.$primary; }
+      &.blue .pVal { color: #3b82f6; }
+    }
+
+    .pBarWrap {
+      height: 6px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 6px;
+
+      .pBar { height: 100%; border-radius: 4px; }
+      &.green .pBar { background: #1fb98f; }
+      &.orange .pBar { background: vars.$primary; }
+      &.blue .pBar { background: #3b82f6; }
+    }
+
+    .pSub {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  }
+}
+
+.accountMenu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  .menuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: 0.2s;
+
+    &:hover {
+      border-color: #cbd5e1;
+      background: white;
+    }
+
+    .menuLeft {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .menuIcon {
+        width: 36px;
+        height: 36px;
+        background: white;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: vars.$dark-text;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+      }
+
+      .menuText {
+        display: flex;
+        flex-direction: column;
+        
+        .mTitle { font-size: 14px; font-weight: 600; color: vars.$dark-text; }
+        .mSub { font-size: 11px; color: #64748b; }
+      }
+    }
+
+    .menuArrow {
+      color: #cbd5e1;
+    }
+  }
+
+  .logoutBtn {
+    margin-top: 8px;
+    background: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    color: #ef4444;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 12px;
+    transition: 0.2s;
+
+    &:hover {
+      background: #fef2f2;
+    }
+  }
+}
+
+.summaryCard {
+  background: linear-gradient(135deg, #2d2a32, #1a1a1a);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+
+  .summaryHeader {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 20px;
+  }
+
+  .summaryStats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+
+    .sStat {
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.1);
+
+      .sVal {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1fb98f;
+        margin-bottom: 4px;
+      }
+      
+      .sVal.orange {
+        color: vars.$primary;
+      }
+
+      .sLabel {
+        font-size: 10px;
+        font-weight: 600;
+        color: rgba(255,255,255,0.5);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
+  .gpaBox {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+
+    .gpaTop {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+
+      .gpaLabel { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); }
+      .gpaVal { font-size: 18px; font-weight: 700; color: #1fb98f; }
+    }
+
+    .gpaBarWrap {
+      height: 6px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      margin-bottom: 12px;
+
+      .gpaBar {
+        height: 100%;
+        background: #1fb98f;
+        border-radius: 4px;
+        width: 92%;
+      }
+    }
+
+    .gpaSub {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      strong { color: white; }
+    }
+  }
+}
+
+// Responsive
+@media (max-width: 1024px) {
+  .mainGrid { grid-template-columns: 1fr; }
+  .statCards { grid-template-columns: repeat(2, 1fr); }
+  .profileHeader {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    .headerLeft {
+      flex-direction: column;
+      align-items: center;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .statCards { grid-template-columns: 1fr; }
+  .infoGroup .infoGrid { grid-template-columns: 1fr; }
+  .infoGroup .tagsGrid { flex-direction: column; }
+  .badgesGrid { flex-wrap: wrap; gap: 20px; }
+}

@@ -1,0 +1,77 @@
+// -------------------------------------------------------------
+// HỆ THỐNG THIẾT KẾ - BIẾN MÀU SẮC CHO ỨNG DỤNG LỚP HỌC
+// Đồng bộ mã màu & các design tokens nhất quán
+// -------------------------------------------------------------
+
+// --- 1. MÀU THƯƠNG HIỆU CHỦ ĐẠO ---
+$primary: #FE6747;       // Cam San Hô - Điểm nhấn thương hiệu
+$secondary: #10B981;     // Xanh Lá Cao Cấp (thay cho Mint để tương phản tốt trên nền sáng)
+$dark-text: #0F172A;     // Xanh Slate Đậm - Màu chữ chính (Text Primary)
+$light-bg: #FFFFFF;      // Trắng Tinh - Nền cho các chiếc Card, form nhập liệu.
+
+// --- 2. MÀU BỔ TRỢ HỆ THỐNG SÁNG (LIGHT THEME) ---
+$bg-main: #F8FAFC;       // Nền chính (Slate-50) bao phủ toàn bộ trang
+$sidebar-bg: #FFFFFF;    // Nền Sidebar sáng màu tinh khiết
+$sidebar-border: #E2E8F0;// Đường viền Sidebar xám nhạt
+$text-sub: #64748B;      // Xám Slate - Dùng cho mô tả phụ
+$warning: #F59E0B;       // Vàng Hổ Phách - Điểm chuyên cần muộn
+$danger: #EF4444;        // Đỏ Dịu - Học sinh vắng mặt
+
+// --- 3. MÀU TRẠNG THÁI HỆ THỐNG ---
+$success: $secondary;
+$info: #3B82F6;          // Xanh Dương - Thông báo hệ thống chung, hướng dẫn hoặc mẹo nhanh.
+
+// --- 4. HIỆU ỨNG BÓNG ĐỔ (SHADOWS) ---
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$shadow-premium: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 16px -6px rgba(0, 0, 0, 0.05);
+
+// --- 5. ĐƯỜNG VIỀN & BO GÓC (BORDERS & SHAPES) ---
+$border-color: rgba(229, 231, 235, 0.8);
+$border-radius-sm: 8px;
+$border-radius-md: 12px;
+$border-radius-lg: 16px;
+
+// --- 6. HIỆU ỨNG CHUYỂN ĐỘNG (TRANSITIONS) ---
+$transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+// --- 7. KIỂU CHỮ & TYPOGRAPHY ---
+$font-main: 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-heading: 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-mono: ui-monospace, Consolas, monospace;
+
+$font-xs: 0.75rem;
+$font-sm: 0.875rem;
+$font-md: 1rem;
+$font-lg: 1.125rem;
+$font-xl: 1.25rem;
+$font-xxl: 1.5rem;
+$font-3xl: 1.875rem;
+$font-4xl: 2.25rem;
+
+$weight-regular: 400;
+$weight-medium: 500;
+$weight-semibold: 600;
+$weight-bold: 700;
+$weight-extrabold: 800;
+
+// --- 8. XUẤT BIẾN ĐỂ SỬ DỤNG TRONG JS/TS ---
+:export {
+  primary: $primary;
+  secondary: $secondary;
+  darkText: $dark-text;
+  lightBg: $light-bg;
+  bgMain: $bg-main;
+  sidebarBg: $sidebar-bg;
+  sidebarBorder: $sidebar-border;
+  textSub: $text-sub;
+  warning: $warning;
+  danger: $danger;
+  success: $success;
+  info: $info;
+  fontMain: $font-main;
+  fontHeading: $font-heading;
+  fontMono: $font-mono;
+}

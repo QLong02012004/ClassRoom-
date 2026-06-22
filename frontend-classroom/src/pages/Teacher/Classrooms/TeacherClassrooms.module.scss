@@ -1,0 +1,504 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.classroomsPage {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1300px;
+  margin: 0 auto;
+  font-family: vars.$font-main;
+}
+
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  text-align: left;
+
+  .headerText {
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: vars.$dark-text;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.5px;
+    }
+
+    p {
+      font-size: 0.875rem;
+      color: vars.$text-sub;
+      margin: 0;
+    }
+  }
+
+  .btnCreateHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: vars.$primary;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(254, 103, 71, 0.15);
+    transition: vars.$transition-fast;
+
+    &:hover {
+      background: #e0583b;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(254, 103, 71, 0.25);
+    }
+  }
+
+  @media (max-width: 640px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+
+    .btnCreateHeader {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+}
+
+.classesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.classCard {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: vars.$transition-normal;
+  text-align: left;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .cardTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .iconBox {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: rgba(254, 103, 71, 0.08);
+      color: vars.$primary;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .subjectTag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: vars.$primary;
+      background: rgba(254, 103, 71, 0.08);
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+  }
+
+  .cardMiddle {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .classTitle {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: vars.$dark-text;
+      margin: 0;
+    }
+
+    .codeRow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: vars.$text-sub;
+      font-size: 0.8rem;
+      
+      strong {
+        color: vars.$dark-text;
+        font-family: vars.$font-mono;
+      }
+    }
+  }
+
+  .cardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #f8fafc;
+    padding-top: 16px;
+    margin-top: 4px;
+
+    .studentsCount {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: vars.$text-sub;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    .btnManage {
+      padding: 6px 12px;
+      background: #f1f5f9;
+      color: vars.$text-sub;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: vars.$transition-fast;
+
+      &:hover {
+        background: vars.$primary;
+        color: white;
+      }
+    }
+  }
+}
+
+/* POPUP MODAL */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 12, 32, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  overflow: visible;
+
+  .modalHeader {
+    background: #ff6b4a;
+    padding: 32px 28px 24px;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    color: white;
+
+    .headerText {
+      h3 {
+        font-size: 1.4rem;
+        font-weight: 800;
+        margin: 0 0 6px 0;
+        color: white;
+      }
+      p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    .btnClose {
+      background: transparent;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      cursor: pointer;
+      opacity: 0.8;
+      transition: opacity 0.2s;
+      padding: 0;
+      
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  .modalBody {
+    padding: 24px 28px 28px;
+  }
+
+  .formRow {
+    display: flex;
+    gap: 16px;
+    .formGroup {
+      flex: 1;
+    }
+  }
+
+  .formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: vars.$transition-fast;
+      color: vars.$dark-text;
+      font-family: inherit;
+      background: #fafafa;
+
+      &:focus {
+        border-color: vars.$primary;
+        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+        background: white;
+      }
+
+      &::placeholder {
+        color: #b0bec5;
+      }
+    }
+
+    /* ─── CUSTOM DROPDOWN ─────────────────────────── */
+    .customDropdown {
+      position: relative;
+      width: 100%;
+
+      .dropdownTrigger {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: #fafafa;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: vars.$dark-text;
+        font-family: inherit;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        text-align: left;
+
+        &:hover {
+          border-color: #cbd5e1;
+          background: white;
+        }
+
+        &.dropdownOpen {
+          border-color: vars.$primary;
+          box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+          background: white;
+        }
+      }
+
+      .dropdownSelected {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+
+        .subjectEmoji {
+          font-size: 1.1rem;
+          line-height: 1;
+        }
+      }
+
+      .dropdownCaret {
+        color: #94a3b8;
+        transition: transform 0.25s ease;
+        flex-shrink: 0;
+
+        &.caretUp {
+          transform: rotate(-180deg);
+        }
+      }
+
+      .dropdownPanel {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1), 0 4px 12px rgba(0, 0, 0, 0.06);
+        z-index: 9999;
+        overflow: hidden;
+        animation: dropdownSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        max-height: 200px;
+        overflow-y: auto;
+
+        &::-webkit-scrollbar {
+          width: 4px;
+        }
+        &::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        &::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 4px;
+        }
+      }
+
+      .dropdownOption {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.875rem;
+        color: #475569;
+        font-weight: 500;
+        transition: all 0.15s ease;
+        text-align: left;
+
+        &:hover {
+          background: #f8fafc;
+          color: vars.$dark-text;
+        }
+
+        &.optionActive {
+          background: rgba(254, 103, 71, 0.06);
+          color: vars.$primary;
+          font-weight: 600;
+        }
+
+        & + .dropdownOption {
+          border-top: 1px solid #f1f5f9;
+        }
+      }
+
+      .optionLeft {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .optionDot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .optionEmoji {
+        font-size: 1rem;
+        line-height: 1;
+      }
+
+      .optionLabel {
+        font-size: 0.875rem;
+      }
+
+      .optionCheck {
+        color: vars.$primary;
+        flex-shrink: 0;
+      }
+    }
+  }
+
+
+  .modalActions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-top: 32px;
+
+    button {
+      padding: 12px 24px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: vars.$transition-fast;
+    }
+
+    .btnCancel {
+      background: transparent;
+      border: none;
+      color: #ef4444; /* Red color for cancel */
+
+      &:hover {
+        background: #fef2f2;
+      }
+    }
+
+    .btnConfirm {
+      background: #ff6b4a; /* Orange matching header */
+      border: none;
+      color: white;
+      box-shadow: 0 4px 10px rgba(255, 107, 74, 0.2);
+
+      &:hover {
+        background: #e0583b;
+        box-shadow: 0 6px 14px rgba(255, 107, 74, 0.3);
+      }
+    }
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scaleY(0.9);
+    transform-origin: top;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top;
+  }
+}
+

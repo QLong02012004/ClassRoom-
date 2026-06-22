@@ -1,0 +1,1343 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.classroomDetailContainer {
+  font-family: vars.$font-main;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+// 1. Dành cho các Tab View khác
+.tabContentPanel {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.reportCard {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  text-align: left;
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    font-size: 0.9rem;
+    color: vars.$text-sub;
+    margin-bottom: 24px;
+  }
+
+  .btnSecondary {
+    padding: 10px 20px;
+    background: #f1f5f9;
+    border: none;
+    color: vars.$dark-text;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: 0.2s;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+  }
+}
+
+.reportPlaceholder {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.statMetric {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .statNum {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #10B981;
+    line-height: 1.2;
+    margin-bottom: 4px;
+  }
+
+  .statDesc {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$text-sub;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+}
+
+.scheduleTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timelineEvent {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border-left: 4px solid #10B981;
+
+  .eventTime {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #10B981;
+    white-space: nowrap;
+    width: 150px;
+  }
+
+  .eventInfo {
+    text-align: left;
+    h4 {
+      margin: 0 0 4px 0;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: vars.$dark-text;
+    }
+    p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: vars.$text-sub;
+    }
+  }
+}
+
+// 2. OVERVIEW - FEED LAYOUT (BẢNG TIN)
+.feedLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* POST COMPOSER (KHUNG ĐĂNG BÀI) */
+.postComposer {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  .composerTop {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+
+    .avatarMini {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    textarea {
+      flex-grow: 1;
+      border: none;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      color: vars.$dark-text;
+      min-height: 50px;
+      resize: vertical;
+      outline: none;
+      font-family: inherit;
+      transition: background 0.2s;
+
+      &:focus {
+        background: #f1f5f9;
+      }
+    }
+  }
+
+  .composerAttachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 0 16px;
+
+    .attachedFileItem {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: vars.$dark-text;
+
+      button {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 2px;
+        font-weight: bold;
+        &:hover {
+          color: #ef4444;
+        }
+      }
+    }
+
+    .attachedImageItem {
+      position: relative;
+      width: 80px;
+      height: 60px;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #e2e8f0;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      button {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 16px;
+        height: 16px;
+        font-size: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        &:hover {
+          background: rgba(239, 68, 68, 0.9);
+        }
+      }
+    }
+  }
+
+  .composerBottom {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 16px;
+
+    // Custom type chips (thay thế select)
+    .typeChips {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+
+      .typeChip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        border-radius: 99px;
+        border: 1.5px solid #e2e8f0;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.15s;
+        font-family: inherit;
+
+        &:hover {
+          border-color: #cbd5e1;
+          color: vars.$dark-text;
+          background: #f1f5f9;
+        }
+
+        // Thông báo (cam)
+        &.typeChipActive {
+          background: rgba(254, 103, 71, 0.08);
+          border-color: #FE6747;
+          color: #FE6747;
+        }
+
+        // Nhắc nhở (vàng)
+        &.typeChipActiveReminder {
+          background: rgba(245, 158, 11, 0.08);
+          border-color: #F59E0B;
+          color: #D97706;
+        }
+
+        // Tài liệu (xanh)
+        &.typeChipActiveMaterial {
+          background: rgba(59, 130, 246, 0.08);
+          border-color: #3B82F6;
+          color: #2563EB;
+        }
+      }
+    }
+
+    // Actions row: tệp đính kèm + nút đăng
+    .composerActions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      .toolBtn {
+        background: none;
+        border: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #64748b;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 6px 12px;
+        border-radius: 8px;
+        transition: 0.2s;
+        font-family: inherit;
+
+        &:hover {
+          background: #f1f5f9;
+          color: vars.$dark-text;
+        }
+      }
+    }
+
+    .postBtn {
+      padding: 8px 24px;
+      background: #FE6747;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(254, 103, 71, 0.15);
+      transition: 0.2s;
+      font-family: inherit;
+
+      &:hover {
+        background: #e0583b;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(254, 103, 71, 0.25);
+      }
+
+      &:disabled {
+        background: #cbd5e1;
+        color: #94a3b8;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+  }
+
+  // Nút xóa file đính kèm
+  .removeAttachBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 2px 4px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    transition: 0.15s;
+
+    &:hover {
+      color: #ef4444;
+      background: #fef2f2;
+    }
+  }
+}
+
+/* FILTER BAR CHIPS */
+.filterBar {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+
+  &::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .filterChip {
+    padding: 8px 18px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: 0.2s;
+    font-family: inherit;
+
+    &:hover {
+      background: #f8fafc;
+      color: vars.$dark-text;
+    }
+
+    &.active {
+      background: #10B981; // Màu Xanh Lá như ảnh mẫu
+      border-color: #10B981;
+      color: white;
+      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+    }
+  }
+}
+
+/* FEED LIST & ANNOUNCEMENT CARD */
+.feedList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.announcementCard {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+
+  .cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+
+    .authorInfo {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+
+      .authorAvatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .authorMeta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .authorName {
+          font-size: 0.9rem;
+          color: vars.$dark-text;
+
+          strong {
+            font-weight: 700;
+          }
+        }
+
+        .timeMeta {
+          font-size: 0.75rem;
+          color: vars.$text-sub;
+        }
+      }
+    }
+
+    .headerActions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .deletePostBtn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+
+        &:hover {
+          background: #fef2f2;
+          color: #ef4444;
+        }
+      }
+
+      .moreBtn {
+        background: none;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: 0.2s;
+
+        &:hover {
+          background: #f1f5f9;
+          color: vars.$dark-text;
+        }
+      }
+    }
+  }
+
+  .cardContent {
+    p {
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #1e293b;
+      margin: 0;
+      white-space: pre-wrap;
+    }
+  }
+
+  /* File list đính kèm */
+  .filesGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .fileAttachmentCard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fdf2f0; // Nền hồng nhạt/cam nhẹ
+    border: 1px solid rgba(254, 103, 71, 0.08);
+    border-radius: 12px;
+    padding: 16px;
+    transition: 0.2s;
+
+    &:hover {
+      border-color: rgba(254, 103, 71, 0.2);
+      background: #fcece9;
+    }
+
+    .fileLeft {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+
+      .pdfIconWrapper {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: white;
+        border: 1px solid #fcece9;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .fileMeta {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        text-align: left;
+
+        .fileName {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: vars.$dark-text;
+        }
+
+        .fileSize {
+          font-size: 0.75rem;
+          color: vars.$text-sub;
+        }
+      }
+    }
+
+    .downloadBtn {
+      background: none;
+      border: none;
+      color: #cbd5e1;
+      padding: 8px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.2s;
+
+      &:hover {
+        background: white;
+        color: vars.$primary;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      }
+    }
+  }
+
+  /* Ảnh đính kèm */
+  .imagesGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    border-radius: 12px;
+    overflow: hidden;
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+
+    .imageCard {
+      height: 240px;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid #f1f5f9;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s;
+
+        &:hover {
+          transform: scale(1.02);
+        }
+      }
+    }
+  }
+
+  /* Nút phản hồi dưới bài viết (Like, Comment, Share) */
+  .cardFooterActions {
+    display: flex;
+    gap: 24px;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 12px 4px;
+    margin-top: 8px;
+
+    .actionBtn {
+      background: none;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #64748b;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 8px;
+      transition: 0.2s;
+
+      &:hover {
+        background: #f8fafc;
+        color: vars.$dark-text;
+      }
+    }
+  }
+
+  /* KHU VỰC BÌNH LUẬN */
+  .commentsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 8px;
+
+    .commentsList {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .commentItem {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+
+      .commentAvatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .commentContentWrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex-grow: 1;
+
+        .commentBubble {
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 10px 16px;
+          text-align: left;
+          width: fit-content;
+          max-width: 100%;
+
+          .commentAuthor {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #3b82f6; // Màu Xanh như bình luận học sinh
+            margin-bottom: 2px;
+          }
+
+          .commentText {
+            font-size: 0.85rem;
+            color: vars.$dark-text;
+            margin: 0;
+            line-height: 1.4;
+          }
+        }
+
+        .commentMeta {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.75rem;
+          color: #94a3b8;
+          padding-left: 8px;
+
+          .commentAction {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0;
+
+            &:hover {
+              color: vars.$dark-text;
+              text-decoration: underline;
+            }
+          }
+
+          .commentTime {
+            color: #94a3b8;
+          }
+
+          .bullet {
+            color: #cbd5e1;
+          }
+        }
+      }
+    }
+
+    /* Khung nhập phản hồi nhanh */
+    .quickReplyForm {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-top: 8px;
+
+      .replyAvatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .replyInputWrapper {
+        flex-grow: 1;
+        background: #f8fafc;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        padding: 4px 6px 4px 16px;
+        border: 1px solid #f1f5f9;
+        transition: 0.2s;
+
+        &:focus-within {
+          border-color: #cbd5e1;
+          background: white;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        input {
+          flex-grow: 1;
+          border: none;
+          background: transparent;
+          font-size: 0.85rem;
+          color: vars.$dark-text;
+          outline: none;
+          padding: 6px 0;
+          font-family: inherit;
+        }
+
+        .sendReplyBtn {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s;
+
+          &:hover {
+            background: #2563eb;
+            transform: scale(1.05);
+          }
+
+          &:disabled {
+            background: #e2e8f0;
+            color: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+          }
+        }
+      }
+    }
+  }
+
+  .emptyFeed {
+    background: white;
+    border-radius: 16px;
+    padding: 48px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    text-align: center;
+    color: vars.$text-sub;
+  }
+}
+
+// 4. QUIZZES STYLES
+.quizzesTab {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.quizzesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0;
+  }
+}
+
+.btnPrimary {
+  padding: 10px 20px;
+  background: #10B981;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: inherit;
+
+  &:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.25);
+  }
+}
+
+.btnDanger {
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+
+  &:hover {
+    background: #dc2626;
+  }
+}
+
+.quizGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.quizCard {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  text-align: left;
+  transition: all 0.25s;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+    border-color: rgba(16, 185, 129, 0.2);
+  }
+}
+
+.quizCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  h4 {
+    font-size: 1.05rem;
+    font-weight: 750;
+    color: vars.$dark-text;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.quizCardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: vars.$text-sub;
+  margin-top: 8px;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quizCardActions {
+  display: flex;
+  gap: 12px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+
+  button {
+    flex: 1;
+    padding: 8px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+}
+
+.btnViewSubmissions {
+  background: #f1f5f9;
+  color: vars.$dark-text;
+  border: 1.5px solid #e2e8f0;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+/* SUBMISSIONS TABLE VIEW */
+.submissionsView {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 24px;
+  text-align: left;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.submissionsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+
+  .backBtn {
+    background: none;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+    font-family: inherit;
+
+    &:hover {
+      color: vars.$dark-text;
+    }
+  }
+
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0;
+  }
+}
+
+.submissionsTableWrapper {
+  overflow-x: auto;
+}
+
+.submissionsTable {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+
+  th, td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  th {
+    font-weight: 700;
+    color: #475569;
+    background: #f8fafc;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+  }
+
+  tbody tr {
+    transition: background 0.15s;
+
+    &:hover {
+      background: #f8fafc;
+    }
+  }
+}
+
+.studentCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .studentAvatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .studentInfo {
+    display: flex;
+    flex-direction: column;
+
+    .studentName {
+      font-weight: 700;
+      color: vars.$dark-text;
+    }
+
+    .studentEmail {
+      font-size: 0.75rem;
+      color: vars.$text-sub;
+    }
+  }
+}
+
+.scoreBadge {
+  background: rgba(16, 185, 129, 0.08);
+  color: #10B981;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+
+  &.low {
+    background: rgba(239, 68, 68, 0.08);
+    color: #ef4444;
+  }
+
+  &.mid {
+    background: rgba(245, 158, 11, 0.08);
+    color: #d97706;
+  }
+}
+
+/* FORM CREATE QUIZ VIEW */
+.createQuizView {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 32px;
+  text-align: left;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+
+  h3 {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  input, select, textarea {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.15s;
+
+    &:focus {
+      border-color: #10B981;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+  }
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.questionsSection {
+  margin-top: 32px;
+  border-top: 1.5px dashed #e2e8f0;
+  padding-top: 24px;
+
+  h4 {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0 0 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.questionBuilderCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.questionHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+
+  span {
+    font-size: 0.85rem;
+    font-weight: 750;
+    color: #10B981;
+  }
+
+  .removeQBtn {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+
+    &:hover {
+      background: #fef2f2;
+      color: #ef4444;
+    }
+  }
+}
+
+.optionsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 16px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.optionInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 4px 10px;
+  transition: all 0.15s;
+
+  &:focus-within {
+    border-color: #10B981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+  }
+
+  .letterLabel {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #64748b;
+    font-weight: 700;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #cbd5e1;
+  }
+
+  input[type="text"] {
+    flex-grow: 1;
+    border: none;
+    padding: 8px 0;
+    font-size: 0.85rem;
+
+    &:focus {
+      border: none;
+      box-shadow: none;
+    }
+  }
+
+  input[type="radio"] {
+    accent-color: #10B981;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+  }
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 32px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 24px;
+
+  button {
+    padding: 10px 24px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .btnCancel {
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    color: vars.$dark-text;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+  }
+
+  .btnSave {
+    background: #10B981;
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+
+    &:hover {
+      background: #059669;
+    }
+
+    &:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+  }
+}
+
+// 3. KEYFRAMES
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

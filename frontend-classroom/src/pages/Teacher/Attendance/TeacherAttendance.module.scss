@@ -1,0 +1,567 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.attendanceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: vars.$font-main;
+  color: #1e293b;
+}
+
+/* ─── FILTER SECTION ─────────────────────────────── */
+.filterSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .filtersLeft {
+    display: flex;
+    align-items: flex-end;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .dropdownTriggerBtn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      color: #0f172a;
+      background: white;
+      outline: none;
+      min-width: 220px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 170px;
+      }
+
+      &:focus, &[data-state="open"] {
+        border-color: vars.$primary;
+        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+      }
+
+      svg {
+        color: #64748b;
+        margin-left: 8px;
+        transition: transform 0.2s;
+      }
+
+      &[data-state="open"] svg {
+        transform: rotate(180deg);
+      }
+    }
+
+    .selectSkeleton {
+      width: 200px;
+      height: 42px;
+      background: #f1f5f9;
+      border-radius: 10px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .dateInputWrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+
+      .dateIcon {
+        position: absolute;
+        left: 12px;
+        color: #94a3b8;
+        pointer-events: none;
+      }
+
+      .dateInput {
+        padding: 10px 14px 10px 36px;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 0.875rem;
+        color: #0f172a;
+        background: white;
+        outline: none;
+        font-family: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition: border-color 0.2s;
+
+        &:focus {
+          border-color: vars.$primary;
+          box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+        }
+      }
+    }
+  }
+
+  .statsGroup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 20px;
+    margin-bottom: 0;
+
+    .statDivider {
+      width: 1px;
+      height: 32px;
+      background: #e2e8f0;
+    }
+
+    .statItem {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+
+      .statNum {
+        font-size: 1.25rem;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .statLabel {
+        font-size: 0.65rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
+  .filtersRight {
+    .btnSave {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 22px;
+      background: vars.$primary;
+      border: none;
+      color: white;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(254, 103, 71, 0.25);
+
+      &:hover:not(:disabled) {
+        background: #e0583b;
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(254, 103, 71, 0.35);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .spinning {
+        animation: spin 0.8s linear infinite;
+      }
+    }
+  }
+}
+
+/* ─── CLASS INFO BAR ──────────────────────────────── */
+.classInfoBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, rgba(254, 103, 71, 0.06) 0%, rgba(254, 103, 71, 0.02) 100%);
+  border: 1.5px solid rgba(254, 103, 71, 0.15);
+  border-radius: 12px;
+  padding: 12px 20px;
+
+  .classInfoLeft {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .classInfoIcon {
+      width: 38px;
+      height: 38px;
+      background: rgba(254, 103, 71, 0.1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: vars.$primary;
+    }
+
+    strong {
+      display: block;
+      font-size: 0.925rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .subjectBadge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: vars.$primary;
+      background: rgba(254, 103, 71, 0.1);
+      padding: 2px 10px;
+      border-radius: 99px;
+      margin-left: 8px;
+    }
+  }
+
+  .classInfoCode {
+    font-size: 0.8rem;
+    color: #64748b;
+
+    strong {
+      font-family: vars.$font-mono;
+      color: #1e293b;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+/* ─── TABLE SECTION ───────────────────────────────── */
+.tableSection {
+  background: white;
+  border-radius: 16px;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+
+  .attendanceTable {
+    width: 100%;
+    border-collapse: collapse;
+
+    th {
+      padding: 14px 20px;
+      text-align: left;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #64748b;
+      background: #f8fafc;
+      border-bottom: 1.5px solid #e2e8f0;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    td {
+      padding: 14px 20px;
+      border-bottom: 1px solid #f1f5f9;
+      vertical-align: middle;
+    }
+
+    tbody tr {
+      transition: background 0.15s;
+
+      &:hover {
+        background: #fafafa;
+      }
+
+      &:last-child td {
+        border-bottom: none;
+      }
+
+      // Row highlight theo trạng thái
+      &.row_absent td:first-child {
+        border-left: 3px solid #f87171;
+      }
+      &.row_late td:first-child {
+        border-left: 3px solid #fbbf24;
+      }
+      &.row_present td:first-child {
+        border-left: 3px solid #34d399;
+      }
+    }
+
+    .colIdx {
+      width: 48px;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-weight: 600;
+      text-align: left;
+    }
+
+    .colName {
+      .studentInfo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .avatarInitials {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 800;
+          font-size: 0.8rem;
+          flex-shrink: 0;
+        }
+
+        .studentName {
+          display: block;
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: #1e293b;
+        }
+
+        .studentEmail {
+          display: block;
+          font-size: 0.75rem;
+          color: #94a3b8;
+          margin-top: 2px;
+        }
+      }
+    }
+
+    .colStatus {
+      .statusButtons {
+        display: inline-flex;
+        background: #f1f5f9;
+        padding: 4px;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        gap: 4px;
+
+        .statusBtn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          border-radius: 9px;
+          border: none;
+          background: transparent;
+          color: #64748b;
+          font-size: 0.8rem;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+          white-space: nowrap;
+          flex-shrink: 0;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+          &:hover {
+            color: #1e293b;
+            background: rgba(255, 255, 255, 0.5);
+          }
+
+          &.activePresent {
+            background: white;
+            color: #059669;
+            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.12), 0 1px 3px rgba(5, 150, 105, 0.08);
+            font-weight: 700;
+          }
+
+          &.activeLate {
+            background: white;
+            color: #d97706;
+            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12), 0 1px 3px rgba(217, 119, 6, 0.08);
+            font-weight: 700;
+          }
+
+          &.activeAbsent {
+            background: white;
+            color: #dc2626;
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12), 0 1px 3px rgba(220, 38, 38, 0.08);
+            font-weight: 700;
+          }
+        }
+      }
+    }
+
+    .colNote {
+      .noteBtn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: transparent;
+        border: 1.5px solid transparent;
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-family: inherit;
+        transition: all 0.15s;
+
+        &:hover {
+          background: #f8fafc;
+          border-color: #e2e8f0;
+        }
+
+        .noteText {
+          font-size: 0.8rem;
+          color: #475569;
+          font-style: italic;
+        }
+
+        .notePlaceholder {
+          font-size: 0.8rem;
+          color: #cbd5e1;
+        }
+      }
+
+      .noteInput {
+        width: 100%;
+        padding: 7px 10px;
+        border: 1.5px solid vars.$primary;
+        border-radius: 8px;
+        font-size: 0.8rem;
+        font-family: inherit;
+        outline: none;
+        color: #1e293b;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+      }
+    }
+  }
+}
+
+/* ─── LOADING SKELETON ────────────────────────────── */
+.skeletonWrapper {
+  padding: 8px 0;
+
+  .skeletonRow {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .skelAvatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: #f1f5f9;
+      animation: pulse 1.5s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .skelLines {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .skelLine {
+      height: 14px;
+      background: #f1f5f9;
+      border-radius: 6px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    .skelButtons {
+      display: flex;
+      gap: 8px;
+
+      .skelBtn {
+        width: 80px;
+        height: 34px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+    }
+  }
+}
+
+/* ─── EMPTY STATE ─────────────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 12px;
+
+  p {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #475569;
+    margin: 0;
+  }
+
+  span {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    text-align: center;
+    max-width: 320px;
+  }
+}
+
+/* ─── FOOTER ──────────────────────────────────────── */
+.footerSection {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+
+  .legend {
+    display: flex;
+    gap: 20px;
+
+    .legendItem {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 500;
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+    }
+  }
+
+  .lastUpdate {
+    font-size: 0.78rem;
+    color: #94a3b8;
+  }
+}
+
+/* ─── ANIMATIONS ──────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

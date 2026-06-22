@@ -1,0 +1,18 @@
+# Chặn tất cả thư mục node_modules ở mọi cấp độ
+node_modules/
+**/node_modules/
+
+# Chặn tất cả các file cấu hình môi trường bảo mật
+.env
+.env.local
+**/.env
+**/.env.local
+
+# Chặn thư mục build sản phẩm
+dist/
+**/dist/
+
+# Các file rác hệ thống và cấu hình của IDE
+.DS_Store
+.vscode/
+*.log

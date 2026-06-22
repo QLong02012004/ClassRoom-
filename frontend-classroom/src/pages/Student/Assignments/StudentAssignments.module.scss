@@ -1,0 +1,259 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 1000px;
+  margin: 0 auto;
+  font-family: vars.$font-main;
+}
+
+/* --- HEADER --- */
+.pageHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+
+  h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0 0 4px 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: vars.$text-sub;
+    margin: 0;
+  }
+}
+
+.headerStats {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+}
+
+.iconWarning {
+  color: #f59e0b;
+}
+.iconSuccess {
+  color: #10B981;
+}
+
+/* --- SECTION TITLE --- */
+.sectionTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: vars.$dark-text;
+  margin: 0 0 14px 0;
+}
+
+/* --- ASSIGNMENT LIST --- */
+.assignmentList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.assignCard {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: vars.$transition-normal;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+    border-color: rgba(0, 0, 0, 0.08);
+
+    .arrow {
+      transform: translateX(3px);
+    }
+  }
+
+  &.lateCard {
+    border-left: 3px solid #EF4444;
+    background: #fffafa;
+  }
+
+  &.doneCard {
+    opacity: 0.85;
+  }
+}
+
+/* --- SUBJECT ICON --- */
+.subjectIcon {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+
+  &.math {
+    background: linear-gradient(135deg, #0f766e, #14b8a6);
+  }
+  &.chemistry {
+    background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+  }
+  &.literature {
+    background: linear-gradient(135deg, #334155, #64748b);
+  }
+  &.default {
+    background: linear-gradient(135deg, vars.$primary, #ff8c5a);
+  }
+}
+
+/* --- CARD INFO --- */
+.cardInfo {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.classTag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: vars.$text-sub;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.cardTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+  margin: 4px 0 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: vars.$text-sub;
+
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.timeBadge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+
+  &.urgent {
+    background: rgba(239, 68, 68, 0.08);
+    color: #EF4444;
+  }
+
+  &.overdue {
+    background: rgba(239, 68, 68, 0.08);
+    color: #EF4444;
+  }
+}
+
+.gradeBadge {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.08);
+  color: #10B981;
+}
+
+/* --- CARD ACTION --- */
+.cardAction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+  &.pending {
+    background: #f59e0b;
+  }
+  &.late {
+    background: #EF4444;
+  }
+  &.submitted {
+    background: #10B981;
+  }
+  &.graded {
+    background: #3B82F6;
+  }
+}
+
+.statusText {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: vars.$text-sub;
+  white-space: nowrap;
+}
+
+.arrow {
+  color: #94a3b8;
+  transition: transform 0.2s ease;
+}
+
+/* --- EMPTY STATE --- */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  text-align: center;
+
+  h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: vars.$dark-text;
+    margin: 0;
+  }
+
+  p {
+    font-size: 0.875rem;
+    color: vars.$text-sub;
+    margin: 0;
+  }
+}
+
+.emptyIcon {
+  color: #cbd5e1;
+}

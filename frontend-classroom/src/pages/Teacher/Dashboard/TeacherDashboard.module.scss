@@ -1,0 +1,550 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+  font-family: vars.$font-main;
+}
+
+/* --- STAT CARDS SECTION --- */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.statCard {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  transition: vars.$transition-normal;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .statIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+
+    &.orangeBg {
+      background: rgba(254, 103, 71, 0.08);
+      color: vars.$primary;
+    }
+
+    &.greenBg {
+      background: rgba(16, 185, 129, 0.08);
+      color: #10B981;
+    }
+
+    &.blueBg {
+      background: rgba(59, 130, 246, 0.08);
+      color: #3B82F6;
+    }
+
+    &.redBg {
+      background: rgba(239, 68, 68, 0.08);
+      color: #EF4444;
+    }
+  }
+
+  .statInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+
+    .statLabel {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: vars.$text-sub;
+    }
+
+    .statValue {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: vars.$dark-text;
+      line-height: 1;
+    }
+  }
+}
+
+/* --- MIDDLE GRID SECTION (CHARTS & FEED) --- */
+.middleGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboardCard {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  display: flex;
+  flex-direction: column;
+  min-height: 380px;
+
+  .cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+
+    .headerText {
+      text-align: left;
+
+      h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: vars.$dark-text;
+        margin: 0 0 4px 0;
+      }
+
+      p {
+        font-size: 0.8rem;
+        color: vars.$text-sub;
+        margin: 0;
+      }
+    }
+
+    .dropdownSelect {
+      background: #f1f5f9;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: vars.$dark-text;
+      outline: none;
+      cursor: pointer;
+      font-family: inherit;
+      transition: vars.$transition-fast;
+
+      &:hover {
+        background: #e2e8f0;
+      }
+    }
+  }
+}
+
+/* --- SCORE DISTRIBUTION CHART --- */
+.barChartContainer {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.barChart {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-end;
+  height: 200px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+  position: relative;
+}
+
+.barItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 70px;
+  position: relative;
+
+  .barValue {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: vars.$text-sub;
+    margin-bottom: 8px;
+  }
+
+  .barColumnWrap {
+    width: 32px;
+    height: 140px;
+    background: #f8fafc;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+  }
+
+  .barColumn {
+    width: 100%;
+    border-radius: 16px 16px 0 0;
+    transition: height 1s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &.gioi {
+      background: linear-gradient(to top, rgba(16, 185, 129, 0.4), rgba(16, 185, 129, 0.85));
+    }
+    
+    &.kha {
+      background: linear-gradient(to top, rgba(59, 130, 246, 0.4), rgba(59, 130, 246, 0.85));
+    }
+    
+    &.trungbinh {
+      background: linear-gradient(to top, rgba(239, 68, 68, 0.4), rgba(239, 68, 68, 0.85));
+    }
+
+    &:hover {
+      filter: brightness(1.05);
+    }
+  }
+
+  .barLabel {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: vars.$dark-text;
+    margin-top: 12px;
+  }
+}
+
+.chartDetails {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-top: 20px;
+
+  .detailItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .label {
+      font-size: 0.8rem;
+      color: vars.$text-sub;
+      font-weight: 500;
+    }
+
+    .count {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: vars.$dark-text;
+      margin-top: 2px;
+    }
+  }
+}
+
+/* --- RECENT ACTIVITY LIST --- */
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-grow: 1;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f8fafc;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .activityAvatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .activityInfo {
+    flex-grow: 1;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    .activityDesc {
+      font-size: 0.8rem;
+      color: vars.$dark-text;
+      line-height: 1.4;
+
+      strong {
+        font-weight: 700;
+      }
+
+      .subjectTag {
+        color: vars.$primary;
+        font-weight: 600;
+      }
+    }
+
+    .activityTime {
+      font-size: 0.7rem;
+      color: vars.$text-sub;
+    }
+  }
+
+  .activityIndicator {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+
+    &.orange {
+      background: rgba(254, 103, 71, 0.1);
+      color: vars.$primary;
+    }
+
+    &.green {
+      background: rgba(16, 185, 129, 0.1);
+      color: #10B981;
+    }
+
+    &.blue {
+      background: rgba(59, 130, 246, 0.1);
+      color: #3B82F6;
+    }
+  }
+}
+
+.viewAllBtn {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: none;
+  color: vars.$primary;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 16px;
+  transition: vars.$transition-fast;
+
+  &:hover {
+    color: #e0583b;
+    text-decoration: underline;
+  }
+}
+
+/* --- ATTENDANCE TREND CHART (BOTTOM) --- */
+.bottomCard {
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  text-align: left;
+
+  .cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .headerText {
+      h3 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: vars.$dark-text;
+        margin: 0 0 4px 0;
+      }
+
+      p {
+        font-size: 0.8rem;
+        color: vars.$text-sub;
+        margin: 0;
+      }
+    }
+
+    .trendLegend {
+      display: flex;
+      gap: 16px;
+
+      .legendItem {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: vars.$text-sub;
+        font-weight: 500;
+
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+        }
+      }
+    }
+  }
+
+  .trendChartContainer {
+    width: 100%;
+    height: 180px;
+    position: relative;
+    margin-top: 12px;
+  }
+
+  .chartSvg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .xAxis {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 20px;
+    margin-top: 12px;
+
+    span {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: vars.$text-sub;
+    }
+  }
+}
+
+/* --- POPUP MODAL (TẠO LỚP) --- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 12, 32, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 9999;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 16px;
+  padding: 28px;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+
+  h3 {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0 0 16px 0;
+  }
+
+  .formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: vars.$dark-text;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: vars.$transition-fast;
+      color: vars.$dark-text;
+      font-family: inherit;
+
+      &:focus {
+        border-color: vars.$primary;
+        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.12);
+      }
+    }
+  }
+
+  .modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+
+    button {
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: vars.$transition-fast;
+    }
+
+    .btnCancel {
+      background: #f1f5f9;
+      border: none;
+      color: vars.$text-sub;
+
+      &:hover {
+        background: #e2e8f0;
+        color: vars.$dark-text;
+      }
+    }
+
+    .btnConfirm {
+      background: vars.$primary;
+      border: none;
+      color: white;
+      box-shadow: 0 4px 10px rgba(254, 103, 71, 0.2);
+
+      &:hover {
+        background: #e0583b;
+        box-shadow: 0 6px 14px rgba(254, 103, 71, 0.3);
+      }
+    }
+  }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

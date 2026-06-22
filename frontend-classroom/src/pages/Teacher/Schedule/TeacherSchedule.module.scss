@@ -1,0 +1,654 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+/* ═══════════════════════════════════════
+   TEACHER SCHEDULE – Layout & Styles
+   ═══════════════════════════════════════ */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 64px);
+  font-family: vars.$font-main;
+  color: #1e293b;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+}
+
+/* ── CỘT CHÍNH (MAIN SCHEDULE) ── */
+.mainContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pageTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.pageSubtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 6px 0 0;
+  font-weight: 500;
+}
+
+.viewToggle {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.viewBtn {
+  padding: 8px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    color: #1e293b;
+  }
+}
+
+.activeView {
+  background: #fff;
+  color: #ef4444; 
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.calendarCard {
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.calendarHeader {
+  display: grid;
+  grid-template-columns: 80px repeat(5, 1fr);
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.timeColumnHeader, .dayColumnHeader {
+  padding: 16px 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeColumnHeader {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  border-right: 1px solid #e2e8f0;
+}
+
+.dayColumnHeader {
+  border-right: 1px solid #e2e8f0;
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.todayHeader {
+  background: #f0fdf4; 
+  .dayText, .dateText {
+    color: #ef4444;
+  }
+}
+
+.dayText {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.dateText {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.calendarBody {
+  display: flex;
+  background: #fff;
+  height: 1200px; /* Tổng chiều cao: 15 tiếng * 80px */
+  overflow-y: auto;
+}
+
+.timeLabelsColumn {
+  width: 80px;
+  flex-shrink: 0;
+  border-right: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.timeLabel {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  position: relative;
+}
+
+.daysColumnsGrid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  position: relative;
+}
+
+.gridLinesAbsolute {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.gridLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #f1f5f9;
+}
+
+.dayColumn {
+  position: relative;
+  border-right: 1px solid #f1f5f9;
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.todayColBg {
+  background: #f0fdf420; /* Rất nhạt cho cột hôm nay */
+}
+
+.lessonCardAbsolute {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  border-radius: 8px;
+  padding: 8px 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+  z-index: 2;
+
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    z-index: 3;
+  }
+}
+
+.lessonOngoing {
+  background: #2a2d3a;
+  border-left-color: #ef4444;
+  color: #fff;
+
+  .lessonTime { color: #94a3b8; }
+  .lessonTitle { color: #fff; }
+  .lessonRoom { color: #cbd5e1; }
+}
+
+.lessonTime {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.lessonTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.lessonRoom {
+  font-size: 11px;
+  color: #475569;
+}
+
+/* ── THANH CÔNG CỤ (RIGHT SIDEBAR) ── */
+.rightSidebar {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  @media (min-width: 1024px) {
+    width: 320px;
+    flex-shrink: 0;
+  }
+}
+
+/* Khối Đang Diễn Ra */
+.ongoingCard {
+  background: #2a2d3a;
+  border-radius: 20px;
+  padding: 24px;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(42, 45, 58, 0.15);
+}
+
+.ongoingHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ongoingBadge {
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.ongoingTime {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.ongoingClass {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: #fff;
+  line-height: 1.3;
+}
+
+.ongoingChapter {
+  font-size: 13px;
+  color: #94a3b8;
+  margin: 0 0 24px;
+}
+
+.progressSection {
+  margin-bottom: 24px;
+}
+
+.progressLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #cbd5e1;
+  margin-bottom: 8px;
+}
+
+.progressBarBg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: #ef4444;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.ongoingActions {
+  display: flex;
+  gap: 12px;
+}
+
+.actionBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Các Card Chung */
+.todayScheduleCard, .filterCard {
+  background: #fff;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+
+  h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+}
+
+.countBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.noDataText {
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
+  padding: 10px 0;
+}
+
+/* Timeline */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 16px;
+}
+
+.timelineItem {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 24px;
+
+  &:last-child {
+    padding-bottom: 0;
+    &::after {
+      display: none;
+    }
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: 4px;
+    top: 14px;
+    bottom: -10px;
+    width: 2px;
+    background: #e2e8f0;
+  }
+}
+
+.timelineDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  position: relative;
+  top: 4px;
+  z-index: 1;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.dot_green { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); }
+.dot_red { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
+.dot_blue { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+
+.timelineContent {
+  flex: 1;
+}
+
+.timeText {
+  font-size: 12px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.classTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 6px;
+}
+
+.statusBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.badge_green { background: #dcfce7; color: #16a34a; }
+.badge_red { background: #fee2e2; color: #ef4444; }
+.badge_blue { background: #dbeafe; color: #2563eb; }
+
+.viewMoreBtn {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #ef4444;
+  background: #fff;
+  color: #ef4444;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #fef2f2;
+  }
+}
+
+/* Filter Chips */
+.filterChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filterChip {
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+.activeChip {
+  background: #9f4728;
+  color: #fff;
+
+  &:hover {
+    background: #8a3a1f;
+  }
+}
+
+.btnAddSchedule {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #059669;
+  color: white;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #047857;
+  }
+}
+
+/* MODAL */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: white;
+  width: 90%;
+  max-width: 750px;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 16px 0;
+  }
+}
+
+.formGroup {
+  margin-bottom: 16px;
+
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+
+    &:focus {
+      border-color: #ef4444;
+    }
+  }
+}
+
+.formRow {
+  display: flex;
+  gap: 12px;
+  
+  .formGroup {
+    flex: 1;
+  }
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.btnCancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+.btnConfirm {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #dc2626;
+  }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

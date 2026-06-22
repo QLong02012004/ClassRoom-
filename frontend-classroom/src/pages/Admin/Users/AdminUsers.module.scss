@@ -1,0 +1,255 @@
+@use "../../../components/Styles/variables.module" as vars;
+@use "sass:color";
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  padding: 24px;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+}
+
+
+.headerText {
+  h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0 0 8px 0;
+  }
+
+  p {
+    color: #64748b;
+    margin: 0;
+    font-size: 0.95rem;
+  }
+}
+
+.btnCreateHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: vars.$primary;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(vars.$primary, 0.2);
+
+  &:hover {
+    background: color.adjust(vars.$primary, $lightness: -5%);
+    transform: translateY(-2px);
+  }
+}
+
+.teachersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.teacherCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+  }
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.iconBox {
+  width: 48px;
+  height: 48px;
+  background: #f1f5f9;
+  color: #3b82f6;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roleTag {
+  background: #dbeafe;
+  color: #1d4ed8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.cardMiddle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.teacherName {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+  margin: 0;
+}
+
+.infoRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 0.9rem;
+
+  strong {
+    color: vars.$dark-text;
+  }
+}
+
+.cardFooter {
+  margin-top: auto;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btnManage {
+  background: white;
+  color: vars.$primary;
+  border: 1px solid vars.$primary;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: 0.2s;
+
+  &:hover {
+    background: vars.$primary;
+    color: white;
+  }
+}
+
+/* MODAL */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modalContent {
+  background: white;
+  width: 90%;
+  max-width: 450px;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+
+  h3 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0 0 24px 0;
+    text-align: center;
+  }
+}
+
+.formGroup {
+  margin-bottom: 20px;
+
+  label {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 8px;
+  }
+
+  input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: 0.2s;
+    font-family: inherit;
+
+    &:focus {
+      outline: none;
+      border-color: vars.$primary;
+      box-shadow: 0 0 0 3px rgba(vars.$primary, 0.1);
+    }
+  }
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+.btnCancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+}
+
+.btnConfirm {
+  background: vars.$primary;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+
+  &:hover {
+    background: color.adjust(vars.$primary, $lightness: -5%);
+  }
+}
+
+.add {
+  color: #FE6747 !important;
+  /* Test color */
+}
