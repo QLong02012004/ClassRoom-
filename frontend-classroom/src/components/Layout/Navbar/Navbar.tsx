@@ -1,5 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Avatar,
+  Badge,
+  Button
+} from "@heroui/react";
+import {
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+  NavbarMenuToggle,
+  NavbarMenu,
+  NavbarMenuItem,
+} from "@heroui/navbar";
 import {
   SquaresFour,
   Chalkboard,
@@ -8,246 +22,263 @@ import {
   ClipboardText,
   User,
   SignOut,
-  List,
-  X,
+  Bell,
+  Gear,
   CalendarBlank,
-  Gear
+  BookOpen
 } from "phosphor-react";
 import { useAuth } from "../../../context/AuthContext";
-import styles from "./Navbar.module.scss";
+import { notificationService, type INotificationItem } from "../../../service/notification.service";
 
 const NavBar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const { user, isAuthenticated, logout } = useAuth();
+  const [notifications, setNotifications] = useState<INotificationItem[]>([]);
 
   const username = user?.name || "Người dùng";
   const userRole = user?.role || "teacher";
-  const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=FE6747&color=fff&bold=true`;
+  const userAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=FE6747&color=fff&bold=true`;
 
   const roleDisplay =
     userRole === "admin" ? "Quản trị viên" :
-    userRole === "teacher" ? "Giáo viên" : "Học sinh";
+      userRole === "teacher" ? "Giáo viên" : "Học sinh";
 
   const isActive = (path: string) => location.pathname === path;
 
-  const handleLogOut = async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleLogOut = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     await logout();
     navigate("/login");
   };
 
+  const fetchNotifications = async () => {
+    try {
+      if (userRole === "admin") {
+        const res = await notificationService.getNotifications();
+        if (res.data) setNotifications(res.data);
+      }
+    } catch (error) {
+      console.error("Lỗi lấy thông báo:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
+  }, [userRole]);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const getNavLinks = () => {
+    const commonLinks = [
+      { name: "Bảng điều khiển", path: "/dashboard", icon: <SquaresFour size={20} weight={isActive("/dashboard") ? "fill" : "regular"} /> }
+    ];
+
+    if (userRole === "student") {
+      return [
+        ...commonLinks,
+        { name: "Lớp học", path: "/classrooms", icon: <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} /> },
+        { name: "Điểm số", path: "/gradebook", icon: <GraduationCap size={20} weight={isActive("/gradebook") ? "fill" : "regular"} /> },
+        { name: "Bài tập", path: "/assignments", icon: <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} /> },
+      ];
+    } else if (userRole === "admin") {
+      return [
+        ...commonLinks,
+        { name: "Người dùng", path: "/admin/users", icon: <User size={20} weight={isActive("/admin/users") ? "fill" : "regular"} /> },
+        { name: "Lớp học hệ thống", path: "/admin/classrooms", icon: <Chalkboard size={20} weight={isActive("/admin/classrooms") ? "fill" : "regular"} /> },
+      ];
+    } else {
+      return [
+        ...commonLinks,
+        { name: "Lớp học", path: "/classrooms", icon: <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} /> },
+        { name: "Điểm danh", path: "/attendance", icon: <CalendarCheck size={20} weight={isActive("/attendance") ? "fill" : "regular"} /> },
+        { name: "Sổ điểm", path: "/gradebook", icon: <GraduationCap size={20} weight={isActive("/gradebook") ? "fill" : "regular"} /> },
+        { name: "Bài tập", path: "/assignments", icon: <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} /> },
+        { name: "Lịch dạy", path: "/schedule", icon: <CalendarBlank size={20} weight={isActive("/schedule") ? "fill" : "regular"} /> },
+      ];
+    }
+  };
+
+  const navLinks = getNavLinks();
+
   return (
-    <>
-      {/* Mobile Top Header (Hiển thị trên di động) */}
-      <header className={styles.mobileHeader}>
-        <button 
-          className={styles.mobileMenuBtn} 
-          onClick={() => setIsMenuOpen(true)} 
-          aria-label="Mở menu"
-        >
-          <List size={24} weight="bold" />
-        </button>
-        
-        <Link to="/dashboard" className={styles.mobileLogo}>
-          <span className={styles.logoText}>Lớp học</span>
-        </Link>
+    <Navbar
+      isMenuOpen={isMenuOpen}
+      onMenuOpenChange={setIsMenuOpen}
+      maxWidth="full"
+      className="bg-white border-b border-slate-200"
+    >
+      <NavbarContent>
+        <NavbarMenuToggle
+          aria-label={isMenuOpen ? "Đóng menu" : "Mở menu"}
+          className="sm:hidden text-slate-700"
+        />
+        <NavbarBrand as={Link} to="/dashboard" className="gap-2 cursor-pointer max-w-fit">
+          <div className="bg-primary p-1.5 rounded-lg text-white">
+            <BookOpen size={24} weight="fill" />
+          </div>
+          <p className="font-bold text-xl text-slate-900 hidden sm:block">
+            Class<span className="text-primary">Room</span>
+          </p>
+        </NavbarBrand>
+      </NavbarContent>
+
+      <NavbarContent justify="end" className="gap-1 sm:gap-2">
+        {navLinks.map((link) => (
+          <NavbarItem key={link.path} isActive={isActive(link.path)} className="hidden sm:flex">
+            <Link
+              to={link.path}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${isActive(link.path)
+                ? "bg-primary/10 text-primary"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
+            >
+              {link.icon}
+              {link.name}
+            </Link>
+          </NavbarItem>
+        ))}
 
         {isAuthenticated ? (
-          <img src={avatar} alt="User Avatar" className={styles.mobileAvatar} />
+          <>
+            <NavbarItem>
+              <div className="relative" ref={notifRef}>
+                <div 
+                  className="p-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer relative overflow-visible flex items-center justify-center"
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                >
+                  {unreadCount > 0 ? (
+                    <Badge content={unreadCount > 99 ? "99+" : String(unreadCount)} color="danger" size="sm">
+                      <Bell size={22} weight="bold" className="text-slate-600" />
+                    </Badge>
+                  ) : (
+                    <Bell size={22} weight="bold" className="text-slate-600" />
+                  )}
+                </div>
+                {isNotifOpen && (
+                  <div className="absolute right-0 mt-2 w-[300px] bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50">
+                    <div className="px-4 py-2 font-semibold text-slate-800 border-b border-slate-100 mb-2">Thông báo</div>
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-3 text-center text-sm text-slate-500">
+                        Không có thông báo mới
+                      </div>
+                    ) : (
+                      <div className="flex flex-col max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                        {notifications.map((notif) => (
+                          <div key={notif._id} className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors">
+                            <span className="font-semibold text-sm block mb-1 text-slate-800">{notif.title}</span>
+                            <span className="text-xs text-slate-500 block">{notif.message}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </NavbarItem>
+
+            <NavbarItem>
+              <div className="relative" ref={profileRef}>
+                <div onClick={() => setIsProfileOpen(!isProfileOpen)}>
+                  <Avatar
+                    className="transition-transform cursor-pointer ring-2 ring-offset-2 ring-offset-white ring-slate-300"
+                    color="default"
+                    size="sm"
+                  >
+                    <Avatar.Image src={userAvatar} alt={username} />
+                    <Avatar.Fallback>{username ? username.charAt(0).toUpperCase() : "U"}</Avatar.Fallback>
+                  </Avatar>
+                </div>
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
+                    <div className="px-4 py-3 border-b border-slate-100 mb-1">
+                      <p className="font-semibold text-sm text-slate-800 truncate">{username}</p>
+                      <p className="text-xs text-slate-500 truncate">{roleDisplay}</p>
+                    </div>
+                    <Link 
+                      to="/profile" 
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors w-full"
+                      onClick={() => setIsProfileOpen(false)}
+                    >
+                      <User size={16} weight="bold" />
+                      <span>Hồ sơ cá nhân</span>
+                    </Link>
+                    <button
+                      className="flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-red-50 transition-colors w-full text-left"
+                      onClick={(e) => {
+                        setIsProfileOpen(false);
+                        handleLogOut(e);
+                      }}
+                    >
+                      <SignOut size={16} weight="bold" />
+                      <span>Đăng xuất</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </NavbarItem>
+          </>
         ) : (
-          <Link to="/login" className={styles.mobileLoginLink}>Đăng nhập</Link>
+          <NavbarItem>
+            <Button onPress={() => navigate("/login")} variant="primary">
+              Đăng nhập
+            </Button>
+          </NavbarItem>
         )}
-      </header>
+      </NavbarContent>
 
-      {/* Sidebar (Thanh điều hướng bên trái) */}
-      <aside className={`${styles.sidebar} ${isMenuOpen ? styles.open : ""}`}>
-        {/* Nút đóng Sidebar trên Mobile */}
-        <button 
-          className={styles.closeMenuBtn} 
-          onClick={() => setIsMenuOpen(false)} 
-          aria-label="Đóng menu"
-        >
-          <X size={20} weight="bold" />
-        </button>
-
-        {/* Logo Thương Hiệu */}
-        <div className={styles.logoContainer}>
-          <Link to="/dashboard" className={styles.logo} onClick={() => setIsMenuOpen(false)}>
-            <span className={styles.logoText}>
-              Quản lý<span className={styles.accentText}> Lớp học</span>
-            </span>
-          </Link>
-          <div className={styles.logoSubtitle}>
-            {userRole === "student" ? "Cổng thông tin học sinh" :
-             userRole === "admin" ? "Bảng quản trị hệ thống" : "Bảng điều khiển giáo viên"}
-          </div>
-        </div>
-
-        {/* Menu Điều Hướng */}
-        <nav className={styles.navLinks}>
-          <Link 
-            to="/dashboard" 
-            className={`${styles.navItem} ${isActive("/dashboard") ? styles.active : ""}`}
-            onClick={() => setIsMenuOpen(false)}
-          >
-            <SquaresFour size={20} weight={isActive("/dashboard") ? "fill" : "regular"} />
-            <span>Bảng điều khiển</span>
-          </Link>
-          
-          {userRole === "student" ? (
-            // Menu dành cho học sinh
-            <>
-              <Link 
-                to="/classrooms" 
-                className={`${styles.navItem} ${isActive("/classrooms") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} />
-                <span>Lớp học</span>
-              </Link>
-              <Link 
-                to="/gradebook" 
-                className={`${styles.navItem} ${isActive("/gradebook") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <GraduationCap size={20} weight={isActive("/gradebook") ? "fill" : "regular"} />
-                <span>Điểm số</span>
-              </Link>
-              <Link 
-                to="/assignments" 
-                className={`${styles.navItem} ${isActive("/assignments") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} />
-                <span>Bài tập</span>
-              </Link>
-              <Link 
-                to="/profile" 
-                className={`${styles.navItem} ${isActive("/profile") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <User size={20} weight={isActive("/profile") ? "fill" : "regular"} />
-                <span>Hồ sơ</span>
-              </Link>
-            </>
-          ) : userRole === "admin" ? (
-            // Menu dành cho Admin
-            <>
-              <Link 
-                to="/admin/users" 
-                className={`${styles.navItem} ${isActive("/admin/users") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <User size={20} weight={isActive("/admin/users") ? "fill" : "regular"} />
-                <span>Người dùng</span>
-              </Link>
-              <Link 
-                to="/admin/classrooms" 
-                className={`${styles.navItem} ${isActive("/admin/classrooms") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Chalkboard size={20} weight={isActive("/admin/classrooms") ? "fill" : "regular"} />
-                <span>Lớp học hệ thống</span>
-              </Link>
-              <Link 
-                to="/admin/settings" 
-                className={`${styles.navItem} ${isActive("/admin/settings") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Gear size={20} weight={isActive("/admin/settings") ? "fill" : "regular"} />
-                <span>Cài đặt</span>
-              </Link>
-            </>
-          ) : (
-            // Menu dành cho giáo viên
-            <>
-              <Link 
-                to="/classrooms" 
-                className={`${styles.navItem} ${isActive("/classrooms") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} />
-                <span>Lớp học</span>
-              </Link>
-              <Link 
-                to="/attendance" 
-                className={`${styles.navItem} ${isActive("/attendance") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <CalendarCheck size={20} weight={isActive("/attendance") ? "fill" : "regular"} />
-                <span>Điểm danh</span>
-              </Link>
-              <Link 
-                to="/gradebook" 
-                className={`${styles.navItem} ${isActive("/gradebook") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <GraduationCap size={20} weight={isActive("/gradebook") ? "fill" : "regular"} />
-                <span>Sổ điểm</span>
-              </Link>
-              <Link 
-                to="/assignments" 
-                className={`${styles.navItem} ${isActive("/assignments") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} />
-                <span>Bài tập</span>
-              </Link>
-              <Link 
-                to="/schedule" 
-                className={`${styles.navItem} ${isActive("/schedule") ? styles.active : ""}`}
-                onClick={() => setIsMenuOpen(false)}
-              >
-                <CalendarBlank size={20} weight={isActive("/schedule") ? "fill" : "regular"} />
-                <span>Lịch dạy</span>
-              </Link>
-            </>
-          )}
-
-
-        </nav>
-
-        {/* Nút Hành Động Ở Góc Sidebar */}
-        <div className={styles.actionBtnContainer}>
-          {userRole === "teacher" ? (
-            <button 
-              className={styles.newClassBtn}
+      <NavbarMenu className="bg-white/80 backdrop-blur-md pt-6">
+        {navLinks.map((link) => (
+          <NavbarMenuItem key={link.path} isActive={isActive(link.path)}>
+            <Link
+              to={link.path}
+              className={`flex items-center gap-3 w-full p-3 rounded-xl font-medium text-lg ${isActive(link.path)
+                ? "bg-primary text-white shadow-md"
+                : "text-slate-700 hover:bg-slate-100"
+                }`}
+              onClick={() => setIsMenuOpen(false)}
+            >
+              {link.icon}
+              {link.name}
+            </Link>
+          </NavbarMenuItem>
+        ))}
+        {userRole === "teacher" && (
+          <NavbarMenuItem>
+            <Button
+              variant="primary"
+              className="w-full mt-4"
               onClick={() => {
+                setIsMenuOpen(false);
                 window.dispatchEvent(new Event("open-new-class-modal"));
               }}
             >
               Tạo lớp mới
-            </button>
-          ) : null}
-        </div>
-
-        {/* Khối Thông Tin Người Dùng ở đáy Sidebar */}
-        {isAuthenticated && (
-          <div className={styles.userCard}>
-            <img src={avatar} alt="User Avatar" className={styles.avatarImg} />
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>{username}</span>
-              <span className={styles.userRole}>{roleDisplay}</span>
-            </div>
-            <button 
-              onClick={handleLogOut} 
-              className={styles.logoutBtn} 
-              title="Đăng xuất"
-              aria-label="Đăng xuất"
-            >
-              <SignOut size={20} weight="bold" />
-            </button>
-          </div>
+            </Button>
+          </NavbarMenuItem>
         )}
-      </aside>
-
-      {/* Overlay che nền khi mở menu trên di động */}
-      {isMenuOpen && (
-        <div className={styles.menuOverlay} onClick={() => setIsMenuOpen(false)} />
-      )}
-    </>
+      </NavbarMenu>
+    </Navbar>
   );
 };
 

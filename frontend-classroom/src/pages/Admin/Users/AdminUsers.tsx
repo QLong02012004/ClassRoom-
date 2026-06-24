@@ -1,17 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import type {
-  ColumnDef,
-  SortingState,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
   MagnifyingGlass,
@@ -23,19 +10,13 @@ import {
   LockKeyOpen,
   ShieldStar,
   SpinnerGap,
+  Trash,
 } from "phosphor-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { AnimatedAddButton } from "@/components/ui/AnimatedAddButton";
+import { Input as HeroInput, Select, ListBox, ListBoxItem, Table, Chip, Checkbox, Avatar as HeroAvatar, Pagination } from "@heroui/react";
+import type { Selection, SortDescriptor } from "@heroui/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -45,6 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ActionMenu } from "@/components/ui/ActionMenu";
 import {
   Dialog,
   DialogContent,
@@ -95,10 +77,68 @@ const mapApiToUser = (item: IUserItem): User => ({
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+
+  // Table States
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: "name",
+    direction: "ascending",
+  });
+
   const [globalFilter, setGlobalFilter] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let filtered = [...users];
+
+    if (globalFilter) {
+      filtered = filtered.filter(u =>
+        u.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+        u.email.toLowerCase().includes(globalFilter.toLowerCase())
+      );
+    }
+
+    if (roleFilter !== "all") {
+      filtered = filtered.filter(u => u.role === roleToVi(roleFilter));
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(u => u.status === (statusFilter === "Active" ? "Active" : "Locked"));
+    }
+
+    return filtered.sort((a, b) => {
+      const col = sortDescriptor.column as keyof User;
+      const first = String(a[col] || "");
+      const second = String(b[col] || "");
+      let cmp = first.localeCompare(second);
+
+      if (sortDescriptor.direction === "descending") {
+        cmp *= -1;
+      }
+      return cmp;
+    });
+  }, [users, globalFilter, roleFilter, statusFilter, sortDescriptor]);
   const toast = useToast();
+
+  // Pagination State
+  const ROWS_PER_PAGE = 8;
+  const [page, setPage] = useState(1);
+  const totalPages = Math.ceil(filteredAndSortedUsers.length / ROWS_PER_PAGE);
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * ROWS_PER_PAGE;
+    return filteredAndSortedUsers.slice(start, start + ROWS_PER_PAGE);
+  }, [page, filteredAndSortedUsers]);
+
+  const startIdx = (page - 1) * ROWS_PER_PAGE + 1;
+  const endIdx = Math.min(page * ROWS_PER_PAGE, filteredAndSortedUsers.length);
+
+  // Đặt lại trang 1 khi lọc
+  useEffect(() => {
+    setPage(1);
+  }, [globalFilter, roleFilter, statusFilter]);
 
   // State cho dialog tạo giáo viên mới
   const [showDialog, setShowDialog] = useState(false);
@@ -120,6 +160,14 @@ export default function AdminUsers() {
   const [showRoleDialog, setShowRoleDialog] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"admin" | "teacher" | "student">("teacher");
   const [isChangingRole, setIsChangingRole] = useState(false);
+
+  // Tính số lượng đã chọn
+  const selectedCount =
+    selectedKeys === "all"
+      ? filteredAndSortedUsers.length
+      : selectedKeys instanceof Set
+        ? selectedKeys.size
+        : Array.from(selectedKeys || []).length;
 
   // Fetch danh sách users từ API
   const fetchUsers = useCallback(async () => {
@@ -166,6 +214,32 @@ export default function AdminUsers() {
         toast.success(`Đã xóa tài khoản ${user.name}`, 3000);
       } catch (error: any) {
         toast.error(error.message || "Xóa tài khoản thất bại", 3000);
+      }
+    }
+  };
+
+  // Handler: Xóa nhiều tài khoản
+  const handleDeleteMultipleUsers = async () => {
+    let idsToDelete: string[] = [];
+    if (selectedKeys === "all") {
+      idsToDelete = filteredAndSortedUsers.map(u => u._id);
+    } else {
+      idsToDelete = Array.from(selectedKeys) as string[];
+    }
+
+    if (idsToDelete.length === 0) return;
+
+    if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${idsToDelete.length} tài khoản đã chọn? Hành động này không thể hoàn tác.`)) {
+      try {
+        setIsLoading(true);
+        await Promise.all(idsToDelete.map(id => userService.deleteUser(id)));
+        setUsers((prev) => prev.filter((u) => !idsToDelete.includes(u._id)));
+        setSelectedKeys(new Set());
+        toast.success(`Đã xóa ${idsToDelete.length} tài khoản`, 3000);
+      } catch (error: any) {
+        toast.error("Có lỗi xảy ra khi xóa nhiều tài khoản. Một số tài khoản có thể chưa được xóa.", 3000);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -273,200 +347,7 @@ export default function AdminUsers() {
     }
   };
 
-  // Column Definitions
-  const columns: ColumnDef<User>[] = [
-    {
-      id: "stt",
-      header: "STT",
-      cell: ({ row }) => (
-        <span className="text-slate-500 font-medium text-sm">
-          {row.index + 1}
-        </span>
-      ),
-    },
-    {
-      accessorKey: "name",
-      header: "Họ và tên",
-      cell: ({ row }) => {
-        const user = row.original;
-        const initials = user.name
-          .split(" ")
-          .map((n) => n[0])
-          .slice(-2)
-          .join("")
-          .toUpperCase();
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
-              <AvatarFallback className="bg-primary text-white font-semibold text-sm">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="font-semibold text-slate-900">{user.name}</span>
-            </div>
-          </div>
-        );
-      },
-      filterFn: (row, _id, value) => {
-        const nameMatch = row.original.name
-          .toLowerCase()
-          .includes(value.toLowerCase());
-        const emailMatch = row.original.email
-          .toLowerCase()
-          .includes(value.toLowerCase());
-        return nameMatch || emailMatch;
-      },
-    },
-    {
-      accessorKey: "email",
-      header: "Email",
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <span className="text-slate-700 font-medium">{row.original.email}</span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "role",
-      header: "Vai trò",
-      cell: ({ row }) => {
-        const role = row.getValue("role") as string;
-        if (role === "Admin")
-          return (
-            <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200">
-              Admin
-            </Badge>
-          );
-        if (role === "Giáo viên")
-          return (
-            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
-              Giáo viên
-            </Badge>
-          );
-        return (
-          <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-200">
-            Học sinh
-          </Badge>
-        );
-      },
-      filterFn: (row, id, value) => {
-        return value === "" || row.getValue(id) === value;
-      },
-    },
-    {
-      accessorKey: "status",
-      header: "Trạng thái",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        if (status === "Active") {
-          return (
-            <Badge
-              variant="outline"
-              className="bg-emerald-50 text-emerald-600 border-emerald-200 gap-1.5 px-2.5 py-0.5"
-            >
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Hoạt động
-            </Badge>
-          );
-        }
-        return (
-          <Badge
-            variant="outline"
-            className="bg-red-50 text-red-600 border-red-200 gap-1.5 px-2.5 py-0.5"
-          >
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-            Đang khóa
-          </Badge>
-        );
-      },
-      filterFn: (row, id, value) => {
-        return value === "" || row.getValue(id) === value;
-      },
-    },
-    {
-      id: "actions",
-      header: () => <div className="text-right w-full">Hành động</div>,
-      cell: ({ row }) => {
-        const user = row.original;
-        const isLocked = user.status === "Locked";
-        return (
-          <div className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="h-8 w-8 p-0 hover:bg-slate-100"
-                >
-                  <span className="sr-only">Mở menu</span>
-                  <DotsThree size={20} weight="bold" className="text-slate-500" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[200px]">
-                <DropdownMenuLabel>Tùy chọn</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer gap-2 font-medium text-slate-700"
-                  onClick={() => handleOpenChangeRole(user)}
-                >
-                  <ShieldStar size={16} /> Đổi quyền
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer gap-2 font-medium text-slate-700"
-                  onClick={() => handleOpenResetPassword(user)}
-                >
-                  <Key size={16} /> Reset mật khẩu
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className={`cursor-pointer gap-2 font-bold focus:bg-${isLocked ? "emerald" : "red"}-50 ${isLocked
-                    ? "text-emerald-600 focus:text-emerald-700"
-                    : "text-red-600 focus:text-red-700"
-                    }`}
-                  onClick={() => handleToggleStatus(user)}
-                >
-                  {isLocked ? (
-                    <>
-                      <LockKeyOpen size={16} /> Mở khóa tài khoản
-                    </>
-                  ) : (
-                    <>
-                      <LockKey size={16} /> Khóa tài khoản
-                    </>
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer gap-2 font-bold text-red-600 focus:text-red-700 focus:bg-red-50"
-                  onClick={() => handleDeleteUser(user)}
-                >
-                  Xóa tài khoản
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        );
-      },
-    },
-  ];
-
-  const table = useReactTable({
-    data: users,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-      columnFilters,
-      globalFilter,
-    },
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: "auto",
-  });
+  // Removed @tanstack/react-table setup. Using direct HeroUI table rendering instead.
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-[1400px] mx-auto bg-[#fafafa] min-h-screen">
@@ -489,145 +370,119 @@ export default function AdminUsers() {
           <div className="relative w-full md:w-72">
             <MagnifyingGlass
               size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10"
             />
-            <Input
+            <HeroInput
               placeholder="Tìm kiếm theo tên / email..."
               value={globalFilter ?? ""}
               onChange={(event) => setGlobalFilter(event.target.value)}
-              className="pl-9 bg-white shadow-sm border-slate-200"
+              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
             />
           </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold"
-              >
+          <Select
+            className="w-full md:w-auto"
+            aria-label="Lọc theo vai trò"
+            selectedKey={roleFilter}
+            onSelectionChange={(key) => setRoleFilter(key as string)}
+          >
+            <Select.Trigger className="w-full md:w-auto flex items-center justify-between bg-white gap-2 border border-slate-200 shadow-sm text-slate-600 font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <div className="flex items-center gap-2">
                 <Funnel size={16} weight="bold" />
-                Vai trò{" "}
-                {table.getColumn("role")?.getFilterValue()
-                  ? `: ${table.getColumn("role")?.getFilterValue()}`
-                  : ""}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[180px]">
-              <DropdownMenuItem
-                onClick={() => table.getColumn("role")?.setFilterValue("Admin")}
-              >
-                Admin
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  table.getColumn("role")?.setFilterValue("Giáo viên")
-                }
-              >
-                Giáo viên
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  table.getColumn("role")?.setFilterValue("Học sinh")
-                }
-              >
-                Học sinh
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => table.getColumn("role")?.setFilterValue("")}
-                className="font-bold text-slate-500"
-              >
-                Tất cả vai trò
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <span>
+                  Vai trò{" "}
+                  {roleFilter !== "all" ? `: ${roleFilter}` : ""}
+                </span>
+              </div>
+            </Select.Trigger>
+            <Select.Popover className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 z-50">
+              <ListBox className="p-1 outline-none space-y-1">
+                <ListBoxItem id="Admin" textValue="Admin" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
+                  Admin
+                </ListBoxItem>
+                <ListBoxItem id="Giáo viên" textValue="Giáo viên" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
+                  Giáo viên
+                </ListBoxItem>
+                <ListBoxItem id="Học sinh" textValue="Học sinh" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
+                  Học sinh
+                </ListBoxItem>
+                <ListBoxItem id="all" textValue="Tất cả vai trò" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-bold text-slate-500 border-t border-slate-100 mt-1 text-sm">
+                  Tất cả vai trò
+                </ListBoxItem>
+              </ListBox>
+            </Select.Popover>
+          </Select>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold"
-              >
+          <Select
+            className="w-full md:w-auto"
+            aria-label="Lọc theo trạng thái"
+            selectedKey={statusFilter}
+            onSelectionChange={(key) => setStatusFilter(key as string)}
+          >
+            <Select.Trigger className="w-full md:w-auto flex items-center justify-between bg-white gap-2 border border-slate-200 shadow-sm text-slate-600 font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
+              <div className="flex items-center gap-2">
                 <Funnel size={16} weight="bold" />
-                Trạng thái{" "}
-                {table.getColumn("status")?.getFilterValue()
-                  ? `: ${table.getColumn("status")?.getFilterValue() === "Active"
-                    ? "Hoạt động"
-                    : "Đang khóa"
-                  }`
-                  : ""}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-[180px]">
-              <DropdownMenuItem
-                onClick={() =>
-                  table.getColumn("status")?.setFilterValue("Active")
-                }
-              >
-                Hoạt động
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() =>
-                  table.getColumn("status")?.setFilterValue("Locked")
-                }
-              >
-                Đang khóa
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => table.getColumn("status")?.setFilterValue("")}
-                className="font-bold text-slate-500"
-              >
-                Tất cả trạng thái
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <span>
+                  Trạng thái{" "}
+                  {statusFilter !== "all"
+                    ? `: ${statusFilter === "Active" ? "Hoạt động" : "Đang khóa"}`
+                    : ""}
+                </span>
+              </div>
+            </Select.Trigger>
+            <Select.Popover className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 z-50">
+              <ListBox className="p-1 outline-none space-y-1">
+                <ListBoxItem id="Active" textValue="Hoạt động" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    Hoạt động
+                  </div>
+                </ListBoxItem>
+                <ListBoxItem id="Locked" textValue="Đang khóa" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    Đang khóa
+                  </div>
+                </ListBoxItem>
+                <ListBoxItem id="all" textValue="Tất cả trạng thái" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-bold text-slate-500 border-t border-slate-100 mt-1 text-sm">
+                  Tất cả trạng thái
+                </ListBoxItem>
+              </ListBox>
+            </Select.Popover>
+          </Select>
+
+          {selectedCount > 0 && (
+            <Button
+              variant="destructive"
+              className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-semibold flex items-center gap-2 px-4 py-2 h-auto"
+              onClick={handleDeleteMultipleUsers}
+            >
+              <Trash size={16} weight="bold" />
+              Xóa {selectedCount} tài khoản
+            </Button>
+          )}
         </div>
 
         {/* Dialog Thêm người dùng */}
         <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
           <DialogTrigger asChild>
-            <Button className="gap-2 bg-primary hover:opacity-90 text-primary-foreground font-semibold shadow-sm w-full md:w-auto">
-              <Plus size={16} weight="bold" />
-              Thêm người dùng
-            </Button>
+            <AnimatedAddButton className="w-full md:w-auto shadow-sm">
+              Thêm giáo viên
+            </AnimatedAddButton>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleCreateUser}>
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900">
-                  Thêm người dùng mới
-                </DialogTitle>
-                <DialogDescription>
-                  Nhập thông tin để cấp tài khoản giáo viên hoặc học sinh.
+                <DialogTitle className="text-xl font-bold text-slate-900">Thêm người dùng mới</DialogTitle>
+                <DialogDescription className="text-slate-500">
+                  Nhập thông tin để tạo và cấp tài khoản.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
                 <div className="space-y-2">
-                  <Label className="font-semibold text-slate-700">Vai trò</Label>
-                  <div className="flex gap-3">
-                    <Button
-                      type="button"
-                      variant={formData.role === "teacher" ? "default" : "outline"}
-                      className="flex-1 font-semibold"
-                      onClick={() => setFormData({ ...formData, role: "teacher" })}
-                    >
-                      Giáo viên
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={formData.role === "student" ? "default" : "outline"}
-                      className="flex-1 font-semibold"
-                      onClick={() => setFormData({ ...formData, role: "student" })}
-                    >
-                      Học sinh
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="name" className="font-semibold text-slate-700">
                     Họ và tên
                   </Label>
-                  <Input
+                  <HeroInput
                     id="name"
                     placeholder="Ví dụ: Nguyễn Văn A"
                     required
@@ -635,13 +490,14 @@ export default function AdminUsers() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="font-semibold text-slate-700">
                     Email
                   </Label>
-                  <Input
+                  <HeroInput
                     id="email"
                     type="email"
                     placeholder="Ví dụ: nva@school.edu.vn"
@@ -651,23 +507,25 @@ export default function AdminUsers() {
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="font-semibold text-slate-700">
                     Mật khẩu khởi tạo
                   </Label>
-                  <Input
+                  <HeroInput
                     id="password"
                     type="password"
                     placeholder="Tối thiểu 6 ký tự"
-                    autoComplete="new-password"
                     required
+                    autoComplete="new-password"
                     minLength={6}
                     value={formData.password}
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
               </div>
@@ -718,7 +576,7 @@ export default function AdminUsers() {
                   <Label htmlFor="newPassword" className="font-semibold text-slate-700">
                     Mật khẩu mới
                   </Label>
-                  <Input
+                  <HeroInput
                     id="newPassword"
                     type="password"
                     placeholder="Tối thiểu 6 ký tự"
@@ -726,6 +584,7 @@ export default function AdminUsers() {
                     minLength={6}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
               </div>
@@ -839,99 +698,198 @@ export default function AdminUsers() {
       </div>
 
       {/* DATA TABLE */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col mt-2">
+      <div className="mt-4">
         <Table>
-          <TableHeader className="bg-slate-50/50">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="hover:bg-transparent border-b-slate-200"
-              >
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className="text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 h-auto"
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-40 text-center"
-                >
-                  <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
-                    <SpinnerGap size={32} className="animate-spin text-primary" />
-                    <span className="font-medium">Đang tải dữ liệu...</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                  className="hover:bg-slate-50/80 cursor-default border-b-slate-100"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-32 text-center text-slate-500 font-medium"
-                >
-                  Không tìm thấy kết quả nào.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+          <Table.ScrollContainer>
+            <Table.Content
+              aria-label="Danh sách người dùng"
+              className="min-w-[800px]"
+              selectedKeys={selectedKeys}
+              selectionMode="multiple"
+              sortDescriptor={sortDescriptor}
+              onSelectionChange={setSelectedKeys}
+              onSortChange={setSortDescriptor}
+            >
+              <Table.Header>
+                <Table.Column className="after:hidden" id="selection">
+                  <Checkbox aria-label="Select all" slot="selection">
+                    <Checkbox.Content>
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                    </Checkbox.Content>
+                  </Checkbox>
+                </Table.Column>
+                <Table.Column allowsSorting isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">
+                  {({ sortDirection }) => (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      STT
+                    </Table.SortableColumnHeader>
+                  )}
+                </Table.Column>
+                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
+                  {({ sortDirection }) => (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      Thành viên
+                    </Table.SortableColumnHeader>
+                  )}
+                </Table.Column>
+                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="role">
+                  {({ sortDirection }) => (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      Vai trò
+                    </Table.SortableColumnHeader>
+                  )}
+                </Table.Column>
+                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="status">
+                  {({ sortDirection }) => (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      Trạng thái
+                    </Table.SortableColumnHeader>
+                  )}
+                </Table.Column>
+                <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
+                  Hành động
+                </Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {isLoading && filteredAndSortedUsers.length === 0 ? (
+                  <Table.Row key="loading" id="loading">
+                    <Table.Cell className="pr-0" />
+                    <Table.Cell />
+                    <Table.Cell>
+                      <div className="flex items-center gap-3 text-slate-400 py-10">
+                        <SpinnerGap size={24} className="animate-spin text-primary" />
+                        <span className="font-medium">Đang tải...</span>
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell />
+                    <Table.Cell />
+                    <Table.Cell />
+                  </Table.Row>
+                ) : filteredAndSortedUsers.length === 0 ? (
+                  <Table.Row key="empty" id="empty">
+                    <Table.Cell className="pr-0" />
+                    <Table.Cell />
+                    <Table.Cell>
+                      <div className="py-10 text-slate-500 font-medium">
+                        Không tìm thấy kết quả nào.
+                      </div>
+                    </Table.Cell>
+                    <Table.Cell />
+                    <Table.Cell />
+                    <Table.Cell />
+                  </Table.Row>
+                ) : (
+                  paginatedItems.map((user, idx) => {
+                    const index = (page - 1) * ROWS_PER_PAGE + idx;
+                    const isLocked = user.status === "Locked";
+                    const statusColorMap: Record<string, "success" | "danger" | "warning"> = {
+                      Active: "success",
+                      Locked: "danger",
+                    };
+                    const initials = user.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase();
 
-        {/* PAGINATION */}
-        <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-white">
-          <div className="text-sm text-slate-500 font-medium">
-            Hiển thị {table.getRowModel().rows?.length} trên tổng{" "}
-            {table.getFilteredRowModel().rows.length} người dùng
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-              className="text-slate-600 font-semibold"
-            >
-              Trang trước
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-              className="text-slate-600 font-semibold"
-            >
-              Trang tiếp
-            </Button>
-          </div>
-        </div>
+                    return (
+                      <Table.Row key={user._id} id={user._id}>
+                        <Table.Cell>
+                          <Checkbox aria-label={`Select ${user.name}`} slot="selection" variant="secondary">
+                            <Checkbox.Content>
+                              <Checkbox.Control>
+                                <Checkbox.Indicator />
+                              </Checkbox.Control>
+                            </Checkbox.Content>
+                          </Checkbox>
+                        </Table.Cell>
+                        <Table.Cell className="font-medium text-slate-500">
+                          #{index + 1}
+                        </Table.Cell>
+                        <Table.Cell>
+                          <div className="flex items-center gap-3">
+                            <HeroAvatar size="sm" className="bg-primary text-white border border-slate-100 shadow-sm">
+                              <HeroAvatar.Fallback className="text-xs font-semibold">{initials}</HeroAvatar.Fallback>
+                            </HeroAvatar>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-slate-900 text-[15px]">{user.name}</span>
+                              <span className="text-sm font-medium text-slate-500 mt-0.5">{user.email}</span>
+                            </div>
+                          </div>
+                        </Table.Cell>
+                        <Table.Cell>
+                          {user.role === "Admin" ? (
+                            <Chip size="sm" variant="soft" className="bg-red-50 text-red-600 font-semibold border border-red-200">
+                              Admin
+                            </Chip>
+                          ) : user.role === "Giáo viên" ? (
+                            <Chip size="sm" variant="soft" className="bg-blue-50 text-blue-600 font-semibold border border-blue-200">
+                              Giáo viên
+                            </Chip>
+                          ) : (
+                            <Chip size="sm" variant="soft" className="bg-slate-100 text-slate-600 font-semibold border border-slate-200">
+                              Học sinh
+                            </Chip>
+                          )}
+                        </Table.Cell>
+                        <Table.Cell>
+                          <Chip color={statusColorMap[user.status]} size="sm" variant="soft" className="font-medium">
+                            {user.status === "Active" ? "Hoạt động" : "Đang khóa"}
+                          </Chip>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <div className="flex items-center justify-end gap-1 relative">
+                            <ActionMenu
+                              isLocked={isLocked}
+                              onRoleChange={() => handleOpenChangeRole(user)}
+                              onResetPassword={() => handleOpenResetPassword(user)}
+                              onToggleStatus={() => handleToggleStatus(user)}
+                              onDelete={() => handleDeleteUser(user)}
+                            />
+                          </div>
+                        </Table.Cell>
+                      </Table.Row>
+                    );
+                  })
+                )}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
+          <Table.Footer>
+            {totalPages > 0 && (
+              <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
+                <Pagination.Summary className="text-sm text-slate-500 font-medium">
+                  Hiển thị {startIdx} đến {endIdx} trong số {filteredAndSortedUsers.length} kết quả
+                </Pagination.Summary>
+                <Pagination.Content>
+                  <Pagination.Item>
+                    <Pagination.Previous
+                      isDisabled={page === 1}
+                      onPress={() => setPage((p) => Math.max(1, p - 1))}
+                    >
+                      <Pagination.PreviousIcon />
+                      Trang trước
+                    </Pagination.Previous>
+                  </Pagination.Item>
+                  {pages.map((p) => (
+                    <Pagination.Item key={p}>
+                      <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
+                        {p}
+                      </Pagination.Link>
+                    </Pagination.Item>
+                  ))}
+                  <Pagination.Item>
+                    <Pagination.Next
+                      isDisabled={page === totalPages}
+                      onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    >
+                      Trang sau
+                      <Pagination.NextIcon />
+                    </Pagination.Next>
+                  </Pagination.Item>
+                </Pagination.Content>
+              </Pagination>
+            )}
+          </Table.Footer>
+        </Table>
       </div>
     </div>
   );

@@ -210,7 +210,7 @@ export default function AdminDashboard() {
             <button className="text-sm font-semibold text-primary hover:underline">Xem tất cả</button>
           </CardHeader>
           <CardContent className="flex-1 p-0">
-            <div className="flex flex-col divide-y divide-slate-100">
+            <div className="flex flex-col divide-y divide-slate-100 max-h-[350px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-300">
               {(stats?.recentActions || []).map((item) => (
                 <div key={item.id} className="p-4 hover:bg-slate-50 transition-colors flex gap-4">
                   <Avatar className="h-10 w-10 border border-slate-100 shadow-sm">

@@ -5,16 +5,16 @@ import Header from "./Header/Header.tsx";
 
 const MainLayout: React.FC = () => {
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-50">
-      {/* Sidebar nằm bên trái */}
+    <div className="flex flex-col min-h-screen bg-slate-50">
+      {/* Top Navbar */}
       <NavBar />
-      
-      {/* Vùng nội dung chính nằm bên phải, có khoảng đệm 260px cho Sidebar trên Desktop và 64px cho Header trên Mobile */}
-      <div className="flex-grow flex flex-col md:pl-[260px] pt-[64px] md:pt-0 min-h-screen">
-        {/* Thanh tiêu đề/điều hướng trên Desktop */}
+
+      {/* Main Content Area */}
+      <div className="flex flex-col flex-grow w-full max-w-7xl mx-auto">
+        {/* Thanh tiêu đề/điều hướng con (SubHeader) */}
         <Header />
-        
-        <main className="flex-grow p-6 md:p-8">
+
+        <main className="flex-grow p-4 md:p-6 w-full">
           <Outlet />
         </main>
       </div>
