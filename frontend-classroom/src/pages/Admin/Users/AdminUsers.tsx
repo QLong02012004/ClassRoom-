@@ -700,7 +700,7 @@ export default function AdminUsers() {
       {/* DATA TABLE */}
       <div className="mt-4">
         <Table>
-          <Table.ScrollContainer>
+          <Table.ScrollContainer className="min-h-[400px]">
             <Table.Content
               aria-label="Danh sách người dùng"
               className="min-w-[800px]"
@@ -871,7 +871,11 @@ export default function AdminUsers() {
                   </Pagination.Item>
                   {pages.map((p) => (
                     <Pagination.Item key={p}>
-                      <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
+                      <Pagination.Link 
+                        isActive={p === page} 
+                        onPress={() => setPage(p)}
+                        className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
+                      >
                         {p}
                       </Pagination.Link>
                     </Pagination.Item>

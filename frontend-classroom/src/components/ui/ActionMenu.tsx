@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { ShieldStar, Key, LockKey, LockKeyOpen, Trash } from "phosphor-react";
 
@@ -18,6 +18,31 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   isLocked,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
+  const popupRef = useRef<HTMLLabelElement>(null);
+  const [placement, setPlacement] = useState<'top' | 'bottom'>('bottom');
+  const [fixedStyle, setFixedStyle] = useState<React.CSSProperties>({});
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked && popupRef.current) {
+      const rect = popupRef.current.getBoundingClientRect();
+      const style: React.CSSProperties = {
+        position: 'fixed',
+        zIndex: 99999,
+        right: window.innerWidth - rect.right + "px",
+      };
+
+      if (window.innerHeight - rect.bottom < 250) {
+        setPlacement('top');
+        style.bottom = window.innerHeight - rect.top + 5 + "px";
+        style.top = 'auto';
+      } else {
+        setPlacement('bottom');
+        style.top = rect.bottom + 5 + "px";
+        style.bottom = 'auto';
+      }
+      setFixedStyle(style);
+    }
+  };
 
   // Đóng menu sau khi click vào action
   const handleAction = (action: () => void) => {
@@ -30,27 +55,31 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   // Click outside để đóng menu
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest('.popup')) {
+      if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
         if (checkboxRef.current) {
           checkboxRef.current.checked = false;
         }
       }
     };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    // Sử dụng capture phase (true) để bắt sự kiện trước khi các thư viện UI (như HeroUI) kịp chặn event propagation
+    document.addEventListener('click', handleClickOutside, true);
+    return () => document.removeEventListener('click', handleClickOutside, true);
   }, []);
 
   return (
-    <StyledWrapper>
-      <label className="popup">
-        <input type="checkbox" ref={checkboxRef} />
+    <StyledWrapper 
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => e.stopPropagation()}
+    >
+      <label className="popup" ref={popupRef}>
+        <input type="checkbox" ref={checkboxRef} onChange={handleCheckboxChange} />
         <div className="burger" tabIndex={0}>
           <span />
           <span />
           <span />
         </div>
-        <nav className="popup-window">
+        <nav className={`popup-window ${placement}`} style={fixedStyle}>
           <legend>Tùy chọn</legend>
           <ul>
             <li>
@@ -108,7 +137,7 @@ const StyledWrapper = styled.div`
     --burger-diameter: 2.125em;
     --burger-btn-border-radius: calc(var(--burger-diameter) / 2);
     --burger-line-transition: .3s;
-    --burger-transition: all .1s ease-in-out;
+    --burger-transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
     --burger-hover-scale: 1.1;
     --burger-active-scale: .95;
     --burger-enable-outline-color: var(--burger-bg);
@@ -218,12 +247,16 @@ const StyledWrapper = styled.div`
     border-radius: var(--nav-border-radius);
     box-shadow: var(--nav-shadow-width) var(--nav-shadow-color);
     border: var(--nav-border-width) solid var(--nav-border-color);
-    top: calc(var(--burger-diameter) + var(--burger-enable-outline-width) + var(--burger-enable-outline-offset));
-    left: var(--nav-position-left);
-    right: var(--nav-position-right);
     transition: var(--burger-transition);
-    z-index: 50;
     min-width: 200px;
+  }
+
+  .popup-window.bottom {
+    top: calc(var(--burger-diameter) + var(--burger-enable-outline-width) + var(--burger-enable-outline-offset));
+  }
+
+  .popup-window.top {
+    bottom: calc(var(--burger-diameter) + var(--burger-enable-outline-width) + var(--burger-enable-outline-offset));
   }
 
   .popup-window legend {

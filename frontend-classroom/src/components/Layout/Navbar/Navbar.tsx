@@ -143,7 +143,7 @@ const NavBar: React.FC = () => {
         </NavbarBrand>
       </NavbarContent>
 
-      <NavbarContent justify="end" className="gap-1 sm:gap-2">
+      <NavbarContent justify="end" className="gap-3 sm:gap-6">
         {navLinks.map((link) => (
           <NavbarItem key={link.path} isActive={isActive(link.path)} className="hidden sm:flex">
             <Link
@@ -167,27 +167,24 @@ const NavBar: React.FC = () => {
                   className="p-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer relative overflow-visible flex items-center justify-center"
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
                 >
-                  {unreadCount > 0 ? (
-                    <Badge content={unreadCount > 99 ? "99+" : String(unreadCount)} color="danger" size="sm">
-                      <Bell size={22} weight="bold" className="text-slate-600" />
-                    </Badge>
-                  ) : (
-                    <Bell size={22} weight="bold" className="text-slate-600" />
+                  <Bell size={22} weight="bold" className="text-slate-600" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
                   )}
                 </div>
                 {isNotifOpen && (
-                  <div className="absolute right-0 mt-2 w-[300px] bg-white rounded-xl shadow-lg border border-slate-100 py-2 z-50">
-                    <div className="px-4 py-2 font-semibold text-slate-800 border-b border-slate-100 mb-2">Thông báo</div>
+                  <div className="absolute right-0 mt-2 w-[300px] bg-white rounded-xl shadow-lg border border-slate-100 pb-2 z-50 overflow-hidden">
+                    <div className="px-4 py-3 font-bold text-white bg-primary mb-2 shadow-sm">Thông báo</div>
                     {notifications.length === 0 ? (
                       <div className="px-4 py-3 text-center text-sm text-slate-500">
                         Không có thông báo mới
                       </div>
                     ) : (
-                      <div className="flex flex-col max-h-[300px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400">
+                      <div className="flex flex-col max-h-[300px] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f]">
                         {notifications.map((notif) => (
-                          <div key={notif._id} className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors">
-                            <span className="font-semibold text-sm block mb-1 text-slate-800">{notif.title}</span>
-                            <span className="text-xs text-slate-500 block">{notif.message}</span>
+                          <div key={notif._id} className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors break-words">
+                            <span className="font-semibold text-sm block mb-1 text-slate-800 whitespace-normal">{notif.title}</span>
+                            <span className="text-xs text-slate-500 block whitespace-normal">{notif.message}</span>
                           </div>
                         ))}
                       </div>

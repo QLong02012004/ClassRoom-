@@ -4,6 +4,9 @@ import { UserModel } from '../models/User';
 import { NotificationModel } from '../models/Notification';
 import { SubmissionModel } from '../models/Submission';
 import { QuizResultModel } from '../models/QuizResult';
+import { QuizModel } from '../models/Quiz';
+import { AssignmentModel } from '../models/Assignment';
+import { GradeModel } from '../models/Grade';
 
 const formatTimeAgo = (date: Date): string => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -63,44 +66,60 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
         
         const engagementRate = totalStudents === 0 ? 0 : Math.round((activeStudentIds.size / totalStudents) * 1000) / 10;
 
-        // 2. Tần suất hoạt động (Traffic Data)
-        const trafficData = [];
-        const daysMap = new Map(); // key: YYYY-MM-DD, value: count
+        // 2. Hiệu suất giảng dạy của giáo viên (Teacher Performance)
+        const activeClassesData = await ClassModel.find({ status: 'Active' }).populate('teacherId', 'name');
         
-        // Khởi tạo mảng 7 ngày
-        for (let i = 0; i < 7; i++) {
-            const date = new Date(sevenDaysAgo);
-            date.setDate(date.getDate() + i);
-            const dateStr = date.toISOString().split('T')[0];
-            const dayNames = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
-            const dayName = dayNames[date.getDay()];
-            trafficData.push({ name: dayName, value: 0, dateStr });
-            daysMap.set(dateStr, trafficData[i]);
-        }
+        const classIdsData = activeClassesData.map(c => c._id);
+        const allAssignments = await AssignmentModel.find({ classId: { $in: classIdsData } });
+        
+        const assignmentIdsData = allAssignments.map(a => a._id);
+        const allGrades = await GradeModel.find({ assignmentId: { $in: assignmentIdsData } });
 
-        // Đếm submission
-        activeSubmissions.forEach((s: any) => {
-            const d = new Date(s.submittedAt);
-            // Bù giờ Việt Nam để lấy ngày đúng (GMT+7)
-            d.setHours(d.getHours() + 7);
-            const dStr = d.toISOString().split('T')[0];
-            if (daysMap.has(dStr)) {
-                daysMap.get(dStr).value++;
+        const performanceMap = new Map();
+
+        activeClassesData.forEach((c: any) => {
+            if (c.teacherId) {
+                const tId = c.teacherId._id.toString();
+                if (!performanceMap.has(tId)) {
+                    performanceMap.set(tId, {
+                        teacherName: c.teacherId.name,
+                        assignmentCount: 0,
+                        totalScore: 0,
+                        gradeCount: 0
+                    });
+                }
             }
         });
 
-        // Đếm quiz
-        activeQuizzes.forEach((q: any) => {
-            const d = new Date(q.submittedAt);
-            d.setHours(d.getHours() + 7);
-            const dStr = d.toISOString().split('T')[0];
-            if (daysMap.has(dStr)) {
-                daysMap.get(dStr).value++;
+        allAssignments.forEach(a => {
+            const cls = activeClassesData.find(c => c._id.toString() === a.classId.toString());
+            if (cls && cls.teacherId) {
+                const tId = cls.teacherId._id.toString();
+                if (performanceMap.has(tId)) {
+                    performanceMap.get(tId).assignmentCount++;
+                }
             }
         });
 
-        // Format lại trafficData để xoá dateStr
-        const finalTrafficData = trafficData.map(item => ({ name: item.name, value: item.value }));
+        allGrades.forEach(g => {
+            const assignment = allAssignments.find(a => a._id.toString() === g.assignmentId.toString());
+            if (assignment) {
+                const cls = activeClassesData.find(c => c._id.toString() === assignment.classId.toString());
+                if (cls && cls.teacherId) {
+                    const tId = cls.teacherId._id.toString();
+                    if (performanceMap.has(tId)) {
+                        performanceMap.get(tId).totalScore += g.score;
+                        performanceMap.get(tId).gradeCount++;
+                    }
+                }
+            }
+        });
+
+        const teacherPerformanceData = Array.from(performanceMap.values()).map((data: any) => ({
+            name: data.teacherName,
+            assignments: data.assignmentCount,
+            averageScore: data.gradeCount > 0 ? Math.round((data.totalScore / data.gradeCount) * 10) / 10 : 0
+        }));
 
         // Lấy danh sách hoạt động gần đây từ bảng Notification
         const notifications = await NotificationModel.find({ recipientRole: 'admin' })
@@ -126,6 +145,29 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
                 isSystem
             };
         });
+        // Lấy dữ liệu thống kê giáo viên và học sinh
+        const classesWithTeacher = await ClassModel.find({ status: 'Active' }).populate('teacherId', 'name');
+        
+        const teacherMap = new Map();
+        
+        classesWithTeacher.forEach((c: any) => {
+            if (c.teacherId && c.teacherId.name) {
+                const teacherName = c.teacherId.name;
+                if (!teacherMap.has(teacherName)) {
+                    teacherMap.set(teacherName, {
+                        teacher: teacherName,
+                        subject: c.subject || 'Môn học chung',
+                        classes: []
+                    });
+                }
+                teacherMap.get(teacherName).classes.push({
+                    className: c.name,
+                    students: c.students ? c.students.length : 0
+                });
+            }
+        });
+        
+        const teacherStudentStats = Array.from(teacherMap.values());
 
         res.status(200).json({
             message: 'Lấy dữ liệu thống kê thành công',
@@ -134,8 +176,9 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
                 totalTeachers,
                 activeClasses,
                 engagementRate,
-                trafficData: finalTrafficData,
-                recentActions
+                teacherPerformanceData,
+                recentActions,
+                teacherStudentStats
             }
         });
     } catch (error) {
@@ -144,8 +187,6 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
 };
 
 import { AttendanceModel } from '../models/Attendance';
-import { AssignmentModel } from '../models/Assignment';
-import { GradeModel } from '../models/Grade';
 import mongoose from 'mongoose';
 
 export const getTeacherDashboardStats = async (req: Request, res: Response, next: NextFunction): Promise<any> => {

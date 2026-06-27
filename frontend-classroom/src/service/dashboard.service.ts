@@ -6,7 +6,7 @@ export interface IDashboardStats {
   totalTeachers: number;
   activeClasses: number;
   engagementRate: number;
-  trafficData: { name: string; value: number }[];
+  teacherPerformanceData: { name: string; assignments: number; averageScore: number }[];
   recentActions: {
     id: string;
     user: string;
@@ -17,6 +17,14 @@ export interface IDashboardStats {
     badgeColor: string;
     fallback: string;
     isSystem?: boolean;
+  }[];
+  teacherStudentStats?: {
+    teacher: string;
+    subject: string;
+    classes: {
+      className: string;
+      students: number;
+    }[];
   }[];
 }
 

@@ -10,7 +10,8 @@ import {
     softDeleteClassroom,
     hardDeleteClassroom,
     getStudentClassrooms,
-    getClassroomDetail
+    getClassroomDetail,
+    getAdminClassroomActivities
 } from '../controllers/classroomController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -22,6 +23,9 @@ router.get('/admin', protect, authorize('admin'), getAdminClassrooms);
 
 // Cập nhật trạng thái lớp học (Chỉ admin)
 router.put('/:id/status', protect, authorize('admin'), updateClassroomStatus);
+
+// Lấy lịch sử hoạt động lớp học (Chỉ admin)
+router.get('/admin/:id/activities', protect, authorize('admin'), getAdminClassroomActivities);
 
 // Xóa lớp học vĩnh viễn (Chỉ admin)
 router.delete('/:id', protect, authorize('admin'), deleteClassroom);

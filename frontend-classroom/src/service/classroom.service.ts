@@ -5,6 +5,7 @@ export interface IClassroomItem {
   id: string; // mã lớp code (VD: REACT1)
   _id: string; // ObjectId từ mongodb
   name: string;
+  subject: string;
   teacher: {
     id: string;
     name: string;
@@ -26,6 +27,15 @@ export interface ITeacherClassroom {
   createdAt: string;
 }
 
+export interface IClassroomActivities {
+  currentTopic: string;
+  recentActivities: {
+    type: 'assignment_created' | 'submission';
+    content: string;
+    time: string;
+  }[];
+}
+
 export const classroomService = {
   // Lấy danh sách toàn bộ lớp học (dành cho Admin)
   getAdminClassrooms: async (): Promise<IBackendRes<IClassroomItem[]>> => {
@@ -40,6 +50,11 @@ export const classroomService = {
   // Xóa lớp học vĩnh viễn (Admin)
   deleteClassroom: async (id: string): Promise<IBackendRes<null>> => {
     return await api.delete(`/api/v1/classrooms/${id}`);
+  },
+
+  // Lấy lịch sử hoạt động lớp học (Admin)
+  getAdminClassroomActivities: async (id: string): Promise<IBackendRes<IClassroomActivities>> => {
+    return await api.get(`/api/v1/classrooms/admin/${id}/activities`);
   },
 
   // --- TEACHER METHODS ---

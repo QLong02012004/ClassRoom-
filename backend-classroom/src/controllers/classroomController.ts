@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { ClassModel } from '../models/Class';
+import { AssignmentModel } from '../models/Assignment';
+import { SubmissionModel } from '../models/Submission';
 import { createAdminNotification } from '../services/notificationService';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
@@ -17,6 +19,7 @@ export const getAdminClassrooms = async (req: Request, res: Response, next: Next
                 id: cls.code, // Trả về mã code làm ID trên FE
                 _id: cls._id, // ID thực sự trong DB
                 name: cls.name,
+                subject: cls.subject || 'Khác',
                 teacher: {
                     id: (cls.teacherId as any)?._id || '',
                     name: (cls.teacherId as any)?.name || 'Chưa rõ',
@@ -287,6 +290,74 @@ export const getClassroomDetail = async (req: Request, res: Response, next: Next
         res.status(200).json({
             message: 'Lấy chi tiết lớp học thành công',
             data: classroom
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Lấy lịch sử hoạt động chi tiết của lớp học dành cho Admin
+export const getAdminClassroomActivities = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+
+        // 1. Kiểm tra lớp học
+        const classroom = await ClassModel.findById(id);
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học' });
+        }
+
+        // 2. Lấy chủ đề bài giảng hiện tại (Bài tập mới nhất)
+        const latestAssignment = await AssignmentModel.findOne({ classId: id as any })
+            .sort({ createdAt: -1 })
+            .select('title dueDate');
+        
+        let currentTopic = latestAssignment ? latestAssignment.title : 'Chưa có bài tập nào';
+
+        // 3. Lấy hoạt động mới nhất:
+        // - Tạo bài tập
+        const recentAssignments = await AssignmentModel.find({ classId: id as any })
+            .sort({ createdAt: -1 })
+            .limit(3)
+            .select('title createdAt');
+            
+        // - Lịch sử nộp bài
+        const assignmentDocs = await AssignmentModel.find({ classId: id as any }).select('_id');
+        const assignmentIds = assignmentDocs.map(doc => doc._id);
+        const recentSubmissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } })
+            .sort({ submittedAt: -1 })
+            .limit(5)
+            .populate('studentId', 'name')
+            .populate('assignmentId', 'title');
+
+        // Gộp chung 2 mảng này và format lại, sort theo thời gian mới nhất
+        const activities: any[] = [];
+        
+        recentAssignments.forEach(a => {
+            activities.push({
+                type: 'assignment_created',
+                content: `Giáo viên đã tạo bài tập "${a.title}"`,
+                time: a.createdAt
+            });
+        });
+
+        recentSubmissions.forEach((s: any) => {
+            activities.push({
+                type: 'submission',
+                content: `Học sinh ${s.studentId?.name || 'Ẩn danh'} vừa nộp bài tập "${s.assignmentId?.title || ''}"`,
+                time: s.submittedAt
+            });
+        });
+
+        // Sắp xếp lại danh sách hoạt động theo thời gian giảm dần
+        activities.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+
+        res.status(200).json({
+            message: 'Lấy hoạt động lớp học thành công',
+            data: {
+                currentTopic,
+                recentActivities: activities.slice(0, 5) // Chỉ lấy 5 sự kiện mới nhất
+            }
         });
     } catch (error) {
         next(error);
