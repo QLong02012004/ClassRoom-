@@ -29,5 +29,9 @@ export const notificationService = {
 
   markAllAsRead: async (): Promise<IBackendRes<void>> => {
     return await api.post('/api/v1/notifications/read-all');
+  },
+
+  sendWarning: async (studentId: string, title: string, message: string): Promise<IBackendRes<any>> => {
+    return await api.post('/api/v1/notifications/warn', { studentId, title, message });
   }
 };

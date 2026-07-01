@@ -134,3 +134,109 @@ export const deleteAnnouncement = async (req: Request, res: Response, next: Next
         next(error);
     }
 };
+
+// [PATCH] /api/v1/announcements/:id/pin
+// Ghim hoặc bỏ ghim thông báo (chỉ tác giả mới có quyền)
+export const togglePin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const requesterId = (req as any).user?.id;
+
+        const announcement = await AnnouncementModel.findById(id);
+        if (!announcement) {
+            return res.status(404).json({ message: 'Không tìm thấy thông báo' });
+        }
+
+        // Chỉ tác giả mới được ghim/bỏ ghim
+        if (announcement.authorId.toString() !== requesterId) {
+            return res.status(403).json({ message: 'Bạn không có quyền ghim thông báo này' });
+        }
+
+        announcement.isPinned = !announcement.isPinned;
+        await announcement.save();
+
+        const populatedAnnouncement = await announcement.populate('authorId', 'name role avatar');
+
+        res.status(200).json({
+            message: announcement.isPinned ? 'Đã ghim thông báo' : 'Đã bỏ ghim thông báo',
+            data: populatedAnnouncement
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const likeComment = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id, commentId } = req.params;
+        const requesterId = (req as any).user.id;
+
+        const announcement = await AnnouncementModel.findById(id);
+        if (!announcement) {
+            return res.status(404).json({ message: 'Không tìm thấy bài đăng' });
+        }
+
+        const comment = (announcement.comments as any).id(commentId);
+        if (!comment) {
+            return res.status(404).json({ message: 'Không tìm thấy bình luận' });
+        }
+
+        const likeIndex = comment.likes?.findIndex((userId: any) => userId.toString() === requesterId);
+
+        if (likeIndex !== -1 && likeIndex !== undefined) {
+            // Đã like, tiến hành unlike
+            comment.likes!.splice(likeIndex, 1);
+        } else {
+            // Chưa like, tiến hành like
+            if (!comment.likes) {
+                comment.likes = [];
+            }
+            comment.likes.push(requesterId);
+        }
+
+        await announcement.save();
+
+        res.status(200).json({
+            message: likeIndex !== -1 && likeIndex !== undefined ? 'Đã bỏ thích bình luận' : 'Đã thích bình luận',
+            data: announcement // Trả về announcement đã cập nhật
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const likeAnnouncement = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const requesterId = (req as any).user.id;
+
+        const announcement = await AnnouncementModel.findById(id);
+        if (!announcement) {
+            return res.status(404).json({ message: 'Không tìm thấy bài đăng' });
+        }
+
+        const likeIndex = announcement.likes?.findIndex((userId: any) => userId.toString() === requesterId);
+
+        if (likeIndex !== -1 && likeIndex !== undefined) {
+            // Đã like, tiến hành unlike
+            announcement.likes!.splice(likeIndex, 1);
+        } else {
+            // Chưa like, tiến hành like
+            if (!announcement.likes) {
+                announcement.likes = [];
+            }
+            announcement.likes.push(requesterId as any);
+        }
+
+        await announcement.save();
+
+        const populatedAnnouncement = await announcement.populate('authorId', 'name role avatar');
+
+        res.status(200).json({
+            message: likeIndex !== -1 && likeIndex !== undefined ? 'Đã bỏ thích bài đăng' : 'Đã thích bài đăng',
+            data: populatedAnnouncement
+        });
+    } catch (error) {
+        next(error);
+    }
+};

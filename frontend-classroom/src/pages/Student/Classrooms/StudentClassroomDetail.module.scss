@@ -267,21 +267,35 @@
   font-weight: 700;
 
   &.tagAnnouncement {
-    background: rgba(254, 103, 71, 0.08);
-    color: #FE6747;
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
   }
   &.tagReminder {
-    background: rgba(245, 158, 11, 0.08);
+    background: rgba(245, 158, 11, 0.1);
     color: #D97706;
   }
   &.tagMaterial {
-    background: rgba(59, 130, 246, 0.08);
-    color: #2563EB;
+    background: rgba(254, 103, 71, 0.1);
+    color: #FE6747;
+  }
+  &.tagAssignment {
+    background: rgba(254, 103, 71, 0.1);
+    color: #FE6747;
   }
 }
 
+.pinnedIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: 50%;
+  color: #F59E0B;
+}
+
 .annTime {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: vars.$text-sub;
 }
 
@@ -293,45 +307,6 @@
   white-space: pre-wrap;
 }
 
-/* Attachments */
-.attachList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.attachItem {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #fdf2f0;
-  border: 1px solid rgba(254, 103, 71, 0.1);
-  border-radius: 12px;
-  padding: 12px 16px;
-  text-decoration: none;
-  transition: 0.2s;
-
-  &:hover {
-    background: #fcece9;
-    border-color: rgba(254, 103, 71, 0.25);
-  }
-
-  .attachName {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: vars.$dark-text;
-    margin: 0 0 2px 0;
-  }
-  .attachSize {
-    font-size: 0.72rem;
-    color: vars.$text-sub;
-    margin: 0;
-  }
-  .dlIcon {
-    margin-left: auto;
-    color: #94a3b8;
-  }
-}
 
 /* Comments */
 .commentsWrap {
@@ -656,4 +631,404 @@
   color: vars.$text-sub;
   margin: 0;
   text-align: left;
+}
+
+/* =========================================================================
+   CUSTOM COMMENTS UI (Dựa trên thiết kế Card người dùng yêu cầu)
+   ========================================================================= */
+.customCommentsCard {
+  width: 100%;
+  height: fit-content;
+  background-color: white;
+  border-top: 1px solid #f1f5f9;
+  border-radius: 0 0 16px 16px;
+  padding-top: 16px;
+  margin-top: 16px;
+
+  .customTitle {
+    width: 100%;
+    height: 40px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    padding-left: 20px;
+    border-bottom: 1px solid #f1f1f1;
+    font-weight: 700;
+    font-size: 13px;
+    color: #47484b;
+
+    &::after {
+      content: '';
+      width: 8ch;
+      height: 1px;
+      position: absolute;
+      bottom: -1px;
+      left: 20px;
+      background-color: #47484b;
+    }
+  }
+
+  .customComments {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+
+    .commentContainer {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      padding: 0;
+      margin: 0;
+
+      .singleCommentWrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        border-bottom: 1px solid #f8fafc;
+        padding-bottom: 15px;
+        transition: all 0.2s ease-in-out;
+
+        &.teacherComment {
+          background-color: #fff9f8;
+          border: 1px solid #ffd8d1;
+          border-radius: 8px;
+          padding: 10px;
+          margin-bottom: 10px;
+          border-bottom: 1px solid #ffd8d1;
+        }
+
+        &.replyComment {
+          margin-left: 45px;
+          border-left: 3px solid #e2e8f0;
+          padding-left: 15px;
+          border-radius: 0;
+          background-color: #f8fafc;
+        }
+
+        .commentBodyWrapper {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+
+          .user {
+        display: grid;
+        grid-template-columns: 40px 1fr;
+        gap: 10px;
+
+        .userPic {
+          width: 40px;
+          height: 40px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background-color: #f1f1f1;
+          border-radius: 50%;
+
+          img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+          }
+
+          &::after {
+            content: '';
+            width: 9px;
+            height: 9px;
+            position: absolute;
+            right: 0px;
+            bottom: 0px;
+            border-radius: 50%;
+            background-color: #0fc45a;
+            border: 2px solid #ffffff;
+          }
+        }
+
+        .userInfo {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 3px;
+
+          span {
+            font-weight: 700;
+            font-size: 13px;
+            color: #47484b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+
+            .teacherBadge {
+              font-size: 9px;
+              font-weight: 700;
+              background-color: #FE6747;
+              color: white;
+              padding: 2px 6px;
+              border-radius: 4px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+          }
+
+          p {
+            font-weight: 600;
+            font-size: 10px;
+            color: #acaeb4;
+            margin: 0;
+          }
+
+          .metaRow {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+          }
+        }
+      }
+
+      .commentContent {
+        font-size: 14px;
+        color: #47484b;
+        margin: 0;
+        line-height: 1.5;
+        padding-left: 50px;
+      }
+
+      .commentActions {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 5px;
+        padding-left: 50px;
+
+        .likeBtn {
+          background: none;
+          border: none;
+          font-size: 12px;
+          font-weight: 600;
+          color: #707277;
+          cursor: pointer;
+          padding: 0;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          transition: all 0.2s ease-in-out;
+
+          &.liked {
+            color: #f5356e;
+          }
+
+          &:hover {
+            color: #f5356e;
+            svg path {
+              fill: #f5356e;
+              stroke: #f5356e;
+            }
+          }
+        }
+
+        .replyBtn {
+            background: none;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: #707277;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.2s ease-in-out;
+
+            &:hover {
+              color: vars.$primary;
+              text-decoration: underline;
+            }
+          }
+        }
+        }
+        }
+        
+        &:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+      }
+    }
+  }
+
+  .textBox {
+    width: 100%;
+    height: fit-content;
+    background-color: #f1f1f1;
+    padding: 8px;
+    border-radius: 12px;
+
+    .boxContainer {
+      background-color: #ffffff;
+      border-radius: 8px 8px 21px 21px;
+      padding: 8px;
+      position: relative;
+
+      .closeReplyBtn {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        border-radius: 50%;
+        transition: all 0.2s;
+        z-index: 10;
+
+        &:hover {
+          background-color: #f1f5f9;
+          color: #ef4444;
+        }
+      }
+    }
+
+    textarea {
+      width: 100%;
+      height: 40px;
+      resize: none;
+      border: 0;
+      border-radius: 6px;
+      padding: 12px 28px 10px 12px;
+      font-size: 13px;
+      outline: none;
+      caret-color: #0a84ff;
+      font-family: inherit;
+      overflow: hidden;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .formatting {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+
+      button:not(.newSendBtn) {
+        width: 30px;
+        height: 30px;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: transparent;
+        border-radius: 50%;
+        border: 0;
+        outline: none;
+        cursor: pointer;
+
+        &:hover {
+          background-color: #f1f1f1;
+        }
+      }
+
+      .newSendBtn {
+        font-family: inherit;
+        font-size: 14px;
+        background: vars.$primary;
+        color: white;
+        padding: 0.5em 1.2em;
+        padding-left: 1em;
+        display: flex;
+        align-items: center;
+        border: none;
+        border-radius: 18px;
+        overflow: hidden;
+        transition: all 0.2s;
+        cursor: pointer;
+        margin: 0 0 0 auto;
+
+        span {
+          display: block;
+          margin-left: 0.4em;
+          transition: all 0.3s ease-in-out;
+          font-weight: 600;
+        }
+
+        svg {
+          display: block;
+          transform-origin: center center;
+          transition: transform 0.3s ease-in-out;
+          width: 16px;
+          height: 16px;
+        }
+
+        &:hover .svgWrapper {
+          animation: fly-1 0.6s ease-in-out infinite alternate;
+        }
+
+        &:hover svg {
+          transform: translateX(1.5em) rotate(45deg) scale(1.1);
+        }
+
+        &:hover span {
+          transform: translateX(5em);
+        }
+
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
+  }
+
+  .showReplyBoxBtnContainer {
+    width: 100%;
+    padding: 0 20px 20px;
+    display: flex;
+    justify-content: flex-end;
+
+    .showReplyBoxBtn {
+      background-color: transparent;
+      border: 1px dashed #cbd5e1;
+      color: #64748b;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background-color: #f8fafc;
+        border-color: #94a3b8;
+        color: #475569;
+      }
+    }
+  }
+
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes fly-1 {
+  from {
+    transform: translateY(0.1em);
+  }
+
+  to {
+    transform: translateY(-0.1em);
+  }
 }

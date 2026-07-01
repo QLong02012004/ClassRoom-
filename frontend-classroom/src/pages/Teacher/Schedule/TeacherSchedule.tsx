@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { ArrowRight, CheckCircle, BookOpen, Clock, Trash, Plus, Spinner, X, CaretDown } from "phosphor-react";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -11,6 +12,7 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import styles from "./TeacherSchedule.module.scss";
 
 const TIME_SLOTS = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"];
@@ -26,6 +28,7 @@ const parseTime = (timeStr: string) => {
 
 export default function TeacherSchedule() {
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [classes, setClasses] = useState<ITeacherClassroom[]>([]);
   const [schedules, setSchedules] = useState<ISchedule[]>([]);
@@ -329,10 +332,9 @@ export default function TeacherSchedule() {
       {/* THANH CÔNG CỤ (RIGHT SIDEBAR) */}
       <div className={styles.rightSidebar}>
         {/* Nút thêm lịch mới */}
-        <button className={styles.btnAddSchedule} onClick={() => setShowAddModal(true)}>
-          <Plus size={18} weight="bold" />
+        <AnimatedAddButton onClick={() => setShowAddModal(true)} className="w-full shadow-sm mb-4">
           Lên lịch dạy mới
-        </button>
+        </AnimatedAddButton>
 
         {/* Khối Đang diễn ra */}
         {ongoingLesson ? (
@@ -357,7 +359,10 @@ export default function TeacherSchedule() {
             </div>
 
             <div className={styles.ongoingActions}>
-              <button className={styles.actionBtn}>
+              <button 
+                className={styles.actionBtn}
+                onClick={() => navigate('/attendance', { state: { classId: ongoingLesson.classId?._id } })}
+              >
                 <CheckCircle size={18} weight="regular" />
                 Điểm danh
               </button>

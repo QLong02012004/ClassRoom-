@@ -9,14 +9,19 @@ const MainLayout: React.FC = () => {
       {/* Top Navbar */}
       <NavBar />
 
-      {/* Main Content Area */}
-      <div className="flex flex-col flex-grow w-full max-w-7xl mx-auto">
-        {/* Thanh tiêu đề/điều hướng con (SubHeader) */}
+      {/* Main Container */}
+      <div className="flex flex-row flex-grow w-full">
+        {/* Sidebar - Flush Left */}
         <Header />
 
-        <main className="flex-grow p-4 md:p-6 w-full">
-          <Outlet />
-        </main>
+        {/* Content Area */}
+        <div className="flex-grow w-full flex flex-col">
+          <div className="w-full max-w-7xl mx-auto flex-grow flex flex-col">
+            <main className="flex-grow p-4 md:p-6 w-full">
+              <Outlet />
+            </main>
+          </div>
+        </div>
       </div>
     </div>
   );

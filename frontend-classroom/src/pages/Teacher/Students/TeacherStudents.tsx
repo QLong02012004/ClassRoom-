@@ -7,6 +7,7 @@ import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { authService } from "../../../service/auth.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { attendanceService } from "../../../service/attendance.service.ts";
+import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import styles from "./TeacherStudents.module.scss";
 
 export default function TeacherStudents() {
@@ -174,10 +175,9 @@ export default function TeacherStudents() {
           <h2>Quản lý Học sinh - {classroom.className}</h2>
           <p>Tạo tài khoản học viên tham gia lớp học và cung cấp thông tin đăng nhập cho học sinh.</p>
         </div>
-        <button className={styles.btnCreateHeader} onClick={() => setShowModal(true)}>
-          <Plus size={18} weight="bold" />
-          <span>Thêm Học sinh</span>
-        </button>
+        <AnimatedAddButton onClick={() => setShowModal(true)}>
+          Thêm Học sinh
+        </AnimatedAddButton>
       </div>
 
       {/* GRID */}

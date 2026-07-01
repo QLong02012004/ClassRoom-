@@ -7,6 +7,7 @@ export interface IComment {
   authorName: string;
   content: string;
   createdAt: string;
+  likes?: string[];
 }
 
 export interface IAttachment {
@@ -29,6 +30,8 @@ export interface IAnnouncement {
   attachments: IAttachment[];
   comments: IComment[];
   createdAt: string;
+  isPinned?: boolean;
+  likes?: string[];
 }
 
 export const announcementService = {
@@ -55,5 +58,20 @@ export const announcementService = {
   // Xóa thông báo
   deleteAnnouncement: async (announcementId: string): Promise<IBackendRes<null>> => {
     return await api.delete(`/api/v1/announcements/${announcementId}`);
+  },
+
+  // Ghim / Bỏ ghim thông báo
+  togglePin: async (announcementId: string): Promise<IBackendRes<IAnnouncement>> => {
+    return await api.patch(`/api/v1/announcements/${announcementId}/pin`);
+  },
+
+  // Thích / Bỏ thích bài đăng
+  likeAnnouncement: async (announcementId: string): Promise<IBackendRes<IAnnouncement>> => {
+    return await api.put(`/api/v1/announcements/${announcementId}/like`);
+  },
+
+  // Thích / Bỏ thích bình luận
+  likeComment: async (announcementId: string, commentId: string): Promise<IBackendRes<IAnnouncement>> => {
+    return await api.put(`/api/v1/announcements/${announcementId}/comments/${commentId}/like`);
   }
 };

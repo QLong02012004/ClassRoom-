@@ -22,6 +22,8 @@ import { attendanceService } from "../../../service/attendance.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import type { IStudent, IAttendanceRecord } from "../../../service/attendance.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import styles from "./TeacherAttendance.module.scss";
 
 // Màu avatar dựa trên tên
@@ -54,6 +56,10 @@ interface StudentRow extends IStudent {
 
 export default function TeacherAttendance() {
   const toast = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stateClassId = location.state?.classId || searchParams.get("classId");
 
   const [classes, setClasses] = useState<ITeacherClassroom[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
@@ -71,7 +77,11 @@ export default function TeacherAttendance() {
         const res = await classroomService.getTeacherClassrooms();
         if (res.data && res.data.length > 0) {
           setClasses(res.data);
-          setSelectedClassId(res.data[0]._id);
+          if (stateClassId && res.data.find(c => c._id === stateClassId)) {
+            setSelectedClassId(stateClassId);
+          } else {
+            setSelectedClassId(res.data[0]._id);
+          }
         }
       } catch {
         toast.error("Không thể tải danh sách lớp học");
@@ -80,7 +90,7 @@ export default function TeacherAttendance() {
       }
     };
     fetchClasses();
-  }, []);
+  }, [stateClassId]);
 
   // Load học sinh + điểm danh khi chọn lớp/ngày
   const loadStudentsAndAttendance = useCallback(async () => {
@@ -195,7 +205,10 @@ export default function TeacherAttendance() {
                     classes.map((cls) => (
                       <DropdownMenuItem
                         key={cls._id}
-                        onClick={() => setSelectedClassId(cls._id)}
+                        onClick={() => {
+                          setSelectedClassId(cls._id);
+                          setSearchParams({ classId: cls._id }, { replace: true });
+                        }}
                         className={`px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
                           }`}
                       >
@@ -249,10 +262,9 @@ export default function TeacherAttendance() {
         </div>
 
         <div className={styles.filtersRight}>
-          <button className={styles.btnSave} onClick={handleSave} disabled={saving || students.length === 0}>
-            {saving ? <Spinner size={18} className={styles.spinning} /> : <FloppyDisk size={18} weight="bold" />}
+          <AnimatedAddButton onClick={handleSave} disabled={saving || students.length === 0}>
             {saving ? "Đang lưu..." : "Lưu điểm danh"}
-          </button>
+          </AnimatedAddButton>
         </div>
       </section>
 

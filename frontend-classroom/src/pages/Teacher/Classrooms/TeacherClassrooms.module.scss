@@ -14,6 +14,8 @@
   justify-content: space-between;
   align-items: center;
   text-align: left;
+  flex-wrap: wrap;
+  gap: 16px;
 
   .headerText {
     h2 {
@@ -28,6 +30,154 @@
       font-size: 0.875rem;
       color: vars.$text-sub;
       margin: 0;
+    }
+  }
+
+  .headerActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* ─── SEARCH BOX ────────────────────────────── */
+  .searchBox {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: white;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0 10px;
+    height: 38px;
+    gap: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    min-width: 200px;
+
+    &:focus-within {
+      border-color: vars.$primary;
+      box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+    }
+
+    .searchIcon {
+      color: #94a3b8;
+      flex-shrink: 0;
+    }
+
+    .searchInput {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 0.85rem;
+      color: vars.$dark-text;
+      font-family: inherit;
+      flex: 1;
+      min-width: 0;
+
+      &::placeholder {
+        color: #b0bec5;
+      }
+    }
+
+    .searchClear {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 0 2px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.15s;
+
+      &:hover {
+        color: vars.$primary;
+      }
+    }
+  }
+
+  /* ─── SEMESTER DROPDOWN ─────────────────────── */
+  .semesterDropdown {
+    position: relative;
+
+    .semesterTrigger {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 0 12px;
+      height: 38px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: vars.$text-sub;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      white-space: nowrap;
+
+      &:hover {
+        border-color: vars.$primary;
+        color: vars.$primary;
+      }
+
+      &.semesterOpen {
+        border-color: vars.$primary;
+        color: vars.$primary;
+        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+      }
+
+      .caretFlip {
+        transform: rotate(-180deg);
+        transition: transform 0.2s;
+      }
+    }
+
+    .semesterPanel {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: white;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+      z-index: 999;
+      overflow: hidden;
+      min-width: 180px;
+      animation: dropdownSlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .semesterOption {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 14px;
+      background: transparent;
+      border: none;
+      font-family: inherit;
+      font-size: 0.82rem;
+      color: #475569;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      text-align: left;
+
+      & + .semesterOption {
+        border-top: 1px solid #f1f5f9;
+      }
+
+      &:hover {
+        background: #f8fafc;
+        color: vars.$dark-text;
+      }
+
+      &.semesterActive {
+        background: rgba(254, 103, 71, 0.06);
+        color: vars.$primary;
+        font-weight: 700;
+      }
     }
   }
 
@@ -56,7 +206,16 @@
   @media (max-width: 640px) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 16px;
+
+    .headerActions {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .searchBox {
+      width: 100%;
+    }
 
     .btnCreateHeader {
       width: 100%;
@@ -64,6 +223,28 @@
     }
   }
 }
+
+.emptyState {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+  color: #94a3b8;
+
+  svg {
+    color: rgba(254, 103, 71, 0.3);
+  }
+
+  p {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0;
+  }
+}
+
 
 .classesGrid {
   display: grid;
@@ -150,40 +331,103 @@
   }
 
   .cardFooter {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
     border-top: 1px solid #f8fafc;
     padding-top: 16px;
     margin-top: 4px;
 
-    .studentsCount {
+    .quickActionBtn {
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: vars.$text-sub;
-      font-size: 0.8rem;
-      font-weight: 600;
-    }
-
-    .btnManage {
-      padding: 6px 12px;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 4px;
       background: #f1f5f9;
       color: vars.$text-sub;
-      border: none;
       border-radius: 8px;
       font-size: 0.75rem;
       font-weight: 700;
-      cursor: pointer;
+      text-decoration: none;
       transition: vars.$transition-fast;
 
       &:hover {
         background: vars.$primary;
         color: white;
       }
+      
+      span {
+        white-space: nowrap;
+      }
     }
   }
+
+  .actionableStrip {
+    margin: -4px 0 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .actionBadgePending {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(90deg, rgba(254, 103, 71, 0.08) 0%, rgba(254, 103, 71, 0.04) 100%);
+    border: 1px solid rgba(254, 103, 71, 0.2);
+    color: vars.$primary;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 10px;
+    transition: background 0.2s;
+
+    &:hover {
+      background: rgba(254, 103, 71, 0.12);
+    }
+  }
+
+  .actionBadgeInfo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(254, 103, 71, 0.07);
+    border: 1px solid rgba(254, 103, 71, 0.18);
+    color: vars.$primary;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .actionBadgeGood {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(254, 103, 71, 0.05);
+    border: 1px solid rgba(254, 103, 71, 0.12);
+    color: vars.$primary;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
+
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+  }
+
+  .dueDate {
+    color: #94a3b8;
+    flex-shrink: 0;
+    font-weight: 500;
+  }
 }
+
 
 /* POPUP MODAL */
 .modalOverlay {

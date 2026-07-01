@@ -2,7 +2,8 @@ import { Router } from 'express';
 import {
     getNotifications,
     markAsRead,
-    markAllAsRead
+    markAllAsRead,
+    sendWarningToStudent
 } from '../controllers/notificationController';
 import { protect } from '../middlewares/authMiddleware';
 
@@ -17,4 +18,8 @@ router.post('/:id/read', protect, markAsRead);
 // Đánh dấu đọc tất cả thông báo
 router.post('/read-all', protect, markAllAsRead);
 
+// Giáo viên gửi cảnh báo tới học sinh cụ thể
+router.post('/warn', protect, sendWarningToStudent);
+
 export default router;
+

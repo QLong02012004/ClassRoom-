@@ -9,12 +9,13 @@ import {
   LockKey,
   LockKeyOpen,
   ShieldStar,
-  SpinnerGap,
   Trash,
 } from "phosphor-react";
+import { ClimbingBoxLoader } from "react-spinners";
 
 import { Button } from "@/components/ui/button";
 import { AnimatedAddButton } from "@/components/ui/AnimatedAddButton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input as HeroInput, Select, ListBox, ListBoxItem, Table, Chip, Checkbox, Avatar as HeroAvatar, Pagination } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ActionMenu } from "@/components/ui/ActionMenu";
+import { CustomConfirmDialog } from "@/components/ui/CustomConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -161,6 +163,21 @@ export default function AdminUsers() {
   const [selectedRole, setSelectedRole] = useState<"admin" | "teacher" | "student">("teacher");
   const [isChangingRole, setIsChangingRole] = useState(false);
 
+  // State cho CustomConfirmDialog
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: React.ReactNode;
+    actionType?: 'danger' | 'warning' | 'success' | 'default';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    actionType: 'default',
+    onConfirm: () => {},
+  });
+
   // Tính số lượng đã chọn
   const selectedCount =
     selectedKeys === "all"
@@ -189,33 +206,51 @@ export default function AdminUsers() {
   }, [fetchUsers]);
 
   // Handler: Khóa / Mở khóa tài khoản
-  const handleToggleStatus = async (user: User) => {
+  const handleToggleStatus = (user: User) => {
     const newStatus = user.status === "Active" ? "Locked" : "Active";
-    try {
-      await userService.updateUserStatus(user._id, newStatus);
-      setUsers((prev) =>
-        prev.map((u) => (u._id === user._id ? { ...u, status: newStatus } : u))
-      );
-      toast.success(
-        `${newStatus === "Locked" ? "Đã khóa" : "Đã mở khóa"} tài khoản ${user.name}`,
-        3000
-      );
-    } catch (error: any) {
-      toast.error(error.message || "Cập nhật trạng thái thất bại", 3000);
-    }
+    const actionName = newStatus === "Locked" ? "Khóa" : "Mở khóa";
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: `${actionName} tài khoản`,
+      description: `Bạn có chắc chắn muốn ${actionName.toLowerCase()} tài khoản ${user.name}?`,
+      actionType: newStatus === "Locked" ? 'warning' : 'success',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await userService.updateUserStatus(user._id, newStatus);
+          setUsers((prev) =>
+            prev.map((u) => (u._id === user._id ? { ...u, status: newStatus } : u))
+          );
+          toast.success(
+            `${newStatus === "Locked" ? "Đã khóa" : "Đã mở khóa"} tài khoản ${user.name}`,
+            3000
+          );
+        } catch (error: any) {
+          toast.error(error.message || "Cập nhật trạng thái thất bại", 3000);
+        }
+      }
+    });
   };
 
   // Handler: Xóa tài khoản
-  const handleDeleteUser = async (user: User) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản ${user.name}? Hành động này không thể hoàn tác.`)) {
-      try {
-        await userService.deleteUser(user._id);
-        setUsers((prev) => prev.filter((u) => u._id !== user._id));
-        toast.success(`Đã xóa tài khoản ${user.name}`, 3000);
-      } catch (error: any) {
-        toast.error(error.message || "Xóa tài khoản thất bại", 3000);
+  const handleDeleteUser = (user: User) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Xóa tài khoản",
+      description: `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản ${user.name}? Hành động này không thể hoàn tác.`,
+      actionType: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await userService.deleteUser(user._id);
+          setUsers((prev) => prev.filter((u) => u._id !== user._id));
+          toast.success(`Đã xóa tài khoản ${user.name}`, 3000);
+        } catch (error: any) {
+          toast.error(error.message || "Xóa tài khoản thất bại", 3000);
+        }
       }
-    }
+    });
   };
 
   // Handler: Xóa nhiều tài khoản
@@ -229,19 +264,26 @@ export default function AdminUsers() {
 
     if (idsToDelete.length === 0) return;
 
-    if (window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn ${idsToDelete.length} tài khoản đã chọn? Hành động này không thể hoàn tác.`)) {
-      try {
-        setIsLoading(true);
-        await Promise.all(idsToDelete.map(id => userService.deleteUser(id)));
-        setUsers((prev) => prev.filter((u) => !idsToDelete.includes(u._id)));
-        setSelectedKeys(new Set());
-        toast.success(`Đã xóa ${idsToDelete.length} tài khoản`, 3000);
-      } catch (error: any) {
-        toast.error("Có lỗi xảy ra khi xóa nhiều tài khoản. Một số tài khoản có thể chưa được xóa.", 3000);
-      } finally {
-        setIsLoading(false);
+    setConfirmDialog({
+      isOpen: true,
+      title: "Xóa nhiều tài khoản",
+      description: `Bạn có chắc chắn muốn xóa vĩnh viễn ${idsToDelete.length} tài khoản đã chọn? Hành động này không thể hoàn tác.`,
+      actionType: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          setIsLoading(true);
+          await Promise.all(idsToDelete.map(id => userService.deleteUser(id)));
+          setUsers((prev) => prev.filter((u) => !idsToDelete.includes(u._id)));
+          setSelectedKeys(new Set());
+          toast.success(`Đã xóa ${idsToDelete.length} tài khoản`, 3000);
+        } catch (error: any) {
+          toast.error("Có lỗi xảy ra khi xóa nhiều tài khoản. Một số tài khoản có thể chưa được xóa.", 3000);
+        } finally {
+          setIsLoading(false);
+        }
       }
-    }
+    });
   };
 
   // Handler: Mở dialog reset mật khẩu
@@ -546,8 +588,8 @@ export default function AdminUsers() {
                 >
                   {isSubmitting ? (
                     <span className="flex items-center gap-2">
-                      <SpinnerGap size={16} className="animate-spin" />
-                      Đang tạo...
+                      <ClimbingBoxLoader color="#ffffff" size={6} />
+                      <span className="ml-2">Đang tạo...</span>
                     </span>
                   ) : (
                     "Tạo tài khoản"
@@ -605,8 +647,8 @@ export default function AdminUsers() {
                 >
                   {isResetting ? (
                     <span className="flex items-center gap-2">
-                      <SpinnerGap size={16} className="animate-spin" />
-                      Đang xử lý...
+                      <ClimbingBoxLoader color="#ffffff" size={6} />
+                      <span className="ml-2">Đang xử lý...</span>
                     </span>
                   ) : (
                     "Xác nhận"
@@ -684,8 +726,8 @@ export default function AdminUsers() {
                 >
                   {isChangingRole ? (
                     <span className="flex items-center gap-2">
-                      <SpinnerGap size={16} className="animate-spin" />
-                      Đang cập nhật...
+                      <ClimbingBoxLoader color="#ffffff" size={6} />
+                      <span className="ml-2">Đang cập nhật...</span>
                     </span>
                   ) : (
                     "Lưu thay đổi"
@@ -695,6 +737,16 @@ export default function AdminUsers() {
             </form>
           </DialogContent>
         </Dialog>
+        
+        {/* Cookie-style Confirm Dialog */}
+        <CustomConfirmDialog 
+          isOpen={confirmDialog.isOpen}
+          onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
+          title={confirmDialog.title}
+          description={confirmDialog.description}
+          actionType={confirmDialog.actionType}
+          onConfirm={confirmDialog.onConfirm}
+        />
       </div>
 
       {/* DATA TABLE */}
@@ -754,19 +806,36 @@ export default function AdminUsers() {
               </Table.Header>
               <Table.Body>
                 {isLoading && filteredAndSortedUsers.length === 0 ? (
-                  <Table.Row key="loading" id="loading">
-                    <Table.Cell className="pr-0" />
-                    <Table.Cell />
-                    <Table.Cell>
-                      <div className="flex items-center gap-3 text-slate-400 py-10">
-                        <SpinnerGap size={24} className="animate-spin text-primary" />
-                        <span className="font-medium">Đang tải...</span>
-                      </div>
-                    </Table.Cell>
-                    <Table.Cell />
-                    <Table.Cell />
-                    <Table.Cell />
-                  </Table.Row>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <Table.Row key={`skeleton-${i}`} id={`skeleton-${i}`}>
+                      <Table.Cell className="pr-0">
+                        <Skeleton className="h-4 w-4 rounded-sm" />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Skeleton className="h-4 w-6" />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <div className="flex items-center gap-3 py-2">
+                          <Skeleton className="h-8 w-8 rounded-full" />
+                          <div className="flex flex-col gap-1">
+                            <Skeleton className="h-4 w-[150px]" />
+                            <Skeleton className="h-3 w-[100px]" />
+                          </div>
+                        </div>
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <div className="flex justify-end">
+                          <Skeleton className="h-8 w-8 rounded-md" />
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  ))
                 ) : filteredAndSortedUsers.length === 0 ? (
                   <Table.Row key="empty" id="empty">
                     <Table.Cell className="pr-0" />

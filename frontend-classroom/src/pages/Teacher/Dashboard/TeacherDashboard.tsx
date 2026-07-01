@@ -1,16 +1,22 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
   Users,
   CheckSquare,
   Clipboard,
-
+  ArrowUpRight,
+  WarningCircle,
+  BellRinging,
 } from "phosphor-react";
 import { createMockClassroom, } from "../../../utils/mockDb";
 import type { Classroom } from "../../../utils/mockDb";
 import { useToast } from "../../../components/Styles/ToastContext";
 import { dashboardService } from "../../../service/dashboard.service";
 import type { ITeacherDashboardStats } from "../../../service/dashboard.service";
+import { scheduleService } from "../../../service/schedule.service";
+import type { ISchedule } from "../../../service/schedule.service";
+import { notificationService } from "../../../service/notification.service";
 
 import {
   AreaChart,
@@ -20,7 +26,50 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Bar,
+  BarChart,
+  LabelList
 } from "recharts";
+
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function StatCardSkeleton() {
+  return (
+    <Card className="flex flex-col">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-8 w-8 rounded-full" />
+      </CardHeader>
+      <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+        <Skeleton className="h-10 w-24 mt-1" />
+        <Skeleton className="h-4 w-3/4 mt-4" />
+        <Skeleton className="h-3 w-1/2 mt-2" />
+      </CardContent>
+    </Card>
+  );
+}
+
+export function SkeletonAvatar() {
+  return (
+    <div className="flex w-full items-center gap-4">
+      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+      <div className="grid gap-2 flex-1">
+        <Skeleton className="h-4 w-[150px]" />
+        <Skeleton className="h-4 w-[100px]" />
+      </div>
+    </div>
+  )
+}
+
+const SkeletonBar = (props: any) => {
+  const { x, y, width, height } = props;
+  return (
+    <g>
+      <rect x={x} y={y} width={width} height={height} fill="#e2e8f0" rx={4} ry={4} />
+    </g>
+  );
+};
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -48,19 +97,13 @@ interface ScoreStats {
   gioi: number;
   kha: number;
   trungBinh: number;
+  yeuKem: number;
 }
 
-const trendData = [
-  { month: "Tháng 8", currentYear: 82, lastYear: 80 },
-  { month: "Tháng 9", currentYear: 86, lastYear: 82 },
-  { month: "Tháng 10", currentYear: 90, lastYear: 85 },
-  { month: "Tháng 11", currentYear: 88, lastYear: 86 },
-  { month: "Tháng 12", currentYear: 94, lastYear: 90 },
-  { month: "Tháng 1", currentYear: 96, lastYear: 92 },
-];
 
 export default function TeacherDashboard() {
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [totalStudents, setTotalStudents] = useState<number>(320);
@@ -68,18 +111,31 @@ export default function TeacherDashboard() {
   const [newClass, setNewClass] = useState({ className: "", subject: "" });
 
   const [selectedClassFilter, setSelectedClassFilter] = useState("all");
-  const [scoreStats, setScoreStats] = useState<ScoreStats>({ gioi: 142, kha: 110, trungBinh: 68 });
+  const [scoreStats, setScoreStats] = useState<ScoreStats>({ gioi: 142, kha: 110, trungBinh: 68, yeuKem: 12 });
 
   const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<ITeacherDashboardStats["stats"] | null>(null);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [atRiskStudents, setAtRiskStudents] = useState<ITeacherDashboardStats["atRiskStudents"]>([]);
+  const [sendingWarning, setSendingWarning] = useState<string | null>(null); // studentId đang gửi
+
+  // Schedules State
+  const [schedules, setSchedules] = useState<ISchedule[]>([]);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       const res = await dashboardService.getTeacherDashboardStats();
+      // Thêm độ trễ 1 giây để quan sát được hiệu ứng Skeleton (Loading)
+      await new Promise(resolve => setTimeout(resolve, 1000));
       if (res.data) {
         setStats(res.data.stats);
         setScoreStats(res.data.scoreDistribution);
+        setTrendData(res.data.trendData || []);
+        setRecentActivities(res.data.recentActivities || []);
+        setAtRiskStudents(res.data.atRiskStudents || []);
         // Map classes to the Classroom mock structure for dropdown
         const mappedClasses = res.data.classes.map(c => ({
           _id: c._id,
@@ -99,8 +155,23 @@ export default function TeacherDashboard() {
     }
   };
 
+  const loadSchedules = async () => {
+    setIsLoadingSchedules(true);
+    try {
+      const res = await scheduleService.getSchedule();
+      if (res.data) {
+        setSchedules(res.data);
+      }
+    } catch (error: any) {
+      console.error("Lỗi khi tải lịch dạy:", error);
+    } finally {
+      setIsLoadingSchedules(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadSchedules();
 
     const handleOpenModal = () => setShowModal(true);
     window.addEventListener("open-new-class-modal", handleOpenModal);
@@ -136,79 +207,145 @@ export default function TeacherDashboard() {
     }
   };
 
-  const maxScoreVal = Math.max(scoreStats.gioi, scoreStats.kha, scoreStats.trungBinh, 1);
+  const maxScoreVal = Math.max(scoreStats.gioi, scoreStats.kha, scoreStats.trungBinh, scoreStats.yeuKem, 1);
   const getBarHeight = (val: number) => `${(val / maxScoreVal) * 100}%`;
+
+  const handleSendWarning = async (student: { id: string; name: string; issue: string }) => {
+    if (sendingWarning) return;
+    setSendingWarning(student.id);
+    try {
+      await notificationService.sendWarning(
+        student.id,
+        `⚠️ Cảnh báo từ giáo viên`,
+        `Bạn đang trong diện cảnh báo: ${student.issue}. Hãy cố gắng cải thiện để đạt kết quả tốt hơn!`
+      );
+      toast.success(`Đã gửi cảnh báo tới ${student.name}!`);
+    } catch (err: any) {
+      toast.error(err.message || `Không thể gửi cảnh báo tới ${student.name}!`);
+    } finally {
+      setSendingWarning(null);
+    }
+  };
+
+  const scoreChartData = [
+    { level: "Giỏi", students: scoreStats.gioi, fill: "#10b981" },
+    { level: "Khá", students: scoreStats.kha, fill: "#3b82f6" },
+    { level: "Trung bình", students: scoreStats.trungBinh, fill: "#f59e0b" },
+    { level: "Yếu/Kém", students: scoreStats.yeuKem, fill: "#ef4444" },
+  ];
+
+  const scoreChartConfig = {
+    students: {
+      label: "Học sinh",
+    },
+    label: {
+      color: "var(--background)",
+    },
+  } satisfies ChartConfig;
 
   return (
     <div className="flex flex-col gap-6 p-2">
 
       {/* 1. KHỐI THẺ THỐNG KÊ (TEACHER STATS) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-orange-100 text-orange-600">
-              <BookOpen size={26} weight="duotone" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Tổng số lớp</p>
-              <h3 className="text-2xl font-bold">{isLoading ? "..." : stats?.totalClasses || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <>
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+            <StatCardSkeleton />
+          </>
+        ) : (
+          <>
+            <Card className="flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số lớp</CardTitle>
+                <BookOpen className="h-5 w-5 text-orange-500" weight="duotone" />
+              </CardHeader>
+              <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+                <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : stats?.totalClasses || 0}</div>
+                <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
+                  Lớp học đang quản lý <ArrowUpRight className="h-4 w-4 text-orange-500" />
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  Cập nhật mới nhất
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-100 text-green-600">
-              <Users size={26} weight="duotone" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Học sinh</p>
-              <h3 className="text-2xl font-bold">{isLoading ? "..." : stats?.totalStudents || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Học sinh</CardTitle>
+                <Users className="h-5 w-5 text-blue-500" weight="duotone" />
+              </CardHeader>
+              <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+                <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : stats?.totalStudents || 0}</div>
+                <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
+                  Tổng số đang tham gia <ArrowUpRight className="h-4 w-4 text-blue-500" />
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  Của tất cả các lớp
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600">
-              <CheckSquare size={26} weight="duotone" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Chuyên cần</p>
-              <h3 className="text-2xl font-bold">{isLoading ? "..." : `${stats?.attendanceRate || 0}%`}</h3>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Chuyên cần</CardTitle>
+                <CheckSquare className="h-5 w-5 text-emerald-500" weight="duotone" />
+              </CardHeader>
+              <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+                <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : `${stats?.attendanceRate || 0}%`}</div>
+                <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
+                  Tỷ lệ đi học <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  Trung bình các lớp
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-red-100 text-red-600">
-              <Clipboard size={26} weight="duotone" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Bài tập cần chấm</p>
-              <h3 className="text-2xl font-bold">{isLoading ? "..." : stats?.pendingGrades || 0}</h3>
-            </div>
-          </CardContent>
-        </Card>
+            <Card className="flex flex-col">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">Bài tập cần chấm</CardTitle>
+                <Clipboard className="h-5 w-5 text-red-500" weight="duotone" />
+              </CardHeader>
+              <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+                <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : stats?.pendingGrades || 0}</div>
+                <div className="mt-4 flex flex-col gap-1.5">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Đã nộp</span>
+                    <span className="text-slate-900 font-bold">{stats?.totalSubmitted || 0}/{stats?.totalExpectedSubmissions || 0} học sinh</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-red-500 rounded-full"
+                      style={{ width: `${stats?.totalExpectedSubmissions ? Math.round(((stats?.totalSubmitted || 0) / stats.totalExpectedSubmissions) * 100) : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* 2. KHỐI PHÂN TÍCH VÀ FEED HOẠT ĐỘNG (TEACHER GRID) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Biểu đồ phổ điểm */}
-        <Card className="lg:col-span-2 flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card className="lg:col-span-2 flex flex-col pt-0 gap-0 border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-5 bg-primary text-white rounded-t-xl">
             <div>
-              <CardTitle>Biểu đồ phổ điểm</CardTitle>
-              <CardDescription>Thống kê kết quả học kỳ 1</CardDescription>
+              <CardTitle className="text-white">Biểu đồ phổ điểm</CardTitle>
+              <CardDescription className="text-white/80">Thống kê kết quả học kỳ 1</CardDescription>
             </div>
             <div className="w-48">
               <Select value={selectedClassFilter} onValueChange={setSelectedClassFilter}>
-                <SelectTrigger>
+                <SelectTrigger className="w-full bg-white text-slate-900 border-none shadow-sm h-9">
                   <SelectValue placeholder="Chọn lớp" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="w-48">
                   <SelectItem value="all">Tất cả các lớp</SelectItem>
                   {classrooms.map(c => (
                     <SelectItem key={c._id} value={c._id}>{c.className}</SelectItem>
@@ -218,70 +355,112 @@ export default function TeacherDashboard() {
             </div>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col pt-4">
-            <div className={styles.barChartContainer}>
-              <div className={styles.barChart}>
-                <div className={styles.barItem}>
-                  <span className={styles.barValue}>{scoreStats.gioi} HS</span>
-                  <div className={styles.barColumnWrap}>
-                    <div className={`${styles.barColumn} ${styles.gioi}`} style={{ height: getBarHeight(scoreStats.gioi) }} />
-                  </div>
-                  <span className={styles.barLabel}>Giỏi</span>
-                </div>
-                <div className={styles.barItem}>
-                  <span className={styles.barValue}>{scoreStats.kha} HS</span>
-                  <div className={styles.barColumnWrap}>
-                    <div className={`${styles.barColumn} ${styles.kha}`} style={{ height: getBarHeight(scoreStats.kha) }} />
-                  </div>
-                  <span className={styles.barLabel}>Khá</span>
-                </div>
-                <div className={styles.barItem}>
-                  <span className={styles.barValue}>{scoreStats.trungBinh} HS</span>
-                  <div className={styles.barColumnWrap}>
-                    <div className={`${styles.barColumn} ${styles.trungbinh}`} style={{ height: getBarHeight(scoreStats.trungBinh) }} />
-                  </div>
-                  <span className={styles.barLabel}>Trung bình</span>
-                </div>
+            <ChartContainer config={scoreChartConfig} className="w-full h-[200px] mx-auto">
+              <BarChart
+                accessibilityLayer
+                data={scoreChartData}
+                layout="vertical"
+                margin={{ right: 30 }}
+              >
+                <CartesianGrid horizontal={false} vertical={true} strokeDasharray="3 3" />
+                <YAxis
+                  dataKey="level"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                  hide
+                />
+                <XAxis dataKey="students" type="number" tickLine={false} axisLine={false} fontSize={12} tickMargin={8} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="line" />}
+                />
+                <Bar dataKey="students" radius={4} maxBarSize={48} shape={isLoading ? <SkeletonBar /> : undefined}>
+                  {!isLoading && (
+                    <>
+                      <LabelList
+                        dataKey="level"
+                        position="insideLeft"
+                        offset={12}
+                        className="fill-white font-medium"
+                        fontSize={13}
+                      />
+                      <LabelList
+                        dataKey="students"
+                        position="right"
+                        offset={12}
+                        className="fill-foreground font-bold"
+                        fontSize={13}
+                      />
+                    </>
+                  )}
+                </Bar>
+              </BarChart>
+            </ChartContainer>
+
+            <div className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-emerald-600 text-xs font-bold uppercase mb-1">Giỏi</div>
+                <div className="text-emerald-700 font-black text-xl">{isLoading ? <Skeleton className="h-6 w-12 mx-auto" /> : scoreStats.gioi}</div>
               </div>
-              <div className={styles.chartDetails}>
-                <div className={styles.detailItem}>
-                  <span className={styles.label}>Tỷ lệ đạt Khá / Giỏi</span>
-                  <span className={styles.count} style={{ color: "#10B981" }}>
-                    {Math.round(((scoreStats.gioi + scoreStats.kha) / (scoreStats.gioi + scoreStats.kha + scoreStats.trungBinh)) * 100)}%
-                  </span>
-                </div>
+              <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 text-xs font-bold uppercase mb-1">Khá</div>
+                <div className="text-blue-700 font-black text-xl">{isLoading ? <Skeleton className="h-6 w-12 mx-auto" /> : scoreStats.kha}</div>
               </div>
+              <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-orange-600 text-xs font-bold uppercase mb-1">Trung bình</div>
+                <div className="text-orange-700 font-black text-xl">{isLoading ? <Skeleton className="h-6 w-12 mx-auto" /> : scoreStats.trungBinh}</div>
+              </div>
+              <div className="bg-red-50 rounded-xl p-3 text-center border border-red-100 shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-red-600 text-xs font-bold uppercase mb-1">Yếu/Kém</div>
+                <div className="text-red-700 font-black text-xl">{isLoading ? <Skeleton className="h-6 w-12 mx-auto" /> : scoreStats.yeuKem}</div>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-between text-sm pt-4 border-t border-slate-100">
+              <span className="text-slate-600 font-semibold">Tỷ lệ đạt Khá / Giỏi</span>
+              <span className="font-bold text-emerald-600 bg-emerald-100 px-2.5 py-0.5 rounded-md">
+                {scoreStats.gioi + scoreStats.kha + scoreStats.trungBinh + scoreStats.yeuKem === 0 ? 0 : Math.round(((scoreStats.gioi + scoreStats.kha) / (scoreStats.gioi + scoreStats.kha + scoreStats.trungBinh + scoreStats.yeuKem)) * 100)}%
+              </span>
             </div>
           </CardContent>
         </Card>
 
         {/* Hoạt động gần đây */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Hoạt động gần đây</CardTitle>
+        <Card className="flex flex-col pt-0 gap-0 border-primary/20">
+          <CardHeader className="pb-4 pt-5 bg-primary text-white rounded-t-xl">
+            <CardTitle className="text-white">Hoạt động gần đây</CardTitle>
           </CardHeader>
-          <CardContent className="flex-1 flex flex-col gap-4">
-            <div className="flex gap-3 relative">
-              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80" alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
-              <div className="flex flex-col flex-1">
-                <span className="text-sm"><strong>Nguyễn Văn A</strong> đã nộp bài tập <span className="text-orange-500 font-medium">Toán Hình học</span></span>
-                <span className="text-xs text-muted-foreground mt-1">2 phút trước</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3 relative">
-              <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=150&q=80" alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
-              <div className="flex flex-col flex-1">
-                <span className="text-sm"><strong>Lê Thị B</strong> bình luận trên bảng tin lớp <strong>12A1</strong></span>
-                <span className="text-xs text-muted-foreground mt-1">15 phút trước</span>
-              </div>
-            </div>
-
-            <div className="flex gap-3 relative">
-              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80" alt="Avatar" className="w-10 h-10 rounded-full object-cover" />
-              <div className="flex flex-col flex-1">
-                <span className="text-sm"><strong>Trần Minh C</strong> được điểm danh có mặt</span>
-                <span className="text-xs text-muted-foreground mt-1">1 giờ trước</span>
-              </div>
+          <CardContent className="max-h-[350px] overflow-y-auto [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-200/50 hover:[&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full transition-colors pr-4 pt-6 pb-2">
+            <div className="relative border-l-2 border-slate-100 ml-4 space-y-6 pb-4">
+              {isLoading ? (
+                <div className="space-y-6 pl-4 pt-4">
+                  <SkeletonAvatar />
+                  <SkeletonAvatar />
+                  <SkeletonAvatar />
+                </div>
+              ) : recentActivities.length > 0 ? recentActivities.map((activity, idx) => (
+                <div key={activity.id || idx} className="relative pl-6">
+                  {/* Timeline dot */}
+                  <span className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-white border-2 border-primary ring-4 ring-white"></span>
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <img src={activity.avatar} alt={activity.user} className="h-6 w-6 rounded-full border border-slate-200 shadow-sm object-cover" />
+                        <span className="text-sm font-bold text-slate-900">{activity.user}</span>
+                      </div>
+                      <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">{activity.time}</span>
+                    </div>
+                    <div className="text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100 shadow-sm relative mt-1">
+                      {/* Speech bubble arrow */}
+                      <span className="absolute -top-[6px] left-4 w-3 h-3 bg-slate-50 border-t border-l border-slate-100 rotate-45"></span>
+                      {activity.action}
+                    </div>
+                  </div>
+                </div>
+              )) : (
+                <div className="pl-6 text-sm text-slate-500 font-medium pb-2">Chưa có hoạt động nào gần đây.</div>
+              )}
             </div>
           </CardContent>
           <div className="p-4 pt-0 mt-auto">
@@ -290,67 +469,139 @@ export default function TeacherDashboard() {
         </Card>
       </div>
 
-      {/* 3. BIỂU ĐỒ XU HƯỚNG CHUYÊN CẦN */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <div>
-            <CardTitle>Xu hướng chuyên cần</CardTitle>
-            <CardDescription>Biến động tỷ lệ đi học trong 6 tháng qua</CardDescription>
-          </div>
-          <div className="flex gap-4 text-sm font-medium">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Hiện tại
+      {/* 3. WIDGET GRID (LỊCH DẠY + CẢNH BÁO HỌC SINH) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* LỊCH DẠY HÔM NAY */}
+        <Card className="pt-0 gap-0 border-primary/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-5 bg-primary text-white rounded-t-xl border-b border-primary/20">
+            <div>
+              <CardTitle className="text-white">Lịch dạy hôm nay</CardTitle>
+              <CardDescription className="text-white/80 mt-1">Danh sách các lớp bạn có lịch dạy trong ngày hôm nay</CardDescription>
             </div>
+            <Button variant="outline" size="sm" className="font-semibold text-slate-600" onClick={() => navigate("/schedule")}>
+              Xem toàn bộ lịch
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoadingSchedules ? (
+              <div className="p-6 space-y-6 divide-y divide-slate-100">
+                <SkeletonAvatar />
+                <SkeletonAvatar />
+                <SkeletonAvatar />
+              </div>
+            ) : (() => {
+              const currentJSday = new Date().getDay();
+              // Map JS getDay (0=Sun, 1=Mon...) to backend dayOfWeek (1=Mon, 2=Tue... 7 = Sun)
+              const todayDayOfWeek = currentJSday === 0 ? 7 : currentJSday;
+
+              // To ensure the widget isn't empty in case DB uses different logic or there are no classes today,
+              // we will sort schedules by upcoming day (starting from today).
+              const sortedSchedules = [...schedules].sort((a, b) => {
+                if (a.dayOfWeek === b.dayOfWeek) {
+                  return a.startTime.localeCompare(b.startTime);
+                }
+                // Sort starting from today's dayOfWeek
+                const aDist = (a.dayOfWeek - todayDayOfWeek + 7) % 7;
+                const bDist = (b.dayOfWeek - todayDayOfWeek + 7) % 7;
+                return aDist - bDist;
+              });
+
+              // Lấy tối đa 5 lịch sắp tới
+              const upcomingSchedules = sortedSchedules.slice(0, 5);
+
+              if (upcomingSchedules.length === 0) {
+                return <div className="p-8 text-center text-slate-500 font-medium">Bạn chưa có lịch dạy nào.</div>;
+              }
+
+              return (
+                <div className="divide-y divide-slate-100">
+                  {upcomingSchedules.map((schedule, idx) => {
+                    const isToday = schedule.dayOfWeek === todayDayOfWeek;
+                    const dayText = schedule.dayOfWeek === 7 ? "Chủ nhật" : `Thứ ${schedule.dayOfWeek + 1}`;
+                    return (
+                      <div key={schedule._id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`min-w-[72px] h-[60px] px-2 flex flex-col items-center justify-center rounded-xl border ${isToday ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                            <span className="text-[10px] font-bold uppercase whitespace-nowrap">{isToday ? 'Hôm nay' : dayText}</span>
+                            <span className="text-[15px] font-black">{schedule.startTime}</span>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-slate-900 text-base">{schedule.classId?.name || "Lớp học ẩn"}</h4>
+                            <div className="text-sm text-slate-500 font-medium flex items-center gap-2 mt-0.5">
+                              <span className="flex items-center gap-1"><BookOpen size={14} /> Môn: {schedule.subject}</span>
+                              <span>•</span>
+                              <span className="flex items-center gap-1"><CheckSquare size={14} /> {schedule.endTime}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-3 sm:mt-0 flex gap-2 justify-end">
+                          <Button variant="secondary" size="sm" className="font-bold text-slate-700 bg-white border border-slate-200 shadow-sm">Vào lớp</Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* CẢNH BÁO HỌC SINH */}
+        <Card className="pt-0 gap-0 border-red-500/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-4 pt-5 bg-red-500 text-white rounded-t-xl border-b border-red-500/20">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-slate-300"></div> Năm ngoái
+              <WarningCircle size={24} weight="fill" className="text-white" />
+              <div>
+                <CardTitle className="text-white">Cảnh báo học sinh</CardTitle>
+                <CardDescription className="text-white/80 mt-1">Vắng nhiều hoặc điểm dưới trung bình</CardDescription>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent className="h-[300px] w-full mt-4">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10B981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorLast" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#cbd5e1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#cbd5e1" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} dy={10} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#64748b' }} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(val) => `${val}%`} />
-              <Tooltip
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                labelStyle={{ fontWeight: 'bold', color: '#1e293b', marginBottom: '4px' }}
-                formatter={(value: any) => [`${value}%`, '']}
-              />
-              <Area
-                type="monotone"
-                name="Năm ngoái"
-                dataKey="lastYear"
-                stroke="#cbd5e1"
-                strokeDasharray="5 5"
-                strokeWidth={2.5}
-                fillOpacity={1}
-                fill="url(#colorLast)"
-              />
-              <Area
-                type="monotone"
-                name="Hiện tại"
-                dataKey="currentYear"
-                stroke="#10B981"
-                strokeWidth={3.5}
-                fillOpacity={1}
-                fill="url(#colorCurrent)"
-                activeDot={{ r: 6, strokeWidth: 0, fill: '#10B981' }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div className="p-6 space-y-6 divide-y divide-slate-100">
+                <SkeletonAvatar />
+                <SkeletonAvatar />
+                <SkeletonAvatar />
+              </div>
+            ) : (!atRiskStudents || atRiskStudents.length === 0) ? (
+              <div className="p-8 text-center text-emerald-600 font-medium">Không có học sinh nào trong diện cảnh báo. Tuyệt vời!</div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {atRiskStudents.map((student, idx) => (
+                  <div key={student.id || idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <img src={student.avatar} alt={student.name} className="h-10 w-10 rounded-full border border-slate-200 object-cover" />
+                      <div>
+                        <h4 className="font-bold text-slate-900 text-[15px]">{student.name}</h4>
+                        <div className="text-sm text-slate-500 font-medium mt-0.5">
+                          Lớp: {student.className}
+                        </div>
+                      </div>
+                    </div>
+                      <div className="mt-3 sm:mt-0 flex items-center justify-end gap-3">
+                        <span className={`px-2 py-0.5 rounded-md text-xs font-bold border ${student.severity === 'high' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
+                          {student.issue}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-500 border border-red-200 shadow-sm gap-1 transition-colors"
+                          disabled={sendingWarning === student.id}
+                          onClick={() => handleSendWarning(student)}
+                        >
+                          <BellRinging size={13} weight="fill" />
+                          {sendingWarning === student.id ? "Đang gửi..." : "Cảnh báo"}
+                        </Button>
+                      </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* POPUP MODAL GIÁO VIÊN TẠO LỚP MỚI */}
       <Dialog open={showModal} onOpenChange={setShowModal}>

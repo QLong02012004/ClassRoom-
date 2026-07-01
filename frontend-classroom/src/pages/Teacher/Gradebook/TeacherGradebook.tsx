@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
   FloppyDisk,
   NotePencil,
@@ -18,6 +19,7 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import styles from "./TeacherGradebook.module.scss";
 
 // Màu avatar dựa trên tên
@@ -39,6 +41,10 @@ const getInitials = (name: string) =>
 
 export default function TeacherGradebook() {
   const toast = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stateClassId = location.state?.classId || searchParams.get("classId");
 
   const [classes, setClasses] = useState<ITeacherClassroom[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
@@ -72,7 +78,11 @@ export default function TeacherGradebook() {
         const res = await classroomService.getTeacherClassrooms();
         if (res.data && res.data.length > 0) {
           setClasses(res.data);
-          setSelectedClassId(res.data[0]._id);
+          if (stateClassId && res.data.find(c => c._id === stateClassId)) {
+            setSelectedClassId(stateClassId);
+          } else {
+            setSelectedClassId(res.data[0]._id);
+          }
         }
       } catch {
         toast.error("Không thể tải danh sách lớp học");
@@ -81,7 +91,7 @@ export default function TeacherGradebook() {
       }
     };
     fetchClasses();
-  }, []);
+  }, [stateClassId]);
 
   // Tải bảng điểm của lớp được chọn
   const loadGradebook = useCallback(async () => {
@@ -261,7 +271,10 @@ export default function TeacherGradebook() {
                       classes.map((cls) => (
                         <DropdownMenuItem
                           key={cls._id}
-                          onClick={() => setSelectedClassId(cls._id)}
+                          onClick={() => {
+                          setSelectedClassId(cls._id);
+                          setSearchParams({ classId: cls._id }, { replace: true });
+                        }}
                           className={`px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
                             }`}
                         >
@@ -275,10 +288,9 @@ export default function TeacherGradebook() {
             </div>
           </div>
           <div className={styles.headerActions}>
-            <button className={styles.btnPrimary} onClick={handleSaveGrades} disabled={saving || students.length === 0}>
-              {saving ? <Spinner size={18} className={styles.spinning} /> : <FloppyDisk size={18} weight="bold" />}
+            <AnimatedAddButton onClick={handleSaveGrades} disabled={saving || students.length === 0}>
               {saving ? "Đang lưu..." : "Lưu thay đổi"}
-            </button>
+            </AnimatedAddButton>
           </div>
         </div>
 

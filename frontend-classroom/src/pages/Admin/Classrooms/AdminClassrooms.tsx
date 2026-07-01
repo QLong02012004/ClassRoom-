@@ -16,6 +16,7 @@ import type {
 import type {
   ColumnDef as ColumnDefType
 } from "@tanstack/react-table";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Funnel,
@@ -58,6 +59,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../../../components/Styles/ToastContext";
+import { CustomConfirmDialog } from "@/components/ui/CustomConfirmDialog";
 
 import { classroomService, type IClassroomItem, type IClassroomActivities } from "../../../service/classroom.service";
 
@@ -72,6 +74,20 @@ export default function AdminClassrooms() {
   const [selectedClass, setSelectedClass] = useState<IClassroomItem | null>(null);
   const [classActivities, setClassActivities] = useState<IClassroomActivities | null>(null);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: React.ReactNode;
+    actionType?: 'danger' | 'warning' | 'success' | 'default';
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    description: "",
+    actionType: 'default',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     if (selectedClass) {
@@ -121,7 +137,9 @@ export default function AdminClassrooms() {
     } catch (error: any) {
       toast.error("Không thể tải danh sách lớp học", 3000);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
     }
   };
 
@@ -129,24 +147,44 @@ export default function AdminClassrooms() {
     fetchClasses();
   }, []);
 
-  const handleDeleteClass = async (id: string, name: string) => {
-    try {
-      await classroomService.deleteClassroom(id);
-      toast.success(`Đã xóa lớp học ${name} khỏi hệ thống!`, 3000);
-      fetchClasses();
-    } catch (error: any) {
-      toast.error("Lỗi khi xóa: " + error.message, 3000);
-    }
+  const handleDeleteClass = (id: string, name: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Cảnh báo xóa dữ liệu",
+      description: `Lớp học ${name} cùng toàn bộ điểm số, bài tập và danh sách học sinh sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`,
+      actionType: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await classroomService.deleteClassroom(id);
+          toast.success(`Đã xóa lớp học ${name} khỏi hệ thống!`, 3000);
+          fetchClasses();
+        } catch (error: any) {
+          toast.error("Lỗi khi xóa: " + error.message, 3000);
+        }
+      }
+    });
   };
 
-  const handleLockClass = async (id: string, name: string, isLocked: boolean) => {
-    try {
-      await classroomService.updateClassroomStatus(id, isLocked ? 'Active' : 'Locked');
-      toast.success(`Đã ${isLocked ? 'mở khóa' : 'khóa'} lớp học ${name}!`, 3000);
-      fetchClasses();
-    } catch (error: any) {
-      toast.error("Lỗi khi cập nhật: " + error.message, 3000);
-    }
+  const handleLockClass = (id: string, name: string, isLocked: boolean) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: isLocked ? "Mở khóa lớp học này?" : "Khóa lớp học này?",
+      description: isLocked
+        ? `Lớp ${name} sẽ được mở lại bình thường.`
+        : `Lớp ${name} sẽ bị tạm ngưng và giáo viên/học sinh không thể truy cập vào bài tập được nữa.`,
+      actionType: isLocked ? 'success' : 'warning',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await classroomService.updateClassroomStatus(id, isLocked ? 'Active' : 'Locked');
+          toast.success(`Đã ${isLocked ? 'mở khóa' : 'khóa'} lớp học ${name}!`, 3000);
+          fetchClasses();
+        } catch (error: any) {
+          toast.error("Lỗi khi cập nhật: " + error.message, 3000);
+        }
+      }
+    });
   };
 
   // Column Definitions
@@ -250,63 +288,31 @@ export default function AdminClassrooms() {
 
         return (
           <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={`h-8 w-8 transition-colors ${isViolation ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700' : 'text-slate-500 hover:text-slate-800'}`}
-                  title={isViolation ? "Mở khóa lớp học" : "Khóa lớp học"}
-                >
-                  <LockKey size={16} weight="bold" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>{isViolation ? "Mở khóa lớp học này?" : "Khóa lớp học này?"}</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    {isViolation
-                      ? <>Lớp <strong>{cls.name}</strong> sẽ được mở lại bình thường.</>
-                      : <>Lớp <strong>{cls.name}</strong> sẽ bị tạm ngưng và giáo viên/học sinh không thể truy cập vào bài tập được nữa.</>
-                    }
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
-                  <AlertDialogAction className="bg-orange-600 hover:bg-orange-700" onClick={() => handleLockClass(cls._id, cls.name, isViolation)}>Đồng ý</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              variant="outline"
+              size="icon"
+              className={`h-8 w-8 transition-colors ${isViolation ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700' : 'text-slate-500 hover:text-slate-800'}`}
+              title={isViolation ? "Mở khóa lớp học" : "Khóa lớp học"}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLockClass(cls._id, cls.name, isViolation);
+              }}
+            >
+              <LockKey size={16} weight="bold" />
+            </Button>
 
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-                  title="Xóa lớp học"
-                >
-                  <Trash size={16} weight="bold" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="text-red-600 flex items-center gap-2">
-                    <Trash size={20} weight="bold" />
-                    Cảnh báo xóa dữ liệu
-                  </AlertDialogTitle>
-                  <AlertDialogDescription className="text-slate-700 font-medium">
-                    Hành động này không thể hoàn tác, bạn có chắc chắn muốn xóa lớp học <strong>{cls.name}</strong> này ra khỏi hệ thống vĩnh viễn? Mọi dữ liệu điểm số, bài tập sẽ bị mất.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="font-semibold">Hủy bỏ</AlertDialogCancel>
-                  <AlertDialogAction className="bg-red-600 text-white hover:bg-red-700 font-bold" onClick={() => handleDeleteClass(cls._id, cls.name)}>
-                    Đồng ý Xóa
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+              title="Xóa lớp học"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDeleteClass(cls._id, cls.name);
+              }}
+            >
+              <Trash size={16} weight="bold" />
+            </Button>
           </div>
         );
       },
@@ -339,7 +345,7 @@ export default function AdminClassrooms() {
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="text-3xl tracking-tight font-bold text-slate-900">Quản lý lớp học hệ thống</h2>
+            <h2 className="text-3xl tracking-tight font-bold text-slate-900">Quản lý lớp học </h2>
             <p className="text-slate-500 mt-1 text-sm font-medium">
               Giám sát và quản trị tất cả các hoạt động đào tạo trên toàn hệ thống.
             </p>
@@ -357,13 +363,23 @@ export default function AdminClassrooms() {
               <GraduationCap className="h-5 w-5 text-blue-500" weight="duotone" />
             </CardHeader>
             <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
-              <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : totalClasses.toLocaleString()}</div>
-              <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                Trên toàn hệ thống <ArrowUpRight className="h-4 w-4 text-blue-500" />
-              </div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                Cập nhật tự động
-              </div>
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-10 w-20 mb-4" />
+                  <Skeleton className="h-4 w-40 mb-2" />
+                  <Skeleton className="h-3 w-32" />
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl font-bold tracking-tighter">{totalClasses.toLocaleString()}</div>
+                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
+                    Trên toàn hệ thống <ArrowUpRight className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Cập nhật tự động
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -373,13 +389,23 @@ export default function AdminClassrooms() {
               <CheckCircle className="h-5 w-5 text-emerald-500" weight="duotone" />
             </CardHeader>
             <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
-              <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : activeClasses.toLocaleString()}</div>
-              <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                Chiếm {isLoading ? "0" : activePercentage}% <ArrowUpRight className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                Tỷ lệ lớp học đang mở
-              </div>
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-10 w-20 mb-4" />
+                  <Skeleton className="h-4 w-40 mb-2" />
+                  <Skeleton className="h-3 w-32" />
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl font-bold tracking-tighter">{activeClasses.toLocaleString()}</div>
+                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
+                    Chiếm {activePercentage}% <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Tỷ lệ lớp học đang mở
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -389,13 +415,23 @@ export default function AdminClassrooms() {
               <PauseCircle className="h-5 w-5 text-red-500" weight="duotone" />
             </CardHeader>
             <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
-              <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : lockedClasses.toLocaleString()}</div>
-              <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none text-red-500">
-                Chiếm {isLoading ? "0" : lockedPercentage}% <ArrowDownRight className="h-4 w-4 text-red-500" />
-              </div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                Cần được xem xét lại
-              </div>
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-10 w-20 mb-4" />
+                  <Skeleton className="h-4 w-40 mb-2" />
+                  <Skeleton className="h-3 w-32" />
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl font-bold tracking-tighter">{lockedClasses.toLocaleString()}</div>
+                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none text-red-500">
+                    Chiếm {lockedPercentage}% <ArrowDownRight className="h-4 w-4 text-red-500" />
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Cần được xem xét lại
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -405,13 +441,23 @@ export default function AdminClassrooms() {
               <Users className="h-5 w-5 text-orange-500" weight="duotone" />
             </CardHeader>
             <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
-              <div className="text-4xl font-bold tracking-tighter">{isLoading ? "..." : totalStudents.toLocaleString()}</div>
-              <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                Trung bình {isLoading ? "0" : avgStudents} HS/lớp <ArrowUpRight className="h-4 w-4 text-orange-500" />
-              </div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                Đang tham gia các lớp
-              </div>
+              {isLoading ? (
+                <>
+                  <Skeleton className="h-10 w-20 mb-4" />
+                  <Skeleton className="h-4 w-40 mb-2" />
+                  <Skeleton className="h-3 w-32" />
+                </>
+              ) : (
+                <>
+                  <div className="text-4xl font-bold tracking-tighter">{totalStudents.toLocaleString()}</div>
+                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
+                    Trung bình {avgStudents} HS/lớp <ArrowUpRight className="h-4 w-4 text-orange-500" />
+                  </div>
+                  <div className="mt-2 text-sm text-muted-foreground">
+                    Đang tham gia các lớp
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -477,11 +523,48 @@ export default function AdminClassrooms() {
                 ))}
               </TableHeader>
               <TableBody>
-                {table.getRowModel().rows?.length ? (
+                {isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={`skeleton-${i}`} className="border-b-slate-100 hover:bg-transparent">
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                          <div className="flex flex-col gap-1.5 w-full">
+                            <Skeleton className="h-4 w-3/4 max-w-[150px]" />
+                            <Skeleton className="h-3 w-1/2 max-w-[100px]" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-7 w-7 rounded-full shrink-0" />
+                          <Skeleton className="h-4 w-24" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Skeleton className="h-4 w-12" />
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                      </TableCell>
+                      <TableCell className="py-3">
+                        <div className="flex justify-end">
+                          <Skeleton className="h-8 w-8 rounded-md" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : table.getRowModel().rows?.length ? (
                   table.getRowModel().rows.map((row) => (
                     <TableRow
                       key={row.id}
-                      className={`border-b-slate-100 cursor-pointer transition-colors ${selectedClass?.id === row.original.id ? 'bg-blue-50/60 hover:bg-blue-50/80' : 'hover:bg-slate-50/80'}`}
+                      className={`border-b-slate-100 cursor-pointer transition-colors ${selectedClass?._id === row.original._id ? 'bg-blue-50/60 hover:bg-blue-50/80' : 'hover:bg-slate-50/80'}`}
                       onClick={() => setSelectedClass(row.original)}
                     >
                       {row.getVisibleCells().map((cell) => (
@@ -494,7 +577,7 @@ export default function AdminClassrooms() {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={columns.length} className="h-32 text-center text-slate-500 font-medium">
-                      {isLoading ? "Đang tải dữ liệu..." : "Không tìm thấy kết quả nào."}
+                      Không tìm thấy kết quả nào.
                     </TableCell>
                   </TableRow>
                 )}
@@ -597,6 +680,16 @@ export default function AdminClassrooms() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirm Dialog */}
+      <CustomConfirmDialog 
+        isOpen={confirmDialog.isOpen}
+        onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
+        title={confirmDialog.title}
+        description={confirmDialog.description}
+        actionType={confirmDialog.actionType}
+        onConfirm={confirmDialog.onConfirm}
+      />
     </div>
   );
 }

@@ -4,10 +4,11 @@ import { cn } from '@/lib/utils'; // if you have it, else we just use template l
 
 interface AnimatedAddButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children?: React.ReactNode;
+  icon?: React.ReactNode;
 }
 
 export const AnimatedAddButton = React.forwardRef<HTMLButtonElement, AnimatedAddButtonProps>(
-  ({ children, className, ...props }, ref) => {
+  ({ children, className, icon, ...props }, ref) => {
     return (
       <button
         ref={ref}
@@ -21,17 +22,17 @@ export const AnimatedAddButton = React.forwardRef<HTMLButtonElement, AnimatedAdd
           "active:scale-90",
           "hover:text-white",
           // Hiệu ứng lan tỏa từ góc trái trên
-          "before:absolute before:-left-4 before:-top-4 before:-z-10",
-          "before:h-12 before:w-12 before:rounded-full",
+          "before:absolute before:left-0 before:top-0 before:-z-10",
+          "before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full",
           "before:bg-[#FE6747] before:scale-0",
           "before:transition-transform before:duration-[800ms] before:ease-out",
-          "hover:before:scale-[15]",
+          "hover:before:scale-100",
           className
         )}
         {...props}
       >
-        <Plus size={20} weight="bold" className="shrink-0" />
-        {children || "Thêm giáo viên"}
+        {icon !== undefined ? icon : <Plus size={20} weight="bold" className="shrink-0" />}
+        {children || "Thêm mới"}
       </button>
     );
   }

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ClassModel } from '../models/Class';
 import { AssignmentModel } from '../models/Assignment';
 import { SubmissionModel } from '../models/Submission';
+import { GradeModel } from '../models/Grade';
 import { createAdminNotification } from '../services/notificationService';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
@@ -99,14 +100,44 @@ export const getTeacherClassrooms = async (req: Request, res: Response, next: Ne
         const teacherId = (req as any).user?.id;
         const classes = await ClassModel.find({ teacherId, status: { $ne: 'Archived' } }).sort({ createdAt: -1 });
 
+        // Bổ sung thông tin "nóng" cho từng lớp học
+        const enrichedClasses = await Promise.all(classes.map(async (cls) => {
+            const classObj = cls.toObject();
+
+            // Lấy danh sách bài tập của lớp này
+            const assignments = await AssignmentModel.find({ classId: cls._id }).select('_id title dueDate');
+            const assignmentIds = assignments.map(a => a._id);
+
+            // Bài tập hết hạn gần nhất (để hiển thị "Bài tập mới nhất")
+            const latestAssignment = assignments.sort((a, b) =>
+                new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()
+            )[0];
+
+            // Đếm số bài nộp chưa được chấm điểm
+            let pendingGrades = 0;
+            if (assignmentIds.length > 0) {
+                const submissionCount = await SubmissionModel.countDocuments({ assignmentId: { $in: assignmentIds } });
+                const gradeCount = await GradeModel.countDocuments({ assignmentId: { $in: assignmentIds } });
+                pendingGrades = Math.max(0, submissionCount - gradeCount);
+            }
+
+            return {
+                ...classObj,
+                pendingGrades,
+                latestAssignmentTitle: latestAssignment?.title || null,
+                latestAssignmentDue: latestAssignment?.dueDate || null,
+            };
+        }));
+
         res.status(200).json({
             message: 'Lấy danh sách lớp học thành công',
-            data: classes
+            data: enrichedClasses
         });
     } catch (error) {
         next(error);
     }
 };
+
 
 // Lấy danh sách học sinh của một lớp (dùng cho điểm danh)
 export const getClassroomStudents = async (req: Request, res: Response, next: NextFunction): Promise<any> => {

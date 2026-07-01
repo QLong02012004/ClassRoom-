@@ -34,12 +34,31 @@ export interface ITeacherDashboardStats {
     totalStudents: number;
     attendanceRate: number;
     pendingGrades: number;
+    totalSubmitted: number;
+    totalExpectedSubmissions: number;
   };
   scoreDistribution: {
     gioi: number;
     kha: number;
     trungBinh: number;
+    yeuKem: number;
   };
+  trendData: { month: string; currentYear: number; lastYear: number }[];
+  recentActivities: {
+    id: string;
+    user: string;
+    action: string;
+    time: string;
+    avatar: string;
+  }[];
+  atRiskStudents?: {
+    id: string;
+    name: string;
+    avatar: string;
+    className: string;
+    issue: string;
+    severity: 'high' | 'medium';
+  }[];
   classes: {
     _id: string;
     className: string;

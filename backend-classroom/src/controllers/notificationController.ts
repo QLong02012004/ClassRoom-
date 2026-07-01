@@ -2,14 +2,18 @@ import { Request, Response, NextFunction } from 'express';
 import { NotificationModel } from '../models/Notification';
 import mongoose from 'mongoose';
 
-// 1. Lấy danh sách thông báo (chỉ cho vai trò hiện tại của user đăng nhập)
+// 1. Lấy danh sách thông báo (lọc theo role HOẶC recipientId trực tiếp)
 export const getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const userId = (req as any).user?.id;
         const userRole = (req as any).user?.role;
 
-        // Chỉ lấy thông báo có recipientRole khớp với role của user hiện tại
-        const notifications = await NotificationModel.find({ recipientRole: userRole })
+        const notifications = await NotificationModel.find({
+            $or: [
+                { recipientRole: userRole, recipientId: null },
+                { recipientId: new mongoose.Types.ObjectId(userId) }
+            ]
+        })
             .populate('sender', 'name email avatar')
             .sort({ createdAt: -1 })
             .limit(50);
@@ -17,10 +21,7 @@ export const getNotifications = async (req: Request, res: Response, next: NextFu
         const result = notifications.map(notif => {
             const notifObj = notif.toObject();
             const isRead = notif.readBy.some(readId => String(readId) === String(userId));
-            return {
-                ...notifObj,
-                isRead
-            };
+            return { ...notifObj, isRead };
         });
 
         return res.status(200).json({
@@ -47,7 +48,6 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
             return res.status(404).json({ message: 'Không tìm thấy thông báo' });
         }
 
-        // Thêm userId vào mảng readBy nếu chưa có
         if (!notification.readBy.some(readId => String(readId) === String(userId))) {
             notification.readBy.push(new mongoose.Types.ObjectId(userId));
             await notification.save();
@@ -55,10 +55,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
 
         return res.status(200).json({
             message: 'Đã đánh dấu đã đọc thông báo',
-            data: {
-                _id: notification._id,
-                isRead: true
-            }
+            data: { _id: notification._id, isRead: true }
         });
     } catch (error) {
         next(error);
@@ -71,19 +68,55 @@ export const markAllAsRead = async (req: Request, res: Response, next: NextFunct
         const userId = (req as any).user?.id;
         const userRole = (req as any).user?.role;
 
-        // Cập nhật bằng cách $addToSet để đẩy userId vào mảng readBy của tất cả thông báo chưa đọc tương ứng
         await NotificationModel.updateMany(
             {
-                recipientRole: userRole,
+                $or: [
+                    { recipientRole: userRole, recipientId: null },
+                    { recipientId: new mongoose.Types.ObjectId(userId) }
+                ],
                 readBy: { $ne: new mongoose.Types.ObjectId(userId) }
             },
-            {
-                $addToSet: { readBy: new mongoose.Types.ObjectId(userId) }
-            }
+            { $addToSet: { readBy: new mongoose.Types.ObjectId(userId) } }
         );
 
-        return res.status(200).json({
-            message: 'Đã đánh dấu đọc toàn bộ thông báo thành công'
+        return res.status(200).json({ message: 'Đã đánh dấu đọc toàn bộ thông báo thành công' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// 4. Giáo viên gửi cảnh báo tới một học sinh cụ thể
+export const sendWarningToStudent = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const senderId = (req as any).user?.id;
+        const senderRole = (req as any).user?.role;
+
+        if (senderRole !== 'teacher') {
+            return res.status(403).json({ message: 'Chỉ giáo viên mới có thể gửi cảnh báo học sinh' });
+        }
+
+        const { studentId, title, message } = req.body;
+
+        if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
+            return res.status(400).json({ message: 'studentId không hợp lệ' });
+        }
+        if (!title?.trim() || !message?.trim()) {
+            return res.status(400).json({ message: 'Tiêu đề và nội dung cảnh báo không được để trống' });
+        }
+
+        const notification = await NotificationModel.create({
+            recipientRole: 'student',
+            recipientId: new mongoose.Types.ObjectId(studentId),
+            sender: new mongoose.Types.ObjectId(senderId),
+            title: title.trim(),
+            message: message.trim(),
+            type: 'warning',
+            readBy: []
+        });
+
+        return res.status(201).json({
+            message: 'Đã gửi cảnh báo tới học sinh thành công',
+            data: notification
         });
     } catch (error) {
         next(error);

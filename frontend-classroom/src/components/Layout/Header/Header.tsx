@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { Chalkboard, ChartBar, CalendarBlank, FileText, Users, CheckSquare, ClipboardText } from "phosphor-react";
 import styles from "./Header.module.scss";
 
 const Header: React.FC = () => {
@@ -15,7 +16,7 @@ const Header: React.FC = () => {
 
   // Trích xuất classId từ URL
   const classIdMatch = location.pathname.match(/^\/classrooms\/([^/]+)/);
-  const classId = classIdMatch ? classIdMatch[1] : null;
+  const classId = classIdMatch ? classIdMatch[1] : searchParams.get("classId");
 
   const handleTabClick = (tabName: string) => {
     if (classId) {
@@ -28,41 +29,54 @@ const Header: React.FC = () => {
   if (!classId) return null;
 
   return (
-    <div className={styles.header}>
+    <div className={styles.sidebar}>
       {/* Các Tab điều hướng trong lớp học */}
-      <div className={styles.navTabs}>
-        <span className={styles.brandLabel}>Chi tiết lớp học</span>
+      <div className={styles.navMenu}>
+        <span className={styles.brandLabel}>Menu lớp học</span>
         <button
-          className={`${styles.tabItem} ${activeTab === "overview" ? styles.active : ""}`}
+          className={`${styles.menuItem} ${activeTab === "overview" ? styles.active : ""}`}
           onClick={() => handleTabClick("overview")}
         >
+          <Chalkboard size={20} weight={activeTab === "overview" ? "fill" : "regular"} />
           Tổng quan
         </button>
+
         <button
-          className={`${styles.tabItem} ${activeTab === "reports" ? styles.active : ""}`}
-          onClick={() => handleTabClick("reports")}
-        >
-          Báo cáo
-        </button>
-        <button
-          className={`${styles.tabItem} ${activeTab === "schedule" ? styles.active : ""}`}
+          className={`${styles.menuItem} ${activeTab === "schedule" ? styles.active : ""}`}
           onClick={() => handleTabClick("schedule")}
         >
+          <CalendarBlank size={20} weight={activeTab === "schedule" ? "fill" : "regular"} />
           Lịch trình
         </button>
         {userRole === "teacher" && (
           <>
             <button
-              className={`${styles.tabItem} ${activeTab === "quizzes" ? styles.active : ""}`}
+              className={`${styles.menuItem} ${activeTab === "quizzes" ? styles.active : ""}`}
               onClick={() => handleTabClick("quizzes")}
             >
+              <FileText size={20} weight={activeTab === "quizzes" ? "fill" : "regular"} />
               Trắc nghiệm
             </button>
             <button
-              className={`${styles.tabItem} ${isStudentsPage ? styles.active : ""}`}
+              className={`${styles.menuItem} ${isStudentsPage ? styles.active : ""}`}
               onClick={() => navigate(`/classrooms/${classId}/students`)}
             >
+              <Users size={20} weight={isStudentsPage ? "fill" : "regular"} />
               Học sinh
+            </button>
+            <button
+              className={`${styles.menuItem} ${location.pathname.includes("/attendance") ? styles.active : ""}`}
+              onClick={() => navigate(`/attendance?classId=${classId}`)}
+            >
+              <CheckSquare size={20} weight={location.pathname.includes("/attendance") ? "fill" : "regular"} />
+              Điểm danh
+            </button>
+            <button
+              className={`${styles.menuItem} ${location.pathname.includes("/gradebook") ? styles.active : ""}`}
+              onClick={() => navigate(`/gradebook?classId=${classId}`)}
+            >
+              <ClipboardText size={20} weight={location.pathname.includes("/gradebook") ? "fill" : "regular"} />
+              Sổ điểm
             </button>
           </>
         )}

@@ -14,6 +14,7 @@ import {
   NavbarMenu,
   NavbarMenuItem,
 } from "@heroui/navbar";
+import { Skeleton } from "../../../components/ui/skeleton";
 import {
   SquaresFour,
   Chalkboard,
@@ -36,8 +37,16 @@ const NavBar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isSimulatedLoading, setIsSimulatedLoading] = useState(true);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsSimulatedLoading(false);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -87,6 +96,19 @@ const NavBar: React.FC = () => {
     return () => clearInterval(interval);
   }, [userRole]);
 
+  const handleNotificationClick = async (notif: INotificationItem) => {
+    if (!notif.isRead) {
+      try {
+        await notificationService.markAsRead(notif._id);
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+        );
+      } catch (error) {
+        console.error("Lỗi khi đánh dấu đã đọc:", error);
+      }
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const getNavLinks = () => {
@@ -105,14 +127,12 @@ const NavBar: React.FC = () => {
       return [
         ...commonLinks,
         { name: "Người dùng", path: "/admin/users", icon: <User size={20} weight={isActive("/admin/users") ? "fill" : "regular"} /> },
-        { name: "Lớp học hệ thống", path: "/admin/classrooms", icon: <Chalkboard size={20} weight={isActive("/admin/classrooms") ? "fill" : "regular"} /> },
+        { name: "Lớp học ", path: "/admin/classrooms", icon: <Chalkboard size={20} weight={isActive("/admin/classrooms") ? "fill" : "regular"} /> },
       ];
     } else {
       return [
         ...commonLinks,
         { name: "Lớp học", path: "/classrooms", icon: <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} /> },
-        { name: "Điểm danh", path: "/attendance", icon: <CalendarCheck size={20} weight={isActive("/attendance") ? "fill" : "regular"} /> },
-        { name: "Sổ điểm", path: "/gradebook", icon: <GraduationCap size={20} weight={isActive("/gradebook") ? "fill" : "regular"} /> },
         { name: "Bài tập", path: "/assignments", icon: <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} /> },
         { name: "Lịch dạy", path: "/schedule", icon: <CalendarBlank size={20} weight={isActive("/schedule") ? "fill" : "regular"} /> },
       ];
@@ -144,103 +164,133 @@ const NavBar: React.FC = () => {
       </NavbarContent>
 
       <NavbarContent justify="end" className="gap-3 sm:gap-6">
-        {navLinks.map((link) => (
-          <NavbarItem key={link.path} isActive={isActive(link.path)} className="hidden sm:flex">
-            <Link
-              to={link.path}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${isActive(link.path)
-                ? "bg-primary/10 text-primary"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
-            >
-              {link.icon}
-              {link.name}
-            </Link>
-          </NavbarItem>
-        ))}
+        {isSimulatedLoading ? (
+          <div className="hidden sm:flex gap-4 items-center">
+            <Skeleton className="h-9 w-28 rounded-lg" />
+            <Skeleton className="h-9 w-28 rounded-lg" />
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+        ) : (
+          navLinks.map((link) => (
+            <NavbarItem key={link.path} isActive={isActive(link.path)} className="hidden sm:flex">
+              <Link
+                to={link.path}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${isActive(link.path)
+                  ? "bg-primary/10 text-primary"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  }`}
+              >
+                {link.icon}
+                {link.name}
+              </Link>
+            </NavbarItem>
+          ))
+        )}
 
         {isAuthenticated ? (
-          <>
-            <NavbarItem>
-              <div className="relative" ref={notifRef}>
-                <div 
-                  className="p-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer relative overflow-visible flex items-center justify-center"
-                  onClick={() => setIsNotifOpen(!isNotifOpen)}
-                >
-                  <Bell size={22} weight="bold" className="text-slate-600" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-                  )}
-                </div>
-                {isNotifOpen && (
-                  <div className="absolute right-0 mt-2 w-[300px] bg-white rounded-xl shadow-lg border border-slate-100 pb-2 z-50 overflow-hidden">
-                    <div className="px-4 py-3 font-bold text-white bg-primary mb-2 shadow-sm">Thông báo</div>
-                    {notifications.length === 0 ? (
-                      <div className="px-4 py-3 text-center text-sm text-slate-500">
-                        Không có thông báo mới
-                      </div>
-                    ) : (
-                      <div className="flex flex-col max-h-[300px] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f]">
-                        {notifications.map((notif) => (
-                          <div key={notif._id} className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors break-words">
-                            <span className="font-semibold text-sm block mb-1 text-slate-800 whitespace-normal">{notif.title}</span>
-                            <span className="text-xs text-slate-500 block whitespace-normal">{notif.message}</span>
-                          </div>
-                        ))}
-                      </div>
+          isSimulatedLoading ? (
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 w-10 rounded-xl" />
+              <Skeleton className="h-8 w-8 rounded-full ring-2 ring-offset-2 ring-offset-white ring-slate-200" />
+            </div>
+          ) : (
+            <>
+              <NavbarItem>
+                <div className="relative" ref={notifRef}>
+                  <div
+                    className="p-2 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer relative overflow-visible flex items-center justify-center"
+                    onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  >
+                    <Bell size={22} weight="bold" className="text-slate-600" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1 right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-[10px] font-bold text-white px-1 leading-none">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
                     )}
                   </div>
-                )}
-              </div>
-            </NavbarItem>
-
-            <NavbarItem>
-              <div className="relative" ref={profileRef}>
-                <div onClick={() => setIsProfileOpen(!isProfileOpen)}>
-                  <Avatar
-                    className="transition-transform cursor-pointer ring-2 ring-offset-2 ring-offset-white ring-slate-300"
-                    color="default"
-                    size="sm"
-                  >
-                    <Avatar.Image src={userAvatar} alt={username} />
-                    <Avatar.Fallback>{username ? username.charAt(0).toUpperCase() : "U"}</Avatar.Fallback>
-                  </Avatar>
-                </div>
-                {isProfileOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
-                    <div className="px-4 py-3 border-b border-slate-100 mb-1">
-                      <p className="font-semibold text-sm text-slate-800 truncate">{username}</p>
-                      <p className="text-xs text-slate-500 truncate">{roleDisplay}</p>
+                  {isNotifOpen && (
+                    <div className="absolute right-0 mt-2 w-[300px] bg-white rounded-xl shadow-lg border border-slate-100 pb-2 z-50 overflow-hidden">
+                      <div className="px-4 py-3 font-bold text-white bg-primary mb-2 shadow-sm">Thông báo</div>
+                      {notifications.length === 0 ? (
+                        <div className="px-4 py-3 text-center text-sm text-slate-500">
+                          Không có thông báo mới
+                        </div>
+                      ) : (
+                        <div className="flex flex-col max-h-[300px] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f]">
+                          {notifications.map((notif) => (
+                            <div
+                              key={notif._id}
+                              className={`px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors break-words ${notif.isRead ? "bg-white" : "bg-primary/5"}`}
+                              onClick={() => handleNotificationClick(notif)}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <span className={`text-sm block mb-1 whitespace-normal ${notif.isRead ? "font-medium text-slate-700" : "font-bold text-slate-900"}`}>{notif.title}</span>
+                                {!notif.isRead && (
+                                  <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1"></span>
+                                )}
+                              </div>
+                              <span className="text-xs text-slate-500 block whitespace-normal">{notif.message}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <Link 
-                      to="/profile" 
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors w-full"
-                      onClick={() => setIsProfileOpen(false)}
+                  )}
+                </div>
+              </NavbarItem>
+
+              <NavbarItem>
+                <div className="relative" ref={profileRef}>
+                  <div onClick={() => setIsProfileOpen(!isProfileOpen)}>
+                    <Avatar
+                      className="transition-transform cursor-pointer ring-2 ring-offset-2 ring-offset-white ring-slate-300"
+                      color="default"
+                      size="sm"
                     >
-                      <User size={16} weight="bold" />
-                      <span>Hồ sơ cá nhân</span>
-                    </Link>
-                    <button
-                      className="flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-red-50 transition-colors w-full text-left"
-                      onClick={(e) => {
-                        setIsProfileOpen(false);
-                        handleLogOut(e);
-                      }}
-                    >
-                      <SignOut size={16} weight="bold" />
-                      <span>Đăng xuất</span>
-                    </button>
+                      <Avatar.Image src={userAvatar} alt={username} />
+                      <Avatar.Fallback>{username ? username.charAt(0).toUpperCase() : "U"}</Avatar.Fallback>
+                    </Avatar>
                   </div>
-                )}
-              </div>
-            </NavbarItem>
-          </>
+                  {isProfileOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50">
+                      <div className="px-4 py-3 border-b border-slate-100 mb-1">
+                        <p className="font-semibold text-sm text-slate-800 truncate">{username}</p>
+                        <p className="text-xs text-slate-500 truncate">{roleDisplay}</p>
+                      </div>
+                      <Link
+                        to="/profile"
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors w-full"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        <User size={16} weight="bold" />
+                        <span>Hồ sơ cá nhân</span>
+                      </Link>
+                      <button
+                        className="flex items-center gap-2 px-4 py-2 text-sm text-danger hover:bg-red-50 transition-colors w-full text-left"
+                        onClick={(e) => {
+                          setIsProfileOpen(false);
+                          handleLogOut(e);
+                        }}
+                      >
+                        <SignOut size={16} weight="bold" />
+                        <span>Đăng xuất</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </NavbarItem>
+            </>
+          )
         ) : (
-          <NavbarItem>
-            <Button onPress={() => navigate("/login")} variant="primary">
-              Đăng nhập
-            </Button>
-          </NavbarItem>
+          isSimulatedLoading ? (
+            <Skeleton className="h-10 w-24 rounded-xl" />
+          ) : (
+            <NavbarItem>
+              <Button onPress={() => navigate("/login")} variant="primary">
+                Đăng nhập
+              </Button>
+            </NavbarItem>
+          )
         )}
       </NavbarContent>
 

@@ -25,6 +25,9 @@ export interface ITeacherClassroom {
   students: string[];
   status: 'Active' | 'Locked' | 'Archived';
   createdAt: string;
+  pendingGrades?: number;
+  latestAssignmentTitle?: string | null;
+  latestAssignmentDue?: string | null;
 }
 
 export interface IClassroomActivities {

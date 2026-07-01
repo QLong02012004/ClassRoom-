@@ -24,6 +24,7 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent, ISubmission } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import styles from "./TeacherAssignments.module.scss";
 
 // TABS
@@ -358,10 +359,9 @@ export default function TeacherAssignments() {
             </div>
 
             {/* Submit */}
-            <button className={styles.btnSubmit} type="submit" disabled={creating}>
-              {creating ? <Spinner size={18} className={styles.spinning} /> : <Play size={18} weight="fill" />}
+            <AnimatedAddButton type="submit" disabled={creating} className="w-full mt-4">
               {creating ? "Đang giao..." : "Giao bài ngay"}
-            </button>
+            </AnimatedAddButton>
           </form>
         </div>
 
@@ -592,10 +592,9 @@ export default function TeacherAssignments() {
               <button className={styles.btnCancel} onClick={() => setShowGradingModal(false)}>
                 Hủy bỏ
               </button>
-              <button className={styles.btnConfirm} onClick={handleSaveGrades} disabled={savingGrades}>
-                {savingGrades ? <Spinner size={16} className={styles.spinning} /> : <FloppyDisk size={16} />}
+              <AnimatedAddButton onClick={handleSaveGrades} disabled={savingGrades}>
                 {savingGrades ? "Đang lưu..." : "Lưu điểm & lời phê"}
-              </button>
+              </AnimatedAddButton>
             </div>
           </div>
         </div>

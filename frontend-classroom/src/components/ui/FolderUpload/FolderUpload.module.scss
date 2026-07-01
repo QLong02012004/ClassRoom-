@@ -1,0 +1,209 @@
+.folderUploadContainer {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+  
+  .container {
+    height: 300px;
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 4px 4px 30px rgba(0, 0, 0, .2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(254, 103, 71, 0.04);
+  }
+
+  .header {
+    flex: 1;
+    width: 100%;
+    border: 2px dashed #FE6747;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+
+  .header svg {
+    height: 100px;
+  }
+
+  .header p {
+    text-align: center;
+    color: black;
+    margin-top: 10px;
+  }
+
+  .footer {
+    background-color: rgba(254, 103, 71, 0.075);
+    width: 100%;
+    height: 40px;
+    padding: 8px;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    color: black;
+    border: none;
+  }
+
+  .footer svg {
+    height: 130%;
+    fill: #FE6747;
+    background-color: rgba(254, 103, 71, 0.1);
+    border-radius: 50%;
+    padding: 2px;
+    cursor: pointer;
+    box-shadow: 0 2px 30px rgba(254, 103, 71, 0.15);
+  }
+
+  .footer p {
+    flex: 1;
+    text-align: center;
+    margin: 0;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+}
+
+/* ===== FOLDER FILE CARD (KEEP UNCHANGED) ===== */
+
+.folderFileCardsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.folderFileCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #fdf8f0;
+  border: 1px solid rgba(255, 198, 99, 0.25);
+  border-radius: 14px;
+  padding: 12px 16px;
+  transition: all 0.25s ease;
+  text-decoration: none;
+
+  &:hover {
+    border-color: rgba(255, 198, 99, 0.5);
+    background: #fdf2e0;
+    box-shadow: 0 4px 16px rgba(255, 198, 99, 0.15);
+
+    .miniFolder .miniFrontSide {
+      transform: rotateX(-30deg) skewX(10deg);
+    }
+
+    .miniFolder .miniBackSide::before {
+      transform: rotateX(-5deg) skewX(3deg);
+    }
+
+    .miniFolder .miniBackSide::after {
+      transform: rotateX(-10deg) skewX(6deg);
+    }
+  }
+}
+
+.miniFolder {
+  --mini-W: 44px;
+  --mini-H: 30px;
+  width: var(--mini-W);
+  height: var(--mini-H);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.miniFrontSide,
+.miniBackSide {
+  position: absolute;
+  transition: transform 300ms;
+  transform-origin: bottom center;
+}
+
+.miniBackSide {
+  &::before,
+  &::after {
+    content: "";
+    display: block;
+    background-color: white;
+    opacity: 0.4;
+    width: var(--mini-W);
+    height: var(--mini-H);
+    position: absolute;
+    transform-origin: bottom center;
+    border-radius: 6px;
+    transition: transform 300ms;
+  }
+}
+
+.miniFrontSide {
+  z-index: 1;
+}
+
+.miniTip {
+  background: linear-gradient(135deg, #e0583b, #FE6747);
+  width: 28px;
+  height: 8px;
+  border-radius: 5px 5px 0 0;
+  position: absolute;
+  top: -4px;
+  z-index: 2;
+}
+
+.miniCover {
+  background: linear-gradient(135deg, #ffe563, #ffc663);
+  width: var(--mini-W);
+  height: var(--mini-H);
+  border-radius: 5px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.fileMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #47484b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileSize {
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.downloadBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(254, 103, 71, 0.08);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FE6747;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  text-decoration: none;
+
+  &:hover {
+    background: #FE6747;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(254, 103, 71, 0.25);
+  }
+}

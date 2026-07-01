@@ -5,6 +5,7 @@ export interface IComment {
     authorName: string;
     content: string;
     createdAt: Date;
+    likes?: Types.ObjectId[];
 }
 
 export interface IAttachment {
@@ -21,13 +22,16 @@ export interface IAnnouncement extends Document {
     attachments: IAttachment[];
     comments: IComment[];
     createdAt: Date;
+    isPinned?: boolean;
+    likes?: Types.ObjectId[];
 }
 
 const CommentSchema = new Schema<IComment>({
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     authorName: { type: String, required: true },
     content: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    likes: [{ type: Schema.Types.ObjectId, ref: 'User' }]
 });
 
 const AttachmentSchema = new Schema<IAttachment>({
@@ -43,7 +47,9 @@ const AnnouncementSchema = new Schema<IAnnouncement>({
     type: { type: String, enum: ['announcement', 'reminder', 'material'], default: 'announcement' },
     attachments: [AttachmentSchema],
     comments: [CommentSchema],
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    isPinned: { type: Boolean, default: false },
+    likes: [{ type: Schema.Types.ObjectId, ref: 'User' }]
 });
 
 export const AnnouncementModel = model<IAnnouncement>('Announcement', AnnouncementSchema);
