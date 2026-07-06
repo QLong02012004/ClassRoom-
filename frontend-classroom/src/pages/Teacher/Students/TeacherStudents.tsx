@@ -4,10 +4,21 @@ import { Plus, UserList, EnvelopeSimple, Key, CaretLeft, Phone, Pencil, Trash } 
 import { getMockStudents, addMockStudent, updateMockStudent, deleteMockStudent, getMockClassrooms } from "../../../utils/mockDb.ts";
 import type { Student, Classroom } from "../../../utils/mockDb.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "../../../components/ui/alert-dialog";
 import { authService } from "../../../service/auth.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { attendanceService } from "../../../service/attendance.service.ts";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { StudentsTable } from "../../../components/ui/StudentsTable";
 import styles from "./TeacherStudents.module.scss";
 
 export default function TeacherStudents() {
@@ -25,6 +36,15 @@ export default function TeacherStudents() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", password: "", parentPhone: "" });
+
+  // Dialog State
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    type: 'single' | 'bulk' | null;
+    studentId?: string;
+    studentName?: string;
+    studentIds?: string[];
+  }>({ isOpen: false, type: null });
 
   const loadData = async () => {
     if (!id) return;
@@ -114,12 +134,29 @@ export default function TeacherStudents() {
     }
   };
 
-  const handleDeleteStudent = (studentId: string, name: string) => {
-    if (window.confirm(`Bạn có chắc chắn muốn xóa tài khoản học sinh "${name}" khỏi lớp này không?`)) {
+  const handleDeleteStudent = (studentId: string, studentName: string) => {
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'single',
+      studentId,
+      studentName
+    });
+  };
+
+  const handleBulkDelete = (studentIds: string[]) => {
+    setDeleteConfirm({
+      isOpen: true,
+      type: 'bulk',
+      studentIds
+    });
+  };
+
+  const confirmDelete = () => {
+    if (deleteConfirm.type === 'single' && deleteConfirm.studentId) {
       try {
-        const ok = deleteMockStudent(studentId);
+        const ok = deleteMockStudent(deleteConfirm.studentId);
         if (ok) {
-          toast.success(`Đã xóa học sinh "${name}" thành công!`);
+          toast.success(`Đã xóa học sinh "${deleteConfirm.studentName}" thành công!`);
           loadData();
         } else {
           toast.error("Không tìm thấy học sinh để xóa.");
@@ -127,7 +164,19 @@ export default function TeacherStudents() {
       } catch (err) {
         toast.error("Lỗi khi xóa tài khoản học sinh.");
       }
+    } else if (deleteConfirm.type === 'bulk' && deleteConfirm.studentIds) {
+      try {
+        let count = 0;
+        deleteConfirm.studentIds.forEach(id => {
+          if (deleteMockStudent(id)) count++;
+        });
+        toast.success(`Đã xóa ${count} học sinh thành công!`);
+        loadData();
+      } catch (err) {
+        toast.error("Lỗi khi xóa tài khoản học sinh.");
+      }
     }
+    setDeleteConfirm({ isOpen: false, type: null });
   };
 
   const handleOpenEditModal = (student: Student) => {
@@ -180,58 +229,13 @@ export default function TeacherStudents() {
         </AnimatedAddButton>
       </div>
 
-      {/* GRID */}
-      <div className={styles.studentsGrid}>
-        {students.length === 0 ? (
-          <div className={styles.emptyState}>Chưa có học sinh nào trong lớp.</div>
-        ) : (
-          students.map((student) => (
-            <div key={student._id} className={styles.studentCard}>
-              <div className={styles.cardTop}>
-                <div className={styles.iconBox}>
-                  <UserList size={24} weight="duotone" />
-                </div>
-                <span className={styles.codeTag}>{student.studentCode}</span>
-              </div>
-
-              <div className={styles.cardMiddle}>
-                <h3 className={styles.studentName}>{student.name}</h3>
-                <div className={styles.infoRow}>
-                  <EnvelopeSimple size={14} weight="bold" />
-                  <span>{student.email || "Chưa có email"}</span>
-                </div>
-                <div className={styles.infoRow}>
-                  <Key size={14} weight="bold" />
-                  <span>Mật khẩu: <strong>{student.password || "********"}</strong></span>
-                </div>
-                <div className={styles.infoRow}>
-                  <Phone size={14} weight="bold" />
-                  <span>PHHS: {student.parentPhone}</span>
-                </div>
-              </div>
-
-              <div className={styles.cardActions}>
-                <button 
-                  className={styles.btnActionEdit}
-                  onClick={() => handleOpenEditModal(student)}
-                  title="Sửa thông tin / Reset mật khẩu"
-                >
-                  <Pencil size={14} weight="bold" />
-                  Sửa / Đổi MK
-                </button>
-                <button 
-                  className={styles.btnActionDelete}
-                  onClick={() => handleDeleteStudent(student._id, student.name)}
-                  title="Xóa tài khoản học sinh"
-                >
-                  <Trash size={14} weight="bold" />
-                  Xóa
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {/* TABLE */}
+      <StudentsTable
+        students={students}
+        onEdit={handleOpenEditModal}
+        onDelete={handleDeleteStudent}
+        onBulkDelete={handleBulkDelete}
+      />
 
       {/* MODAL */}
       {showModal && (
@@ -368,6 +372,36 @@ export default function TeacherStudents() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog 
+        open={deleteConfirm.isOpen} 
+        onOpenChange={(open) => {
+          if (!open) setDeleteConfirm({ isOpen: false, type: null });
+        }}
+      >
+        <AlertDialogContent className="bg-white">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 text-xl">Xác nhận xóa tài khoản</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-600">
+              {deleteConfirm.type === 'single' 
+                ? `Bạn có chắc chắn muốn xóa tài khoản học sinh "${deleteConfirm.studentName}" khỏi lớp này không? Hành động này không thể hoàn tác.`
+                : `Bạn có chắc chắn muốn xóa ${deleteConfirm.studentIds?.length || 0} học sinh đã chọn khỏi lớp? Hành động này không thể hoàn tác.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-slate-700 border-slate-300 hover:bg-slate-100">Hủy bỏ</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              style={{ backgroundColor: '#dc2626', color: 'white', border: 'none' }}
+            >
+              Xóa ngay
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }

@@ -12,6 +12,65 @@
   overflow-y: auto;
   font-family: vars.$font-main;
   align-self: flex-start;
+  transition: width 0.3s ease;
+  display: flex;
+  flex-direction: column;
+
+  &.collapsed {
+    width: 80px;
+
+    .brandLabel {
+      display: none;
+    }
+
+    .menuItem {
+      justify-content: center;
+      padding: 12px;
+
+      .menuText {
+        display: none;
+      }
+    }
+
+    .sidebarFooter {
+      justify-content: center;
+      padding-top: 16px;
+
+      .toggleBtn {
+        justify-content: center;
+        padding: 12px;
+      }
+    }
+  }
+}
+
+.sidebarFooter {
+  margin-top: auto;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 16px;
+  display: flex;
+}
+
+.toggleBtn {
+  width: 100%;
+  background: transparent;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 12px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+
+  &:hover {
+    background: #f8fafc;
+    color: vars.$dark-text;
+  }
 }
 
 .navMenu {

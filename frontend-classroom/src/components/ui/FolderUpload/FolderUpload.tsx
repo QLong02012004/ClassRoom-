@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import styles from './FolderUpload.module.scss';
 
 interface FolderUploadProps {
@@ -7,19 +7,26 @@ interface FolderUploadProps {
   multiple?: boolean;
   label?: string;
   variant?: 'composer' | 'display';
+  value?: string;
 }
 
 const FolderUpload: React.FC<FolderUploadProps> = ({
   onFileSelect,
   accept = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.png,.jpg,.jpeg',
   multiple = true,
-  label = 'Not selected file',
+  label = 'Không có tệp được chọn',
+  value,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [internalSelectedNames, setInternalSelectedNames] = useState<string>('');
+
+  const displayNames = value !== undefined ? value : internalSelectedNames;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       onFileSelect(e.target.files);
+      const names = Array.from(e.target.files).map(f => f.name).join(', ');
+      setInternalSelectedNames(names);
       // Reset input để có thể chọn lại cùng file
       if (inputRef.current) inputRef.current.value = '';
     }
@@ -28,7 +35,7 @@ const FolderUpload: React.FC<FolderUploadProps> = ({
   return (
     <div className={styles.folderUploadContainer}>
       <div className={styles.container}>
-        <div className={styles.header}>
+        <div className={styles.header} onClick={() => inputRef.current?.click()} style={{ cursor: 'pointer' }}>
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g strokeWidth={0} />
             <g strokeLinecap="round" strokeLinejoin="round" />
@@ -54,7 +61,7 @@ const FolderUpload: React.FC<FolderUploadProps> = ({
               <path d="M18.153 6h-.009v5.342H23.5v-.002z" />
             </g>
           </svg>
-          <p>{label}</p>
+          <p>{displayNames || label}</p>
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
             <g strokeWidth={0} />
             <g strokeLinecap="round" strokeLinejoin="round" />

@@ -102,7 +102,7 @@ export default function AdminUsers() {
     }
 
     if (roleFilter !== "all") {
-      filtered = filtered.filter(u => u.role === roleToVi(roleFilter));
+      filtered = filtered.filter(u => u.role === roleFilter);
     }
 
     if (statusFilter !== "all") {
@@ -175,7 +175,7 @@ export default function AdminUsers() {
     title: "",
     description: "",
     actionType: 'default',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Tính số lượng đã chọn
@@ -209,7 +209,7 @@ export default function AdminUsers() {
   const handleToggleStatus = (user: User) => {
     const newStatus = user.status === "Active" ? "Locked" : "Active";
     const actionName = newStatus === "Locked" ? "Khóa" : "Mở khóa";
-    
+
     setConfirmDialog({
       isOpen: true,
       title: `${actionName} tài khoản`,
@@ -737,9 +737,9 @@ export default function AdminUsers() {
             </form>
           </DialogContent>
         </Dialog>
-        
+
         {/* Cookie-style Confirm Dialog */}
-        <CustomConfirmDialog 
+        <CustomConfirmDialog
           isOpen={confirmDialog.isOpen}
           onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
           title={confirmDialog.title}
@@ -940,8 +940,8 @@ export default function AdminUsers() {
                   </Pagination.Item>
                   {pages.map((p) => (
                     <Pagination.Item key={p}>
-                      <Pagination.Link 
-                        isActive={p === page} 
+                      <Pagination.Link
+                        isActive={p === page}
                         onPress={() => setPage(p)}
                         className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
                       >

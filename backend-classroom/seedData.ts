@@ -7,6 +7,7 @@ import { SubmissionModel } from './src/models/Submission';
 import { GradeModel } from './src/models/Grade';
 import { AttendanceModel } from './src/models/Attendance';
 import { NotificationModel } from './src/models/Notification';
+import bcrypt from 'bcrypt';
 
 dotenv.config();
 
@@ -16,14 +17,18 @@ const seedFullData = async () => {
         await mongoose.connect(process.env.MONGO_URI as string);
         console.log('Connected to MongoDB');
 
+        // Tạo mật khẩu băm chuẩn
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash('123456', salt);
+
         // Create some teachers if not enough
         let teachers = await UserModel.find({ role: 'teacher' });
         if (teachers.length < 3) {
             console.log('Creating mock teachers...');
             const newTeachers = await UserModel.insertMany([
-                { name: 'Nguyễn Văn A', email: 'gv.nguyenvana@school.edu.vn', passwordHash: 'mockhash', role: 'teacher', status: 'Active' },
-                { name: 'Trần Thị B', email: 'gv.tranthib@school.edu.vn', passwordHash: 'mockhash', role: 'teacher', status: 'Active' },
-                { name: 'Lê Văn C', email: 'gv.levanc@school.edu.vn', passwordHash: 'mockhash', role: 'teacher', status: 'Active' }
+                { name: 'Nguyễn Văn A', email: 'gv.nguyenvana@school.edu.vn', passwordHash, role: 'teacher', status: 'Active' },
+                { name: 'Trần Thị B', email: 'gv.tranthib@school.edu.vn', passwordHash, role: 'teacher', status: 'Active' },
+                { name: 'Lê Văn C', email: 'gv.levanc@school.edu.vn', passwordHash, role: 'teacher', status: 'Active' }
             ]);
             teachers = [...teachers, ...newTeachers];
         }
@@ -34,9 +39,9 @@ const seedFullData = async () => {
             console.log('Creating mock students...');
             const newStudents = await UserModel.insertMany(
                 Array.from({ length: 15 }).map((_, i) => ({
-                    name: `Học sinh ${i+1}`,
-                    email: `hs${i+1}@school.edu.vn`,
-                    passwordHash: 'mockhash',
+                    name: `Học sinh ${i + 1}`,
+                    email: `hs${i + 1}@school.edu.vn`,
+                    passwordHash,
                     role: 'student',
                     status: 'Active'
                 }))
@@ -87,11 +92,11 @@ const seedFullData = async () => {
                         status: 'submitted',
                         attachments: []
                     });
-                    
+
                     // Grade 80% of submissions
                     if (Math.random() > 0.2) {
                         // Generate random score between 5 and 10
-                        const score = Math.floor(Math.random() * 6) + 5; 
+                        const score = Math.floor(Math.random() * 6) + 5;
                         await GradeModel.create({
                             assignmentId: assignment._id,
                             studentId: stId,

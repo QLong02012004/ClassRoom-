@@ -10,6 +10,7 @@ import scheduleRoutes from './scheduleRoutes';
 import announcementRoutes from './announcementRoutes';
 import quizRoutes from './quizRoutes';
 import notificationRoutes from './notificationRoutes';
+import uploadRoutes from './uploadRoutes';
 
 const apiRouter = Router();
 
@@ -25,5 +26,6 @@ apiRouter.use('/schedule', scheduleRoutes);
 apiRouter.use('/announcements', announcementRoutes);
 apiRouter.use('/quizzes', quizRoutes);
 apiRouter.use('/notifications', notificationRoutes);
+apiRouter.use('/upload', uploadRoutes);
 
 export default apiRouter;

@@ -6,7 +6,9 @@ import {
     submitQuiz,
     getMyQuizResult,
     getQuizResults,
-    updateQuiz
+    updateQuiz,
+    updateQuizStatus,
+    deleteQuiz
 } from '../controllers/quizController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -17,6 +19,9 @@ router.post('/', protect, authorize('teacher'), createQuiz);
 
 // Giáo viên chỉnh sửa đề trắc nghiệm
 router.put('/:id', protect, authorize('teacher'), updateQuiz);
+
+// Giáo viên cập nhật trạng thái đề trắc nghiệm (ẩn/hiện)
+router.patch('/:id/status', protect, authorize('teacher'), updateQuizStatus);
 
 // Lấy danh sách đề trắc nghiệm (GET /api/v1/quizzes?classId=...)
 router.get('/', protect, authorize('teacher', 'student'), getQuizzesByClass);
@@ -32,5 +37,8 @@ router.get('/:id/my-result', protect, authorize('student'), getMyQuizResult);
 
 // Giáo viên xem bảng điểm trắc nghiệm của lớp
 router.get('/:id/results', protect, authorize('teacher'), getQuizResults);
+
+// Giáo viên xóa đề trắc nghiệm
+router.delete('/:id', protect, authorize('teacher'), deleteQuiz);
 
 export default router;

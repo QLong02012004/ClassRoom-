@@ -58,20 +58,20 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
         // 1. Tỷ lệ tương tác: Số HS nộp bài / Tổng HS
         const activeSubmissions = await SubmissionModel.find({ submittedAt: { $gte: sevenDaysAgo } }, 'studentId submittedAt');
         const activeQuizzes = await QuizResultModel.find({ submittedAt: { $gte: sevenDaysAgo } }, 'studentId submittedAt');
-        
+
         const activeStudentIds = new Set([
             ...activeSubmissions.map(s => s.studentId.toString()),
             ...activeQuizzes.map(q => q.studentId.toString())
         ]);
-        
+
         const engagementRate = totalStudents === 0 ? 0 : Math.round((activeStudentIds.size / totalStudents) * 1000) / 10;
 
         // 2. Hiệu suất giảng dạy của giáo viên (Teacher Performance)
         const activeClassesData = await ClassModel.find({ status: 'Active' }).populate('teacherId', 'name');
-        
+
         const classIdsData = activeClassesData.map(c => c._id);
         const allAssignments = await AssignmentModel.find({ classId: { $in: classIdsData } });
-        
+
         const assignmentIdsData = allAssignments.map(a => a._id);
         const allGrades = await GradeModel.find({ assignmentId: { $in: assignmentIdsData } });
 
@@ -147,9 +147,9 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
         });
         // Lấy dữ liệu thống kê giáo viên và học sinh
         const classesWithTeacher = await ClassModel.find({ status: 'Active' }).populate('teacherId', 'name');
-        
+
         const teacherMap = new Map();
-        
+
         classesWithTeacher.forEach((c: any) => {
             if (c.teacherId && c.teacherId.name) {
                 const teacherName = c.teacherId.name;
@@ -166,102 +166,20 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
                 });
             }
         });
-        
+
         const teacherStudentStats = Array.from(teacherMap.values());
 
         let finalTeacherPerformanceData = teacherPerformanceData;
-        const hasValidPerformanceData = teacherPerformanceData.some((d: any) => d.assignments > 0 || d.averageScore > 0);
-        if (!hasValidPerformanceData) {
-            finalTeacherPerformanceData = [
-                { name: "Nguyễn Văn A", assignments: 12, averageScore: 8.5 },
-                { name: "Trần Thị B", assignments: 8, averageScore: 7.2 },
-                { name: "Lê Văn C", assignments: 15, averageScore: 9.1 },
-            ];
-        }
-
         let finalRecentActions = recentActions;
-        if (finalRecentActions.length === 0) {
-            finalRecentActions = [
-                {
-                    id: "mock1",
-                    user: "Hệ thống",
-                    action: "Bảo trì định kỳ hệ thống hoàn tất",
-                    time: "1 giờ trước",
-                    avatar: "",
-                    badge: "Hệ thống",
-                    badgeColor: "bg-slate-100 text-slate-700 hover:bg-slate-200 border-transparent",
-                    fallback: "HT",
-                    isSystem: true
-                },
-                {
-                    id: "mock2",
-                    user: "Nguyễn Văn A",
-                    action: "Đã tạo một bài kiểm tra mới: Toán 15 phút",
-                    time: "2 giờ trước",
-                    avatar: "",
-                    badge: "Trắc nghiệm",
-                    badgeColor: "bg-purple-50 text-purple-700 hover:bg-purple-100 border-transparent",
-                    fallback: "A",
-                    isSystem: false
-                },
-                {
-                    id: "mock3",
-                    user: "Trần Thị B",
-                    action: "Tạo lớp học mới: Ngữ Văn 12",
-                    time: "3 giờ trước",
-                    avatar: "",
-                    badge: "Lớp học",
-                    badgeColor: "bg-blue-50 text-blue-700 hover:bg-blue-100 border-transparent",
-                    fallback: "B",
-                    isSystem: false
-                }
-            ];
-        }
-
         let finalTeacherStudentStats = teacherStudentStats;
-        const hasValidTeacherStudentStats = teacherStudentStats.some((t: any) => t.classes.length > 0 && t.classes.some((c: any) => c.students > 0));
-        if (!hasValidTeacherStudentStats) {
-            finalTeacherStudentStats = [
-                {
-                    teacher: "Nguyễn Văn A",
-                    subject: "Toán Học",
-                    classes: [
-                        { className: "10A1", students: 45 },
-                        { className: "10A2", students: 42 }
-                    ]
-                },
-                {
-                    teacher: "Trần Thị B",
-                    subject: "Ngữ Văn",
-                    classes: [
-                        { className: "11B1", students: 38 },
-                        { className: "11B2", students: 40 }
-                    ]
-                },
-                {
-                    teacher: "Lê Văn C",
-                    subject: "Vật Lý",
-                    classes: [
-                        { className: "12C1", students: 35 },
-                        { className: "12C2", students: 37 },
-                        { className: "12C3", students: 40 }
-                    ]
-                }
-            ];
-        }
-
-        const finalEngagementRate = engagementRate === 0 ? 85 : engagementRate;
-        const finalTotalStudents = totalStudents === 0 ? 1250 : totalStudents;
-        const finalTotalTeachers = totalTeachers === 0 ? 45 : totalTeachers;
-        const finalActiveClasses = activeClasses === 0 ? 32 : activeClasses;
 
         res.status(200).json({
             message: 'Lấy dữ liệu thống kê thành công',
             data: {
-                totalStudents: finalTotalStudents,
-                totalTeachers: finalTotalTeachers,
-                activeClasses: finalActiveClasses,
-                engagementRate: finalEngagementRate,
+                totalStudents: totalStudents,
+                totalTeachers: totalTeachers,
+                activeClasses: activeClasses,
+                engagementRate: engagementRate,
                 teacherPerformanceData: finalTeacherPerformanceData,
                 recentActions: finalRecentActions,
                 teacherStudentStats: finalTeacherStudentStats
@@ -311,7 +229,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
         const attendances = await AttendanceModel.find({ classId: { $in: classIds } });
         let totalRecords = 0;
         let presentCount = 0;
-        
+
         attendances.forEach(att => {
             if (att.records) {
                 att.records.forEach(r => {
@@ -319,7 +237,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
                     if (r.status === 'present') {
                         presentCount++;
                     }
-                    
+
                     // Cập nhật cho từng học sinh
                     const sId = r.studentId.toString();
                     if (studentMap.has(sId)) {
@@ -332,7 +250,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
                 });
             }
         });
-        
+
         const attendanceRate = totalRecords === 0 ? 0 : Math.round((presentCount / totalRecords) * 100);
 
         // 4 & 5. Phổ điểm và Bài tập cần chấm
@@ -340,7 +258,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
         const assignmentIds = assignments.map(a => a._id);
         const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
         const allSubmissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } });
-        
+
         let pendingGrades = 0;
         allSubmissions.forEach(sub => {
             const hasGrade = grades.some(g => g.assignmentId.toString() === sub.assignmentId.toString() && g.studentId.toString() === sub.studentId.toString());
@@ -355,7 +273,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
             }
         });
         const totalSubmitted = allSubmissions.length;
-        
+
         let gioi = 0, kha = 0, trungBinh = 0, yeuKem = 0;
         if (grades.length > 0) {
             grades.forEach(g => {
@@ -363,7 +281,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
                 else if (g.score >= 6.5) kha++;
                 else if (g.score >= 5.0) trungBinh++;
                 else yeuKem++;
-                
+
                 // Cập nhật điểm cho từng học sinh
                 const sId = g.studentId.toString();
                 if (studentMap.has(sId)) {
@@ -380,16 +298,16 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
         for (let i = 5; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const monthStr = `Tháng ${d.getMonth() + 1}`;
-            
+
             // Calculate currentYear rate
             const startMonth = new Date(d.getFullYear(), d.getMonth(), 1);
             const endMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-            
+
             const monthAttendances = attendances.filter(a => {
                 const aDate = new Date(a.date);
                 return aDate >= startMonth && aDate <= endMonth;
             });
-            
+
             let mTotal = 0;
             let mPresent = 0;
             monthAttendances.forEach(att => {
@@ -400,10 +318,10 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
                     });
                 }
             });
-            
+
             const currentYear = mTotal === 0 ? 0 : Math.round((mPresent / mTotal) * 100);
             const lastYear = 0; // We don't have last year data in DB easily
-            
+
             trendData.push({ month: monthStr, currentYear, lastYear });
         }
 
@@ -455,7 +373,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
                 });
             }
         });
-        
+
         // Sắp xếp ưu tiên cảnh báo mức cao trước, sau đó lấy tối đa 5 học sinh
         atRiskStudents.sort((a, b) => {
             if (a.severity === 'high' && b.severity !== 'high') return -1;

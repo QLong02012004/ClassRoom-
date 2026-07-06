@@ -4,8 +4,11 @@ import type { IBackendRes } from '../types/backend';
 export interface IQuizQuestion {
   _id?: string;
   questionText: string;
+  imageUrl?: string;
   options: string[];
-  correctOptionIndex?: number;
+  optionImages?: string[];
+  correctOptionIndex: number;
+  points?: number;
 }
 
 export interface IQuizResult {
@@ -24,6 +27,8 @@ export interface IQuiz {
   title: string;
   durationMinutes: number;
   questions: IQuizQuestion[];
+  shuffleQuestions?: boolean;
+  shuffleOptions?: boolean;
   createdAt: string;
   result?: {
     score: number;
@@ -63,7 +68,9 @@ export const quizService = {
     classId: string;
     title: string;
     durationMinutes: number;
-    questions: { questionText: string; options: string[]; correctOptionIndex: number }[];
+    questions: { questionText: string; imageUrl?: string; options: string[]; optionImages?: string[]; correctOptionIndex: number; points?: number }[];
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
   }): Promise<IBackendRes<IQuiz>> => {
     return await api.post(`/api/v1/quizzes`, data);
   },
@@ -72,8 +79,21 @@ export const quizService = {
   updateQuiz: async (id: string, data: {
     title: string;
     durationMinutes: number;
-    questions: { questionText: string; options: string[]; correctOptionIndex: number }[];
+    questions: { questionText: string; imageUrl?: string; options: string[]; optionImages?: string[]; correctOptionIndex: number; points?: number }[];
+    shuffleQuestions?: boolean;
+    shuffleOptions?: boolean;
+    forceReset?: boolean;
   }): Promise<IBackendRes<IQuiz>> => {
     return await api.put(`/api/v1/quizzes/${id}`, data);
+  },
+
+  // Giáo viên cập nhật trạng thái đề thi (ẩn/hiện)
+  updateQuizStatus: async (id: string, status: 'open' | 'closed' | 'draft'): Promise<IBackendRes<IQuiz>> => {
+    return await api.patch(`/api/v1/quizzes/${id}/status`, { status });
+  },
+
+  // Giáo viên xóa đề thi trắc nghiệm
+  deleteQuiz: async (id: string): Promise<IBackendRes<null>> => {
+    return await api.delete(`/api/v1/quizzes/${id}`);
   },
 };

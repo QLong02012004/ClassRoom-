@@ -7,7 +7,7 @@ import { createAdminNotification } from '../services/notificationService';
 // 1. Tạo đề trắc nghiệm mới (Giáo viên)
 export const createQuiz = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const { classId, title, durationMinutes, questions } = req.body || {};
+        const { classId, title, durationMinutes, questions, shuffleQuestions, shuffleOptions } = req.body || {};
         const teacherId = (req as any).user?.id;
 
         if (!classId || !title || !questions || !Array.isArray(questions) || questions.length === 0) {
@@ -24,7 +24,9 @@ export const createQuiz = async (req: Request, res: Response, next: NextFunction
             classId,
             title,
             durationMinutes: durationMinutes || 15,
-            questions
+            questions,
+            shuffleQuestions: shuffleQuestions || false,
+            shuffleOptions: shuffleOptions || false
         });
 
         // Kích hoạt thông báo cho Admin
@@ -59,16 +61,27 @@ export const getQuizzesByClass = async (req: Request, res: Response, next: NextF
         // Fetch all quizzes in this class
         const quizzes = await QuizModel.find({ classId: classId as any }).sort({ createdAt: -1 });
 
+        // Count submissions per quiz
+        const quizIds = quizzes.map(q => q._id);
+        const submissionCounts = await QuizResultModel.aggregate([
+            { $match: { quizId: { $in: quizIds } } },
+            { $group: { _id: '$quizId', count: { $sum: 1 } } }
+        ]);
+        const countMap: Record<string, number> = {};
+        submissionCounts.forEach((item: any) => {
+            countMap[item._id.toString()] = item.count;
+        });
+
         // If requester is a student, attach their result
         if (userRole === 'student') {
             const results = await QuizResultModel.find({
                 studentId: userId as any,
-                quizId: { $in: quizzes.map(q => q._id) }
+                quizId: { $in: quizIds }
             });
 
             const data = quizzes.map(q => {
                 const result = results.find(r => r.quizId.toString() === q._id.toString());
-                
+
                 // Hide correct answers from the list
                 const quizObj = q.toObject();
                 quizObj.questions = quizObj.questions.map((question: any) => {
@@ -78,6 +91,7 @@ export const getQuizzesByClass = async (req: Request, res: Response, next: NextF
 
                 return {
                     ...quizObj,
+                    submissionCount: countMap[q._id.toString()] || 0,
                     result: result ? {
                         score: result.score,
                         submittedAt: result.submittedAt,
@@ -92,10 +106,15 @@ export const getQuizzesByClass = async (req: Request, res: Response, next: NextF
             });
         }
 
-        // For teachers/admins, return full quizzes
+        // For teachers/admins, return full quizzes with submissionCount
+        const data = quizzes.map(q => ({
+            ...q.toObject(),
+            submissionCount: countMap[q._id.toString()] || 0
+        }));
+
         res.status(200).json({
             message: 'Lấy danh sách đề trắc nghiệm thành công',
-            data: quizzes
+            data
         });
     } catch (error) {
         next(error);
@@ -162,19 +181,27 @@ export const submitQuiz = async (req: Request, res: Response, next: NextFunction
         }
 
         // Tự động chấm điểm tại Backend
+        let earnedPoints = 0;
+        let maxPoints = 0;
         let correctCount = 0;
         const totalQuestions = quiz.questions.length;
 
         for (let i = 0; i < totalQuestions; i++) {
             const question = quiz.questions[i];
-            if (question && answers[i] !== undefined && answers[i] === question.correctOptionIndex) {
+            if (!question) continue;
+
+            const questionPoints = question.points || 1; // Default to 1 if missing
+            maxPoints += questionPoints;
+
+            if (answers[i] !== undefined && answers[i] === question.correctOptionIndex) {
+                earnedPoints += questionPoints;
                 correctCount++;
             }
         }
 
-        // Tính điểm trên hệ số 10
-        const score = totalQuestions > 0 
-            ? Math.round((correctCount / totalQuestions) * 10 * 10) / 10 
+        // Tính điểm trên hệ số 10 dựa vào tổng điểm (points)
+        const score = maxPoints > 0
+            ? Math.round((earnedPoints / maxPoints) * 10 * 10) / 10
             : 0;
 
         const result = await QuizResultModel.create({
@@ -247,7 +274,7 @@ export const getQuizResults = async (req: Request, res: Response, next: NextFunc
 export const updateQuiz = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { id } = req.params;
-        const { title, durationMinutes, questions } = req.body || {};
+        const { title, durationMinutes, questions, shuffleQuestions, shuffleOptions } = req.body || {};
         const teacherId = (req as any).user?.id;
 
         if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
@@ -268,18 +295,96 @@ export const updateQuiz = async (req: Request, res: Response, next: NextFunction
         // Ràng buộc bảo mật: Kiểm tra xem đã có học sinh nào nộp bài chưa
         const hasSubmissions = await QuizResultModel.exists({ quizId: id as any });
         if (hasSubmissions) {
-            return res.status(400).json({ message: 'Không thể chỉnh sửa đề thi trắc nghiệm đã có học sinh làm bài!' });
+            if (!req.body.forceReset) {
+                return res.status(400).json({
+                    message: 'Không thể chỉnh sửa đề thi trắc nghiệm đã có học sinh làm bài!',
+                    code: 'HAS_SUBMISSIONS'
+                });
+            } else {
+                // Xóa tất cả các bài làm của học sinh
+                await QuizResultModel.deleteMany({ quizId: id as any });
+            }
         }
 
         // Thực hiện cập nhật
         quiz.title = title;
         quiz.durationMinutes = durationMinutes || 15;
         quiz.questions = questions;
+        if (shuffleQuestions !== undefined) quiz.shuffleQuestions = shuffleQuestions;
+        if (shuffleOptions !== undefined) quiz.shuffleOptions = shuffleOptions;
         await quiz.save();
 
         res.status(200).json({
             message: 'Cập nhật đề trắc nghiệm thành công',
             data: quiz
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// 8. Cập nhật trạng thái đề thi (Giáo viên)
+export const updateQuizStatus = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body || {};
+        const teacherId = (req as any).user?.id;
+
+        if (!status || !['open', 'closed', 'draft'].includes(status)) {
+            return res.status(400).json({ message: 'Trạng thái không hợp lệ' });
+        }
+
+        const quiz = await QuizModel.findById(id);
+        if (!quiz) {
+            return res.status(404).json({ message: 'Không tìm thấy đề trắc nghiệm' });
+        }
+
+        // Kiểm tra quyền của giáo viên
+        const classroom = await ClassModel.findOne({ _id: quiz.classId, teacherId });
+        if (!classroom) {
+            return res.status(403).json({ message: 'Bạn không có quyền chỉnh sửa đề trắc nghiệm của lớp học này' });
+        }
+
+        // Thực hiện cập nhật
+        quiz.status = status;
+        await quiz.save();
+
+        res.status(200).json({
+            message: 'Cập nhật trạng thái đề trắc nghiệm thành công',
+            data: quiz
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+// 9. Xóa đề thi trắc nghiệm (Giáo viên)
+export const deleteQuiz = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const teacherId = (req as any).user?.id;
+
+        const quiz = await QuizModel.findById(id);
+        if (!quiz) {
+            return res.status(404).json({ message: 'Không tìm thấy đề trắc nghiệm' });
+        }
+
+        // Kiểm tra quyền của giáo viên
+        const classroom = await ClassModel.findOne({ _id: quiz.classId, teacherId });
+        if (!classroom) {
+            return res.status(403).json({ message: 'Bạn không có quyền xóa đề trắc nghiệm của lớp học này' });
+        }
+
+        // Ràng buộc bảo mật: Kiểm tra xem đã có học sinh nào nộp bài chưa
+        const hasSubmissions = await QuizResultModel.exists({ quizId: id as any });
+        if (hasSubmissions) {
+            return res.status(400).json({ message: 'Không thể xóa đề thi trắc nghiệm đã có học sinh làm bài!' });
+        }
+
+        // Xóa đề
+        await QuizModel.findByIdAndDelete(id);
+
+        res.status(200).json({
+            message: 'Xóa đề trắc nghiệm thành công'
         });
     } catch (error) {
         next(error);

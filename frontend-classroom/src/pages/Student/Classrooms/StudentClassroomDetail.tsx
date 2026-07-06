@@ -39,6 +39,10 @@ export default function StudentClassroomDetail() {
   const [announcements, setAnnouncements] = useState<IAnnouncement[]>([]);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3;
+  const totalPages = Math.ceil(quizzes.length / itemsPerPage);
+  const currentQuizzes = quizzes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const [filterType, setFilterType] = useState<"all" | "announcement" | "reminder" | "material">("all");
 
   // Bình luận
@@ -114,7 +118,7 @@ export default function StudentClassroomDetail() {
     try {
       const res = await announcementService.likeAnnouncement(annId);
       if (res && res.data) {
-        setAnnouncements(prev => prev.map(ann => (ann._id === annId ? res.data : ann)));
+        setAnnouncements(prev => prev.map(ann => (ann._id === annId ? (res.data as IAnnouncement) : ann)));
       }
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi thích thông báo!");
@@ -126,7 +130,7 @@ export default function StudentClassroomDetail() {
     try {
       const res = await announcementService.likeComment(annId, commentId);
       if (res && res.data) {
-        setAnnouncements(prev => prev.map(ann => (ann._id === annId ? res.data : ann)));
+        setAnnouncements(prev => prev.map(ann => (ann._id === annId ? (res.data as IAnnouncement) : ann)));
       }
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi thích bình luận!");
@@ -574,7 +578,9 @@ export default function StudentClassroomDetail() {
         {/* ===== TAB: TRẮC NGHIỆM ===== */}
         {activeTab === "quizzes" && (
           <div className={styles.assignmentsTab}>
-            {quizzes.length > 0 ? quizzes.map((q: any) => {
+            {quizzes.length > 0 ? (
+              <>
+                {currentQuizzes.map((q: any) => {
               const hasResult = q.result !== null && q.result !== undefined;
               return (
                 <div key={q._id} className={styles.assignCard}>
@@ -612,7 +618,31 @@ export default function StudentClassroomDetail() {
                   </div>
                 </div>
               );
-            }) : (
+            })}
+                {/* PAGINATION CONTROLS */}
+                {totalPages > 1 && (
+                  <div className={styles.paginationControls}>
+                    <button 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={currentPage === 1}
+                      className={styles.pageBtn}
+                    >
+                      Trước
+                    </button>
+                    <span className={styles.pageInfo}>
+                      Trang {currentPage} / {totalPages}
+                    </span>
+                    <button 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                      disabled={currentPage === totalPages}
+                      className={styles.pageBtn}
+                    >
+                      Sau
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
               <div className={styles.emptyFeed}>
                 <Clock size={36} weight="light" />
                 <p>Chưa có đề thi trắc nghiệm nào được giao.</p>

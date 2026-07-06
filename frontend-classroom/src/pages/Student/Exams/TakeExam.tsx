@@ -13,7 +13,9 @@ export default function TakeExam() {
 
   const [quiz, setQuiz] = useState<IQuiz | null>(null);
   const [result, setResult] = useState<IQuizResult | null>(null);
-  const [currentQIndex, setCurrentQIndex] = useState(0);
+  const [currentQIndex, setCurrentQIndex] = useState(0); // This is now display index
+  const [questionOrder, setQuestionOrder] = useState<number[]>([]);
+  const [optionOrders, setOptionOrders] = useState<Record<number, number[]>>({});
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -28,6 +30,30 @@ export default function TakeExam() {
         setQuiz(fetchedQuiz);
         setResult(fetchedResult);
         
+        // Cài đặt mảng vị trí xáo trộn câu hỏi
+        let qOrder = Array.from({ length: fetchedQuiz.questions.length }, (_, i) => i);
+        if (fetchedQuiz.shuffleQuestions && !fetchedResult) {
+            for (let i = qOrder.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [qOrder[i], qOrder[j]] = [qOrder[j], qOrder[i]];
+            }
+        }
+        setQuestionOrder(qOrder);
+
+        // Cài đặt mảng vị trí xáo trộn đáp án cho từng câu
+        let oOrders: Record<number, number[]> = {};
+        fetchedQuiz.questions.forEach((q: any, idx: number) => {
+            let optOrder = Array.from({ length: q.options.length }, (_, i) => i);
+            if (fetchedQuiz.shuffleOptions && !fetchedResult) {
+                for (let i = optOrder.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [optOrder[i], optOrder[j]] = [optOrder[j], optOrder[i]];
+                }
+            }
+            oOrders[idx] = optOrder;
+        });
+        setOptionOrders(oOrders);
+
         if (fetchedResult) {
           // Map array of answers back to Record<number, number>
           const answersMap: Record<number, number> = {};
@@ -111,11 +137,11 @@ export default function TakeExam() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  const handleSelectOption = (optIndex: number) => {
+  const handleSelectOption = (actualQIdx: number, actualOptIdx: number) => {
     if (result) return; // Disable in result/review mode
     setAnswers({
       ...answers,
-      [currentQIndex]: optIndex
+      [actualQIdx]: actualOptIdx
     });
   };
 
@@ -133,7 +159,7 @@ export default function TakeExam() {
     );
   }
 
-  if (!quiz) {
+  if (!quiz || questionOrder.length === 0) {
     return (
       <div className={styles.page} style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "400px" }}>
         <p style={{ fontSize: "1.2rem", fontWeight: "600", color: "#ef4444" }}>Không tìm thấy đề thi!</p>
@@ -141,7 +167,8 @@ export default function TakeExam() {
     );
   }
 
-  const currentQ = quiz.questions[currentQIndex];
+  const actualQIndex = questionOrder[currentQIndex];
+  const currentQ = quiz.questions[actualQIndex];
 
   return (
     <div className={styles.page}>
@@ -182,10 +209,11 @@ export default function TakeExam() {
           </div>
 
           <div className={styles.optionsList}>
-            {currentQ.options.map((opt, idx) => {
-              const isSelected = answers[currentQIndex] === idx;
-              const isCorrect = result ? idx === currentQ.correctOptionIndex : false;
-              const isWrong = result ? (isSelected && idx !== currentQ.correctOptionIndex) : false;
+            {(optionOrders[actualQIndex] || []).map((actualOptIdx, displayOptIdx) => {
+              const opt = currentQ.options[actualOptIdx];
+              const isSelected = answers[actualQIndex] === actualOptIdx;
+              const isCorrect = result ? actualOptIdx === currentQ.correctOptionIndex : false;
+              const isWrong = result ? (isSelected && actualOptIdx !== currentQ.correctOptionIndex) : false;
 
               let optionClass = styles.optionItem;
               if (isCorrect) {
@@ -198,12 +226,12 @@ export default function TakeExam() {
 
               return (
                 <div 
-                  key={idx} 
+                  key={actualOptIdx} 
                   className={optionClass}
-                  onClick={() => handleSelectOption(idx)}
+                  onClick={() => handleSelectOption(actualQIndex, actualOptIdx)}
                 >
                   <div className={`${styles.optLetter} ${isSelected ? styles.selectedLetter : ""}`}>
-                    {String.fromCharCode(65 + idx)}
+                    {String.fromCharCode(65 + displayOptIdx)}
                   </div>
                   <span className={opt.trim() === "" ? styles.optTextEmpty : styles.optText}>{opt}</span>
                 </div>
@@ -241,16 +269,16 @@ export default function TakeExam() {
             </div>
 
             <div className={styles.numberGrid}>
-              {quiz.questions.map((_, idx) => {
-                const isAnswered = answers[idx] !== undefined;
-                const isCurrent = idx === currentQIndex;
+              {questionOrder.map((actualQIdx, displayQIdx) => {
+                const isAnswered = answers[actualQIdx] !== undefined;
+                const isCurrent = displayQIdx === currentQIndex;
                 
                 let statusClass = styles.unanswered;
                 if (isCurrent) {
                   statusClass = styles.current;
                 } else if (result) {
-                  const studentAns = result.answers[idx];
-                  const correctAns = quiz.questions[idx].correctOptionIndex;
+                  const studentAns = result.answers[actualQIdx];
+                  const correctAns = quiz.questions[actualQIdx].correctOptionIndex;
                   statusClass = studentAns === correctAns ? styles.correct : styles.wrong;
                 } else if (isAnswered) {
                   statusClass = styles.answered;
@@ -258,11 +286,11 @@ export default function TakeExam() {
 
                 return (
                   <button 
-                    key={idx} 
+                    key={displayQIdx} 
                     className={`${styles.numBtn} ${statusClass}`}
-                    onClick={() => setCurrentQIndex(idx)}
+                    onClick={() => setCurrentQIndex(displayQIdx)}
                   >
-                    {idx + 1}
+                    {displayQIdx + 1}
                   </button>
                 );
               })}
