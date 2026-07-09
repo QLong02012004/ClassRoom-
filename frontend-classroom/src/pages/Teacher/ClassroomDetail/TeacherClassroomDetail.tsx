@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Paperclip,
-  PaperPlaneRight,
-  ChatCircle,
-  ShareNetwork,
+ 
   FilePdf,
-  DownloadSimple,
   DotsThree,
   Trash,
   X,
@@ -21,16 +17,12 @@ import {
   CheckCircle,
   PencilSimple,
   Users,
-  Chalkboard,
   DotsSixVertical,
   Image,
   X as XIcon,
   ChatCircleText,
   ClipboardText,
-  PushPin,
-  MicrosoftExcelLogo,
-  MicrosoftWordLogo,
-  Sparkle
+  PushPin
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";

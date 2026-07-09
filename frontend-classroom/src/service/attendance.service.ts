@@ -40,4 +40,9 @@ export const attendanceService = {
   }): Promise<IBackendRes<IAttendance>> => {
     return await api.post(`/api/v1/attendance`, data);
   },
+
+  // Lấy lịch sử 5 buổi điểm danh gần nhất
+  getAttendanceHistory: async (classId: string): Promise<IBackendRes<IAttendance[]>> => {
+    return await api.get(`/api/v1/attendance/history/${classId}`);
+  },
 };

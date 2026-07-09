@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { ClassStatus } from '../constants/enums';
 
 export interface IClass extends Document {
     name: string;
@@ -6,7 +7,7 @@ export interface IClass extends Document {
     code: string; // Mã lớp duy nhất để HS tham gia
     teacherId: Types.ObjectId;
     students: Types.ObjectId[];
-    status: 'Active' | 'Locked' | 'Archived';
+    status: ClassStatus;
     createdAt: Date;
 }
 
@@ -16,7 +17,7 @@ const ClassSchema = new Schema<IClass>({
     code: { type: String, required: true, unique: true },
     teacherId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     students: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-    status: { type: String, enum: ['Active', 'Locked', 'Archived'], default: 'Active' },
+    status: { type: String, enum: Object.values(ClassStatus), default: ClassStatus.ACTIVE },
     createdAt: { type: Date, default: Date.now }
 });
 

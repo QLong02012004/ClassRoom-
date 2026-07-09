@@ -62,7 +62,8 @@
         max-width: 170px;
       }
 
-      &:focus, &[data-state="open"] {
+      &:focus,
+      &[data-state="open"] {
         border-color: vars.$primary;
         box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
       }
@@ -119,43 +120,7 @@
     }
   }
 
-  .statsGroup {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: white;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 10px 20px;
-    margin-bottom: 0;
 
-    .statDivider {
-      width: 1px;
-      height: 32px;
-      background: #e2e8f0;
-    }
-
-    .statItem {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-
-      .statNum {
-        font-size: 1.25rem;
-        font-weight: 800;
-        line-height: 1;
-      }
-
-      .statLabel {
-        font-size: 0.65rem;
-        font-weight: 700;
-        color: #94a3b8;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-      }
-    }
-  }
 
   .filtersRight {
     .btnSave {
@@ -237,6 +202,61 @@
     }
   }
 
+  .statsGroup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: white;
+    border: none;
+    box-shadow: vars.$shadow-sm;
+    border-radius: 10px;
+    padding: 8px 16px;
+    margin: 0;
+
+    .statDivider {
+      width: 1px;
+      height: 24px;
+      background: #e2e8f0;
+    }
+
+    .statItem {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+
+      .statNum {
+        font-size: 1.15rem;
+        font-weight: 800;
+        line-height: 1;
+
+        &.present {
+          color: vars.$success;
+        }
+
+        &.late {
+          color: vars.$warning;
+        }
+
+        &.absent {
+          color: vars.$danger;
+        }
+
+        &.total {
+          color: #1e293b;
+        }
+      }
+
+      .statLabel {
+        font-size: 0.6rem;
+        font-weight: 700;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+    }
+  }
+
   .classInfoCode {
     font-size: 0.8rem;
     color: #64748b;
@@ -255,194 +275,121 @@
   border-radius: 16px;
   border: 1.5px solid #e2e8f0;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  overflow: hidden;
+}
 
-  .attendanceTable {
-    width: 100%;
-    border-collapse: collapse;
+.studentInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 
-    th {
-      padding: 14px 20px;
-      text-align: left;
-      font-size: 0.75rem;
+  .studentName {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .studentEmail {
+    display: block;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    margin-top: 2px;
+  }
+}
+
+.statusButtons {
+  display: inline-flex;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  gap: 4px;
+
+  .statusBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      color: #1e293b;
+      background: rgba(255, 255, 255, 0.5);
+    }
+
+    &.activePresent {
+      background: white;
+      color: vars.$success;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15), 0 1px 3px rgba(16, 185, 129, 0.1);
       font-weight: 700;
-      color: #64748b;
-      background: #f8fafc;
-      border-bottom: 1.5px solid #e2e8f0;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
     }
 
-    td {
-      padding: 14px 20px;
-      border-bottom: 1px solid #f1f5f9;
-      vertical-align: middle;
+    &.activeLate {
+      background: white;
+      color: vars.$warning;
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15), 0 1px 3px rgba(245, 158, 11, 0.1);
+      font-weight: 700;
     }
 
-    tbody tr {
-      transition: background 0.15s;
-
-      &:hover {
-        background: #fafafa;
-      }
-
-      &:last-child td {
-        border-bottom: none;
-      }
-
-      // Row highlight theo trạng thái
-      &.row_absent td:first-child {
-        border-left: 3px solid #f87171;
-      }
-      &.row_late td:first-child {
-        border-left: 3px solid #fbbf24;
-      }
-      &.row_present td:first-child {
-        border-left: 3px solid #34d399;
-      }
-    }
-
-    .colIdx {
-      width: 48px;
-      font-size: 0.8rem;
-      color: #94a3b8;
-      font-weight: 600;
-      text-align: left;
-    }
-
-    .colName {
-      .studentInfo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .avatarInitials {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 800;
-          font-size: 0.8rem;
-          flex-shrink: 0;
-        }
-
-        .studentName {
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 700;
-          color: #1e293b;
-        }
-
-        .studentEmail {
-          display: block;
-          font-size: 0.75rem;
-          color: #94a3b8;
-          margin-top: 2px;
-        }
-      }
-    }
-
-    .colStatus {
-      .statusButtons {
-        display: inline-flex;
-        background: #f1f5f9;
-        padding: 4px;
-        border-radius: 12px;
-        border: 1px solid #e2e8f0;
-        gap: 4px;
-
-        .statusBtn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 14px;
-          border-radius: 9px;
-          border: none;
-          background: transparent;
-          color: #64748b;
-          font-size: 0.8rem;
-          font-weight: 600;
-          cursor: pointer;
-          font-family: inherit;
-          white-space: nowrap;
-          flex-shrink: 0;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-          &:hover {
-            color: #1e293b;
-            background: rgba(255, 255, 255, 0.5);
-          }
-
-          &.activePresent {
-            background: white;
-            color: #059669;
-            box-shadow: 0 4px 12px rgba(5, 150, 105, 0.12), 0 1px 3px rgba(5, 150, 105, 0.08);
-            font-weight: 700;
-          }
-
-          &.activeLate {
-            background: white;
-            color: #d97706;
-            box-shadow: 0 4px 12px rgba(217, 119, 6, 0.12), 0 1px 3px rgba(217, 119, 6, 0.08);
-            font-weight: 700;
-          }
-
-          &.activeAbsent {
-            background: white;
-            color: #dc2626;
-            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.12), 0 1px 3px rgba(220, 38, 38, 0.08);
-            font-weight: 700;
-          }
-        }
-      }
-    }
-
-    .colNote {
-      .noteBtn {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        background: transparent;
-        border: 1.5px solid transparent;
-        border-radius: 8px;
-        padding: 6px 10px;
-        cursor: pointer;
-        font-family: inherit;
-        transition: all 0.15s;
-
-        &:hover {
-          background: #f8fafc;
-          border-color: #e2e8f0;
-        }
-
-        .noteText {
-          font-size: 0.8rem;
-          color: #475569;
-          font-style: italic;
-        }
-
-        .notePlaceholder {
-          font-size: 0.8rem;
-          color: #cbd5e1;
-        }
-      }
-
-      .noteInput {
-        width: 100%;
-        padding: 7px 10px;
-        border: 1.5px solid vars.$primary;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        font-family: inherit;
-        outline: none;
-        color: #1e293b;
-        background: white;
-        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
-      }
+    &.activeAbsent {
+      background: white;
+      color: vars.$danger;
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15), 0 1px 3px rgba(239, 68, 68, 0.1);
+      font-weight: 700;
     }
   }
+}
+
+.noteBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #e2e8f0;
+  }
+
+  .noteText {
+    font-size: 0.8rem;
+    color: #475569;
+    font-style: italic;
+  }
+
+  .notePlaceholder {
+    font-size: 0.8rem;
+    color: #cbd5e1;
+  }
+}
+
+.noteInput {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1.5px solid vars.$primary;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  outline: none;
+  color: #1e293b;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
 }
 
 /* ─── LOADING SKELETON ────────────────────────────── */
@@ -545,6 +492,18 @@
         width: 10px;
         height: 10px;
         border-radius: 50%;
+
+        &.present {
+          background-color: vars.$success;
+        }
+
+        &.late {
+          background-color: vars.$warning;
+        }
+
+        &.absent {
+          background-color: vars.$danger;
+        }
       }
     }
   }
@@ -557,11 +516,23 @@
 
 /* ─── ANIMATIONS ──────────────────────────────────── */
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

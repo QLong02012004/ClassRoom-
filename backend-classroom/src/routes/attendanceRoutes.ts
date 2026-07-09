@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAttendance, saveAttendance } from '../controllers/attendanceController';
+import { getAttendance, saveAttendance, getAttendanceHistory } from '../controllers/attendanceController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -9,5 +9,8 @@ router.get('/', protect, authorize('teacher'), getAttendance);
 
 // Lưu / cập nhật điểm danh: POST /api/v1/attendance
 router.post('/', protect, authorize('teacher'), saveAttendance);
+
+// Lấy lịch sử 5 buổi gần nhất: GET /api/v1/attendance/history/:classId
+router.get('/history/:classId', protect, authorize('teacher'), getAttendanceHistory);
 
 export default router;

@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { SubmissionStatus } from '../constants/enums';
 
 export interface IAttachment {
     name: string;
@@ -11,7 +12,7 @@ export interface ISubmission extends Document {
     studentId: Types.ObjectId;
     submissionText?: string;
     attachments: IAttachment[];
-    status: 'submitted' | 'late';
+    status: SubmissionStatus;
     submittedAt: Date;
 }
 
@@ -26,7 +27,7 @@ const SubmissionSchema = new Schema<ISubmission>({
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     submissionText: { type: String, default: '' },
     attachments: [AttachmentSchema],
-    status: { type: String, enum: ['submitted', 'late'], default: 'submitted' },
+    status: { type: String, enum: Object.values(SubmissionStatus), default: SubmissionStatus.SUBMITTED },
     submittedAt: { type: Date, default: Date.now }
 });
 

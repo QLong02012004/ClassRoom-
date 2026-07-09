@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { AssignmentCategory } from '../constants/enums';
 
 export interface IAssignment extends Document {
     classId: Types.ObjectId;
@@ -6,7 +7,7 @@ export interface IAssignment extends Document {
     description: string;
     dueDate: Date;
     maxScore: number;
-    category: 'mieng' | '15phut' | 'giuaky' | 'cuoiky';
+    category: AssignmentCategory;
     createdAt: Date;
 }
 
@@ -16,7 +17,7 @@ const AssignmentSchema = new Schema<IAssignment>({
     description: { type: String, default: '' },
     dueDate: { type: Date, required: true },
     maxScore: { type: Number, default: 10 },
-    category: { type: String, enum: ['mieng', '15phut', 'giuaky', 'cuoiky'], default: '15phut' },
+    category: { type: String, enum: Object.values(AssignmentCategory), default: AssignmentCategory.MIN15 },
     createdAt: { type: Date, default: Date.now }
 });
 

@@ -48,7 +48,7 @@
   h2 {
     font-size: 1.5rem;
     font-weight: 800;
-    color: vars.$dark-text;
+    color: vars.$primary;
     margin: 0 0 8px 0;
   }
   p {
@@ -227,7 +227,7 @@
 .tableWrapper {
   background: white;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
   border: 1px solid #f1f5f9;
   overflow: hidden;
   width: 100%;

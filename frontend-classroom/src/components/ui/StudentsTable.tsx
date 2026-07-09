@@ -51,12 +51,11 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
             Đã chọn <strong className="text-primary">{selectedIds.length}</strong> học sinh
           </span>
           <Button 
-            color="danger" 
-            variant="danger-soft" 
+            className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-medium flex items-center gap-2" 
             size="sm" 
-            startContent={<Trash weight="bold" size={16} />}
             onPress={handleBulkDeleteClick}
           >
+            <Trash weight="bold" size={16} />
             Xóa các học sinh đã chọn
           </Button>
         </div>

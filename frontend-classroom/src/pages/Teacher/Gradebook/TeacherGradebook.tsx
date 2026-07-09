@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  FloppyDisk,
   NotePencil,
   Article,
   Spinner,
@@ -20,6 +19,7 @@ import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { Table, Avatar as HeroAvatar } from "@heroui/react";
 import styles from "./TeacherGradebook.module.scss";
 
 // Màu avatar dựa trên tên
@@ -101,7 +101,9 @@ export default function TeacherGradebook() {
       const res = await gradebookService.getClassroomGrades(selectedClassId);
       if (res.data) {
         setStudents(res.data.students || []);
-        setAssignments(res.data.assignments || []);
+        const order: Record<string, number> = { mieng: 1, '15phut': 2, giuaky: 3, cuoiky: 4 };
+        const sortedAssignments = (res.data.assignments || []).sort((a, b) => (order[a.category] || 9) - (order[b.category] || 9));
+        setAssignments(sortedAssignments);
         setGrades(res.data.grades || []);
 
         // Khởi tạo các ô nhập điểm từ DB
@@ -272,9 +274,9 @@ export default function TeacherGradebook() {
                         <DropdownMenuItem
                           key={cls._id}
                           onClick={() => {
-                          setSelectedClassId(cls._id);
-                          setSearchParams({ classId: cls._id }, { replace: true });
-                        }}
+                            setSelectedClassId(cls._id);
+                            setSearchParams({ classId: cls._id }, { replace: true });
+                          }}
                           className={`px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
                             }`}
                         >
@@ -306,80 +308,132 @@ export default function TeacherGradebook() {
               <p>Lớp học này chưa có học sinh nào.</p>
             </div>
           ) : (
-            <table className={styles.scoresTable}>
-              <thead>
-                <tr>
-                  <th className={styles.colStudent} style={{ textAlign: 'left' }}>Học sinh</th>
-                  {assignments.map(a => {
-                    const categoryLabels: Record<string, string> = {
-                      mieng: "M miệng",
-                      "15phut": "15 phút",
-                      giuaky: "Giữa kỳ",
-                      cuoiky: "Cuối kỳ",
-                    };
-                    const label = categoryLabels[a.category] || "15 phút";
-                    return (
-                      <th key={a._id} style={{ minWidth: 120 }}>
-                        <div style={{ fontSize: '0.75rem', opacity: 0.7, textTransform: 'uppercase', marginBottom: 2 }}>{label}</div>
-                        <div>{a.title}</div>
-                      </th>
-                    );
-                  })}
-                  <th className={styles.colAvg}>ĐTB</th>
-                  <th className={styles.colRank}>Xếp loại</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.map((student) => {
-                  const { bg, color } = getAvatarColor(student.name);
-                  const avg = calculateStudentAvg(student._id);
-                  const rank = getRank(avg);
+            <Table>
+              <Table.ScrollContainer className="w-full">
+                <Table.Content
+                  aria-label="Bảng điểm học sinh"
+                  className="w-full bg-white p-0 rounded-xl overflow-hidden border border-slate-200 shadow-sm"
+                >
+                  <Table.Header>
+                    <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200 sticky top-0 left-0 z-30 shadow-[4px_0_12px_rgba(0,0,0,0.03)]" id="student">Học sinh</Table.Column>
+                    {(() => {
+                      const regularAssignments = assignments.filter(a => a.category === 'mieng' || a.category === '15phut');
+                      const periodicAssignments = assignments.filter(a => a.category === 'giuaky' || a.category === 'cuoiky');
 
-                  return (
-                    <tr key={student._id}>
-                      <td className={styles.colStudent}>
-                        <div className={styles.studentInfo}>
-                          <div
-                            className={styles.avatarInitials}
-                            style={{ backgroundColor: bg, color: color }}
-                          >
-                            {getInitials(student.name)}
+                      const renderAssignmentColumn = (a: any) => {
+                        const categoryLabels: Record<string, string> = {
+                          mieng: "Thường xuyên (Miệng)",
+                          "15phut": "Thường xuyên (15')",
+                          giuaky: "Định kỳ (Giữa kỳ)",
+                          cuoiky: "Định kỳ (Cuối kỳ)",
+                        };
+                        const categoryBgs: Record<string, string> = {
+                          mieng: "bg-blue-50/60",
+                          "15phut": "bg-emerald-50/60",
+                          giuaky: "bg-amber-50/60",
+                          cuoiky: "bg-rose-50/60",
+                        };
+                        const categoryTexts: Record<string, string> = {
+                          mieng: "text-blue-700",
+                          "15phut": "text-emerald-700",
+                          giuaky: "text-amber-700",
+                          cuoiky: "text-rose-700",
+                        };
+                        const label = categoryLabels[a.category] || "15 phút";
+                        const bgClass = categoryBgs[a.category] || "bg-slate-50";
+                        const textClass = categoryTexts[a.category] || "text-slate-600";
+
+                        return (
+                          <Table.Column className={`${bgClass} text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200 sticky top-0 z-20`} key={a._id} id={a._id}>
+                            <div className={textClass} style={{ opacity: 0.9, marginBottom: 2 }}>{label}</div>
+                            <div className="truncate max-w-[120px] capitalize font-medium text-slate-700" title={a.title}>{a.title}</div>
+                          </Table.Column>
+                        );
+                      };
+
+                      return (
+                        <>
+                          {regularAssignments.map(renderAssignmentColumn)}
+                          {periodicAssignments.map(renderAssignmentColumn)}
+                        </>
+                      );
+                    })()}
+                    <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200 sticky top-0 right-[120px] z-30 shadow-[-4px_0_12px_rgba(0,0,0,0.03)]" id="avg">ĐTB</Table.Column>
+                    <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200 sticky top-0 right-0 z-30" id="rank">Xếp loại</Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {students.length === 0 ? (
+                      <Table.Row key="empty" id="empty">
+                        <Table.Cell />
+                        {assignments.map(a => <Table.Cell key={a._id} />)}
+                        <Table.Cell>
+                          <div className="py-10 text-center text-slate-500 font-medium whitespace-nowrap">
+                            Lớp học này chưa có học sinh nào.
                           </div>
-                          <div className={styles.nameDetails}>
-                            <span className={styles.studentName}>{student.name}</span>
-                            <span className={styles.studentId}>{student.email}</span>
-                          </div>
-                        </div>
-                      </td>
-                      {assignments.map(a => (
-                        <td key={a._id}>
-                          <input
-                            type="number"
-                            className={styles.scoreInput}
-                            value={editingScores[`${student._id}_${a._id}`] || ""}
-                            onChange={(e) => handleScoreChange(student._id, a._id, e.target.value)}
-                            step="0.1"
-                            min="0"
-                            max={a.maxScore}
-                            placeholder={`Max: ${a.maxScore}`}
-                          />
-                        </td>
-                      ))}
-                      <td className={styles.colAvg}>
-                        <span className={styles.avgValue}>
-                          {avg !== null ? avg.toFixed(1) : "-"}
-                        </span>
-                      </td>
-                      <td className={styles.colRank}>
-                        <span className={`${styles.rankBadge} ${rank.cls}`}>
-                          {rank.text}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </Table.Cell>
+                        <Table.Cell />
+                      </Table.Row>
+                    ) : (
+                      students.map((student) => {
+                        const { bg, color } = getAvatarColor(student.name);
+                        const avg = calculateStudentAvg(student._id);
+                        const rank = getRank(avg);
+
+                        return (
+                          <Table.Row key={student._id} id={student._id} className="group hover:bg-slate-50/50 transition-colors">
+                            <Table.Cell className="py-3 px-4 border-b border-slate-100 min-w-[250px] sticky left-0 z-10 bg-white group-hover:bg-slate-50 shadow-[4px_0_12px_rgba(0,0,0,0.03)] transition-colors">
+                              <div className="flex items-center gap-3">
+                                <HeroAvatar size="md" className="border border-slate-100 shadow-sm font-semibold flex-shrink-0" style={{ backgroundColor: bg, color: color }}>
+                                  <HeroAvatar.Fallback>{getInitials(student.name)}</HeroAvatar.Fallback>
+                                </HeroAvatar>
+                                <div className="min-w-0 flex-1">
+                                  <span className="block font-bold text-slate-800 text-[14px] truncate max-w-[180px]" title={student.name}>{student.name}</span>
+                                  <span className="block text-xs text-slate-500 mt-[2px] truncate max-w-[180px]" title={student.email}>{student.email}</span>
+                                </div>
+                              </div>
+                            </Table.Cell>
+                            {assignments.map(a => {
+                              const categoryBgs: Record<string, string> = {
+                                mieng: "bg-blue-50/30 hover:bg-blue-50/60",
+                                "15phut": "bg-emerald-50/30 hover:bg-emerald-50/60",
+                                giuaky: "bg-amber-50/30 hover:bg-amber-50/60",
+                                cuoiky: "bg-rose-50/30 hover:bg-rose-50/60",
+                              };
+                              const bgClass = categoryBgs[a.category] || "";
+
+                              return (
+                                <Table.Cell className={`py-3 px-4 border-b border-slate-100 ${bgClass} transition-colors`} key={a._id}>
+                                  <input
+                                    type="number"
+                                    className={styles.scoreInput}
+                                    value={editingScores[`${student._id}_${a._id}`] || ""}
+                                    onChange={(e) => handleScoreChange(student._id, a._id, e.target.value)}
+                                    step="0.1"
+                                    min="0"
+                                    max={a.maxScore}
+                                    placeholder={`Max: ${a.maxScore}`}
+                                  />
+                                </Table.Cell>
+                              );
+                            })}
+                            <Table.Cell className="py-3 px-4 border-b border-slate-100 sticky right-[120px] z-10 bg-white group-hover:bg-slate-50 shadow-[-4px_0_12px_rgba(0,0,0,0.03)] transition-colors">
+                              <span className={styles.avgValue}>
+                                {avg !== null ? avg.toFixed(1) : "-"}
+                              </span>
+                            </Table.Cell>
+                            <Table.Cell className="py-3 px-4 border-b border-slate-100 sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors">
+                              <span className={`${styles.rankBadge} ${rank.cls}`}>
+                                {rank.text}
+                              </span>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })
+                    )}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
+            </Table>
           )}
         </div>
       </section>
@@ -411,8 +465,8 @@ export default function TeacherGradebook() {
                       <h4>{task.title}</h4>
                       <p>
                         {task.category === 'mieng' ? 'Điểm miệng' :
-                         task.category === '15phut' ? 'Điểm 15 phút' :
-                         task.category === 'giuaky' ? 'Điểm giữa kỳ' : 'Điểm cuối kỳ'} (Hệ số {task.category === 'giuaky' ? 2 : task.category === 'cuoiky' ? 3 : 1}) • Hạn nộp: {new Date(task.dueDate).toLocaleDateString('vi-VN')} • Max: {task.maxScore} điểm
+                          task.category === '15phut' ? 'Điểm 15 phút' :
+                            task.category === 'giuaky' ? 'Điểm giữa kỳ' : 'Điểm cuối kỳ'} (Hệ số {task.category === 'giuaky' ? 2 : task.category === 'cuoiky' ? 3 : 1}) • Hạn nộp: {new Date(task.dueDate).toLocaleDateString('vi-VN')} • Max: {task.maxScore} điểm
                       </p>
                     </div>
                   </div>

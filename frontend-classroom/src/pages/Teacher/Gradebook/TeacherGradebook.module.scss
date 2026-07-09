@@ -24,10 +24,10 @@
 
     .headerInfo {
       h2 {
-        font-size: 20px;
+        font-size: 26px;
         font-weight: 700;
         margin: 0 0 4px 0;
-        color: #0f172a;
+        color: vars.$primary;
       }
       p {
         margin: 0;
@@ -60,7 +60,8 @@
             max-width: 160px;
           }
 
-          &:focus, &[data-state="open"] {
+          &:focus,
+          &[data-state="open"] {
             border-color: #ff5e3a;
             box-shadow: 0 0 0 3px rgba(255, 94, 58, 0.1);
           }
@@ -153,126 +154,68 @@
         color: #64748b;
       }
     }
-    
-    .scoresTable {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
-      text-align: center;
-
-      th {
-        padding: 16px;
-        font-size: 14px;
-        font-weight: 600;
-        color: #475569;
-        border-bottom: 1px solid #e2e8f0;
-        white-space: nowrap;
-      }
-
-      td {
-        padding: 16px;
-        border-bottom: 1px solid #f1f5f9;
-        vertical-align: middle;
-      }
-
-      .colStudent {
-        text-align: left;
-      }
-
-      .studentInfo {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .avatarInitials {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-weight: 700;
-          font-size: 14px;
-        }
-
-        .nameDetails {
-          display: flex;
-          flex-direction: column;
-          
-          .studentName {
-            font-size: 14px;
-            font-weight: 600;
-            color: #1e293b;
-          }
-          .studentId {
-            font-size: 11px;
-            color: #94a3b8;
-          }
-        }
-      }
-
-      .scoreInput {
-        width: 60px;
-        padding: 8px;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        text-align: center;
-        font-size: 14px;
-        color: #1e293b;
-        background: white;
-        transition: all 0.2s ease;
-
-        &:focus {
-          outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        &.highlightInput {
-          color: #dc2626;
-          font-weight: 600;
-        }
-
-        &::-webkit-outer-spin-button,
-        &::-webkit-inner-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        &[type=number] {
-          appearance: textfield;
-          -moz-appearance: textfield;
-        }
-      }
-
-      .colAvg {
-        font-weight: 700;
-        font-size: 15px;
-        background-color: #dcfce7;
-        
-        .avgValue {
-          display: inline-block;
-          min-width: 40px;
-        }
-        
-        .textGreen { color: #059669; }
-        .textDark { color: #0f172a; }
-      }
-
-      .colRank {
-        .rankBadge {
-          padding: 6px 12px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
-          white-space: nowrap;
-        }
-        
-        .rankGood { background: #dcfce7; color: #16a34a; }
-        .rankAvg { background: #fee2e2; color: #dc2626; }
-        .rankExcellent { background: #d1fae5; color: #059669; }
-      }
-    }
   }
+}
+
+.scoreInput {
+  width: 60px;
+  padding: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  color: #1e293b;
+  background: white;
+  transition: all 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  &.highlightInput {
+    color: #dc2626;
+    font-weight: 600;
+  }
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  &[type="number"] {
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+}
+
+.avgValue {
+  display: inline-block;
+  min-width: 40px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.rankBadge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.rankGood {
+  background: #dcfce7;
+  color: #16a34a;
+}
+.rankAvg {
+  background: #fee2e2;
+  color: #dc2626;
+}
+.rankExcellent {
+  background: #d1fae5;
+  color: #059669;
 }
 
 /* SECTION 2: BOTTOM 2 COLUMNS */
@@ -311,7 +254,9 @@
       margin-bottom: 8px;
     }
 
-    .formInput, .formSelect, .formTextarea {
+    .formInput,
+    .formSelect,
+    .formTextarea {
       width: 100%;
       padding: 12px 16px;
       border: 1px solid #e2e8f0;
@@ -339,7 +284,7 @@
   .formRow {
     display: flex;
     gap: 16px;
-    
+
     .formGroup {
       flex: 1;
     }
@@ -511,9 +456,15 @@
         font-weight: 700;
       }
 
-      .textGreen { color: #059669; }
-      .textDark { color: #0f172a; }
-      .textRed { color: #dc2626; }
+      .textGreen {
+        color: #059669;
+      }
+      .textDark {
+        color: #0f172a;
+      }
+      .textRed {
+        color: #dc2626;
+      }
 
       .statLabel {
         font-size: 11px;
@@ -543,10 +494,17 @@
   overflow: hidden;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 70%);
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(
+      circle at top right,
+      rgba(59, 130, 246, 0.1),
+      transparent 70%
+    );
   }
 
   .overviewInfo {
@@ -609,11 +567,20 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }

@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { AnnouncementType } from '../constants/enums';
 
 export interface IComment {
     authorId: Types.ObjectId;
@@ -18,7 +19,7 @@ export interface IAnnouncement extends Document {
     classId: Types.ObjectId;
     authorId: Types.ObjectId;
     content: string;
-    type: 'announcement' | 'reminder' | 'material';
+    type: AnnouncementType;
     attachments: IAttachment[];
     comments: IComment[];
     createdAt: Date;
@@ -44,7 +45,7 @@ const AnnouncementSchema = new Schema<IAnnouncement>({
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true },
-    type: { type: String, enum: ['announcement', 'reminder', 'material'], default: 'announcement' },
+    type: { type: String, enum: Object.values(AnnouncementType), default: AnnouncementType.ANNOUNCEMENT },
     attachments: [AttachmentSchema],
     comments: [CommentSchema],
     createdAt: { type: Date, default: Date.now },

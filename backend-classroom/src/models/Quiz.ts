@@ -1,4 +1,5 @@
 import { Schema, model, Document, Types } from 'mongoose';
+import { QuizStatus } from '../constants/enums';
 
 export interface IQuizQuestion {
     _id?: Types.ObjectId;
@@ -14,7 +15,7 @@ export interface IQuiz extends Document {
     classId: Types.ObjectId;
     title: string;
     durationMinutes: number;
-    status: 'open' | 'closed' | 'draft';
+    status: QuizStatus;
     questions: IQuizQuestion[];
     shuffleQuestions: boolean;
     shuffleOptions: boolean;
@@ -34,7 +35,7 @@ const QuizSchema = new Schema<IQuiz>({
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
     title: { type: String, required: true },
     durationMinutes: { type: Number, required: true, default: 15 },
-    status: { type: String, enum: ['open', 'closed', 'draft'], default: 'open' },
+    status: { type: String, enum: Object.values(QuizStatus), default: QuizStatus.OPEN },
     questions: [QuizQuestionSchema],
     shuffleQuestions: { type: Boolean, default: false },
     shuffleOptions: { type: Boolean, default: false },
