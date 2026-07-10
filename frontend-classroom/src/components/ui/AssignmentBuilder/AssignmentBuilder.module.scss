@@ -1,0 +1,131 @@
+@use "../../Styles/variables.module" as vars;
+
+.createAssignmentView {
+  background: white;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 32px;
+  text-align: left;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.formHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f1f5f9;
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: vars.$primary;
+  }
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  input,
+  select,
+  textarea {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.15s;
+
+    &:focus {
+      border-color: vars.$primary;
+      box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.15);
+    }
+  }
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 32px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  position: sticky;
+  bottom: 20px;
+  z-index: 50;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  button {
+    padding: 10px 24px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+
+  .btnCancel {
+    background: #f1f5f9;
+    border: 1.5px solid #e2e8f0;
+    color: vars.$dark-text;
+
+    &:hover {
+      background: #e2e8f0;
+    }
+  }
+
+  .btnSave {
+    background: vars.$primary;
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(254, 103, 71, 0.2);
+
+    &:hover {
+      background: #e0583b;
+      box-shadow: 0 6px 16px rgba(254, 103, 71, 0.3);
+    }
+
+    &:disabled {
+      background: #cbd5e1;
+      color: #94a3b8;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

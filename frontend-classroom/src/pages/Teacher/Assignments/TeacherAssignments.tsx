@@ -27,14 +27,12 @@ import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import styles from "./TeacherAssignments.module.scss";
 
-// TABS
-const TABS = [
-  { key: "all", label: "Tất cả" },
-  { key: "mieng", label: "Điểm miệng" },
-  { key: "15phut", label: "Điểm 15 phút" },
-  { key: "giuaky", label: "Giữa kỳ" },
-  { key: "cuoiky", label: "Cuối kỳ" },
-];
+const categoryLabels: Record<string, string> = {
+  attitude: "Chuyên cần / Thái độ",
+  homework: "Bài tập về nhà",
+  periodic: "Kiểm tra định kỳ",
+  mock_exam: "Thi thử",
+};
 
 const chartData = [
   { day: "Thứ 2", value: 65 },
@@ -61,7 +59,8 @@ export default function TeacherAssignments() {
   // Form create assignment
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [assignCategory, setAssignCategory] = useState("15phut");
+  const [assignCategory, setAssignCategory] = useState("homework");
+  const [customCategory, setCustomCategory] = useState("");
   const [maxScore, setMaxScore] = useState(10);
   const [description, setDescription] = useState("");
 
@@ -132,6 +131,12 @@ export default function TeacherAssignments() {
       return;
     }
 
+    const finalCategory = assignCategory === 'custom' ? customCategory : assignCategory;
+    if (assignCategory === 'custom' && !customCategory.trim()) {
+      toast.error("Vui lòng nhập tên loại điểm tùy chỉnh!");
+      return;
+    }
+
     setCreating(true);
     try {
       await gradebookService.createAssignment({
@@ -139,13 +144,14 @@ export default function TeacherAssignments() {
         title,
         dueDate: deadline,
         maxScore,
-        category: assignCategory,
+        category: finalCategory,
         description,
       });
       toast.success("Giao bài tập mới thành công!");
       setTitle("");
       setDeadline("");
-      setAssignCategory("15phut");
+      setAssignCategory("homework");
+      setCustomCategory("");
       setMaxScore(10);
       setDescription("");
       loadData();
@@ -259,7 +265,7 @@ export default function TeacherAssignments() {
                   <DropdownMenuItem
                     key={cls._id}
                     onClick={() => setSelectedClassId(cls._id)}
-                    className={`px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
+                    className={`px-3 py-2 text-sm text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
                       }`}
                   >
                     {cls.name} {cls.subject ? `(${cls.subject})` : ""}
@@ -270,15 +276,25 @@ export default function TeacherAssignments() {
           )}
         </div>
         <div className={styles.tabs}>
-          {TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""}`}
-              onClick={() => setActiveTab(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {(() => {
+            const uniqueCategories = Array.from(new Set(assignments.map(a => a.category)));
+            const dynamicTabs = [
+              { key: "all", label: "Tất cả" },
+              ...uniqueCategories.map(cat => ({
+                key: cat,
+                label: categoryLabels[cat] || cat
+              }))
+            ];
+            return dynamicTabs.map((tab) => (
+              <button
+                key={tab.key}
+                className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ""}`}
+                onClick={() => setActiveTab(tab.key)}
+              >
+                {tab.label}
+              </button>
+            ));
+          })()}
         </div>
       </div>
 
@@ -319,16 +335,63 @@ export default function TeacherAssignments() {
               </div>
               <div className={styles.formGroup}>
                 <label>Loại đầu điểm</label>
-                <select
-                  className={styles.selectInput}
-                  value={assignCategory}
-                  onChange={(e) => setAssignCategory(e.target.value)}
-                >
-                  <option value="mieng">Điểm miệng (Hệ số 1)</option>
-                  <option value="15phut">Điểm 15 phút (Hệ số 1)</option>
-                  <option value="giuaky">Điểm giữa kỳ (Hệ số 2)</option>
-                  <option value="cuoiky">Điểm cuối kỳ (Hệ số 3)</option>
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button type="button" className={`${styles.selectInput} flex justify-between items-center bg-white text-left w-full h-[42px]`}>
+                      <span>
+                        {assignCategory === "attitude" ? "Chuyên cần / Thái độ (Hệ số 1)" :
+                         assignCategory === "homework" ? "Bài tập về nhà (Hệ số 1)" :
+                         assignCategory === "periodic" ? "Kiểm tra định kỳ (Hệ số 1)" :
+                         assignCategory === "mock_exam" ? "Thi thử (Hệ số 1)" :
+                         "Tùy chỉnh (Khác)"}
+                      </span>
+                      <CaretDown size={14} weight="bold" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="min-w-[300px] w-max bg-white border border-slate-200 shadow-lg rounded-xl p-1 z-50">
+                    <DropdownMenuItem
+                      onClick={() => setAssignCategory("homework")}
+                      className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer transition-colors ${assignCategory === "homework" ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                    >
+                      Bài tập về nhà (Hệ số 1)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setAssignCategory("attitude")}
+                      className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer transition-colors ${assignCategory === "attitude" ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                    >
+                      Chuyên cần / Thái độ (Hệ số 1)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setAssignCategory("periodic")}
+                      className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer transition-colors ${assignCategory === "periodic" ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                    >
+                      Kiểm tra định kỳ (Hệ số 1)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setAssignCategory("mock_exam")}
+                      className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer transition-colors ${assignCategory === "mock_exam" ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                    >
+                      Thi thử (Hệ số 1)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => setAssignCategory("custom")}
+                      className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer transition-colors ${assignCategory === "custom" ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                    >
+                      Tùy chỉnh (Khác)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                {assignCategory === "custom" && (
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    placeholder="Nhập tên loại điểm mới..."
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    style={{ marginTop: 8 }}
+                    required
+                  />
+                )}
               </div>
             </div>
 

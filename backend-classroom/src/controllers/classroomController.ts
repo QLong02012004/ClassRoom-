@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { ClassModel } from '../models/Class';
-import { AssignmentModel } from '../models/Assignment';
+import { ClassActivityModel } from '../models/ClassActivity';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { createAdminNotification } from '../services/notificationService';
+import { ClassStatus } from '../constants/enums';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
 export const getAdminClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -98,14 +99,14 @@ export const deleteClassroom = async (req: Request, res: Response, next: NextFun
 export const getTeacherClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const teacherId = (req as any).user?.id;
-        const classes = await ClassModel.find({ teacherId, status: { $ne: 'Archived' } }).sort({ createdAt: -1 });
+        const classes = await ClassModel.find({ teacherId, status: { $ne: ClassStatus.ARCHIVED } }).sort({ createdAt: -1 });
 
         // Bổ sung thông tin "nóng" cho từng lớp học
         const enrichedClasses = await Promise.all(classes.map(async (cls) => {
             const classObj = cls.toObject();
 
             // Lấy danh sách bài tập của lớp này
-            const assignments = await AssignmentModel.find({ classId: cls._id }).select('_id title dueDate');
+            const assignments = await ClassActivityModel.find({ classId: cls._id }).select('_id title dueDate');
             const assignmentIds = assignments.map(a => a._id);
 
             // Bài tập hết hạn gần nhất (để hiển thị "Bài tập mới nhất")
@@ -255,7 +256,7 @@ export const softDeleteClassroom = async (req: Request, res: Response, next: Nex
 
         const deletedClass = await ClassModel.findOneAndUpdate(
             { _id: id as any, teacherId: teacherId as any },
-            { status: 'Archived' },
+            { status: ClassStatus.ARCHIVED },
             { new: true }
         );
 
@@ -297,7 +298,7 @@ export const hardDeleteClassroom = async (req: Request, res: Response, next: Nex
 export const getStudentClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const studentId = (req as any).user?.id;
-        const classes = await ClassModel.find({ students: studentId, status: { $ne: 'Archived' } })
+        const classes = await ClassModel.find({ students: studentId, status: { $ne: ClassStatus.ARCHIVED } })
             .populate('teacherId', 'name avatar')
             .sort({ createdAt: -1 });
 
@@ -339,7 +340,7 @@ export const getAdminClassroomActivities = async (req: Request, res: Response, n
         }
 
         // 2. Lấy chủ đề bài giảng hiện tại (Bài tập mới nhất)
-        const latestAssignment = await AssignmentModel.findOne({ classId: id as any })
+        const latestAssignment = await ClassActivityModel.findOne({ classId: id as any })
             .sort({ createdAt: -1 })
             .select('title dueDate');
         
@@ -347,13 +348,13 @@ export const getAdminClassroomActivities = async (req: Request, res: Response, n
 
         // 3. Lấy hoạt động mới nhất:
         // - Tạo bài tập
-        const recentAssignments = await AssignmentModel.find({ classId: id as any })
+        const recentAssignments = await ClassActivityModel.find({ classId: id as any })
             .sort({ createdAt: -1 })
             .limit(3)
             .select('title createdAt');
             
         // - Lịch sử nộp bài
-        const assignmentDocs = await AssignmentModel.find({ classId: id as any }).select('_id');
+        const assignmentDocs = await ClassActivityModel.find({ classId: id as any }).select('_id');
         const assignmentIds = assignmentDocs.map(doc => doc._id);
         const recentSubmissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } })
             .sort({ submittedAt: -1 })

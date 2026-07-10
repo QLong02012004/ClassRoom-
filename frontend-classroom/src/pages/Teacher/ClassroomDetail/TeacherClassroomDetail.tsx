@@ -44,6 +44,7 @@ import NumberStepper from "../../../components/ui/NumberStepper";
 import AiGenerateButton from "../../../components/ui/AiGenerateButton/AiGenerateButton";
 import FolderImportButton from "../../../components/ui/FolderImportButton/FolderImportButton";
 import CustomRadio from "../../../components/ui/CustomRadio/CustomRadio";
+import QuizBuilder from "../../../components/ui/QuizBuilder/QuizBuilder";
 import styles from "./TeacherClassroomDetail.module.scss";
 
 export default function TeacherClassroomDetail() {
@@ -88,6 +89,8 @@ export default function TeacherClassroomDetail() {
   const [isDeleteQuizDialogOpen, setIsDeleteQuizDialogOpen] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState<any>(null);
   const [isDeletingQuiz, setIsDeletingQuiz] = useState(false);
+  const [pendingQuizData, setPendingQuizData] = useState<any>(null);
+  const [isSavingQuiz, setIsSavingQuiz] = useState(false);
 
   // Form states cho tạo đề trắc nghiệm
   const [quizTitle, setQuizTitle] = useState("");
@@ -581,95 +584,49 @@ export default function TeacherClassroomDetail() {
     setQuizQuestions(updated);
   };
 
-  const handleSaveQuiz = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveQuiz = async (quizData: { title: string; durationMinutes: number; questions: any[]; shuffleQuestions: boolean; shuffleOptions: boolean; }) => {
     if (!classId) return;
-
-    if (!quizTitle.trim()) {
-      toast.error("Vui lòng nhập tiêu đề đề thi!");
-      return;
-    }
-
-    for (let i = 0; i < quizQuestions.length; i++) {
-      const q = quizQuestions[i];
-      if (!q.questionText.trim()) {
-        toast.error(`Vui lòng nhập nội dung câu hỏi số ${i + 1}!`);
-        return;
-      }
-      for (let j = 0; j < q.options.length; j++) {
-        if (!q.options[j].trim()) {
-          toast.error(`Vui lòng nhập phương án trả lời ${String.fromCharCode(65 + j)} của câu hỏi ${i + 1}!`);
-          return;
-        }
-      }
-
-      if (q.correctOptionIndex === -1) {
-        toast.error(`Vui lòng chọn đáp án đúng cho câu hỏi ${i + 1}!`);
-        setErrorQuestionIndex(i);
-        scrollToQuestion(i);
-        return;
-      }
-    }
-
+    setIsSavingQuiz(true);
     try {
       if (editingQuizId) {
-        await quizService.updateQuiz(editingQuizId, {
-          title: quizTitle.trim(),
-          durationMinutes: quizDuration,
-          questions: quizQuestions,
-          shuffleQuestions,
-          shuffleOptions
-        });
+        await quizService.updateQuiz(editingQuizId, quizData);
         toast.success("Cập nhật đề thi trắc nghiệm thành công!");
       } else {
         await quizService.createQuiz({
           classId,
-          title: quizTitle.trim(),
-          durationMinutes: quizDuration,
-          questions: quizQuestions,
-          shuffleQuestions,
-          shuffleOptions
+          ...quizData
         });
         toast.success("Tạo đề thi trắc nghiệm thành công!");
       }
       setIsCreatingQuiz(false);
       setEditingQuizId(null);
-      setQuizTitle("");
-      setQuizDuration(15);
-      setShuffleQuestions(false);
-      setShuffleOptions(false);
-      setQuizQuestions([{ questionText: "", options: ["", "", "", ""], correctOptionIndex: -1 }]);
       loadQuizzes();
     } catch (err: any) {
       const errorMessage = err.message || "";
       if (errorMessage.includes('đã có học sinh làm bài')) {
+        setPendingQuizData(quizData);
         setIsResetQuizDialogOpen(true);
       } else {
         toast.error(errorMessage || (editingQuizId ? "Cập nhật đề thi trắc nghiệm thất bại!" : "Tạo đề thi trắc nghiệm thất bại!"));
       }
+      throw err;
+    } finally {
+      setIsSavingQuiz(false);
     }
   };
 
   const confirmSaveWithReset = async () => {
-    if (!editingQuizId) return;
+    if (!editingQuizId || !pendingQuizData) return;
     setIsResettingQuiz(true);
     try {
       await quizService.updateQuiz(editingQuizId, {
-        title: quizTitle.trim(),
-        durationMinutes: quizDuration,
-        questions: quizQuestions,
-        shuffleQuestions,
-        shuffleOptions,
+        ...pendingQuizData,
         forceReset: true
       });
       toast.success("Cập nhật đề thi & reset kết quả thành công!");
       setIsCreatingQuiz(false);
       setEditingQuizId(null);
-      setQuizTitle("");
-      setQuizDuration(15);
-      setShuffleQuestions(false);
-      setShuffleOptions(false);
-      setQuizQuestions([{ questionText: "", options: ["", "", "", ""], correctOptionIndex: -1 }]);
+      setPendingQuizData(null);
       loadQuizzes();
       setIsResetQuizDialogOpen(false);
     } catch (err: any) {
@@ -1413,395 +1370,16 @@ export default function TeacherClassroomDetail() {
         {activeTab === "quizzes" && (
           <div className={styles.tabContentPanel}>
             {isCreatingQuiz ? (
-              /* CREATE QUIZ FORM */
-              <div className={styles.createQuizView}>
-                <div className={styles.formHeader}>
-                  <h3>Tạo đề thi trắc nghiệm mới</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <FolderImportButton 
-                      onClick={() => fileCombinedImportRef.current?.click()} 
-                      title="Nhập dữ liệu (Word/Excel)"
-                    />
-                    
-                    <AiGenerateButton 
-                      onClick={() => !isGeneratingAI && fileDocxAIImportRef.current?.click()}
-                      disabled={isGeneratingAI}
-                      isGeneratingAI={isGeneratingAI}
-                    />
-                  </div>
-                </div>
-
-                {/* Hidden File Inputs */}
-                <input
-                  type="file"
-                  accept=".xlsx, .xls, .docx"
-                  ref={fileCombinedImportRef}
-                  style={{ display: "none" }}
-                  onChange={handleCombinedImport}
+              <div style={{ marginTop: '20px' }}>
+                <QuizBuilder 
+                  initialData={null}
+                  onSubmit={handleSaveQuiz} 
+                  onCancel={() => {
+                    setIsCreatingQuiz(false);
+                    setEditingQuizId(null);
+                  }} 
+                  isSaving={isSavingQuiz} 
                 />
-                <input
-                  type="file"
-                  accept=".docx"
-                  ref={fileDocxAIImportRef}
-                  style={{ display: "none" }}
-                  onChange={handleImportDocxAI}
-                />
-
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
-                  {/* MAIN CONTENT AREA */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <form onSubmit={handleSaveQuiz}>
-                      <div className={styles.formRow}>
-                        <div className={styles.formGroup}>
-                          <label htmlFor="quiz-title">Tiêu đề đề thi trắc nghiệm</label>
-                          <input
-                            id="quiz-title"
-                            type="text"
-                            placeholder="Ví dụ: Kiểm tra giữa kỳ môn Toán"
-                            value={quizTitle}
-                            onChange={(e) => setQuizTitle(e.target.value)}
-                            required
-                          />
-                        </div>
-                        <div className={styles.formGroup}>
-                          <label htmlFor="quiz-duration">Thời gian làm bài (phút)</label>
-                          <div style={{ display: 'flex', justifyContent: 'flex-start', width: '100%' }}>
-                            <NumberStepper
-                              value={quizDuration}
-                              onChange={(val) => setQuizDuration(val)}
-                              min={1}
-                              max={180}
-                              step={1}
-                              fullWidth
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={styles.formRow} style={{ marginTop: '16px', gap: '24px', justifyContent: 'flex-start' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>
-                          <Checkbox
-                            id="shuffle-questions-cb"
-                            checked={shuffleQuestions}
-                            onChange={(e) => setShuffleQuestions(e.target.checked)}
-                          />
-                          <label htmlFor="shuffle-questions-cb" style={{ cursor: 'pointer', userSelect: 'none' }}>Đảo vị trí câu hỏi</label>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>
-                          <Checkbox
-                            id="shuffle-options-cb"
-                            checked={shuffleOptions}
-                            onChange={(e) => setShuffleOptions(e.target.checked)}
-                          />
-                          <label htmlFor="shuffle-options-cb" style={{ cursor: 'pointer', userSelect: 'none' }}>Đảo vị trí đáp án</label>
-                        </div>
-                      </div>
-
-                      {/* Question Editor list */}
-                      <div className={styles.questionsSection}>
-                        <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <span>Danh sách câu hỏi ({quizQuestions.length})</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
-                            <label htmlFor="default-points" style={{ color: '#64748b' }}>Cài điểm đồng loạt:</label>
-                            <NumberStepper
-                              value={defaultPoints}
-                              onChange={(val) => setDefaultPoints(val)}
-                              min={1}
-                              max={100}
-                              step={1}
-                            />
-                            <button
-                              type="button"
-                              onClick={handleApplyDefaultPoints}
-                              style={{ padding: '4px 12px', borderRadius: '6px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', cursor: 'pointer', color: '#475569', fontWeight: 600, transition: 'all 0.2s' }}
-                              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#e2e8f0'; }}
-                              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#f1f5f9'; }}
-                            >
-                              Áp dụng
-                            </button>
-                          </div>
-                        </h4>
-
-                        {quizQuestions.map((q, qIndex) => (
-                          <div
-                            id={`quiz-question-${qIndex}`}
-                            key={qIndex}
-                            className={`${styles.questionBuilderCard} ${dragOverIndex === qIndex ? styles.dragOver : ""} ${errorQuestionIndex === qIndex ? styles.errorOutline : ""}`}
-                            draggable
-                            onDragStart={() => handleDragStart(qIndex)}
-                            onDragOver={(e) => handleDragOver(e, qIndex)}
-                            onDrop={() => handleDrop(qIndex)}
-                            onDragEnd={handleDragEnd}
-                          >
-                            <div
-                              className={styles.questionHeaderRow}
-                              onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === qIndex ? null : qIndex)}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              <div className={styles.headerLeft}>
-                                <span
-                                  className={styles.gripHandle}
-                                  title="Kéo để sắp xếp lại"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <DotsSixVertical size={20} weight="bold" />
-                                </span>
-                                <span style={{ fontWeight: 700, minWidth: '80px' }}>CÂU HỎI {qIndex + 1}</span>
-
-                                {expandedQuestionIndex !== qIndex && (
-                                  <span style={{
-                                    marginLeft: '12px',
-                                    color: '#475569',
-                                    fontSize: '0.9rem',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    maxWidth: '300px'
-                                  }}>
-                                    - {q.questionText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa có nội dung</span>}
-                                  </span>
-                                )}
-
-                                <div
-                                  style={{ marginLeft: '24px', display: 'flex', alignItems: 'center', gap: '8px' }}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <label htmlFor={`q-${qIndex}-points`} style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Điểm số:</label>
-                                  <NumberStepper
-                                    value={q.points || 1}
-                                    onChange={(val) => {
-                                      const newQuestions = [...quizQuestions];
-                                      newQuestions[qIndex].points = val;
-                                      setQuizQuestions(newQuestions);
-                                    }}
-                                    min={0.5}
-                                    max={100}
-                                    step={0.5}
-                                  />
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <span style={{ color: '#94a3b8' }}>
-                                  {expandedQuestionIndex === qIndex ? (
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                                  ) : (
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                                  )}
-                                </span>
-                                <button
-                                  type="button"
-                                  className={styles.removeQBtn}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveQuestion(qIndex);
-                                  }}
-                                  title="Xóa câu hỏi này"
-                                >
-                                  <Trash size={16} weight="bold" />
-                                </button>
-                              </div>
-                            </div>
-
-                            {expandedQuestionIndex === qIndex && (
-                              <div style={{ paddingTop: '16px', borderTop: '1px dashed #e2e8f0', marginTop: '16px' }}>
-
-                                <div className={styles.formGroup}>
-                                  <div className={styles.questionLabelRow}>
-                                    <label htmlFor={`q-${qIndex}-text`}>Nội dung câu hỏi</label>
-                                    <button
-                                      type="button"
-                                      className={styles.imgUploadToggleBtn}
-                                      onClick={() => setShowImageUpload(prev => ({ ...prev, [qIndex]: !prev[qIndex] }))}
-                                      title={showImageUpload[qIndex] || q.imageUrl ? "Ẩn khung tải ảnh" : "Thêm ảnh cho câu hỏi"}
-                                    >
-                                      <Image size={16} weight="duotone" />
-                                      <span>{(showImageUpload[qIndex] || q.imageUrl) ? "Ẩn ảnh" : "Thêm ảnh"}</span>
-                                    </button>
-                                  </div>
-                                  <textarea
-                                    id={`q-${qIndex}-text`}
-                                    placeholder="Nhập nội dung câu hỏi trắc nghiệm..."
-                                    value={q.questionText}
-                                    onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)}
-                                    rows={2}
-                                    required
-                                  />
-                                  {(showImageUpload[qIndex] || q.imageUrl) && (
-                                    <CustomImageUpload
-                                      imageUrl={q.imageUrl}
-                                      onChange={(file) => {
-                                        handleQuestionImage(qIndex, file);
-                                        // Ensure it stays open when an image is uploaded
-                                        setShowImageUpload(prev => ({ ...prev, [qIndex]: true }));
-                                      }}
-                                      onRemove={() => handleRemoveQuestionImage(qIndex)}
-                                      title="Nhấn để tải lên ảnh câu hỏi"
-                                    />
-                                  )}
-                                </div>
-
-                                <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "#475569", display: "block", marginBottom: "8px" }}>
-                                  Các phương án trả lời và tích chọn đáp án đúng
-                                  <span style={{ fontWeight: 400, color: "#94a3b8", marginLeft: 6, fontSize: "0.78rem" }}>({q.options.length} phương án, tối thiểu 2 · tối đa 6)</span>
-                                </label>
-                                <div className={styles.optionsGrid}>
-                                  {q.options.map((opt, optIndex) => (
-                                    <div key={optIndex} className={`${styles.optionInputGroup} ${q.correctOptionIndex === optIndex ? styles.optionCorrect : ""}`}>
-                                      <span className={styles.letterLabel}>
-                                        {String.fromCharCode(65 + optIndex)}
-                                      </span>
-
-                                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                                          <input
-                                            type="text"
-                                            style={{ flex: 1 }}
-                                            placeholder={`Nhập phương án ${String.fromCharCode(65 + optIndex)}`}
-                                            value={opt}
-                                            onChange={(e) => handleOptionTextChange(qIndex, optIndex, e.target.value)}
-                                            required
-                                          />
-                                        </div>
-                                      </div>
-
-                                      <CustomRadio
-                                        name={`correct-opt-${qIndex}`}
-                                        checked={q.correctOptionIndex === optIndex}
-                                        onChange={() => handleCorrectOptionChange(qIndex, optIndex)}
-                                        title="Chọn làm đáp án đúng"
-                                        required
-                                      />
-                                      <button
-                                        type="button"
-                                        className={styles.optionRemoveBtn}
-                                        onClick={() => handleRemoveOption(qIndex, optIndex)}
-                                        title="Xóa phương án này"
-                                        disabled={q.options.length <= 2}
-                                      >
-                                        −
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
-                                {/* Nút thêm phương án */}
-                                {q.options.length < 6 && (
-                                  <button
-                                    type="button"
-                                    className={styles.btnAddOption}
-                                    onClick={() => handleAddOption(qIndex)}
-                                  >
-                                    <Plus size={13} weight="bold" />
-                                    Thêm phương án
-                                  </button>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                        {/* NÚT THÊM CÂU HỎI - đặt dưới danh sách, dạng outline */}
-                        <button
-                          type="button"
-                          className={styles.btnAddQuestion}
-                          onClick={handleAddQuestion}
-                        >
-                          <Plus size={15} weight="bold" />
-                          Thêm câu hỏi mới
-                        </button>
-                      </div>
-
-                      <div className={styles.formActions}>
-                        <button type="button" className={styles.btnCancel} onClick={handleCancelCreate}>
-                          Hủy bỏ
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.btnPreview}
-                          disabled={quizQuestions.length === 0}
-                          onClick={() => { setPreviewQIndex(0); setIsPreviewing(true); }}
-                        >
-                          <Eye size={16} weight="bold" />
-                          Xem trước
-                        </button>
-                        <button type="submit" className={styles.btnSave} disabled={quizQuestions.length === 0}>
-                          Lưu đề thi
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-
-                  {/* MINI-MAP SIDEBAR */}
-                  <div className={styles.quizMiniMapSidebar}>
-                    <div className={styles.miniMapHeader}>
-                      <h4>Mục lục câu hỏi</h4>
-                      <span className={styles.miniMapCount}>{quizQuestions.length} câu</span>
-                    </div>
-                    <div className={styles.miniMapGrid}>
-                      {quizQuestions.map((_, idx) => (
-                        <button
-                          key={idx}
-                          className={`${styles.miniMapBtn} ${expandedQuestionIndex === idx ? styles.active : ''}`}
-                          onClick={() => scrollToQuestion(idx)}
-                          type="button"
-                          title={`Đi tới câu ${idx + 1}`}
-                        >
-                          {idx + 1}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* PREVIEW MODAL */}
-                {isPreviewing && (
-                  <div className={styles.previewOverlay}>
-                    <button className={styles.closePreviewBtn} onClick={() => setIsPreviewing(false)}>
-                      <XIcon size={24} weight="bold" />
-                    </button>
-                    <div className={styles.previewPhone}>
-                      <div className={styles.previewNotch}></div>
-                      <div className={styles.previewHeader}>
-                        <h3>{quizTitle || "Chưa có tiêu đề"}</h3>
-                        <div className={styles.previewMeta}>
-                          Câu {previewQIndex + 1}/{quizQuestions.length} • {quizDuration} phút
-                        </div>
-                      </div>
-                      <div className={styles.previewContent}>
-                        <div className={styles.previewQuestion}>
-                          {quizQuestions[previewQIndex]?.questionText || "Chưa nhập nội dung câu hỏi"}
-                        </div>
-                        {quizQuestions[previewQIndex]?.imageUrl && (
-                          <img
-                            src={quizQuestions[previewQIndex].imageUrl}
-                            alt="Question"
-                            style={{ width: '100%', borderRadius: 8, marginBottom: 16 }}
-                          />
-                        )}
-                        {quizQuestions[previewQIndex]?.options.map((opt, idx) => (
-                          <div key={idx} className={styles.previewOption}>
-                            <div className={styles.optLetter}>{String.fromCharCode(65 + idx)}</div>
-                            <div className={styles.optText}>{opt || "Chưa có nội dung"}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div className={styles.previewFooter}>
-                        <button
-                          className={styles.btnPrev}
-                          disabled={previewQIndex === 0}
-                          onClick={() => setPreviewQIndex(prev => prev - 1)}
-                        >
-                          Câu trước
-                        </button>
-                        <button
-                          className={styles.btnNext}
-                          disabled={previewQIndex === quizQuestions.length - 1}
-                          onClick={() => setPreviewQIndex(prev => prev + 1)}
-                        >
-                          Câu tiếp
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             ) : selectedQuiz ? (
               /* SUBMISSIONS RESULTS TABLE */

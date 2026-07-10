@@ -10,7 +10,7 @@ export interface IQuizResult extends Document {
 }
 
 const QuizResultSchema = new Schema<IQuizResult>({
-    quizId: { type: Schema.Types.ObjectId, ref: 'Quiz', required: true },
+    quizId: { type: Schema.Types.ObjectId, ref: 'ClassActivity', required: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     answers: [{ type: Number, required: true }],
     score: { type: Number, required: true },

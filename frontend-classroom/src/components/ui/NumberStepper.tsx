@@ -3,12 +3,13 @@ import styled from 'styled-components';
 import { CaretUp, CaretDown } from 'phosphor-react';
 
 interface NumberStepperProps {
-  value: number;
-  onChange: (value: number) => void;
+  value: number | string;
+  onChange: (value: number | string) => void;
   min?: number;
   max?: number;
   step?: number;
   fullWidth?: boolean;
+  onOutOfBounds?: (val: number) => void;
 }
 
 const NumberStepper: React.FC<NumberStepperProps> = ({
@@ -17,7 +18,8 @@ const NumberStepper: React.FC<NumberStepperProps> = ({
   min = 0,
   max = 9999,
   step = 1,
-  fullWidth = false
+  fullWidth = false,
+  onOutOfBounds
 }) => {
   const [internalValue, setInternalValue] = useState<string>(value.toString());
 
@@ -26,12 +28,16 @@ const NumberStepper: React.FC<NumberStepperProps> = ({
   }, [value]);
 
   const handleIncrement = () => {
-    const newValue = Math.min(value + step, max);
+    const current = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    let newValue = Math.min(current + step, max);
+    newValue = Math.round(newValue * 100) / 100;
     onChange(newValue);
   };
 
   const handleDecrement = () => {
-    const newValue = Math.max(value - step, min);
+    const current = typeof value === 'string' ? parseFloat(value) || 0 : value;
+    let newValue = Math.max(current - step, min);
+    newValue = Math.round(newValue * 100) / 100;
     onChange(newValue);
   };
 
@@ -40,12 +46,21 @@ const NumberStepper: React.FC<NumberStepperProps> = ({
   };
 
   const handleBlur = () => {
-    let parsed = parseInt(internalValue, 10);
+    if (internalValue === "") {
+      onChange("");
+      return;
+    }
+    let parsed = parseFloat(internalValue);
     if (isNaN(parsed)) {
       parsed = min;
-    } else {
+    } else if (parsed > max || parsed < min) {
+      if (onOutOfBounds) {
+        onOutOfBounds(parsed);
+      }
       parsed = Math.max(min, Math.min(max, parsed));
     }
+    // Round to 2 decimal places
+    parsed = Math.round(parsed * 100) / 100;
     onChange(parsed);
     setInternalValue(parsed.toString());
   };

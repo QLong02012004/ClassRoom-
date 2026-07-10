@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { GradeModel } from '../models/Grade';
-import { AssignmentModel } from '../models/Assignment';
+import { ClassActivityModel } from '../models/ClassActivity';
 import { ClassModel } from '../models/Class';
 import { UserModel } from '../models/User';
 
@@ -21,7 +21,7 @@ export const getClassroomGrades = async (req: Request, res: Response, next: Next
         }
 
         // Lấy toàn bộ bài tập của lớp
-        const assignments = await AssignmentModel.find({ classId: classId as string });
+        const assignments = await ClassActivityModel.find({ classId: classId as string });
         const assignmentIds = assignments.map(a => a._id);
 
         // Lấy toàn bộ điểm số hiện tại của các bài tập trong lớp này
@@ -50,7 +50,7 @@ export const saveGrades = async (req: Request, res: Response, next: NextFunction
             return res.status(400).json({ message: 'Thiếu assignmentId hoặc danh sách điểm số' });
         }
 
-        const assignment = await AssignmentModel.findById(assignmentId);
+        const assignment = await ClassActivityModel.findById(assignmentId);
         if (!assignment) {
             return res.status(404).json({ message: 'Không tìm thấy bài tập' });
         }
@@ -105,7 +105,7 @@ export const getStudentGrades = async (req: Request, res: Response, next: NextFu
         }
 
         // Lấy tất cả bài tập của lớp
-        const assignments = await AssignmentModel.find({ classId: classId as string });
+        const assignments = await ClassActivityModel.find({ classId: classId as string });
         const assignmentIds = assignments.map(a => a._id);
 
         // Lấy điểm số của học sinh này cho các bài tập đó

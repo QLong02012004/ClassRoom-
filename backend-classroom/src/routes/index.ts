@@ -4,13 +4,13 @@ import userRoutes from './userRoutes';
 import dashboardRoutes from './dashboardRoutes';
 import classroomRoutes from './classroomRoutes';
 import attendanceRoutes from './attendanceRoutes';
-import assignmentRoutes from './assignmentRoutes';
 import gradeRoutes from './gradeRoutes';
 import scheduleRoutes from './scheduleRoutes';
 import announcementRoutes from './announcementRoutes';
-import quizRoutes from './quizRoutes';
 import notificationRoutes from './notificationRoutes';
 import uploadRoutes from './uploadRoutes';
+import bankRoutes from './bankRoutes';
+import activityRoutes from './activityRoutes';
 
 const apiRouter = Router();
 
@@ -20,12 +20,12 @@ apiRouter.use('/users', userRoutes);
 apiRouter.use('/dashboard', dashboardRoutes);
 apiRouter.use('/classrooms', classroomRoutes);
 apiRouter.use('/attendance', attendanceRoutes);
-apiRouter.use('/assignments', assignmentRoutes);
 apiRouter.use('/grades', gradeRoutes);
 apiRouter.use('/schedule', scheduleRoutes);
 apiRouter.use('/announcements', announcementRoutes);
-apiRouter.use('/quizzes', quizRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/upload', uploadRoutes);
+apiRouter.use('/bank', bankRoutes);
+apiRouter.use('/', activityRoutes);
 
 export default apiRouter;

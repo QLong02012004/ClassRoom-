@@ -23,7 +23,7 @@ const AttachmentSchema = new Schema<IAttachment>({
 });
 
 const SubmissionSchema = new Schema<ISubmission>({
-    assignmentId: { type: Schema.Types.ObjectId, ref: 'Assignment', required: true },
+    assignmentId: { type: Schema.Types.ObjectId, ref: 'ClassActivity', required: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     submissionText: { type: String, default: '' },
     attachments: [AttachmentSchema],

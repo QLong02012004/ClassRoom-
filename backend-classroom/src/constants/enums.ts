@@ -41,10 +41,10 @@ export enum NotificationType {
 }
 
 export enum AssignmentCategory {
-    MIENG = 'mieng',
-    MIN15 = '15phut',
-    MIDTERM = 'giuaky',
-    FINAL = 'cuoiky'
+    HOMEWORK = 'homework',
+    PERIODIC = 'periodic',
+    MOCK_EXAM = 'mock_exam',
+    ATTITUDE = 'attitude'
 }
 
 export enum AnnouncementType {

@@ -8,39 +8,27 @@ import styles from './StudentResults.module.scss';
 
 const getCategoryLabel = (category: string) => {
   switch (category) {
-    case 'mieng': return 'Điểm miệng';
-    case '15phut': return '15 phút';
-    case 'giuaky': return 'Giữa kỳ';
-    case 'cuoiky': return 'Cuối kỳ';
-    default: return 'Thường xuyên';
+    case 'attitude': return 'Chuyên cần / Thái độ';
+    case 'homework': return 'Bài tập về nhà';
+    case 'periodic': return 'Kiểm tra định kỳ';
+    case 'mock_exam': return 'Thi thử';
+    default: return category;
   }
 };
 
 const getCategoryWeight = (category: string) => {
-  switch (category) {
-    case 'mieng': return 0.1;
-    case '15phut': return 0.1;
-    case 'giuaky': return 0.3;
-    case 'cuoiky': return 0.5;
-    default: return 0.1;
-  }
+  return 1;
 };
 
 const getCategoryWeightPercent = (category: string) => {
-  switch (category) {
-    case 'mieng': return '10%';
-    case '15phut': return '10%';
-    case 'giuaky': return '30%';
-    case 'cuoiky': return '50%';
-    default: return '10%';
-  }
+  return 'Hệ số 1';
 };
 
 const getSubjectIconClass = (category: string) => {
   switch (category) {
-    case 'cuoiky': return styles.greenBg;
-    case 'giuaky': return styles.redBg;
-    case '15phut': return styles.orangeBg;
+    case 'mock_exam': return styles.greenBg;
+    case 'periodic': return styles.redBg;
+    case 'homework': return styles.orangeBg;
     default: return styles.blueBg;
   }
 };
@@ -144,18 +132,25 @@ const StudentResults: React.FC = () => {
   }
 
   // Dữ liệu biểu đồ Radar
-  const categories = ['mieng', '15phut', 'giuaky', 'cuoiky'];
+  const categories = Array.from(new Set(gradedList.map(ag => ag.category)));
+  if (categories.length < 3) {
+    // Add fake empty categories if less than 3, because radar chart needs at least 3 points to look good
+    if (!categories.includes('attitude')) categories.push('attitude');
+    if (!categories.includes('homework')) categories.push('homework');
+    if (!categories.includes('periodic')) categories.push('periodic');
+  }
+
   const radarData = categories.map(cat => {
     const catList = gradedList.filter(ag => ag.category === cat);
     const avgScore = catList.length > 0
       ? (catList.reduce((acc, curr) => acc + (curr.grade?.score || 0), 0) / catList.length)
       : 0;
 
-    let label = 'THƯỜNG XUYÊN';
-    if (cat === 'mieng') label = 'MIỆNG';
-    if (cat === '15phut') label = '15 PHÚT';
-    if (cat === 'giuaky') label = 'GIỮA KỲ';
-    if (cat === 'cuoiky') label = 'CUỐI KỲ';
+    let label = cat.toUpperCase();
+    if (cat === 'attitude') label = 'THÁI ĐỘ';
+    else if (cat === 'homework') label = 'BTVN';
+    else if (cat === 'periodic') label = 'ĐỊNH KỲ';
+    else if (cat === 'mock_exam') label = 'THI THỬ';
 
     return {
       subject: label,

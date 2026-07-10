@@ -11,6 +11,7 @@ import StudentResults from "../pages/Student/Results/StudentResults";
 import StudentProfile from "../pages/Student/Profile/StudentProfile";
 import TeacherClassroomDetail from "../pages/Teacher/ClassroomDetail/TeacherClassroomDetail";
 import StudentClassroomDetail from "../pages/Student/Classrooms/StudentClassroomDetail";
+import BankList from "../pages/Teacher/Bank/BankList";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminClassrooms from "../pages/Admin/Classrooms/AdminClassrooms";
 import MainLayout from "../components/Layout/MainLayout.tsx";
@@ -66,6 +67,10 @@ export const router = createBrowserRouter([
           {
             path: "classrooms/:id",
             element: <ClassroomDetailRouter />,
+          },
+          {
+            path: "bank",
+            element: <BankList />,
           },
           {
             path: "assignments",

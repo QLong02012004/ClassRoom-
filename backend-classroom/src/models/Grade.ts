@@ -9,7 +9,7 @@ export interface IGrade extends Document {
 }
 
 const GradeSchema = new Schema<IGrade>({
-    assignmentId: { type: Schema.Types.ObjectId, ref: 'Assignment', required: true },
+    assignmentId: { type: Schema.Types.ObjectId, ref: 'ClassActivity', required: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     score: { type: Number, required: true },
     feedback: { type: String, default: '' },

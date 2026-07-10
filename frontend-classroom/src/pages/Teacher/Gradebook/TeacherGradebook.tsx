@@ -13,6 +13,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "../../../components/ui/dropdown-menu";
+import NumberStepper from "../../../components/ui/NumberStepper";
 import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
@@ -58,7 +59,7 @@ export default function TeacherGradebook() {
   const [newDueDate, setNewDueDate] = useState("");
   const [newMaxScore, setNewMaxScore] = useState(10);
   const [newDescription, setNewDescription] = useState("");
-  const [newCategory, setNewCategory] = useState("15phut");
+  const [newCategory, setNewCategory] = useState("homework");
 
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
@@ -101,7 +102,7 @@ export default function TeacherGradebook() {
       const res = await gradebookService.getClassroomGrades(selectedClassId);
       if (res.data) {
         setStudents(res.data.students || []);
-        const order: Record<string, number> = { mieng: 1, '15phut': 2, giuaky: 3, cuoiky: 4 };
+        const order: Record<string, number> = { attitude: 1, homework: 2, periodic: 3, mock_exam: 4 };
         const sortedAssignments = (res.data.assignments || []).sort((a, b) => (order[a.category] || 9) - (order[b.category] || 9));
         setAssignments(sortedAssignments);
         setGrades(res.data.grades || []);
@@ -197,7 +198,7 @@ export default function TeacherGradebook() {
       setNewDueDate("");
       setNewMaxScore(10);
       setNewDescription("");
-      setNewCategory("15phut");
+      setNewCategory("homework");
       // Reload danh sách
       loadGradebook();
     } catch {
@@ -213,10 +214,10 @@ export default function TeacherGradebook() {
     let sumWeights = 0;
 
     const categoryWeights: Record<string, number> = {
-      mieng: 1,
-      "15phut": 1,
-      giuaky: 2,
-      cuoiky: 3,
+      homework: 1,
+      attitude: 1,
+      periodic: 1,
+      mock_exam: 1,
     };
 
     assignments.forEach(a => {
@@ -266,7 +267,7 @@ export default function TeacherGradebook() {
                       <CaretDown size={14} weight="bold" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-56 bg-white border border-slate-200 shadow-lg rounded-xl p-1 z-50">
+                  <DropdownMenuContent className="min-w-56 w-max bg-white border border-slate-200 shadow-lg rounded-xl p-1 z-50">
                     {classes.length === 0 ? (
                       <div className="p-3 text-sm text-slate-500 text-center">Chưa có lớp nào</div>
                     ) : (
@@ -277,7 +278,7 @@ export default function TeacherGradebook() {
                             setSelectedClassId(cls._id);
                             setSearchParams({ classId: cls._id }, { replace: true });
                           }}
-                          className={`px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
+                          className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""
                             }`}
                         >
                           {cls.name} {cls.subject ? `(${cls.subject})` : ""}
@@ -317,29 +318,26 @@ export default function TeacherGradebook() {
                   <Table.Header>
                     <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200 sticky top-0 left-0 z-30 shadow-[4px_0_12px_rgba(0,0,0,0.03)]" id="student">Học sinh</Table.Column>
                     {(() => {
-                      const regularAssignments = assignments.filter(a => a.category === 'mieng' || a.category === '15phut');
-                      const periodicAssignments = assignments.filter(a => a.category === 'giuaky' || a.category === 'cuoiky');
-
                       const renderAssignmentColumn = (a: any) => {
                         const categoryLabels: Record<string, string> = {
-                          mieng: "Thường xuyên (Miệng)",
-                          "15phut": "Thường xuyên (15')",
-                          giuaky: "Định kỳ (Giữa kỳ)",
-                          cuoiky: "Định kỳ (Cuối kỳ)",
+                          attitude: "Chuyên cần / Thái độ",
+                          homework: "Bài tập về nhà",
+                          periodic: "Kiểm tra định kỳ",
+                          mock_exam: "Thi thử",
                         };
                         const categoryBgs: Record<string, string> = {
-                          mieng: "bg-blue-50/60",
-                          "15phut": "bg-emerald-50/60",
-                          giuaky: "bg-amber-50/60",
-                          cuoiky: "bg-rose-50/60",
+                          attitude: "bg-blue-50/60",
+                          homework: "bg-emerald-50/60",
+                          periodic: "bg-amber-50/60",
+                          mock_exam: "bg-rose-50/60",
                         };
                         const categoryTexts: Record<string, string> = {
-                          mieng: "text-blue-700",
-                          "15phut": "text-emerald-700",
-                          giuaky: "text-amber-700",
-                          cuoiky: "text-rose-700",
+                          attitude: "text-blue-700",
+                          homework: "text-emerald-700",
+                          periodic: "text-amber-700",
+                          mock_exam: "text-rose-700",
                         };
-                        const label = categoryLabels[a.category] || "15 phút";
+                        const label = categoryLabels[a.category] || a.category;
                         const bgClass = categoryBgs[a.category] || "bg-slate-50";
                         const textClass = categoryTexts[a.category] || "text-slate-600";
 
@@ -353,8 +351,7 @@ export default function TeacherGradebook() {
 
                       return (
                         <>
-                          {regularAssignments.map(renderAssignmentColumn)}
-                          {periodicAssignments.map(renderAssignmentColumn)}
+                          {assignments.map(renderAssignmentColumn)}
                         </>
                       );
                     })()}
@@ -394,31 +391,35 @@ export default function TeacherGradebook() {
                             </Table.Cell>
                             {assignments.map(a => {
                               const categoryBgs: Record<string, string> = {
-                                mieng: "bg-blue-50/30 hover:bg-blue-50/60",
-                                "15phut": "bg-emerald-50/30 hover:bg-emerald-50/60",
-                                giuaky: "bg-amber-50/30 hover:bg-amber-50/60",
-                                cuoiky: "bg-rose-50/30 hover:bg-rose-50/60",
+                                attitude: "bg-blue-50/30 hover:bg-blue-50/60",
+                                homework: "bg-emerald-50/30 hover:bg-emerald-50/60",
+                                periodic: "bg-amber-50/30 hover:bg-amber-50/60",
+                                mock_exam: "bg-rose-50/30 hover:bg-rose-50/60",
                               };
                               const bgClass = categoryBgs[a.category] || "";
 
                               return (
                                 <Table.Cell className={`py-3 px-4 border-b border-slate-100 ${bgClass} transition-colors`} key={a._id}>
-                                  <input
-                                    type="number"
-                                    className={styles.scoreInput}
-                                    value={editingScores[`${student._id}_${a._id}`] || ""}
-                                    onChange={(e) => handleScoreChange(student._id, a._id, e.target.value)}
-                                    step="0.1"
-                                    min="0"
+                                  <NumberStepper
+                                    value={editingScores[`${student._id}_${a._id}`] ?? ""}
+                                    onChange={(val) => handleScoreChange(student._id, a._id, val.toString())}
+                                    step={0.1}
+                                    min={0}
                                     max={a.maxScore}
-                                    placeholder={`Max: ${a.maxScore}`}
+                                    onOutOfBounds={(val) => {
+                                      if (val > a.maxScore) {
+                                        toast.warning(`Điểm không được vượt quá ${a.maxScore}!`);
+                                      } else if (val < 0) {
+                                        toast.warning("Điểm không được nhỏ hơn 0!");
+                                      }
+                                    }}
                                   />
                                 </Table.Cell>
                               );
                             })}
                             <Table.Cell className="py-3 px-4 border-b border-slate-100 sticky right-[120px] z-10 bg-white group-hover:bg-slate-50 shadow-[-4px_0_12px_rgba(0,0,0,0.03)] transition-colors">
                               <span className={styles.avgValue}>
-                                {avg !== null ? avg.toFixed(1) : "-"}
+                                {avg !== null ? avg.toFixed(2) : "-"}
                               </span>
                             </Table.Cell>
                             <Table.Cell className="py-3 px-4 border-b border-slate-100 sticky right-0 z-10 bg-white group-hover:bg-slate-50 transition-colors">
@@ -464,9 +465,10 @@ export default function TeacherGradebook() {
                     <div className={styles.taskInfo}>
                       <h4>{task.title}</h4>
                       <p>
-                        {task.category === 'mieng' ? 'Điểm miệng' :
-                          task.category === '15phut' ? 'Điểm 15 phút' :
-                            task.category === 'giuaky' ? 'Điểm giữa kỳ' : 'Điểm cuối kỳ'} (Hệ số {task.category === 'giuaky' ? 2 : task.category === 'cuoiky' ? 3 : 1}) • Hạn nộp: {new Date(task.dueDate).toLocaleDateString('vi-VN')} • Max: {task.maxScore} điểm
+                        {task.category === 'attitude' ? 'Chuyên cần / Thái độ' :
+                          task.category === 'homework' ? 'Bài tập về nhà' :
+                            task.category === 'periodic' ? 'Kiểm tra định kỳ' : 
+                              task.category === 'mock_exam' ? 'Thi thử' : task.category} (Hệ số 1) • Hạn nộp: {new Date(task.dueDate).toLocaleDateString('vi-VN')} • Max: {task.maxScore} điểm
                       </p>
                     </div>
                   </div>

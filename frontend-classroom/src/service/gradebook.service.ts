@@ -8,7 +8,7 @@ export interface IAssignment {
   description: string;
   dueDate: string;
   maxScore: number;
-  category: 'mieng' | '15phut' | 'giuaky' | 'cuoiky';
+  category: string;
   createdAt: string;
 }
 

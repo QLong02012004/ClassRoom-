@@ -2,6 +2,8 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { ClassModel } from '../models/Class';
 import { AssignmentModel } from '../models/Assignment';
+import { GradeModel } from '../models/Grade';
+import { AssignmentCategory } from '../constants/enums';
 
 dotenv.config();
 
@@ -17,33 +19,42 @@ const seedAssignments = async () => {
             process.exit(1);
         }
 
-        // Xóa các bài tập cũ
+        // Xóa các bài tập và điểm số cũ
         await AssignmentModel.deleteMany({});
-        console.log('🧹 Đã dọn sạch các bài tập cũ');
+        await GradeModel.deleteMany({});
+        console.log('🧹 Đã dọn sạch các bài tập và điểm số cũ');
 
         // Tạo bài tập mẫu cho mỗi lớp
         for (const cls of classrooms) {
             const assignmentsToCreate = [
                 {
                     classId: cls._id,
-                    title: `Bài tập 15 phút: Ôn tập môn ${cls.subject || 'Học phần'}`,
-                    description: 'Yêu cầu cả lớp hoàn thành bài làm tự luận chi tiết và nộp đúng hạn quy định.',
+                    title: `Bài tập về nhà tuần 1 - ${cls.subject || 'Học phần'}`,
+                    description: 'Yêu cầu cả lớp hoàn thành bài tập về nhà đầy đủ.',
                     dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // Hạn 7 ngày tới
                     maxScore: 10,
-                    category: '15phut'
+                    category: AssignmentCategory.HOMEWORK
                 },
                 {
                     classId: cls._id,
-                    title: `Đề kiểm tra Giữa kỳ: Chuyên đề ${cls.subject || 'Học phần'}`,
-                    description: 'Đề kiểm tra giữa kỳ bắt buộc. Trình bày sạch đẹp, nộp file PDF đính kèm.',
+                    title: `Kiểm tra định kỳ tháng 1 - ${cls.subject || 'Học phần'}`,
+                    description: 'Bài kiểm tra định kỳ bắt buộc. Đề thi gồm trắc nghiệm và tự luận.',
                     dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // Hạn 14 ngày tới
                     maxScore: 10,
-                    category: 'giuaky'
+                    category: AssignmentCategory.PERIODIC
+                },
+                {
+                    classId: cls._id,
+                    title: `Chuyên cần tháng 1`,
+                    description: 'Điểm chuyên cần và thái độ học tập trên lớp.',
+                    dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), 
+                    maxScore: 10,
+                    category: AssignmentCategory.ATTITUDE
                 }
             ];
 
             await AssignmentModel.insertMany(assignmentsToCreate);
-            console.log(`  📌 Đã tạo 2 bài tập mẫu cho lớp "${cls.name}"`);
+            console.log(`  📌 Đã tạo 3 bài tập mẫu cho lớp "${cls.name}"`);
         }
 
         console.log('🎉 SEED ASSIGNMENTS THÀNH CÔNG!');

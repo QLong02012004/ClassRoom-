@@ -133,7 +133,7 @@ const NavBar: React.FC = () => {
       return [
         ...commonLinks,
         { name: "Lớp học", path: "/classrooms", icon: <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} /> },
-        { name: "Bài tập", path: "/assignments", icon: <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} /> },
+        { name: "Ngân hàng", path: "/bank", icon: <BookOpen size={20} weight={isActive("/bank") ? "fill" : "regular"} /> },
         { name: "Lịch dạy", path: "/schedule", icon: <CalendarBlank size={20} weight={isActive("/schedule") ? "fill" : "regular"} /> },
       ];
     }

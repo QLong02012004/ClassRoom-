@@ -4,9 +4,9 @@ import { UserModel } from '../models/User';
 import { NotificationModel } from '../models/Notification';
 import { SubmissionModel } from '../models/Submission';
 import { QuizResultModel } from '../models/QuizResult';
-import { QuizModel } from '../models/Quiz';
-import { AssignmentModel } from '../models/Assignment';
+import { ClassActivityModel } from '../models/ClassActivity';
 import { GradeModel } from '../models/Grade';
+import { ClassStatus, UserRole } from '../constants/enums';
 
 const formatTimeAgo = (date: Date): string => {
     const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
@@ -44,11 +44,11 @@ const getBadgeAndColor = (type: string) => {
 export const getAdminStats = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         // Đếm tổng số học sinh và giáo viên thật từ DB
-        const totalStudents = await UserModel.countDocuments({ role: 'student' });
-        const totalTeachers = await UserModel.countDocuments({ role: 'teacher' });
+        const totalStudents = await UserModel.countDocuments({ role: UserRole.STUDENT });
+        const totalTeachers = await UserModel.countDocuments({ role: UserRole.TEACHER });
 
         // Đếm số lớp học đang hoạt động từ DB
-        const activeClasses = await ClassModel.countDocuments({ status: 'Active' });
+        const activeClasses = await ClassModel.countDocuments({ status: ClassStatus.ACTIVE });
 
         // Tính tỷ lệ tương tác và trafficData trong 7 ngày qua
         const sevenDaysAgo = new Date();
@@ -67,10 +67,10 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
         const engagementRate = totalStudents === 0 ? 0 : Math.round((activeStudentIds.size / totalStudents) * 1000) / 10;
 
         // 2. Hiệu suất giảng dạy của giáo viên (Teacher Performance)
-        const activeClassesData = await ClassModel.find({ status: 'Active' }).populate('teacherId', 'name');
+        const activeClassesData = await ClassModel.find({ status: ClassStatus.ACTIVE }).populate('teacherId', 'name');
 
         const classIdsData = activeClassesData.map(c => c._id);
-        const allAssignments = await AssignmentModel.find({ classId: { $in: classIdsData } });
+        const allAssignments = await ClassActivityModel.find({ classId: { $in: classIdsData } });
 
         const assignmentIdsData = allAssignments.map(a => a._id);
         const allGrades = await GradeModel.find({ assignmentId: { $in: assignmentIdsData } });
@@ -122,7 +122,7 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
         }));
 
         // Lấy danh sách hoạt động gần đây từ bảng Notification
-        const notifications = await NotificationModel.find({ recipientRole: 'admin' })
+        const notifications = await NotificationModel.find({ recipientRole: UserRole.ADMIN })
             .populate('sender', 'name avatar')
             .sort({ createdAt: -1 })
             .limit(10);
@@ -146,7 +146,7 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
             };
         });
         // Lấy dữ liệu thống kê giáo viên và học sinh
-        const classesWithTeacher = await ClassModel.find({ status: 'Active' }).populate('teacherId', 'name');
+        const classesWithTeacher = await ClassModel.find({ status: ClassStatus.ACTIVE }).populate('teacherId', 'name');
 
         const teacherMap = new Map();
 
@@ -254,7 +254,7 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
         const attendanceRate = totalRecords === 0 ? 0 : Math.round((presentCount / totalRecords) * 100);
 
         // 4 & 5. Phổ điểm và Bài tập cần chấm
-        const assignments = await AssignmentModel.find({ classId: { $in: classIds } });
+        const assignments = await ClassActivityModel.find({ classId: { $in: classIds } });
         const assignmentIds = assignments.map(a => a._id);
         const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
         const allSubmissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } });
