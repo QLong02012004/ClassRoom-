@@ -27,7 +27,7 @@ import { userService } from '../../../service/user.service';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import styles from './StudentProfile.module.scss';
 
 const StudentProfile: React.FC = () => {
@@ -536,12 +536,12 @@ const StudentProfile: React.FC = () => {
               />
             </div>
             <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => setShowEdit(false)} disabled={isSubmitting}>
+              <PrimaryButton type="button" variant="outline" onClick={() => setShowEdit(false)} disabled={isSubmitting}>
                 Hủy
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary-hover" disabled={isSubmitting}>
+              </PrimaryButton>
+              <PrimaryButton type="submit" className="bg-primary hover:bg-primary-hover" disabled={isSubmitting}>
                 {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-              </Button>
+              </PrimaryButton>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -616,12 +616,12 @@ const StudentProfile: React.FC = () => {
               </div>
             </div>
             <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={isChangingPassword}>
+              <PrimaryButton type="button" variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={isChangingPassword}>
                 Hủy
-              </Button>
-              <Button type="submit" className="bg-primary hover:bg-primary-hover" disabled={isChangingPassword}>
+              </PrimaryButton>
+              <PrimaryButton type="submit" className="bg-primary hover:bg-primary-hover" disabled={isChangingPassword}>
                 {isChangingPassword ? "Đang xử lý..." : "Xác nhận đổi"}
-              </Button>
+              </PrimaryButton>
             </DialogFooter>
           </form>
         </DialogContent>

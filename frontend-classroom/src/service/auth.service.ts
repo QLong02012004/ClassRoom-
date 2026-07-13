@@ -19,7 +19,7 @@ export const authService = {
     return await api.get('/api/v1/auth/me');
   },
 
-  createTeacher: async (data: { name: string, email: string, password: string }): Promise<IBackendRes<IModelUser>> => {
+  createTeacher: async (data: { name: string, email: string, password: string, subject?: string }): Promise<IBackendRes<IModelUser>> => {
     return await api.post('/api/v1/auth/create-teacher', data);
   },
 

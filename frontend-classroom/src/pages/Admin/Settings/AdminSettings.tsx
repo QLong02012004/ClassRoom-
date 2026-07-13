@@ -9,7 +9,7 @@ import {
   Warning
 } from "phosphor-react";
 
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,10 +44,10 @@ export default function AdminSettings() {
           </p>
         </div>
 
-        <Button onClick={handleSave} className="gap-2 bg-primary hover:opacity-90 text-primary-foreground font-semibold shadow-sm">
+        <PrimaryButton onClick={handleSave} className="gap-2 bg-primary hover:opacity-90 text-primary-foreground font-semibold shadow-sm">
           <FloppyDisk size={18} weight="fill" />
           Lưu thay đổi
-        </Button>
+        </PrimaryButton>
       </div>
 
       <div className="flex flex-col md:flex-row gap-6 mt-2">
@@ -142,9 +142,9 @@ export default function AdminSettings() {
                         <div className="w-16 h-16 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-slate-50 text-slate-400">
                           <ImageIcon size={24} />
                         </div>
-                        <Button variant="secondary" className="bg-blue-50 text-primary hover:bg-blue-100 font-medium">
+                        <PrimaryButton variant="secondary" className="bg-blue-50 text-primary hover:bg-blue-100 font-medium">
                           Tải lên logo mới
-                        </Button>
+                        </PrimaryButton>
                       </div>
                     </div>
 
@@ -186,9 +186,9 @@ export default function AdminSettings() {
                   <p className="text-sm text-red-700 mb-4">
                     Xóa toàn bộ dữ liệu hệ thống hoặc đặt lại cài đặt gốc. Hành động này không thể hoàn tác.
                   </p>
-                  <Button variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold">
+                  <PrimaryButton variant="outline" className="border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 font-semibold">
                     Đặt lại cấu hình hệ thống
-                  </Button>
+                  </PrimaryButton>
                 </CardContent>
               </Card>
             </>

@@ -1161,31 +1161,6 @@
     align-items: center;
     gap: 12px;
 
-    .statusBadge {
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      white-space: nowrap;
-
-      &.statusOpen {
-        background: rgba(254, 103, 71, 0.15);
-        /* Nền cam nhạt */
-        color: vars.$primary;
-        /* Chữ cam chủ đạo */
-      }
-
-      &.statusClosed {
-        background: #fee2e2;
-        color: #b91c1c;
-      }
-
-      &.statusDraft {
-        background: #f1f5f9;
-        color: #64748b;
-      }
-    }
-
     .toggleSwitch {
       position: relative;
       display: inline-block;
@@ -1234,6 +1209,33 @@
         }
       }
     }
+  }
+}
+
+.statusBadge {
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-block;
+
+  &.statusOpen {
+    background: #ecfdf5;
+    color: #10b981;
+    border: 1px solid #d1fae5;
+  }
+
+  &.statusClosed {
+    background: #fef2f2;
+    color: #ef4444;
+    border: 1px solid #fee2e2;
+  }
+
+  &.statusDraft {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
   }
 }
 

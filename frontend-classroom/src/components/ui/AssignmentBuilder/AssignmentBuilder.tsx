@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import styles from "./AssignmentBuilder.module.scss";
 import NumberStepper from "../NumberStepper";
+import { SecondaryButton } from "../SecondaryButton";
 
 export interface AssignmentBuilderProps {
   initialData?: any;
@@ -99,9 +100,9 @@ export default function AssignmentBuilder({
           <button type="button" className={styles.btnCancel} onClick={onCancel} disabled={isSaving}>
             Hủy bỏ
           </button>
-          <button type="submit" className={styles.btnSave} disabled={isSaving || !title.trim()}>
+          <SecondaryButton type="submit" className={styles.btnSave} disabled={isSaving || !title.trim()}>
             {isSaving ? "Đang lưu..." : "Lưu bài tập"}
-          </button>
+          </SecondaryButton>
         </div>
       </form>
     </div>

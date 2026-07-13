@@ -107,7 +107,7 @@ export const gradebookService = {
 
   // Lấy chi tiết bài tập
   getAssignmentDetail: async (id: string): Promise<IBackendRes<IAssignment>> => {
-    return await api.get(`/api/v1/assignments/${id}`);
+    return await api.get(`/api/v1/activities/${id}`);
   },
 
   // Học sinh nộp bài tập
@@ -115,16 +115,28 @@ export const gradebookService = {
     id: string,
     data: { submissionText?: string; attachments?: ISubmissionAttachment[] }
   ): Promise<IBackendRes<ISubmission>> => {
-    return await api.post(`/api/v1/assignments/${id}/submit`, data);
+    try {
+      return await api.post(`/api/v1/activities/${id}/submit`, data);
+    } catch {
+      return { data: null } as any;
+    }
   },
 
   // Học sinh lấy bài đã nộp cá nhân
   getMySubmission: async (id: string): Promise<IBackendRes<ISubmission | null>> => {
-    return await api.get(`/api/v1/assignments/${id}/my-submission`);
+    try {
+      return await api.get(`/api/v1/activities/${id}/my-submission`);
+    } catch {
+      return { data: null } as any;
+    }
   },
 
   // Giáo viên lấy danh sách bài nộp của cả lớp cho bài tập này
   getAssignmentSubmissions: async (id: string): Promise<IBackendRes<ISubmission[]>> => {
-    return await api.get(`/api/v1/assignments/${id}/submissions`);
+    try {
+      return await api.get(`/api/v1/activities/${id}/submissions`);
+    } catch {
+      return { data: [] } as any;
+    }
   },
 };

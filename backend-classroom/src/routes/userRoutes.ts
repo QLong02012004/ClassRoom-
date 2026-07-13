@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { getUsers, updateUserStatus, updateUserRole, resetUserPassword, deleteUser, updateProfile, changePassword } from '../controllers/userController';
+import { getUsers, updateUserStatus, updateUserRole, resetUserPassword, deleteUser, updateProfile, changePassword, updateUser } from '../controllers/userController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // Lấy danh sách người dùng (Chỉ admin hoặc teacher mới được xem)
 router.get('/', protect, authorize('admin', 'teacher'), getUsers);
+
+// Chỉnh sửa thông tin thành viên (Chỉ Admin)
+router.put('/:id', protect, authorize('admin'), updateUser);
 
 // Cập nhật trạng thái khóa / mở khóa (Admin hoặc Teacher)
 router.put('/:id/status', protect, authorize('admin', 'teacher'), updateUserStatus);

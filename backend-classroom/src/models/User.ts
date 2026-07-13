@@ -13,6 +13,7 @@ export interface IUser extends Document {
     gender?: string;
     phone?: string;
     address?: string;
+    subject?: string;
     createdAt: Date;
 }
 
@@ -28,6 +29,7 @@ const UserSchema = new Schema<IUser>({
     gender: { type: String, default: '' },
     phone: { type: String, default: '' },
     address: { type: String, default: '' },
+    subject: { type: String, default: '' },
     createdAt: { type: Date, default: Date.now }
 });
 

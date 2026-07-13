@@ -15,12 +15,19 @@ export interface IQuizQuestion {
     points: number;
 }
 
+export enum BankItemSharingStatus {
+    CENTER_SHARED = 'CENTER_SHARED',
+    PRIVATE = 'PRIVATE'
+}
+
 export interface IBankItem extends Document {
     teacherId: Types.ObjectId;
     type: BankItemType;
     title: string;
     description: string;
     maxScore: number;
+    subject?: string;
+    sharingStatus: BankItemSharingStatus;
     
     // Fields for Quiz
     quizQuestions?: IQuizQuestion[];
@@ -50,6 +57,8 @@ const BankItemSchema = new Schema<IBankItem>({
     title: { type: String, required: true },
     description: { type: String, default: '' },
     maxScore: { type: Number, default: 10 },
+    subject: { type: String, default: '' },
+    sharingStatus: { type: String, enum: Object.values(BankItemSharingStatus), default: BankItemSharingStatus.PRIVATE },
     
     quizQuestions: { type: [QuizQuestionSchema], default: undefined },
     durationMinutes: { type: Number },

@@ -238,3 +238,41 @@ export const changePassword = async (req: AuthRequest, res: Response, next: Next
         next(error);
     }
 };
+
+// [PUT] /api/v1/users/:id
+// Admin cập nhật thông tin người dùng (Họ tên, Email, Môn học, Vai trò)
+export const updateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const { name, email, subject, role } = req.body;
+
+        const updateData: any = {};
+        if (name !== undefined) updateData.name = name;
+        if (email !== undefined) updateData.email = email;
+        if (subject !== undefined) updateData.subject = subject;
+        if (role !== undefined) updateData.role = role;
+
+        // Nếu cập nhật email, kiểm tra xem email có bị trùng với tài khoản khác không
+        if (email) {
+            const emailExists = await UserModel.findOne({ email, _id: { $ne: id as any } } as any);
+            if (emailExists) {
+                res.status(400);
+                return next(new Error('Email này đã được sử dụng bởi người dùng khác!'));
+            }
+        }
+
+        const user = await UserModel.findByIdAndUpdate(id, { $set: updateData }, { new: true }).select('-passwordHash');
+
+        if (!user) {
+            res.status(404);
+            return next(new Error('Không tìm thấy người dùng'));
+        }
+
+        res.status(200).json({
+            message: 'Cập nhật người dùng thành công',
+            data: user
+        });
+    } catch (error) {
+        next(error);
+    }
+};

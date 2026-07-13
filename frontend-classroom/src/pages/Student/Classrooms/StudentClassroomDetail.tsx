@@ -22,7 +22,7 @@ import { useAuth } from "../../../context/AuthContext.tsx";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { announcementService } from "../../../service/announcement.service.ts";
 import { gradebookService } from "../../../service/gradebook.service.ts";
-import { quizService } from "../../../service/quiz.service.ts";
+import { activityService } from "../../../service/activity.service.ts";
 import type { IAnnouncement } from "../../../service/announcement.service.ts";
 import FolderFileCard from "../../../components/ui/FolderUpload/FolderFileCard";
 import styles from "./StudentClassroomDetail.module.scss";
@@ -82,10 +82,11 @@ export default function StudentClassroomDetail() {
       if (assignRes && assignRes.data) setAssignments(assignRes.data);
     } catch (_) {}
 
-    // Tải bài trắc nghiệm
     try {
-      const quizRes = await quizService.getQuizzes(classId);
-      if (quizRes && quizRes.data) setQuizzes(quizRes.data);
+      const quizRes: any = await activityService.getClassActivities(classId);
+      const activities = Array.isArray(quizRes) ? quizRes : (quizRes?.data || []);
+      const quizActivities = activities.filter((a: any) => a.type === 'quiz');
+      setQuizzes(quizActivities);
     } catch (_) {}
   };
 
@@ -590,7 +591,7 @@ export default function StudentClassroomDetail() {
                     </div>
                     <div className={styles.assignInfo}>
                       <h4>{q.title}</h4>
-                      <p>Thời gian: {q.durationMinutes} phút • Số câu hỏi: {q.questions?.length || 0} câu</p>
+                      <p>Thời gian: {q.durationMinutes} phút • Số câu hỏi: {q.bankItemId?.quizQuestions?.length || 0} câu</p>
                       {hasResult && (
                         <span className={styles.assignDeadline} style={{ color: '#10b981', fontWeight: 600 }}>
                           Điểm thi: {q.result.score}/10 (Nộp lúc {new Date(q.result.submittedAt).toLocaleDateString('vi-VN')})

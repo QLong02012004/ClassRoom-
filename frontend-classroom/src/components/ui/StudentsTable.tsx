@@ -118,7 +118,7 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
                   return (
                     <Table.Row key={student._id} id={student._id}>
                       <Table.Cell>
-                        <Checkbox aria-label={`Select ${student.name}`} slot="selection" variant="secondary">
+                        <Checkbox aria-label={`Select ${student.name}`} slot="selection">
                           <Checkbox.Content>
                             <Checkbox.Control>
                               <Checkbox.Indicator />

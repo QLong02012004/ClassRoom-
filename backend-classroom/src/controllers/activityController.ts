@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { ClassActivityModel } from '../models/ClassActivity';
 import { BankItemModel } from '../models/BankItem';
+import { QuizResultModel } from '../models/QuizResult';
+import { SubmissionModel } from '../models/Submission';
+import { GradeModel } from '../models/Grade';
+import { SubmissionStatus } from '../constants/enums';
 
 // Giao một hoạt động mới từ ngân hàng cho lớp
 export const assignActivity = async (req: Request, res: Response) => {
@@ -73,5 +77,189 @@ export const deleteActivity = async (req: Request, res: Response) => {
         res.json({ message: 'Xóa thành công' });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi xóa', error });
+    }
+};
+
+export const submitActivityQuiz = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const studentId = (req as any).user?.id;
+        const { answers } = req.body;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        const activity = await ClassActivityModel.findById(activityId).populate('bankItemId');
+        if (!activity) return res.status(404).json({ message: 'Không tìm thấy hoạt động' });
+        if (activity.type !== 'quiz') return res.status(400).json({ message: 'Hoạt động này không phải bài trắc nghiệm' });
+
+        const bankItem: any = activity.bankItemId;
+        if (!bankItem || !bankItem.quizQuestions) return res.status(400).json({ message: 'Đề thi không hợp lệ' });
+
+        const questions = bankItem.quizQuestions;
+        let score = 0;
+        let totalScore = 0;
+
+        questions.forEach((q: any, index: number) => {
+            const maxPoints = q.points || 1;
+            totalScore += maxPoints;
+            if (answers[index] === q.correctOptionIndex) {
+                score += maxPoints;
+            }
+        });
+
+        // Convert score to a 10-point scale if needed, but usually we just save the raw score 
+        // or calculate percentage and multiply by maxScore.
+        const normalizedScore = (score / (totalScore || 1)) * (activity.maxScore || 10);
+
+        const quizResult = await QuizResultModel.findOneAndUpdate(
+            { quizId: activityId, studentId },
+            {
+                answers,
+                score: normalizedScore,
+                totalQuestions: questions.length,
+                submittedAt: new Date()
+            },
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({ message: 'Nộp bài thành công', data: quizResult });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi nộp bài', error });
+    }
+};
+
+export const getMyQuizResult = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const studentId = (req as any).user?.id;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        const result = await QuizResultModel.findOne({ quizId: activityId, studentId });
+        if (!result) return res.status(404).json({ message: 'Chưa có kết quả' });
+
+        res.status(200).json({ data: result });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy kết quả', error });
+    }
+};
+
+export const getQuizResults = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        // Should verify teacher access here if strict, for now just fetch
+        const results = await QuizResultModel.find({ quizId: activityId }).populate('studentId', 'name email avatar');
+
+        res.status(200).json({ data: results });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy danh sách kết quả', error });
+    }
+};
+
+// Đăng ký nộp bài tập (tự luận hoặc trắc nghiệm)
+export const submitActivity = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const studentId = (req as any).user?.id;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        const activity = await ClassActivityModel.findById(activityId);
+        if (!activity) return res.status(404).json({ message: 'Không tìm thấy hoạt động' });
+
+        // Nếu là bài trắc nghiệm thì chuyển sang hàm chấm trắc nghiệm
+        if (activity.type === 'quiz') {
+            return await submitActivityQuiz(req, res);
+        }
+
+        // Nếu là bài tập tự luận (homework, periodic, etc.)
+        const { submissionText, attachments } = req.body;
+
+        const isLate = new Date(activity.dueDate).getTime() < Date.now();
+        const status = isLate ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED;
+
+        const submission = await SubmissionModel.findOneAndUpdate(
+            { assignmentId: activityId, studentId },
+            {
+                submissionText,
+                attachments: attachments || [],
+                status,
+                submittedAt: new Date()
+            },
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({ message: 'Nộp bài tập thành công', data: submission });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi nộp bài tập', error });
+    }
+};
+
+// Lấy bài nộp cá nhân của học sinh
+export const getMySubmission = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const studentId = (req as any).user?.id;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        const submission = await SubmissionModel.findOne({ assignmentId: activityId, studentId }).lean();
+        if (!submission) {
+            return res.status(200).json({ data: null });
+        }
+
+        // Kiểm tra xem đã được chấm điểm chưa
+        const gradeInfo = await GradeModel.findOne({ assignmentId: activityId, studentId });
+        if (gradeInfo) {
+            return res.status(200).json({
+                data: {
+                    ...submission,
+                    status: 'graded',
+                    grade: gradeInfo.score,
+                    feedback: gradeInfo.feedback
+                }
+            });
+        }
+
+        res.status(200).json({ data: submission });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy bài nộp cá nhân', error });
+    }
+};
+
+// Giáo viên lấy danh sách bài nộp của cả lớp
+export const getAssignmentSubmissions = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+
+        const submissions = await SubmissionModel.find({ assignmentId: activityId })
+            .populate('studentId', 'name email avatar')
+            .lean();
+
+        // Lấy tất cả điểm số cho hoạt động này
+        const grades = await GradeModel.find({ assignmentId: activityId });
+
+        // Ghép điểm và feedback vào bài nộp tương ứng
+        const mappedSubmissions = submissions.map(sub => {
+            const gradeInfo = grades.find(g => g.studentId.toString() === (sub.studentId as any)._id.toString());
+            return {
+                ...sub,
+                status: gradeInfo ? 'graded' : sub.status,
+                grade: gradeInfo ? gradeInfo.score : null,
+                feedback: gradeInfo ? gradeInfo.feedback : null
+            };
+        });
+
+        res.status(200).json({ data: mappedSubmissions });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy danh sách bài nộp lớp học', error });
     }
 };

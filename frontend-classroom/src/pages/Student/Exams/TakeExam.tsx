@@ -2,8 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Alarm, CaretLeft, CaretRight, Info, PaperPlaneRight, GridFour, Trophy } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
-import { quizService } from "../../../service/quiz.service.ts";
-import type { IQuiz, IQuizResult } from "../../../service/quiz.service.ts";
+import { activityService } from "../../../service/activity.service.ts";
 import styles from "./TakeExam.module.scss";
 
 export default function TakeExam() {
@@ -11,8 +10,8 @@ export default function TakeExam() {
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [quiz, setQuiz] = useState<IQuiz | null>(null);
-  const [result, setResult] = useState<IQuizResult | null>(null);
+  const [quiz, setQuiz] = useState<any | null>(null);
+  const [result, setResult] = useState<any | null>(null);
   const [currentQIndex, setCurrentQIndex] = useState(0); // This is now display index
   const [questionOrder, setQuestionOrder] = useState<number[]>([]);
   const [optionOrders, setOptionOrders] = useState<Record<number, number[]>>({});
@@ -24,40 +23,58 @@ export default function TakeExam() {
     if (!id) return;
     try {
       setLoading(true);
-      const res = await quizService.getQuizDetail(id);
-      if (res && res.data) {
-        const { quiz: fetchedQuiz, result: fetchedResult } = res.data;
+      const activityRes = await activityService.getActivityById(id);
+      if (activityRes && activityRes.data) {
+        const activity = activityRes.data;
+        const fetchedQuiz = {
+          _id: activity._id,
+          title: activity.title,
+          durationMinutes: activity.durationMinutes || activity.bankItemId?.durationMinutes || 15,
+          shuffleQuestions: activity.bankItemId?.shuffleQuestions,
+          shuffleOptions: activity.bankItemId?.shuffleOptions,
+          questions: activity.bankItemId?.quizQuestions || [],
+          classId: activity.classId
+        };
+
+        let fetchedResult = null;
+        try {
+          const resultRes = await activityService.getMyQuizResult(id);
+          if (resultRes && resultRes.data) {
+            fetchedResult = resultRes.data;
+          }
+        } catch (e) { } // Ignore if no result
+
         setQuiz(fetchedQuiz);
         setResult(fetchedResult);
-        
+
         // Cài đặt mảng vị trí xáo trộn câu hỏi
         let qOrder = Array.from({ length: fetchedQuiz.questions.length }, (_, i) => i);
         if (fetchedQuiz.shuffleQuestions && !fetchedResult) {
-            for (let i = qOrder.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [qOrder[i], qOrder[j]] = [qOrder[j], qOrder[i]];
-            }
+          for (let i = qOrder.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [qOrder[i], qOrder[j]] = [qOrder[j], qOrder[i]];
+          }
         }
         setQuestionOrder(qOrder);
 
         // Cài đặt mảng vị trí xáo trộn đáp án cho từng câu
         let oOrders: Record<number, number[]> = {};
         fetchedQuiz.questions.forEach((q: any, idx: number) => {
-            let optOrder = Array.from({ length: q.options.length }, (_, i) => i);
-            if (fetchedQuiz.shuffleOptions && !fetchedResult) {
-                for (let i = optOrder.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [optOrder[i], optOrder[j]] = [optOrder[j], optOrder[i]];
-                }
+          let optOrder = Array.from({ length: q.options.length }, (_, i) => i);
+          if (fetchedQuiz.shuffleOptions && !fetchedResult) {
+            for (let i = optOrder.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [optOrder[i], optOrder[j]] = [optOrder[j], optOrder[i]];
             }
-            oOrders[idx] = optOrder;
+          }
+          oOrders[idx] = optOrder;
         });
         setOptionOrders(oOrders);
 
         if (fetchedResult) {
           // Map array of answers back to Record<number, number>
           const answersMap: Record<number, number> = {};
-          fetchedResult.answers.forEach((ans, idx) => {
+          fetchedResult.answers.forEach((ans: number, idx: number) => {
             if (ans !== -1) {
               answersMap[idx] = ans;
             }
@@ -90,23 +107,24 @@ export default function TakeExam() {
     });
 
     try {
-      const res = await quizService.submitQuiz(quiz._id, answersArray);
+      const res = await activityService.submitQuiz(quiz._id, answersArray);
       if (res && res.data) {
         toast.success(auto ? "Thời gian đã hết! Bài thi đã tự động nộp thành công." : "Nộp bài thi thành công!");
-        
+
         // Refetch to get the correct answers and update UI to review mode
-        const detailRes = await quizService.getQuizDetail(quiz._id);
-        if (detailRes && detailRes.data) {
-          setQuiz(detailRes.data.quiz);
-          setResult(detailRes.data.result);
-          const answersMap: Record<number, number> = {};
-          detailRes.data.result?.answers.forEach((ans, idx) => {
-            if (ans !== -1) {
-              answersMap[idx] = ans;
-            }
-          });
-          setAnswers(answersMap);
-        }
+        try {
+          const resultRes = await activityService.getMyQuizResult(quiz._id);
+          if (resultRes && resultRes.data) {
+            setResult(resultRes.data);
+            const answersMap: Record<number, number> = {};
+            resultRes.data.answers.forEach((ans: number, idx: number) => {
+              if (ans !== -1) {
+                answersMap[idx] = ans;
+              }
+            });
+            setAnswers(answersMap);
+          }
+        } catch (e) { }
       }
     } catch (err: any) {
       toast.error(err.message || "Nộp bài thi thất bại!");
@@ -225,8 +243,8 @@ export default function TakeExam() {
               }
 
               return (
-                <div 
-                  key={actualOptIdx} 
+                <div
+                  key={actualOptIdx}
                   className={optionClass}
                   onClick={() => handleSelectOption(actualQIndex, actualOptIdx)}
                 >
@@ -241,16 +259,16 @@ export default function TakeExam() {
 
           {/* Navigation Buttons */}
           <div className={styles.navButtons}>
-            <button 
-              className={styles.btnPrev} 
+            <button
+              className={styles.btnPrev}
               disabled={currentQIndex === 0}
               onClick={() => setCurrentQIndex(prev => prev - 1)}
             >
               <CaretLeft size={16} weight="bold" />
               Câu trước
             </button>
-            <button 
-              className={styles.btnNext} 
+            <button
+              className={styles.btnNext}
               disabled={currentQIndex === quiz.questions.length - 1}
               onClick={() => setCurrentQIndex(prev => prev + 1)}
             >
@@ -272,7 +290,7 @@ export default function TakeExam() {
               {questionOrder.map((actualQIdx, displayQIdx) => {
                 const isAnswered = answers[actualQIdx] !== undefined;
                 const isCurrent = displayQIdx === currentQIndex;
-                
+
                 let statusClass = styles.unanswered;
                 if (isCurrent) {
                   statusClass = styles.current;
@@ -285,8 +303,8 @@ export default function TakeExam() {
                 }
 
                 return (
-                  <button 
-                    key={displayQIdx} 
+                  <button
+                    key={displayQIdx}
                     className={`${styles.numBtn} ${statusClass}`}
                     onClick={() => setCurrentQIndex(displayQIdx)}
                   >
@@ -329,9 +347,9 @@ export default function TakeExam() {
             )}
 
             {result ? (
-              <button 
-                className={styles.btnSubmit} 
-                style={{ backgroundColor: "#475569" }} 
+              <button
+                className={styles.btnSubmit}
+                style={{ backgroundColor: "#475569" }}
                 onClick={() => navigate(`/classrooms/${quiz.classId}?tab=quizzes`)}
               >
                 Quay lại lớp học
@@ -342,7 +360,7 @@ export default function TakeExam() {
                 <PaperPlaneRight size={18} weight="bold" />
               </button>
             )}
-            
+
             <p className={styles.submitNote}>
               {result ? "Kết quả thi đã được lưu vào bảng điểm." : "Lưu ý: Không thể sửa sau khi đã nộp"}
             </p>

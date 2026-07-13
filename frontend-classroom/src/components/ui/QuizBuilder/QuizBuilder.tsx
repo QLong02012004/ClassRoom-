@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { DotsSixVertical, Image, Trash } from "phosphor-react";
+import React, { useState, useRef, useEffect } from "react";
+import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X } from "phosphor-react";
 import { useToast } from "../../Styles/ToastContext";
 import NumberStepper from "../NumberStepper";
 import Checkbox from "../Checkbox/Checkbox";
@@ -9,6 +9,7 @@ import AiGenerateButton from "../AiGenerateButton/AiGenerateButton";
 import FolderImportButton from "../FolderImportButton/FolderImportButton";
 import * as XLSX from "xlsx";
 import styles from "./QuizBuilder.module.scss";
+import { SecondaryButton } from "../SecondaryButton";
 
 export interface QuizBuilderProps {
   initialData?: any;
@@ -39,12 +40,16 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     optionImages?: string[];
     points?: number;
   }>>([{ questionText: "", options: ["", "", "", ""], correctOptionIndex: -1, points: 1 }]);
+
   const [expandedQuestionIndex, setExpandedQuestionIndex] = useState<number | null>(0);
   const [errorQuestionIndex, setErrorQuestionIndex] = useState<number | null>(null);
   const [showImageUpload, setShowImageUpload] = useState<Record<number, boolean>>({});
 
+  // State cho phần Xem trước (Preview)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
+
   const fileImportRef = useRef<HTMLInputElement>(null);
-  const fileDocxImportRef = useRef<HTMLInputElement>(null);
   const fileCombinedImportRef = useRef<HTMLInputElement>(null);
   const fileDocxAIImportRef = useRef<HTMLInputElement>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -52,6 +57,18 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
   // Drag & Drop state
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (initialData) {
+      setQuizTitle(initialData.title || "");
+      setQuizDuration(initialData.durationMinutes || 15);
+      setShuffleQuestions(!!initialData.shuffleQuestions);
+      setShuffleOptions(!!initialData.shuffleOptions);
+      if (initialData.questions && initialData.questions.length > 0) {
+        setQuizQuestions(initialData.questions);
+      }
+    }
+  }, [initialData]);
 
   const handleDragStart = (index: number) => { dragIndexRef.current = index; };
   const handleDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); setDragOverIndex(index); };
@@ -134,7 +151,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     } catch (err: any) {
       toast.error(err.message || "Lỗi khi import file docx");
     } finally {
-      if (fileDocxImportRef.current) fileDocxImportRef.current.value = "";
+      if (fileCombinedImportRef.current) fileCombinedImportRef.current.value = "";
     }
   };
 
@@ -220,7 +237,6 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       } catch (error) {
         toast.error("Lỗi khi đọc file Excel, vui lòng kiểm tra lại định dạng!");
       }
-      if (fileImportRef.current) fileImportRef.current.value = "";
     };
     reader.readAsBinaryString(file);
   };
@@ -364,6 +380,15 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     }
   };
 
+  const handleOpenPreview = () => {
+    if (!quizTitle.trim()) {
+      toast.warning("Vui lòng nhập tiêu đề đề thi để xem trước!");
+      return;
+    }
+    setIsPreviewOpen(true);
+    setCurrentPreviewIndex(0);
+  };
+
   return (
     <div className={styles.createQuizView}>
       <div className={styles.formHeader}>
@@ -377,6 +402,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       <input type="file" accept=".docx" ref={fileDocxAIImportRef} style={{ display: "none" }} onChange={handleImportDocxAI} />
 
       <form onSubmit={handleSaveQuiz}>
+        {/* THÔNG TIN CHUNG ĐỀ THI */}
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
             <label htmlFor="quiz-title">Tiêu đề đề thi trắc nghiệm</label>
@@ -401,100 +427,411 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
           </div>
         </div>
 
-        <div className={styles.questionsSection}>
-          <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>Danh sách câu hỏi ({quizQuestions.length})</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }}>
-              <label htmlFor="default-points" style={{ color: '#64748b' }}>Cài điểm đồng loạt:</label>
-              <NumberStepper value={defaultPoints} onChange={(val) => setDefaultPoints(Number(val))} min={1} max={100} step={1} />
-              <button type="button" onClick={handleApplyDefaultPoints} style={{ padding: '4px 12px', borderRadius: '6px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', cursor: 'pointer', color: '#475569', fontWeight: 600, transition: 'all 0.2s' }}>Áp dụng</button>
-            </div>
-          </h4>
+        {/* THÂN LAYOUT: CHIA CỘT CHO DANH SÁCH CÂU HỎI & SIDEBAR MỤC LỤC */}
+        <div style={{ display: "flex", gap: "24px", marginTop: "32px", alignItems: "flex-start" }}>
 
-          {quizQuestions.map((q, qIndex) => (
-            <div
-              id={`quiz-question-${qIndex}`}
-              key={qIndex}
-              className={`${styles.questionBuilderCard} ${dragOverIndex === qIndex ? styles.dragOver : ""} ${errorQuestionIndex === qIndex ? styles.errorOutline : ""}`}
-              draggable
-              onDragStart={() => handleDragStart(qIndex)}
-              onDragOver={(e) => handleDragOver(e, qIndex)}
-              onDrop={() => handleDrop(qIndex)}
-              onDragEnd={handleDragEnd}
-            >
-              <div className={styles.questionHeaderRow} onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === qIndex ? null : qIndex)} style={{ cursor: 'pointer' }}>
-                <div className={styles.headerLeft}>
-                  <span className={styles.gripHandle} onClick={(e) => e.stopPropagation()}><DotsSixVertical size={20} weight="bold" /></span>
-                  <span style={{ fontWeight: 700, minWidth: '80px' }}>CÂU HỎI {qIndex + 1}</span>
-                  {expandedQuestionIndex !== qIndex && (
-                    <span style={{ marginLeft: '12px', color: '#475569', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }}>
-                      - {q.questionText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa có nội dung</span>}
-                    </span>
-                  )}
-                  <div style={{ marginLeft: '24px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
-                    <label htmlFor={`q-${qIndex}-points`} style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Điểm số:</label>
-                    <NumberStepper value={q.points || 1} onChange={(val) => { const newQuestions = [...quizQuestions]; newQuestions[qIndex].points = Number(val); setQuizQuestions(newQuestions); }} min={0.5} max={100} step={0.5} />
-                  </div>
+          {/* CỘT TRÁI: DANH SÁCH SOẠN CÂU HỎI */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className={styles.questionsSection} style={{ marginTop: 0, borderTop: "none", paddingTop: 0 }}>
+              <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <span>Danh sách câu hỏi ({quizQuestions.length})</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>
+                  <label htmlFor="default-points" style={{ color: '#64748b' }}>Cài điểm đồng loạt:</label>
+                  <NumberStepper value={defaultPoints} onChange={(val) => setDefaultPoints(Number(val))} min={1} max={100} step={1} />
+                  <button type="button" onClick={handleApplyDefaultPoints} style={{ padding: '4px 12px', borderRadius: '6px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', cursor: 'pointer', color: '#475569', fontWeight: 600, transition: 'all 0.2s' }}>Áp dụng</button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ color: '#94a3b8' }}>
-                    {expandedQuestionIndex === qIndex ? (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
-                    ) : (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                    )}
-                  </span>
-                  <button type="button" className={styles.removeQBtn} onClick={(e) => { e.stopPropagation(); handleRemoveQuestion(qIndex); }} title="Xóa câu hỏi này">
-                    <Trash size={16} weight="bold" />
-                  </button>
-                </div>
-              </div>
-              {expandedQuestionIndex === qIndex && (
-                <div style={{ paddingTop: '16px', borderTop: '1px dashed #e2e8f0', marginTop: '16px' }}>
-                  <div className={styles.formGroup}>
-                    <div className={styles.questionLabelRow}>
-                      <label htmlFor={`q-${qIndex}-text`}>Nội dung câu hỏi</label>
-                      <button type="button" className={styles.imgUploadToggleBtn} onClick={() => setShowImageUpload(prev => ({ ...prev, [qIndex]: !prev[qIndex] }))} title={(showImageUpload[qIndex] || q.imageUrl) ? "Ẩn khung tải ảnh" : "Thêm ảnh cho câu hỏi"}>
-                        <Image size={16} weight="duotone" />
-                        <span>{(showImageUpload[qIndex] || q.imageUrl) ? "Ẩn ảnh" : "Thêm ảnh"}</span>
+              </h4>
+
+              {quizQuestions.map((q, qIndex) => (
+                <div
+                  id={`quiz-question-${qIndex}`}
+                  key={qIndex}
+                  className={`${styles.questionBuilderCard} ${dragOverIndex === qIndex ? styles.dragOver : ""} ${errorQuestionIndex === qIndex ? styles.errorOutline : ""}`}
+                  draggable
+                  onDragStart={() => handleDragStart(qIndex)}
+                  onDragOver={(e) => handleDragOver(e, qIndex)}
+                  onDrop={() => handleDrop(qIndex)}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className={styles.questionHeaderRow} onClick={() => setExpandedQuestionIndex(expandedQuestionIndex === qIndex ? null : qIndex)} style={{ cursor: 'pointer' }}>
+                    <div className={styles.headerLeft}>
+                      <span className={styles.gripHandle} onClick={(e) => e.stopPropagation()}><DotsSixVertical size={20} weight="bold" /></span>
+                      <span style={{ fontWeight: 700, minWidth: '80px' }}>CÂU HỎI {qIndex + 1}</span>
+                      {expandedQuestionIndex !== qIndex && (
+                        <span style={{ marginLeft: '12px', color: '#475569', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '250px' }}>
+                          - {q.questionText || <span style={{ color: '#94a3b8', fontStyle: 'italic' }}>Chưa có nội dung</span>}
+                        </span>
+                      )}
+                      <div style={{ marginLeft: '24px', display: 'flex', alignItems: 'center', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                        <label htmlFor={`q-${qIndex}-points`} style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 600 }}>Điểm số:</label>
+                        <NumberStepper value={q.points || 1} onChange={(val) => { const newQuestions = [...quizQuestions]; newQuestions[qIndex].points = Number(val); setQuizQuestions(newQuestions); }} min={0.5} max={100} step={0.5} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <span style={{ color: '#94a3b8' }}>
+                        {expandedQuestionIndex === qIndex ? (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                        ) : (
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        )}
+                      </span>
+                      <button type="button" className={styles.removeQBtn} onClick={(e) => { e.stopPropagation(); handleRemoveQuestion(qIndex); }} title="Xóa câu hỏi này">
+                        <Trash size={16} weight="bold" />
                       </button>
                     </div>
-                    <textarea id={`q-${qIndex}-text`} placeholder="Nhập nội dung câu hỏi trắc nghiệm..." value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} required />
-                    {(showImageUpload[qIndex] || q.imageUrl) && (
-                      <CustomImageUpload imageUrl={q.imageUrl} onChange={(file) => { handleQuestionImage(qIndex, file); setShowImageUpload(prev => ({ ...prev, [qIndex]: true })); }} onRemove={() => handleRemoveQuestionImage(qIndex)} title="Nhấn để tải lên ảnh câu hỏi" />
-                    )}
                   </div>
-                  <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "#475569", display: "block", marginBottom: "8px" }}>
-                    Các phương án trả lời và tích chọn đáp án đúng
-                    <span style={{ fontWeight: 400, color: "#94a3b8", marginLeft: 6, fontSize: "0.78rem" }}>({q.options.length} phương án, tối thiểu 2 · tối đa 6)</span>
-                  </label>
-                  <div className={styles.optionsGrid}>
-                    {q.options.map((opt, optIndex) => (
-                      <div key={optIndex} className={`${styles.optionInputGroup} ${q.correctOptionIndex === optIndex ? styles.optionCorrect : ""}`}>
-                        <span className={styles.letterLabel}>{String.fromCharCode(65 + optIndex)}</span>
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <input type="text" style={{ flex: 1 }} placeholder={`Nhập phương án ${String.fromCharCode(65 + optIndex)}`} value={opt} onChange={(e) => handleOptionTextChange(qIndex, optIndex, e.target.value)} required />
+                  {expandedQuestionIndex === qIndex && (
+                    <div style={{ paddingTop: '16px', borderTop: '1px dashed #e2e8f0', marginTop: '16px' }}>
+                      <div className={styles.formGroup}>
+                        <div className={styles.questionLabelRow}>
+                          <label htmlFor={`q-${qIndex}-text`}>Nội dung câu hỏi</label>
+                          <button type="button" className={styles.imgUploadToggleBtn} onClick={() => setShowImageUpload(prev => ({ ...prev, [qIndex]: !prev[qIndex] }))} title={(showImageUpload[qIndex] || q.imageUrl) ? "Ẩn khung tải ảnh" : "Thêm ảnh cho câu hỏi"}>
+                            <Image size={16} weight="duotone" />
+                            <span>{(showImageUpload[qIndex] || q.imageUrl) ? "Ẩn ảnh" : "Thêm ảnh"}</span>
+                          </button>
                         </div>
-                        <CustomRadio name={`correct-opt-${qIndex}`} checked={q.correctOptionIndex === optIndex} onChange={() => handleCorrectOptionChange(qIndex, optIndex)} title="Chọn làm đáp án đúng" required />
-                        <button type="button" className={styles.optionRemoveBtn} onClick={() => handleRemoveOption(qIndex, optIndex)} title="Xóa phương án này" disabled={q.options.length <= 2}>×</button>
+                        <textarea id={`q-${qIndex}-text`} placeholder="Nhập nội dung câu hỏi trắc nghiệm..." value={q.questionText} onChange={(e) => handleQuestionTextChange(qIndex, e.target.value)} rows={2} required />
+                        {(showImageUpload[qIndex] || q.imageUrl) && (
+                          <CustomImageUpload imageUrl={q.imageUrl} onChange={(file) => { handleQuestionImage(qIndex, file); setShowImageUpload(prev => ({ ...prev, [qIndex]: true })); }} onRemove={() => handleRemoveQuestionImage(qIndex)} title="Nhấn để tải lên ảnh câu hỏi" />
+                        )}
                       </div>
-                    ))}
-                  </div>
-                  <button type="button" className={styles.btnAddOption} onClick={() => handleAddOption(qIndex)}>+ Thêm phương án</button>
+                      <label style={{ fontSize: "0.85rem", fontWeight: 700, color: "#475569", display: "block", marginBottom: "8px" }}>
+                        Các phương án trả lời và tích chọn đáp án đúng
+                        <span style={{ fontWeight: 400, color: "#94a3b8", marginLeft: 6, fontSize: "0.78rem" }}>({q.options.length} phương án, tối thiểu 2 · tối đa 6)</span>
+                      </label>
+                      <div className={styles.optionsGrid}>
+                        {q.options.map((opt, optIndex) => (
+                          <div key={optIndex} className={`${styles.optionInputGroup} ${q.correctOptionIndex === optIndex ? styles.optionCorrect : ""}`}>
+                            <span className={styles.letterLabel}>{String.fromCharCode(65 + optIndex)}</span>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <input type="text" style={{ flex: 1 }} placeholder={`Nhập phương án ${String.fromCharCode(65 + optIndex)}`} value={opt} onChange={(e) => handleOptionTextChange(qIndex, optIndex, e.target.value)} required />
+                            </div>
+                            <CustomRadio name={`correct-opt-${qIndex}`} checked={q.correctOptionIndex === optIndex} onChange={() => handleCorrectOptionChange(qIndex, optIndex)} title="Chọn làm đáp án đúng" required />
+                            <button type="button" className={styles.optionRemoveBtn} onClick={() => handleRemoveOption(qIndex, optIndex)} title="Xóa phương án này" disabled={q.options.length <= 2}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                      <button type="button" className={styles.btnAddOption} onClick={() => handleAddOption(qIndex)}>+ Thêm phương án</button>
+                    </div>
+                  )}
                 </div>
-              )}
+              ))}
+              <button type="button" className={styles.btnAddQuestion} onClick={handleAddQuestion}>+ Thêm câu hỏi mới</button>
             </div>
-          ))}
-          <button type="button" className={styles.btnAddQuestion} onClick={handleAddQuestion}>+ Thêm câu hỏi mới</button>
+          </div>
+
+          {/* CỘT PHẢI: SIDEBAR MỤC LỤC CÂU HỎI */}
+          <div style={{
+            width: "220px",
+            position: "sticky",
+            top: "100px",
+            backgroundColor: "#f8fafc",
+            border: "1.5px solid #e2e8f0",
+            borderRadius: "14px",
+            padding: "18px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "14px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+          }}>
+            <h5 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#1e293b" }}>Mục lục câu hỏi</h5>
+            <div style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: "8px"
+            }}>
+              {quizQuestions.map((q, idx) => {
+                const isCurrent = expandedQuestionIndex === idx;
+                const hasContent = q.questionText.trim() !== "";
+                const hasCorrectAns = q.correctOptionIndex !== -1;
+                const isDone = hasContent && hasCorrectAns;
+
+                let btnStyle: React.CSSProperties = {
+                  height: "36px",
+                  borderRadius: "8px",
+                  border: "1.5px solid #cbd5e1",
+                  backgroundColor: "white",
+                  color: "#475569",
+                  fontWeight: 700,
+                  fontSize: "0.85rem",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  transition: "all 0.15s"
+                };
+
+                if (isCurrent) {
+                  btnStyle.borderColor = "#fe6747";
+                  btnStyle.backgroundColor = "rgba(254, 103, 71, 0.1)";
+                  btnStyle.color = "#fe6747";
+                } else if (isDone) {
+                  btnStyle.borderColor = "#10b981";
+                  btnStyle.backgroundColor = "#ecfdf5";
+                  btnStyle.color = "#10b981";
+                } else if (!hasCorrectAns && hasContent) {
+                  btnStyle.borderColor = "#f59e0b";
+                  btnStyle.backgroundColor = "#fffbeb";
+                  btnStyle.color = "#f59e0b";
+                }
+
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    style={btnStyle}
+                    onClick={() => scrollToQuestion(idx)}
+                    title={`Câu hỏi ${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "10px", fontSize: "0.75rem", color: "#64748b", display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: "#ecfdf5", border: "1.5px solid #10b981" }} />
+                <span>Đã hoàn thành</span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: "#fffbeb", border: "1.5px solid #f59e0b" }} />
+                <span>Thiếu đáp án đúng</span>
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* BOTTOM FIXED ACTIONS (STICKY) */}
         <div className={styles.formActions}>
           <button type="button" className={styles.btnCancel} onClick={onCancel} disabled={isSaving}>Hủy bỏ</button>
-          <button type="submit" className={styles.btnSave} disabled={isSaving}>
-            {isSaving ? "Đang lưu..." : "Lưu đề thi"}
+          <button type="button" className={styles.btnPreview} onClick={handleOpenPreview}>
+            <Eye size={18} weight="bold" />
+            Xem trước
           </button>
+          <SecondaryButton type="submit" className={styles.btnSave} disabled={isSaving}>
+            {isSaving ? "Đang lưu..." : "Lưu đề thi"}
+          </SecondaryButton>
         </div>
       </form>
+
+      {/* MODAL XEM TRƯỚC (PREVIEW) */}
+      {isPreviewOpen && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: "rgba(15, 23, 42, 0.6)",
+          backdropFilter: "blur(4px)",
+          zIndex: 1000,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "24px"
+        }}>
+          <div style={{
+            backgroundColor: "white",
+            borderRadius: "16px",
+            width: "100%",
+            maxWidth: "800px",
+            display: "flex",
+            flexDirection: "column",
+            maxHeight: "90vh",
+            boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)"
+          }}>
+            {/* Header modal */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px 24px",
+              borderBottom: "1px solid #e2e8f0"
+            }}>
+              <div>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#fe6747", textTransform: "uppercase" }}>Chế độ Xem trước</span>
+                <h4 style={{ margin: 0, fontSize: "1.2rem", fontWeight: 700, color: "#1e293b" }}>{quizTitle}</h4>
+              </div>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "#64748b",
+                  padding: "4px",
+                  borderRadius: "6px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              >
+                <X size={20} weight="bold" />
+              </button>
+            </div>
+
+            {/* Nội dung đề thi */}
+            <div style={{
+              padding: "24px",
+              overflowY: "auto",
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px"
+            }}>
+              {quizQuestions.length > 0 && (
+                <>
+                  <div style={{
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    padding: "20px"
+                  }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                      <span style={{ fontSize: "0.85rem", fontWeight: 700, color: "#fe6747" }}>
+                        CÂU HỎI {currentPreviewIndex + 1} / {quizQuestions.length}
+                      </span>
+                      <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+                        Điểm: {quizQuestions[currentPreviewIndex].points || 1}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: "1.05rem", fontWeight: 500, color: "#1e293b" }}>
+                      {quizQuestions[currentPreviewIndex].questionText || "(Chưa có nội dung câu hỏi)"}
+                    </p>
+                    {quizQuestions[currentPreviewIndex].imageUrl && (
+                      <img
+                        src={quizQuestions[currentPreviewIndex].imageUrl}
+                        alt="Hình ảnh minh họa"
+                        style={{ marginTop: "12px", maxWidth: "100%", maxHeight: "250px", borderRadius: "8px", objectFit: "contain" }}
+                      />
+                    )}
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px" }}>
+                    {quizQuestions[currentPreviewIndex].options.map((opt, oIdx) => {
+                      const isCorrect = quizQuestions[currentPreviewIndex].correctOptionIndex === oIdx;
+                      return (
+                        <div
+                          key={oIdx}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "12px",
+                            padding: "14px 16px",
+                            borderRadius: "10px",
+                            border: isCorrect ? "2px solid #fe6747" : "1.5px solid #e2e8f0",
+                            backgroundColor: isCorrect ? "#fff7f5" : "white",
+                            fontSize: "0.95rem"
+                          }}
+                        >
+                          <span style={{
+                            width: "24px",
+                            height: "24px",
+                            borderRadius: "50%",
+                            backgroundColor: isCorrect ? "#fe6747" : "#f1f5f9",
+                            color: isCorrect ? "white" : "#64748b",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 700,
+                            fontSize: "0.8rem"
+                          }}>
+                            {String.fromCharCode(65 + oIdx)}
+                          </span>
+                          <span style={{ flex: 1, color: "#334155" }}>{opt || "(Trống)"}</span>
+                          {isCorrect && (
+                            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#fe6747" }}>ĐÁP ÁN ĐÚNG</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Footer modal xem trước */}
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "16px 24px",
+              borderTop: "1px solid #e2e8f0",
+              backgroundColor: "#f8fafc",
+              borderBottomLeftRadius: "16px",
+              borderBottomRightRadius: "16px"
+            }}>
+              <button
+                type="button"
+                disabled={currentPreviewIndex === 0}
+                onClick={() => setCurrentPreviewIndex(p => p - 1)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "8px",
+                  backgroundColor: "white",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  opacity: currentPreviewIndex === 0 ? 0.5 : 1
+                }}
+              >
+                <CaretLeft size={16} weight="bold" />
+                Câu trước
+              </button>
+
+              <div style={{
+                display: "flex",
+                gap: "4px",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                maxWidth: "300px"
+              }}>
+                {quizQuestions.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentPreviewIndex(idx)}
+                    style={{
+                      width: "8px",
+                      height: "8px",
+                      borderRadius: "50%",
+                      padding: 0,
+                      border: "none",
+                      backgroundColor: currentPreviewIndex === idx ? "#fe6747" : "#cbd5e1",
+                      cursor: "pointer"
+                    }}
+                  />
+                ))}
+              </div>
+
+              <button
+                type="button"
+                disabled={currentPreviewIndex === quizQuestions.length - 1}
+                onClick={() => setCurrentPreviewIndex(p => p + 1)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "8px 16px",
+                  border: "1.5px solid #cbd5e1",
+                  borderRadius: "8px",
+                  backgroundColor: "white",
+                  cursor: "pointer",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  opacity: currentPreviewIndex === quizQuestions.length - 1 ? 0.5 : 1
+                }}
+              >
+                Câu sau
+                <CaretRight size={16} weight="bold" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

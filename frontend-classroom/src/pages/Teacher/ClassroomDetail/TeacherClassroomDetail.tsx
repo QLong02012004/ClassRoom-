@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import {
- 
+
   FilePdf,
   DotsThree,
   Trash,
@@ -22,22 +22,30 @@ import {
   X as XIcon,
   ChatCircleText,
   ClipboardText,
-  PushPin
+  PushPin,
+  GridFour,
+  List
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { announcementService } from "../../../service/announcement.service.ts";
-import { quizService } from "../../../service/quiz.service.ts";
+import { activityService } from "../../../service/activity.service.ts";
+import { bankService } from "../../../service/bank.service.ts";
 import type { IAnnouncement } from "../../../service/announcement.service.ts";
 import * as XLSX from "xlsx";
-import { Button } from "../../../components/ui/button";
+import { PrimaryButton } from "../../../components/ui/PrimaryButton";
+import { Table, Checkbox as HeroCheckbox } from "@heroui/react";
+import type { Selection } from "@heroui/react";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import FolderUpload from "../../../components/ui/FolderUpload/FolderUpload";
 import FolderFileCard from "../../../components/ui/FolderUpload/FolderFileCard";
 import Switch3D from "../../../components/ui/Switch3D";
 import Checkbox from "../../../components/ui/Checkbox/Checkbox";
 import { CustomConfirmDialog } from "../../../components/ui/CustomConfirmDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
+import { ScrollArea } from "../../../components/ui/scroll-area";
+import { QuizActionMenu } from "../../../components/ui/QuizActionMenu";
 import AnimatedSendButton from "../../../components/ui/AnimatedSendButton";
 import CustomImageUpload from "../../../components/ui/CustomImageUpload";
 import NumberStepper from "../../../components/ui/NumberStepper";
@@ -80,6 +88,42 @@ export default function TeacherClassroomDetail() {
   };
 
   const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [quizzesViewMode, setQuizzesViewMode] = useState<"grid" | "table">("table");
+  const [selectedQuizKeys, setSelectedQuizKeys] = useState<Selection>(new Set());
+
+  const selectedQuizIds = React.useMemo(() => {
+    if (selectedQuizKeys === "all") {
+      return quizzes.map((q: any) => q._id);
+    }
+    return Array.from(selectedQuizKeys) as string[];
+  }, [selectedQuizKeys, quizzes]);
+
+  const handleBulkDeleteQuizzes = async () => {
+    if (selectedQuizIds.length === 0) return;
+    if (window.confirm(`Bạn có chắc chắn muốn xóa ${selectedQuizIds.length} đề thi đã chọn?`)) {
+      try {
+        await Promise.all(selectedQuizIds.map(id => activityService.deleteActivity(id)));
+        toast.success("Đã xóa các đề thi thành công!");
+        setSelectedQuizKeys(new Set());
+        loadQuizzes();
+      } catch (err: any) {
+        toast.error(err.message || "Có lỗi xảy ra khi xóa hàng loạt!");
+      }
+    }
+  };
+
+  const handleBulkChangeStatusQuizzes = async (status: 'open' | 'closed') => {
+    if (selectedQuizIds.length === 0) return;
+    try {
+      await Promise.all(selectedQuizIds.map(id => activityService.updateActivity(id, { status })));
+      toast.success(`Đã ${status === 'open' ? 'mở' : 'đóng'} các đề thi thành công!`);
+      setSelectedQuizKeys(new Set());
+      loadQuizzes();
+    } catch (err: any) {
+      toast.error(err.message || "Có lỗi xảy ra khi cập nhật trạng thái!");
+    }
+  };
+
   const [selectedQuiz, setSelectedQuiz] = useState<any | null>(null);
   const [quizResults, setQuizResults] = useState<any[]>([]);
   const [loadingResults, setLoadingResults] = useState(false);
@@ -91,6 +135,21 @@ export default function TeacherClassroomDetail() {
   const [isDeletingQuiz, setIsDeletingQuiz] = useState(false);
   const [pendingQuizData, setPendingQuizData] = useState<any>(null);
   const [isSavingQuiz, setIsSavingQuiz] = useState(false);
+
+  // State giao bài từ Ngân hàng đề
+  const [isAssignFromBankOpen, setIsAssignFromBankOpen] = useState(false);
+  const [bankItems, setBankItems] = useState<any[]>([]);
+  const [loadingBank, setLoadingBank] = useState(false);
+  const [selectedBankItem, setSelectedBankItem] = useState<any | null>(null);
+
+  // Form giao bài
+  const [assignTitle, setAssignTitle] = useState("");
+  const [assignDescription, setAssignDescription] = useState("");
+  const [assignCategory, setAssignCategory] = useState("homework");
+  const [assignDueDate, setAssignDueDate] = useState("");
+  const [assignMaxScore, setAssignMaxScore] = useState(10);
+  const [assignDurationMinutes, setAssignDurationMinutes] = useState(15);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // Form states cho tạo đề trắc nghiệm
   const [quizTitle, setQuizTitle] = useState("");
@@ -422,10 +481,10 @@ export default function TeacherClassroomDetail() {
     if (!classId) return;
     try {
       setLoadingQuizzes(true);
-      const res = await quizService.getQuizzes(classId);
-      if (res && res.data) {
-        setQuizzes(res.data);
-      }
+      const res: any = await activityService.getClassActivities(classId);
+      const activities = Array.isArray(res) ? res : (res?.data || []);
+      const quizActivities = activities.filter((a: any) => a.type === 'quiz');
+      setQuizzes(quizActivities);
     } catch (err: any) {
       toast.error(err.message || "Không thể tải danh sách bài trắc nghiệm!");
     } finally {
@@ -436,7 +495,7 @@ export default function TeacherClassroomDetail() {
   const loadQuizResults = async (quizId: string) => {
     try {
       setLoadingResults(true);
-      const res = await quizService.getQuizResults(quizId);
+      const res = await activityService.getQuizResults(quizId);
       if (res && res.data) {
         setQuizResults(res.data);
       }
@@ -589,12 +648,44 @@ export default function TeacherClassroomDetail() {
     setIsSavingQuiz(true);
     try {
       if (editingQuizId) {
-        await quizService.updateQuiz(editingQuizId, quizData);
+        // Cập nhật BankItem (câu hỏi) và Activity (thông tin chung)
+        const activityToUpdate = quizzes.find((q: any) => q._id === editingQuizId);
+        if (activityToUpdate && activityToUpdate.bankItemId) {
+          const bankId = activityToUpdate.bankItemId._id || activityToUpdate.bankItemId;
+          await bankService.updateBankItem(bankId, {
+            title: quizData.title,
+            durationMinutes: quizData.durationMinutes,
+            shuffleQuestions: quizData.shuffleQuestions,
+            shuffleOptions: quizData.shuffleOptions,
+            quizQuestions: quizData.questions
+          });
+          await activityService.updateActivity(editingQuizId, {
+            title: quizData.title,
+            durationMinutes: quizData.durationMinutes
+          });
+        }
         toast.success("Cập nhật đề thi trắc nghiệm thành công!");
       } else {
-        await quizService.createQuiz({
-          classId,
-          ...quizData
+        // Tạo BankItem mới rồi giao cho lớp
+        const bankRes: any = await bankService.createBankItem({
+          type: 'quiz',
+          title: quizData.title,
+          durationMinutes: quizData.durationMinutes,
+          shuffleQuestions: quizData.shuffleQuestions,
+          shuffleOptions: quizData.shuffleOptions,
+          quizQuestions: quizData.questions
+        });
+
+        const bankItemId = bankRes?.data?._id || bankRes?._id;
+        if (!bankItemId) {
+          throw new Error("Không lấy được ID tài nguyên từ ngân hàng đề!");
+        }
+
+        await activityService.assignActivity(classId, {
+          bankItemId: bankItemId,
+          title: quizData.title,
+          durationMinutes: quizData.durationMinutes,
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
         });
         toast.success("Tạo đề thi trắc nghiệm thành công!");
       }
@@ -619,10 +710,21 @@ export default function TeacherClassroomDetail() {
     if (!editingQuizId || !pendingQuizData) return;
     setIsResettingQuiz(true);
     try {
-      await quizService.updateQuiz(editingQuizId, {
-        ...pendingQuizData,
-        forceReset: true
-      });
+      const activityToUpdate = quizzes.find((q: any) => q._id === editingQuizId);
+      if (activityToUpdate && activityToUpdate.bankItemId) {
+        const bankId = activityToUpdate.bankItemId._id || activityToUpdate.bankItemId;
+        await bankService.updateBankItem(bankId, {
+          title: pendingQuizData.title,
+          durationMinutes: pendingQuizData.durationMinutes,
+          shuffleQuestions: pendingQuizData.shuffleQuestions,
+          shuffleOptions: pendingQuizData.shuffleOptions,
+          quizQuestions: pendingQuizData.questions
+        });
+        await activityService.updateActivity(editingQuizId, {
+          title: pendingQuizData.title,
+          durationMinutes: pendingQuizData.durationMinutes
+        });
+      }
       toast.success("Cập nhật đề thi & reset kết quả thành công!");
       setIsCreatingQuiz(false);
       setEditingQuizId(null);
@@ -641,8 +743,8 @@ export default function TeacherClassroomDetail() {
   const handleToggleQuizStatus = async (quizItem: any) => {
     const newStatus = quizItem.status === 'open' ? 'closed' : 'open';
     try {
-      const res = await quizService.updateQuizStatus(quizItem._id, newStatus);
-      if (res.data) {
+      const res = await activityService.updateActivity(quizItem._id, { status: newStatus });
+      if (res) {
         setQuizzes(prevQuizzes => prevQuizzes.map(q =>
           q._id === quizItem._id ? { ...q, status: newStatus } : q
         ));
@@ -662,7 +764,7 @@ export default function TeacherClassroomDetail() {
     if (!quizToDelete) return;
     setIsDeletingQuiz(true);
     try {
-      await quizService.deleteQuiz(quizToDelete._id);
+      await activityService.deleteActivity(quizToDelete._id);
       toast.success("Xóa đề thi thành công!");
       setQuizzes(prevQuizzes => prevQuizzes.filter(q => q._id !== quizToDelete._id));
       setIsDeleteQuizDialogOpen(false);
@@ -679,6 +781,62 @@ export default function TeacherClassroomDetail() {
     setEditingQuizId(null);
   };
 
+  // Mở danh sách bài soạn từ ngân hàng đề để giao
+  const handleOpenAssignFromBank = async () => {
+    setIsAssignFromBankOpen(true);
+    setLoadingBank(true);
+    setSelectedBankItem(null);
+    try {
+      const res = await bankService.getMyBankItems();
+      setBankItems(res.data || []);
+    } catch {
+      toast.error("Không thể tải danh sách tài nguyên từ ngân hàng");
+    } finally {
+      setLoadingBank(false);
+    }
+  };
+
+  // Chọn bài soạn từ ngân hàng
+  const handleSelectBankItem = (item: any) => {
+    setSelectedBankItem(item);
+    setAssignTitle(item.title);
+    setAssignDescription(item.description || "");
+    setAssignMaxScore(item.maxScore || 10);
+    setAssignDurationMinutes(item.durationMinutes || 15);
+    setAssignCategory(item.type === 'quiz' ? 'periodic' : 'homework');
+
+    // Hạn nộp mặc định là 7 ngày sau
+    const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    setAssignDueDate(defaultDate.toISOString().substring(0, 16));
+  };
+
+  // Giao bài tập
+  const handleConfirmAssign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedBankItem || !classId) return;
+
+    setIsAssigning(true);
+    try {
+      await activityService.assignActivity(classId, {
+        bankItemId: selectedBankItem._id,
+        title: assignTitle,
+        description: assignDescription,
+        category: assignCategory,
+        dueDate: assignDueDate,
+        maxScore: assignMaxScore,
+        durationMinutes: selectedBankItem.type === 'quiz' ? assignDurationMinutes : undefined
+      });
+      toast.success("Giao bài tập mới thành công!");
+      setIsAssignFromBankOpen(false);
+      setSelectedBankItem(null);
+      loadQuizzes();
+    } catch (err: any) {
+      toast.error(err.message || "Giao bài tập thất bại!");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const handleOpenCreateQuiz = () => {
     setQuizTitle("");
     setQuizDuration(15);
@@ -692,15 +850,16 @@ export default function TeacherClassroomDetail() {
   const handleOpenEditQuiz = (quizItem: any) => {
     setQuizTitle(quizItem.title);
     setQuizDuration(quizItem.durationMinutes);
-    setShuffleQuestions(quizItem.shuffleQuestions || false);
-    setShuffleOptions(quizItem.shuffleOptions || false);
-    // Sao chép sâu câu hỏi vào form state
-    const formattedQuestions = quizItem.questions.map((q: any) => ({
-      questionText: q.questionText,
+    setShuffleQuestions(quizItem.shuffleQuestions || quizItem.bankItemId?.shuffleQuestions || false);
+    setShuffleOptions(quizItem.shuffleOptions || quizItem.bankItemId?.shuffleOptions || false);
+    // Sao chép sâu câu hỏi vào form state từ bankItemId.quizQuestions hoặc quizItem.questions
+    const rawQuestions = quizItem.bankItemId?.quizQuestions || quizItem.questions || [];
+    const formattedQuestions = rawQuestions.map((q: any) => ({
+      questionText: q.questionText || "",
       imageUrl: q.imageUrl,
-      options: [...q.options],
+      options: q.options ? [...q.options] : ["", "", "", ""],
       optionImages: q.optionImages ? [...q.optionImages] : [],
-      correctOptionIndex: q.correctOptionIndex,
+      correctOptionIndex: q.correctOptionIndex ?? -1,
       points: q.points || 1
     }));
     setQuizQuestions(formattedQuestions);
@@ -1060,12 +1219,12 @@ export default function TeacherClassroomDetail() {
 
                     <div className={styles.composerActions} style={{ justifyContent: 'flex-end' }}>
 
-                      <Button
+                      <PrimaryButton
                         onClick={handleCreatePost}
                         disabled={!postText.trim() || isPosting}
                       >
                         {isPosting ? "Đang đăng..." : "Đăng bài"}
-                      </Button>
+                      </PrimaryButton>
                     </div>
                   </div>
                 </div>
@@ -1371,14 +1530,17 @@ export default function TeacherClassroomDetail() {
           <div className={styles.tabContentPanel}>
             {isCreatingQuiz ? (
               <div style={{ marginTop: '20px' }}>
-                <QuizBuilder 
-                  initialData={null}
-                  onSubmit={handleSaveQuiz} 
-                  onCancel={() => {
-                    setIsCreatingQuiz(false);
-                    setEditingQuizId(null);
-                  }} 
-                  isSaving={isSavingQuiz} 
+                <QuizBuilder
+                  initialData={editingQuizId ? {
+                    title: quizTitle,
+                    durationMinutes: quizDuration,
+                    questions: quizQuestions,
+                    shuffleQuestions: shuffleQuestions,
+                    shuffleOptions: shuffleOptions
+                  } : null}
+                  onSubmit={handleSaveQuiz}
+                  onCancel={handleCancelCreate}
+                  isSaving={isSavingQuiz}
                 />
               </div>
             ) : selectedQuiz ? (
@@ -1450,11 +1612,57 @@ export default function TeacherClassroomDetail() {
             ) : (
               /* QUIZZES LIST GRID */
               <div className={styles.quizzesTab}>
-                <div className={styles.quizzesHeader}>
-                  <h3>Đề thi trắc nghiệm trong lớp</h3>
-                  <AnimatedAddButton onClick={handleOpenCreateQuiz}>
-                    Tạo đề thi mới
-                  </AnimatedAddButton>
+                <div className={styles.quizzesHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Đề thi trắc nghiệm trong lớp</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', background: '#f1f5f9', padding: '4px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                      <button
+                        type="button"
+                        onClick={() => setQuizzesViewMode("grid")}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          background: quizzesViewMode === "grid" ? '#ffffff' : 'transparent',
+                          color: quizzesViewMode === "grid" ? '#fe6747' : '#64748b',
+                          boxShadow: quizzesViewMode === "grid" ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                        title="Dạng lưới"
+                      >
+                        <GridFour size={18} weight={quizzesViewMode === "grid" ? "fill" : "regular"} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuizzesViewMode("table")}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '32px',
+                          height: '32px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          background: quizzesViewMode === "table" ? '#ffffff' : 'transparent',
+                          color: quizzesViewMode === "table" ? '#fe6747' : '#64748b',
+                          boxShadow: quizzesViewMode === "table" ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s'
+                        }}
+                        title="Dạng bảng"
+                      >
+                        <List size={18} weight={quizzesViewMode === "table" ? "bold" : "regular"} />
+                      </button>
+                    </div>
+                    <AnimatedAddButton onClick={handleOpenAssignFromBank}>
+                      Giao bài tập mới
+                    </AnimatedAddButton>
+                  </div>
                 </div>
 
                 {loadingQuizzes ? (
@@ -1465,79 +1673,196 @@ export default function TeacherClassroomDetail() {
                   </div>
                 ) : (
                   <>
-                    <div className={styles.quizGrid}>
-                      {currentQuizzes.map((quizItem) => (
-                        <div key={quizItem._id} className={styles.quizCard}>
-                          <div className={styles.quizCardHeader}>
-                            <h4>{quizItem.title}</h4>
-                            <div className={styles.headerRight}>
-                              <span className={`${styles.statusBadge} ${getQuizStatus(quizItem).class}`}>
-                                {getQuizStatus(quizItem).label}
-                              </span>
-                              {quizItem.status !== 'draft' && (
-                                <Switch3D
-                                  checked={quizItem.status === 'open'}
-                                  onChange={() => handleToggleQuizStatus(quizItem)}
-                                />
-                              )}
+                    {quizzesViewMode === "table" ? (
+                      <div className="mt-4 flex flex-col gap-4">
+                        {/* BULK ACTION TOOLBAR FOR QUIZZES */}
+                        {selectedQuizIds.length > 0 && (
+                          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg shadow-sm">
+                            <span className="text-sm font-medium text-slate-700">
+                              Đã chọn <strong className="text-primary">{selectedQuizIds.length}</strong> đề thi
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => handleBulkChangeStatusQuizzes('open')}
+                                className="px-3 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition-colors"
+                              >
+                                Mở đề đã chọn
+                              </button>
+                              <button
+                                onClick={() => handleBulkChangeStatusQuizzes('closed')}
+                                className="px-3 py-1.5 text-xs font-bold text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition-colors"
+                              >
+                                Đóng đề đã chọn
+                              </button>
+                              <button
+                                onClick={handleBulkDeleteQuizzes}
+                                className="px-3 py-1.5 text-xs font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition-colors"
+                              >
+                                Xóa đề đã chọn
+                              </button>
                             </div>
                           </div>
-                          <div className={styles.quizCardMeta}>
-                            <div className={styles.metaItem}>
-                              <Clock size={15} />
-                              <span>Thời gian: {quizItem.durationMinutes} phút</span>
-                            </div>
-                            <div className={styles.metaItem}>
-                              <CheckCircle size={15} />
-                              <span>Số câu hỏi: {quizItem.questions?.length || 0} câu</span>
-                            </div>
-                            <div className={styles.metaItem}>
-                              <CalendarBlank size={15} />
-                              <span>Ngày tạo: {new Date(quizItem.createdAt).toLocaleDateString("vi-VN")}</span>
-                            </div>
-                          </div>
-                          {/* Thống kê nhanh / Progress Bar */}
-                          <div className={styles.quizProgress}>
-                            <div className={styles.progressHeader}>
-                              <span>Tiến độ nộp bài:</span>
-                              <strong>{quizItem.submissionCount || 0}/{classroom?.studentCount || 0} học sinh</strong>
-                            </div>
-                            <div className={styles.progressBar}>
-                              <div
-                                className={styles.progressFill}
-                                style={{ width: `${(classroom?.studentCount || 0) > 0 ? ((quizItem.submissionCount || 0) / (classroom?.studentCount || 1)) * 100 : 0}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                          <div className={styles.quizCardActions}>
-                            <AnimatedAddButton
-                              className="flex-1 !text-[12px] !px-2 !py-1.5 whitespace-nowrap !border-[1.5px] !tracking-normal"
-                              icon={<Eye size={14} />}
-                              onClick={() => {
-                                setSelectedQuiz(quizItem);
-                                loadQuizResults(quizItem._id);
-                              }}
+                        )}
+
+                        <Table>
+                          <Table.ScrollContainer className="min-h-[300px]">
+                            <Table.Content
+                              aria-label="Danh sách đề thi"
+                              className="min-w-[800px]"
+                              selectedKeys={selectedQuizKeys}
+                              selectionMode="multiple"
+                              onSelectionChange={setSelectedQuizKeys}
                             >
-                              Xem bảng điểm
-                            </AnimatedAddButton>
-                            <AnimatedAddButton
-                              className="flex-1 !text-[12px] !px-2 !py-1.5 whitespace-nowrap !border-[1.5px] !tracking-normal"
-                              icon={<PencilSimple size={14} />}
-                              onClick={() => handleOpenEditQuiz(quizItem)}
-                            >
-                              Chỉnh sửa
-                            </AnimatedAddButton>
-                            <AnimatedAddButton
-                              className="flex-1 !text-[12px] !px-2 !py-1.5 whitespace-nowrap !border-[1.5px] !tracking-normal !text-red-500 !border-red-200 hover:!bg-red-50"
-                              icon={<Trash size={14} />}
-                              onClick={() => handleDeleteQuizClick(quizItem)}
-                            >
-                              Xóa
-                            </AnimatedAddButton>
+                              <Table.Header>
+                                <Table.Column className="after:hidden" id="selection">
+                                  <HeroCheckbox aria-label="Select all" slot="selection">
+                                    <HeroCheckbox.Content>
+                                      <HeroCheckbox.Control>
+                                        <HeroCheckbox.Indicator />
+                                      </HeroCheckbox.Control>
+                                    </HeroCheckbox.Content>
+                                  </HeroCheckbox>
+                                </Table.Column>
+                                <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">STT</Table.Column>
+                                <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="title">Tên đề thi</Table.Column>
+                                <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="duration">Thời gian</Table.Column>
+                                <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="questions">Số câu hỏi</Table.Column>
+                                <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="progress">Tiến độ nộp</Table.Column>
+                                <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="status">Trạng thái</Table.Column>
+                                <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">Hành động</Table.Column>
+                              </Table.Header>
+                              <Table.Body>
+                                {currentQuizzes.map((quizItem, idx) => {
+                                  const actualIdx = (currentPage - 1) * itemsPerPage + idx;
+                                  const statusObj = getQuizStatus(quizItem);
+                                  const totalQCount = quizItem.questions?.length || quizItem.bankItemId?.quizQuestions?.length || 0;
+                                  return (
+                                    <Table.Row key={quizItem._id} id={quizItem._id}>
+                                      <Table.Cell>
+                                        <HeroCheckbox aria-label={`Select ${quizItem.title}`} slot="selection">
+                                          <HeroCheckbox.Content>
+                                            <HeroCheckbox.Control>
+                                              <HeroCheckbox.Indicator />
+                                            </HeroCheckbox.Control>
+                                          </HeroCheckbox.Content>
+                                        </HeroCheckbox>
+                                      </Table.Cell>
+                                      <Table.Cell className="font-medium text-slate-500">#{actualIdx + 1}</Table.Cell>
+                                      <Table.Cell className="font-bold text-slate-900 text-[15px]">{quizItem.title}</Table.Cell>
+                                      <Table.Cell className="text-slate-600 font-semibold">{quizItem.durationMinutes} phút</Table.Cell>
+                                      <Table.Cell className="text-slate-600 font-semibold">{totalQCount} câu</Table.Cell>
+                                      <Table.Cell>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '130px' }}>
+                                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                                            <span>{quizItem.submissionCount || 0}/{classroom?.studentCount || 0} HS</span>
+                                          </div>
+                                          <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                                            <div style={{ width: `${(classroom?.studentCount || 0) > 0 ? ((quizItem.submissionCount || 0) / (classroom?.studentCount || 1)) * 100 : 0}%`, height: '100%', background: '#fe6747' }} />
+                                          </div>
+                                        </div>
+                                      </Table.Cell>
+                                      <Table.Cell>
+                                        <span className={`${styles.statusBadge} ${statusObj.class}`} style={{ margin: 0 }}>
+                                          {statusObj.label}
+                                        </span>
+                                      </Table.Cell>
+                                      <Table.Cell>
+                                        <div className="flex items-center justify-end gap-1 relative">
+                                          <QuizActionMenu
+                                            onViewResults={() => {
+                                              setSelectedQuiz(quizItem);
+                                              loadQuizResults(quizItem._id);
+                                            }}
+                                            onEdit={() => handleOpenEditQuiz(quizItem)}
+                                            onDelete={() => handleDeleteQuizClick(quizItem)}
+                                            onToggleStatus={() => handleToggleQuizStatus(quizItem)}
+                                            status={quizItem.status}
+                                          />
+                                        </div>
+                                      </Table.Cell>
+                                    </Table.Row>
+                                  );
+                                })}
+                              </Table.Body>
+                            </Table.Content>
+                          </Table.ScrollContainer>
+                        </Table>
+                      </div>
+                    ) : (
+                      <div className={styles.quizGrid}>
+                        {currentQuizzes.map((quizItem) => (
+                          <div key={quizItem._id} className={styles.quizCard}>
+                            <div className={styles.quizCardHeader}>
+                              <h4>{quizItem.title}</h4>
+                              <div className={styles.headerRight}>
+                                <span className={`${styles.statusBadge} ${getQuizStatus(quizItem).class}`}>
+                                  {getQuizStatus(quizItem).label}
+                                </span>
+                                {quizItem.status !== 'draft' && (
+                                  <Switch3D
+                                    checked={quizItem.status === 'open'}
+                                    onChange={() => handleToggleQuizStatus(quizItem)}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                            <div className={styles.quizCardMeta}>
+                              <div className={styles.metaItem}>
+                                <Clock size={15} />
+                                <span>Thời gian: {quizItem.durationMinutes} phút</span>
+                              </div>
+                              <div className={styles.metaItem}>
+                                <CheckCircle size={15} />
+                                <span>Số câu hỏi: {(quizItem.questions?.length || quizItem.bankItemId?.quizQuestions?.length || 0)} câu</span>
+                              </div>
+                              <div className={styles.metaItem}>
+                                <CalendarBlank size={15} />
+                                <span>Ngày tạo: {new Date(quizItem.createdAt).toLocaleDateString("vi-VN")}</span>
+                              </div>
+                            </div>
+                            {/* Thống kê nhanh / Progress Bar */}
+                            <div className={styles.quizProgress}>
+                              <div className={styles.progressHeader}>
+                                <span>Tiến độ nộp bài:</span>
+                                <strong>{quizItem.submissionCount || 0}/{classroom?.studentCount || 0} học sinh</strong>
+                              </div>
+                              <div className={styles.progressBar}>
+                                <div
+                                  className={styles.progressFill}
+                                  style={{ width: `${(classroom?.studentCount || 0) > 0 ? ((quizItem.submissionCount || 0) / (classroom?.studentCount || 1)) * 100 : 0}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                            <div className={styles.quizCardActions}>
+                              <AnimatedAddButton
+                                className="flex-1 !text-[12px] !px-2 !py-1.5 whitespace-nowrap !border-[1.5px] !tracking-normal"
+                                icon={<Eye size={14} />}
+                                onClick={() => {
+                                  setSelectedQuiz(quizItem);
+                                  loadQuizResults(quizItem._id);
+                                }}
+                              >
+                                Xem bảng điểm
+                              </AnimatedAddButton>
+                              <AnimatedAddButton
+                                className="flex-1 !text-[12px] !px-2 !py-1.5 whitespace-nowrap !border-[1.5px] !tracking-normal"
+                                icon={<PencilSimple size={14} />}
+                                onClick={() => handleOpenEditQuiz(quizItem)}
+                              >
+                                Chỉnh sửa
+                              </AnimatedAddButton>
+                              <AnimatedAddButton
+                                className="flex-1 !text-[12px] !px-2 !py-1.5 whitespace-nowrap !border-[1.5px] !tracking-normal !text-red-500 !border-red-200 hover:!bg-red-50"
+                                icon={<Trash size={14} />}
+                                onClick={() => handleDeleteQuizClick(quizItem)}
+                              >
+                                Xóa
+                              </AnimatedAddButton>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* PAGINATION CONTROLS */}
                     {totalPages > 1 && (
@@ -1605,6 +1930,173 @@ export default function TeacherClassroomDetail() {
         isLoading={isResettingQuiz}
         actionType="danger"
       />
+
+      {/* Modal chọn bài tập từ ngân hàng để giao */}
+      <Dialog open={isAssignFromBankOpen} onOpenChange={(open) => { if (!open) setIsAssignFromBankOpen(false); }}>
+        <DialogContent className="sm:max-w-[700px] bg-white rounded-2xl p-6 overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900">
+              Giao bài tập từ Ngân hàng đề
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 text-sm mt-1">
+              Chọn đề thi trắc nghiệm hoặc bài tập đã soạn sẵn để giao cho lớp học.
+            </DialogDescription>
+          </DialogHeader>
+
+          {!selectedBankItem ? (
+            <div className="mt-4 flex flex-col gap-4">
+              <div className="text-sm font-semibold text-slate-700">Danh sách tài nguyên sẵn có:</div>
+              {loadingBank ? (
+                <div className="text-center py-8 text-slate-400">Đang tải ngân hàng đề...</div>
+              ) : bankItems.length === 0 ? (
+                <div className="text-center py-10 border border-dashed border-slate-200 rounded-xl bg-slate-50 text-slate-500">
+                  Ngân hàng đề của bạn đang trống. Hãy tạo đề thi/bài tập ở menu Ngân hàng trước.
+                </div>
+              ) : (
+                <ScrollArea className="h-[400px] pr-2">
+                  <div className="flex flex-col gap-3">
+                    {bankItems.map((item) => (
+                      <div key={item._id} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${item.type === 'quiz' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {item.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
+                          </span>
+                          <div>
+                            <h4 className="font-semibold text-slate-800 text-sm">{item.title}</h4>
+                            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[320px]">{item.description || 'Không có mô tả'}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectBankItem(item)}
+                          className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors"
+                        >
+                          Chọn giao
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          ) : (
+            <form onSubmit={handleConfirmAssign} className="mt-4 flex flex-col gap-4">
+              <ScrollArea className="h-[400px] pr-2">
+                <div className="flex flex-col gap-4 pb-2">
+                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBankItem(null)}
+                      className="text-xs font-semibold text-orange-500 hover:text-orange-600"
+                    >
+                      &larr; Quay lại chọn bài khác
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-xs text-slate-500 font-semibold">Đang giao: {selectedBankItem.title}</span>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase">Tiêu đề bài giao</label>
+                    <input
+                      type="text"
+                      value={assignTitle}
+                      onChange={(e) => setAssignTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase">Mô tả chi tiết</label>
+                    <textarea
+                      value={assignDescription}
+                      onChange={(e) => setAssignDescription(e.target.value)}
+                      rows={2}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase">Phân loại điểm</label>
+                      <select
+                        value={assignCategory}
+                        onChange={(e) => setAssignCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                      >
+                        <option value="homework">Bài tập về nhà</option>
+                        <option value="periodic">Kiểm tra định kỳ</option>
+                        <option value="mock_exam">Thi thử</option>
+                        <option value="attitude">Chuyên cần / Thái độ</option>
+                      </select>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase">Hạn nộp</label>
+                      <input
+                        type="datetime-local"
+                        value={assignDueDate}
+                        onChange={(e) => setAssignDueDate(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-bold text-slate-700 uppercase">Điểm tối đa</label>
+                      <div style={{ display: 'flex' }}>
+                        <NumberStepper
+                          value={assignMaxScore}
+                          onChange={(val) => setAssignMaxScore(Number(val))}
+                          min={1}
+                          max={100}
+                          step={1}
+                          fullWidth
+                        />
+                      </div>
+                    </div>
+
+                    {selectedBankItem.type === 'quiz' && (
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-bold text-slate-700 uppercase">Thời gian làm bài (phút)</label>
+                        <div style={{ display: 'flex' }}>
+                          <NumberStepper
+                            value={assignDurationMinutes}
+                            onChange={(val) => setAssignDurationMinutes(Number(val))}
+                            min={1}
+                            max={180}
+                            step={1}
+                            fullWidth
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ScrollArea>
+
+              <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => { setSelectedBankItem(null); setIsAssignFromBankOpen(false); }}
+                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isAssigning}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
+                >
+                  {isAssigning ? "Đang giao bài..." : "Giao bài ngay"}
+                </button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

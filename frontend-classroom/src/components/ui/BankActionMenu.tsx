@@ -1,23 +1,17 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { ShieldStar, Key, LockKey, LockKeyOpen, Trash, PencilSimple } from "phosphor-react";
+import { Eye, Pencil, Trash } from "phosphor-react";
 
-interface ActionMenuProps {
+interface BankActionMenuProps {
+  onViewDetails: () => void;
   onEdit: () => void;
-  onRoleChange: () => void;
-  onResetPassword: () => void;
-  onToggleStatus: () => void;
   onDelete: () => void;
-  isLocked: boolean;
 }
 
-export const ActionMenu: React.FC<ActionMenuProps> = ({
+export const BankActionMenu: React.FC<BankActionMenuProps> = ({
+  onViewDetails,
   onEdit,
-  onRoleChange,
-  onResetPassword,
-  onToggleStatus,
   onDelete,
-  isLocked,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
   const popupRef = useRef<HTMLLabelElement>(null);
@@ -46,7 +40,6 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     }
   };
 
-  // Đóng menu sau khi click vào action
   const handleAction = (action: () => void) => {
     if (checkboxRef.current) {
       checkboxRef.current.checked = false;
@@ -54,7 +47,6 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     action();
   };
 
-  // Click outside để đóng menu
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
@@ -63,7 +55,6 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
         }
       }
     };
-    // Sử dụng capture phase (true) để bắt sự kiện trước khi các thư viện UI (như HeroUI) kịp chặn event propagation
     document.addEventListener('click', handleClickOutside, true);
     return () => document.removeEventListener('click', handleClickOutside, true);
   }, []);
@@ -85,45 +76,23 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
           <legend>Tùy chọn</legend>
           <ul>
             <li>
+              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onViewDetails); }}>
+                <Eye size={16} weight="bold" className="text-blue-500" />
+                <span>Xem chi tiết</span>
+              </button>
+            </li>
+            <hr />
+            <li>
               <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onEdit); }}>
-                <PencilSimple size={16} weight="bold" className="text-primary" />
+                <Pencil size={16} weight="bold" className="text-amber-500" />
                 <span>Chỉnh sửa</span>
-              </button>
-            </li>
-            <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onRoleChange); }}>
-                <ShieldStar size={16} weight="bold" className="text-blue-500" />
-                <span>Đổi quyền</span>
-              </button>
-            </li>
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onResetPassword); }}>
-                <Key size={16} weight="bold" className="text-amber-500" />
-                <span>Reset mật khẩu</span>
-              </button>
-            </li>
-            <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onToggleStatus); }}>
-                {isLocked ? (
-                  <>
-                    <LockKeyOpen size={16} weight="bold" className="text-emerald-500" />
-                    <span>Mở khóa tài khoản</span>
-                  </>
-                ) : (
-                  <>
-                    <LockKey size={16} weight="bold" className="text-orange-500" />
-                    <span>Khóa tài khoản</span>
-                  </>
-                )}
               </button>
             </li>
             <hr />
             <li>
               <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onDelete); }}>
                 <Trash size={16} weight="bold" className="text-red-500" />
-                <span>Xóa tài khoản</span>
+                <span>Xóa tài nguyên</span>
               </button>
             </li>
           </ul>
@@ -134,14 +103,12 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
 };
 
 const StyledWrapper = styled.div`
-  /* The design is inspired from the mockapi.io */
-
   .popup {
     --burger-line-width: 1.125em;
     --burger-line-height: 0.125em;
     --burger-offset: 0.625em;
     --burger-bg: transparent;
-    --burger-color: #64748b; /* slate-500 */
+    --burger-color: #64748b;
     --burger-line-border-radius: 0.1875em;
     --burger-diameter: 2.125em;
     --burger-btn-border-radius: calc(var(--burger-diameter) / 2);
@@ -152,11 +119,10 @@ const StyledWrapper = styled.div`
     --burger-enable-outline-color: var(--burger-bg);
     --burger-enable-outline-width: 0.125em;
     --burger-enable-outline-offset: var(--burger-enable-outline-width);
-    /* nav */
     --nav-padding-x: 0.25em;
     --nav-padding-y: 0.625em;
     --nav-border-radius: 0.5rem;
-    --nav-border-color: #e2e8f0; /* slate-200 */
+    --nav-border-color: #e2e8f0;
     --nav-border-width: 1px;
     --nav-shadow-color: rgba(0, 0, 0, .1);
     --nav-shadow-width: 0 4px 6px -1px;
@@ -166,26 +132,21 @@ const StyledWrapper = styled.div`
     --nav-active-scale: 1;
     --nav-position-left: unset;
     --nav-position-right: 0;
-    /* title */
     --nav-title-size: 0.75rem;
-    --nav-title-color: #64748b; /* slate-500 */
+    --nav-title-color: #64748b;
     --nav-title-padding-x: 1rem;
     --nav-title-padding-y: 0.5rem;
-    /* nav button */
     --nav-button-padding-x: 1rem;
     --nav-button-padding-y: 0.5rem;
     --nav-button-border-radius: 0.375em;
     --nav-button-font-size: 14px;
-    --nav-button-hover-bg: #e2e8f0; /* slate-200 */
-    --nav-button-hover-text-color: #0f172a; /* slate-900 */
+    --nav-button-hover-bg: #e2e8f0;
+    --nav-button-hover-text-color: #0f172a;
     --nav-button-distance: 0.75em;
-    /* underline */
     --underline-border-width: 1px;
-    --underline-border-color: #cbd5e1; /* slate-300 */
+    --underline-border-color: #cbd5e1;
     --underline-margin-y: 0.5rem;
   }
-
-  /* popup settings 👆 */
 
   .popup {
     display: inline-block;
@@ -289,7 +250,7 @@ const StyledWrapper = styled.div`
     background: none;
     display: flex;
     align-items: center;
-    color: #334155; /* slate-700 */
+    color: #334155;
     font-size: var(--nav-button-font-size);
     font-weight: 500;
     padding: var(--nav-button-padding-y) var(--nav-button-padding-x);
@@ -305,19 +266,16 @@ const StyledWrapper = styled.div`
     border-bottom: var(--underline-border-width) solid var(--underline-border-color);
   }
 
-  /* actions */
-
   .popup-window ul button:hover,
   .popup-window ul button:focus-visible {
     color: var(--nav-button-hover-text-color);
     background: var(--nav-button-hover-bg);
   }
 
-  /* Màu đặc biệt cho nút Xóa */
   .popup-window ul li:last-child button:hover,
   .popup-window ul li:last-child button:focus-visible {
-    color: #dc2626; /* red-600 */
-    background: #fee2e2; /* red-100 */
+    color: #dc2626;
+    background: #fee2e2;
   }
 
   .burger:hover {

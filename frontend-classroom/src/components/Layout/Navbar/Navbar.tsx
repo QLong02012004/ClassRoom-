@@ -128,6 +128,7 @@ const NavBar: React.FC = () => {
         ...commonLinks,
         { name: "Người dùng", path: "/admin/users", icon: <User size={20} weight={isActive("/admin/users") ? "fill" : "regular"} /> },
         { name: "Lớp học ", path: "/admin/classrooms", icon: <Chalkboard size={20} weight={isActive("/admin/classrooms") ? "fill" : "regular"} /> },
+        { name: "Ngân hàng", path: "/bank", icon: <BookOpen size={20} weight={isActive("/bank") ? "fill" : "regular"} /> },
       ];
     } else {
       return [

@@ -7,7 +7,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'SieuBaoMatRefresh2
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '15m';       // Access token ngắn hạn
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '7d'; // Refresh token dài hạn
 
-export const createAccountService = async (name: string, email: string, password: string, role: 'admin' | 'teacher' | 'student', parentPhone?: string) => {
+export const createAccountService = async (name: string, email: string, password: string, role: 'admin' | 'teacher' | 'student', parentPhone?: string, subject?: string) => {
     // 1. Logic kiểm tra trùng email
     const userExists = await UserModel.findOne({ email });
     if (userExists) {
@@ -24,8 +24,9 @@ export const createAccountService = async (name: string, email: string, password
         email,
         passwordHash,
         role,
-        parentPhone: parentPhone || ''
-    });
+        parentPhone: parentPhone || '',
+        subject: subject || ''
+    } as any) as any;
 
     return {
         id: newUser._id,
@@ -33,7 +34,8 @@ export const createAccountService = async (name: string, email: string, password
         email: newUser.email,
         role: newUser.role,
         status: newUser.status,
-        parentPhone: newUser.parentPhone
+        parentPhone: newUser.parentPhone,
+        subject: newUser.subject
     };
 };
 
@@ -91,7 +93,8 @@ export const loginService = async (email: string, password: string) => {
             dob: user.dob,
             gender: user.gender,
             phone: user.phone,
-            address: user.address
+            address: user.address,
+            subject: user.subject
         },
         accessToken,
         refreshToken

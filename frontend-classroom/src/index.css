@@ -57,6 +57,31 @@
 
   --secondary-foreground: #FFFFFF;
 
+  /* HeroUI & NextUI primary brand color: Orange #FE6747 (HSL: 11 99% 64%) */
+  --heroui-primary: 11 99% 64%;
+  --heroui-primary-50: 11 99% 95%;
+  --heroui-primary-100: 11 99% 90%;
+  --heroui-primary-200: 11 99% 80%;
+  --heroui-primary-300: 11 99% 70%;
+  --heroui-primary-400: 11 99% 65%;
+  --heroui-primary-500: 11 99% 64%;
+  --heroui-primary-600: 11 99% 55%;
+  --heroui-primary-700: 11 99% 45%;
+  --heroui-primary-800: 11 99% 35%;
+  --heroui-primary-900: 11 99% 25%;
+
+  --nextui-primary: 11 99% 64%;
+  --nextui-primary-50: 11 99% 95%;
+  --nextui-primary-100: 11 99% 90%;
+  --nextui-primary-200: 11 99% 80%;
+  --nextui-primary-300: 11 99% 70%;
+  --nextui-primary-400: 11 99% 65%;
+  --nextui-primary-500: 11 99% 64%;
+  --nextui-primary-600: 11 99% 55%;
+  --nextui-primary-700: 11 99% 45%;
+  --nextui-primary-800: 11 99% 35%;
+  --nextui-primary-900: 11 99% 25%;
+
   --muted: oklch(0.97 0 0);
 
   --muted-foreground: oklch(0.556 0 0);
@@ -271,4 +296,27 @@
       -webkit-text-fill-color: oklch(0.145 0 0) !important;
       caret-color: oklch(0.145 0 0) !important;
   }
+}
+
+/* Force all selected checkboxes in tables to have the theme orange background (#FE6747) */
+span[data-selected="true"]::after,
+span[data-selected="true"] > span {
+  background: #FE6747 !important;
+  background-color: #FE6747 !important;
+  border-color: #FE6747 !important;
+}
+
+span[data-selected="true"] {
+  border-color: #FE6747 !important;
+}
+
+tr[data-selected="true"],
+tr[data-selected="true"]:hover {
+  background-color: rgba(254, 103, 71, 0.08) !important;
+}
+
+span[data-selected="true"] svg {
+  stroke: #ffffff !important;
+  fill: #ffffff !important;
+  color: #ffffff !important;
 }

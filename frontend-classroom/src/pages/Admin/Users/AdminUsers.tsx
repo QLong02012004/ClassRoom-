@@ -10,10 +10,11 @@ import {
   LockKeyOpen,
   ShieldStar,
   Trash,
+  CaretDown,
 } from "phosphor-react";
 import { ClimbingBoxLoader } from "react-spinners";
 
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { AnimatedAddButton } from "@/components/ui/AnimatedAddButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input as HeroInput, Select, ListBox, ListBoxItem, Table, Chip, Checkbox, Avatar as HeroAvatar, Pagination } from "@heroui/react";
@@ -65,6 +66,7 @@ export type User = {
   email: string;
   role: "Admin" | "Giáo viên" | "Học sinh";
   status: "Active" | "Locked";
+  subject?: string;
 };
 
 // Chuyển từ IUserItem (API) sang User (table)
@@ -74,6 +76,7 @@ const mapApiToUser = (item: IUserItem): User => ({
   email: item.email,
   role: roleToVi(item.role),
   status: item.status,
+  subject: item.subject,
 });
 
 export default function AdminUsers() {
@@ -150,6 +153,17 @@ export default function AdminUsers() {
     email: "",
     password: "",
     role: "teacher" as "teacher" | "student",
+    subject: "Toán",
+  });
+
+  // State cho dialog Chỉnh sửa thành viên
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    id: "",
+    name: "",
+    email: "",
+    subject: "Toán",
+    role: "teacher" as "admin" | "teacher" | "student",
   });
 
   // State cho dialog Reset mật khẩu
@@ -338,17 +352,66 @@ export default function AdminUsers() {
     }
   };
 
+  // Handler: Mở dialog chỉnh sửa thành viên
+  const handleOpenEdit = (user: User) => {
+    setSelectedUser(user);
+    setEditFormData({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      subject: user.subject || "Toán",
+      role: viToRole(user.role),
+    });
+    setShowEditDialog(true);
+  };
+
+  // Handler: Xác nhận cập nhật thông tin thành viên
+  const handleUpdateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const response = await userService.updateUser(editFormData.id, {
+        name: editFormData.name,
+        email: editFormData.email,
+        subject: editFormData.role === "teacher" ? editFormData.subject : "",
+        role: editFormData.role,
+      });
+
+      toast.success(response.message || "Cập nhật thành công!", 3000);
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === editFormData.id
+            ? {
+                ...u,
+                name: editFormData.name,
+                email: editFormData.email,
+                role: roleToVi(editFormData.role),
+                subject: editFormData.role === "teacher" ? editFormData.subject : "",
+              }
+            : u
+        )
+      );
+
+      setShowEditDialog(false);
+    } catch (error: any) {
+      toast.error(error.message || "Cập nhật thất bại!", 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Handler: Đóng hộp thoại Tạo người dùng (có cảnh báo nếu chưa lưu)
   const handleCloseDialog = (open: boolean) => {
     if (!open) {
       if (formData.name.trim() || formData.email.trim() || formData.password.trim()) {
         if (window.confirm("Bạn có dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng hộp thoại và hủy bỏ?")) {
           setShowDialog(false);
-          setFormData({ name: "", email: "", password: "", role: "teacher" });
+          setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán" });
         }
       } else {
         setShowDialog(false);
-        setFormData({ name: "", email: "", password: "", role: "teacher" });
+        setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán" });
       }
     } else {
       setShowDialog(true);
@@ -366,6 +429,7 @@ export default function AdminUsers() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
+          subject: formData.subject,
         });
       } else {
         response = await authService.createStudent({
@@ -381,7 +445,7 @@ export default function AdminUsers() {
       await fetchUsers();
 
       setShowDialog(false);
-      setFormData({ name: "", email: "", password: "", role: "teacher" });
+      setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán" });
     } catch (error: any) {
       toast.error(error.message || "Có lỗi xảy ra khi tạo tài khoản!", 3000);
     } finally {
@@ -493,14 +557,14 @@ export default function AdminUsers() {
           </Select>
 
           {selectedCount > 0 && (
-            <Button
+            <PrimaryButton
               variant="destructive"
               className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-semibold flex items-center gap-2 px-4 py-2 h-auto"
               onClick={handleDeleteMultipleUsers}
             >
               <Trash size={16} weight="bold" />
               Xóa {selectedCount} tài khoản
-            </Button>
+            </PrimaryButton>
           )}
         </div>
 
@@ -570,9 +634,38 @@ export default function AdminUsers() {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                   />
                 </div>
+                {formData.role === "teacher" && (
+                  <div className="space-y-2 flex flex-col">
+                    <Label htmlFor="subject" className="font-semibold text-slate-700">
+                      Môn học chuyên môn
+                    </Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
+                        >
+                          <span>Môn {formData.subject || "Toán"}</span>
+                          <CaretDown size={16} className="text-slate-400" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                          <DropdownMenuItem
+                            key={subj}
+                            onClick={() => setFormData({ ...formData, subject: subj })}
+                            className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
+                          >
+                            Môn {subj}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
               </div>
               <DialogFooter>
-                <Button
+                <PrimaryButton
                   type="button"
                   variant="outline"
                   onClick={() => handleCloseDialog(false)}
@@ -580,8 +673,8 @@ export default function AdminUsers() {
                   disabled={isSubmitting}
                 >
                   Hủy
-                </Button>
-                <Button
+                </PrimaryButton>
+                <PrimaryButton
                   type="submit"
                   className="bg-primary text-white font-semibold"
                   disabled={isSubmitting}
@@ -594,7 +687,7 @@ export default function AdminUsers() {
                   ) : (
                     "Tạo tài khoản"
                   )}
-                </Button>
+                </PrimaryButton>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -631,7 +724,7 @@ export default function AdminUsers() {
                 </div>
               </div>
               <DialogFooter>
-                <Button
+                <PrimaryButton
                   type="button"
                   variant="outline"
                   onClick={() => setShowResetDialog(false)}
@@ -639,8 +732,8 @@ export default function AdminUsers() {
                   disabled={isResetting}
                 >
                   Hủy
-                </Button>
-                <Button
+                </PrimaryButton>
+                <PrimaryButton
                   type="submit"
                   className="bg-primary text-white font-semibold"
                   disabled={isResetting}
@@ -653,7 +746,7 @@ export default function AdminUsers() {
                   ) : (
                     "Xác nhận"
                   )}
-                </Button>
+                </PrimaryButton>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -710,7 +803,7 @@ export default function AdminUsers() {
                 </div>
               </div>
               <DialogFooter>
-                <Button
+                <PrimaryButton
                   type="button"
                   variant="outline"
                   onClick={() => setShowRoleDialog(false)}
@@ -718,8 +811,8 @@ export default function AdminUsers() {
                   disabled={isChangingRole}
                 >
                   Hủy
-                </Button>
-                <Button
+                </PrimaryButton>
+                <PrimaryButton
                   type="submit"
                   className="bg-primary text-white font-semibold"
                   disabled={isChangingRole}
@@ -732,7 +825,114 @@ export default function AdminUsers() {
                   ) : (
                     "Lưu thay đổi"
                   )}
-                </Button>
+                </PrimaryButton>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Chỉnh sửa thành viên */}
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent className="sm:max-w-[425px]">
+            <form onSubmit={handleUpdateUser}>
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-slate-900">Chỉnh sửa thành viên</DialogTitle>
+                <DialogDescription className="text-slate-500">
+                  Cập nhật thông tin tài khoản người dùng.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name" className="font-semibold text-slate-700">
+                    Họ và tên
+                  </Label>
+                  <HeroInput
+                    id="edit-name"
+                    required
+                    value={editFormData.name}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, name: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email" className="font-semibold text-slate-700">
+                    Email
+                  </Label>
+                  <HeroInput
+                    id="edit-email"
+                    type="email"
+                    required
+                    autoComplete="off"
+                    value={editFormData.email}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, email: e.target.value })
+                    }
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-semibold text-slate-700">Vai trò</Label>
+                  <select
+                    value={editFormData.role}
+                    onChange={(e) =>
+                      setEditFormData({ ...editFormData, role: e.target.value as any })
+                    }
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none font-semibold bg-slate-50 focus:border-orange-500"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="teacher">Giáo viên</option>
+                    <option value="student">Học sinh</option>
+                  </select>
+                </div>
+                {editFormData.role === "teacher" && (
+                  <div className="space-y-2 flex flex-col">
+                    <Label htmlFor="edit-subject" className="font-semibold text-slate-700">
+                      Môn học chuyên môn
+                    </Label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
+                        >
+                          <span>Môn {editFormData.subject || "Toán"}</span>
+                          <CaretDown size={16} className="text-slate-400" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                          <DropdownMenuItem
+                            key={subj}
+                            onClick={() => setEditFormData({ ...editFormData, subject: subj })}
+                            className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
+                          >
+                            Môn {subj}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <PrimaryButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditDialog(false)}
+                  className="font-semibold"
+                  disabled={isSubmitting}
+                >
+                  Hủy
+                </PrimaryButton>
+                <PrimaryButton
+                  type="submit"
+                  className="bg-primary text-white font-semibold"
+                  disabled={isSubmitting}
+                >
+                  Lưu thay đổi
+                </PrimaryButton>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -891,7 +1091,7 @@ export default function AdminUsers() {
                             </Chip>
                           ) : user.role === "Giáo viên" ? (
                             <Chip size="sm" variant="soft" className="bg-blue-50 text-blue-600 font-semibold border border-blue-200">
-                              Giáo viên
+                              Giáo viên {user.subject ? `(${user.subject})` : ""}
                             </Chip>
                           ) : (
                             <Chip size="sm" variant="soft" className="bg-slate-100 text-slate-600 font-semibold border border-slate-200">
@@ -908,6 +1108,7 @@ export default function AdminUsers() {
                           <div className="flex items-center justify-end gap-1 relative">
                             <ActionMenu
                               isLocked={isLocked}
+                              onEdit={() => handleOpenEdit(user)}
                               onRoleChange={() => handleOpenChangeRole(user)}
                               onResetPassword={() => handleOpenResetPassword(user)}
                               onToggleStatus={() => handleToggleStatus(user)}

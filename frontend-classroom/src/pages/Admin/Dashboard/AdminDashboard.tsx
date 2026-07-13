@@ -11,7 +11,7 @@ import {
 import { Area, AreaChart, Bar, BarChart, Tooltip as RechartsTooltip, XAxis, CartesianGrid, YAxis, Label, Pie, PieChart, Sector, ComposedChart, Line, Legend } from "recharts";
 import { TrendingUp } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -401,12 +401,12 @@ export default function AdminDashboard() {
             <div className="grid gap-2">
               <CardTitle>Hoạt động gần đây</CardTitle>
             </div>
-            <Button asChild size="sm" variant="ghost" className="ml-auto gap-1 text-primary hover:text-[#e55c3f] hover:bg-transparent">
+            <PrimaryButton asChild size="sm" variant="ghost" className="ml-auto gap-1 text-primary hover:text-[#e55c3f] hover:bg-transparent">
               <a href="#">
                 Xem tất cả
                 <ArrowUpRight className="h-4 w-4" />
               </a>
-            </Button>
+            </PrimaryButton>
           </CardHeader>
           <CardContent className="grid gap-8 max-h-[350px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f] pr-4">
             {isLoading ? (

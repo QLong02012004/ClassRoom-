@@ -71,7 +71,7 @@ const SkeletonBar = (props: any) => {
   );
 };
 
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -464,7 +464,7 @@ export default function TeacherDashboard() {
             </div>
           </CardContent>
           <div className="p-4 pt-0 mt-auto">
-            <Button variant="outline" className="w-full">Xem tất cả</Button>
+            <PrimaryButton variant="outline" className="w-full">Xem tất cả</PrimaryButton>
           </div>
         </Card>
       </div>
@@ -478,9 +478,9 @@ export default function TeacherDashboard() {
               <CardTitle className="text-white">Lịch dạy hôm nay</CardTitle>
               <CardDescription className="text-white/80 mt-1">Danh sách các lớp bạn có lịch dạy trong ngày hôm nay</CardDescription>
             </div>
-            <Button variant="outline" size="sm" className="font-semibold text-slate-600" onClick={() => navigate("/schedule")}>
+            <PrimaryButton variant="outline" size="sm" className="font-semibold text-slate-600" onClick={() => navigate("/schedule")}>
               Xem toàn bộ lịch
-            </Button>
+            </PrimaryButton>
           </CardHeader>
           <CardContent className="p-0">
             {isLoadingSchedules ? (
@@ -535,7 +535,7 @@ export default function TeacherDashboard() {
                           </div>
                         </div>
                         <div className="mt-3 sm:mt-0 flex gap-2 justify-end">
-                          <Button variant="secondary" size="sm" className="font-bold text-slate-700 bg-white border border-slate-200 shadow-sm">Vào lớp</Button>
+                          <PrimaryButton variant="secondary" size="sm" className="font-bold text-slate-700 bg-white border border-slate-200 shadow-sm">Vào lớp</PrimaryButton>
                         </div>
                       </div>
                     );
@@ -584,7 +584,7 @@ export default function TeacherDashboard() {
                         <span className={`px-2 py-0.5 rounded-md text-xs font-bold border ${student.severity === 'high' ? 'bg-red-50 text-red-700 border-red-200' : 'bg-orange-50 text-orange-700 border-orange-200'}`}>
                           {student.issue}
                         </span>
-                        <Button
+                        <PrimaryButton
                           variant="ghost"
                           size="sm"
                           className="h-7 px-2 text-xs font-semibold text-red-600 hover:text-white hover:bg-red-500 border border-red-200 shadow-sm gap-1 transition-colors"
@@ -593,7 +593,7 @@ export default function TeacherDashboard() {
                         >
                           <BellRinging size={13} weight="fill" />
                           {sendingWarning === student.id ? "Đang gửi..." : "Cảnh báo"}
-                        </Button>
+                        </PrimaryButton>
                       </div>
                   </div>
                 ))}
@@ -636,10 +636,10 @@ export default function TeacherDashboard() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
+              <PrimaryButton type="button" variant="outline" onClick={() => setShowModal(false)}>
                 Hủy bỏ
-              </Button>
-              <Button type="submit">Xác nhận tạo</Button>
+              </PrimaryButton>
+              <PrimaryButton type="submit">Xác nhận tạo</PrimaryButton>
             </DialogFooter>
           </form>
         </DialogContent>

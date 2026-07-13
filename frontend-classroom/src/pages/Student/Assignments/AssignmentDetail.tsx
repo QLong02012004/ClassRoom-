@@ -40,8 +40,8 @@ export default function AssignmentDetail() {
     if (!id) return;
     try {
       const assignRes = await gradebookService.getAssignmentDetail(id);
-      if (assignRes && assignRes.data) {
-        const assignData = assignRes.data;
+      const assignData = assignRes?.data || assignRes;
+      if (assignData && assignData._id) {
         const mappedAssign = {
           ...assignData,
           deadline: assignData.dueDate || (assignData as any).deadline

@@ -32,7 +32,7 @@ import {
   ArrowDownRight
 } from "phosphor-react";
 
-import { Button } from "@/components/ui/button";
+import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -288,7 +288,7 @@ export default function AdminClassrooms() {
 
         return (
           <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            <Button
+            <PrimaryButton
               variant="outline"
               size="icon"
               className={`h-8 w-8 transition-colors ${isViolation ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700' : 'text-slate-500 hover:text-slate-800'}`}
@@ -299,9 +299,9 @@ export default function AdminClassrooms() {
               }}
             >
               <LockKey size={16} weight="bold" />
-            </Button>
+            </PrimaryButton>
 
-            <Button
+            <PrimaryButton
               variant="outline"
               size="icon"
               className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
@@ -312,7 +312,7 @@ export default function AdminClassrooms() {
               }}
             >
               <Trash size={16} weight="bold" />
-            </Button>
+            </PrimaryButton>
           </div>
         );
       },
@@ -477,10 +477,10 @@ export default function AdminClassrooms() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
+                <PrimaryButton variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
                   <Funnel size={16} weight="bold" />
                   Trạng thái {table.getColumn("status")?.getFilterValue() ? `: ${table.getColumn("status")?.getFilterValue()}` : ""}
-                </Button>
+                </PrimaryButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[180px]">
                 <DropdownMenuItem onClick={() => table.getColumn("status")?.setFilterValue("Active")}>Đang hoạt động</DropdownMenuItem>
@@ -591,7 +591,7 @@ export default function AdminClassrooms() {
               Hiển thị {table.getRowModel().rows?.length} trên tổng {table.getFilteredRowModel().rows.length} kết quả
             </p>
             <div className="flex items-center gap-2">
-              <Button
+              <PrimaryButton
                 variant="outline"
                 size="sm"
                 onClick={() => table.previousPage()}
@@ -599,8 +599,8 @@ export default function AdminClassrooms() {
                 className="text-slate-600 font-semibold"
               >
                 Trang trước
-              </Button>
-              <Button
+              </PrimaryButton>
+              <PrimaryButton
                 variant="outline"
                 size="sm"
                 onClick={() => table.nextPage()}
@@ -608,7 +608,7 @@ export default function AdminClassrooms() {
                 className="text-slate-600 font-semibold"
               >
                 Trang tiếp
-              </Button>
+              </PrimaryButton>
             </div>
           </div>
         </div>
@@ -670,12 +670,12 @@ export default function AdminClassrooms() {
             </div>
 
             <div className="mt-auto pt-6 flex flex-col gap-3">
-              <Button className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 shadow-sm">
+              <PrimaryButton className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 shadow-sm">
                 Vào xem trực tiếp
-              </Button>
-              <Button variant="outline" className="w-full border-slate-200 text-slate-700 font-semibold py-6 shadow-sm">
+              </PrimaryButton>
+              <PrimaryButton variant="outline" className="w-full border-slate-200 text-slate-700 font-semibold py-6 shadow-sm">
                 Tải báo cáo lớp học
-              </Button>
+              </PrimaryButton>
             </div>
           </div>
         </div>

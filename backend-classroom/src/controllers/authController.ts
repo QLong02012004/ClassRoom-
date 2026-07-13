@@ -21,9 +21,9 @@ const REFRESH_COOKIE_OPTIONS = {
 // (Admin dùng)
 export const createTeacherAccount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password, subject } = req.body;
 
-        const result = await createAccountService(name, email, password, 'teacher');
+        const result = await createAccountService(name, email, password, 'teacher', undefined, subject);
 
         res.status(201).json({
             message: 'Tạo tài khoản Giáo viên thành công!',
@@ -120,7 +120,8 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    status: user.status
+                    status: user.status,
+                    subject: user.subject
                 }
             }
         });
@@ -154,7 +155,8 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
                 dob: user.dob,
                 gender: user.gender,
                 phone: user.phone,
-                address: user.address
+                address: user.address,
+                subject: user.subject
             }
         });
     } catch (error) {

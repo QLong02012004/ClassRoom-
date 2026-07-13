@@ -13,6 +13,7 @@ export interface IUserItem {
   gender?: string;
   phone?: string;
   address?: string;
+  subject?: string;
   createdAt: string;
 }
 
@@ -65,5 +66,10 @@ export const userService = {
   // Tự đổi mật khẩu
   changePassword: async (data: { oldPassword: string; newPassword: string }): Promise<IBackendRes<any>> => {
     return await api.put(`/api/v1/users/change-password`, data);
+  },
+
+  // Admin cập nhật thông tin người dùng
+  updateUser: async (id: string, data: { name?: string, email?: string, subject?: string, role?: string }): Promise<IBackendRes<IUserItem>> => {
+    return await api.put(`/api/v1/users/${id}`, data);
   }
 };

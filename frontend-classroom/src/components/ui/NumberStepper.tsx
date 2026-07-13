@@ -22,6 +22,8 @@ const NumberStepper: React.FC<NumberStepperProps> = ({
   onOutOfBounds
 }) => {
   const [internalValue, setInternalValue] = useState<string>(value.toString());
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     setInternalValue(value.toString());
@@ -46,6 +48,7 @@ const NumberStepper: React.FC<NumberStepperProps> = ({
   };
 
   const handleBlur = () => {
+    setIsFocused(false);
     if (internalValue === "") {
       onChange("");
       return;
@@ -65,14 +68,24 @@ const NumberStepper: React.FC<NumberStepperProps> = ({
     setInternalValue(parsed.toString());
   };
 
+  const placeholderText = (isHovered || isFocused) 
+    ? (max !== 9999 ? `Max: ${max}` : "") 
+    : "-";
+
   return (
-    <StepperContainer $fullWidth={fullWidth}>
+    <StepperContainer 
+      $fullWidth={fullWidth}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <NumberInput
         type="text"
         $fullWidth={fullWidth}
         value={internalValue}
         onChange={handleInputChange}
         onBlur={handleBlur}
+        onFocus={() => setIsFocused(true)}
+        placeholder={placeholderText}
       />
       <ControlsContainer>
         <ControlButton onClick={handleIncrement} type="button">
@@ -118,6 +131,12 @@ const NumberInput = styled.input<{ $fullWidth?: boolean }>`
   color: #FE6747;
   outline: none;
   background: transparent;
+
+  &::placeholder {
+    color: #94a3b8;
+    opacity: 0.5;
+    font-weight: 500;
+  }
 `;
 
 const ControlsContainer = styled.div`

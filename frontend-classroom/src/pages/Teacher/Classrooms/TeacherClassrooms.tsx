@@ -7,6 +7,7 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { useAuth } from "../../../context/AuthContext";
 import styles from "./TeacherClassrooms.module.scss";
 import {
   createColumnHelper,
@@ -37,6 +38,7 @@ const SUBJECT_OPTIONS = [
 ];
 
 export default function TeacherClassrooms() {
+  const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState<ITeacherClassroom[]>([]);
@@ -70,9 +72,15 @@ export default function TeacherClassrooms() {
     });
   };
 
-  const [newClass, setNewClass] = useState({ className: "", subject: "Toán học" });
+  const [newClass, setNewClass] = useState({ className: "", subject: user?.subject || "Toán học" });
 
-  const selectedSubject = SUBJECT_OPTIONS.find(o => o.value === newClass.subject) || SUBJECT_OPTIONS[0];
+  useEffect(() => {
+    if (user?.subject) {
+      setNewClass(prev => ({ ...prev, subject: user.subject }));
+    }
+  }, [user?.subject]);
+
+  const selectedSubject = SUBJECT_OPTIONS.find(o => o.value === newClass.subject) || { value: newClass.subject, emoji: "📚", color: "#64748b" };
 
   const [searchQuery, setSearchQuery] = useState("");
   const [semesterFilter, setSemesterFilter] = useState("all");
@@ -194,7 +202,7 @@ export default function TeacherClassrooms() {
         await classroomService.createClassroom(newClass);
         toast.success(`Tạo lớp học "${newClass.className}" thành công!`);
       }
-      setNewClass({ className: "", subject: "Toán học" });
+      setNewClass({ className: "", subject: user?.subject || "Toán học" });
       setEditingId(null);
       setShowModal(false);
       loadData();
@@ -206,7 +214,7 @@ export default function TeacherClassrooms() {
   const handleEditClick = (e: React.MouseEvent, cls: ITeacherClassroom) => {
     e.stopPropagation();
     setEditingId(cls._id);
-    setNewClass({ className: cls.name, subject: cls.subject || "Toán học" });
+    setNewClass({ className: cls.name, subject: cls.subject || user?.subject || "Toán học" });
     setShowModal(true);
   };
 
@@ -407,7 +415,7 @@ export default function TeacherClassrooms() {
 
           <AnimatedAddButton onClick={() => {
             setEditingId(null);
-            setNewClass({ className: "", subject: "Toán học" });
+            setNewClass({ className: "", subject: user?.subject || "Toán học" });
             setShowModal(true);
           }}>
             Tạo lớp học mới
@@ -610,53 +618,25 @@ export default function TeacherClassrooms() {
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label>Môn học</label>
-                  <div className={styles.customDropdown} ref={dropdownRef}>
-                    {/* Trigger Button */}
+                  <label>Môn học phụ trách</label>
+                  <div className={styles.customDropdown}>
+                    {/* Read-only Button for Subject */}
                     <button
                       type="button"
-                      className={`${styles.dropdownTrigger} ${dropdownOpen ? styles.dropdownOpen : ""}`}
-                      onClick={() => setDropdownOpen(prev => !prev)}
+                      className={`${styles.dropdownTrigger} opacity-75 cursor-not-allowed bg-slate-50 border-slate-200`}
+                      disabled
                     >
                       <span className={styles.dropdownSelected}>
                         <span className={styles.subjectEmoji}>{selectedSubject.emoji}</span>
-                        <span>{selectedSubject.value}</span>
+                        <span className="font-semibold text-slate-700">{selectedSubject.value}</span>
                       </span>
-                      <CaretDown
-                        size={16}
-                        weight="bold"
-                        className={`${styles.dropdownCaret} ${dropdownOpen ? styles.caretUp : ""}`}
-                      />
-                    </button>
-
-                    {/* Options Panel */}
-                    {dropdownOpen && (
-                      <div className={styles.dropdownPanel}>
-                        {SUBJECT_OPTIONS.map((opt) => (
-                          <button
-                            type="button"
-                            key={opt.value}
-                            className={`${styles.dropdownOption} ${newClass.subject === opt.value ? styles.optionActive : ""}`}
-                            onClick={() => {
-                              setNewClass({ ...newClass, subject: opt.value });
-                              setDropdownOpen(false);
-                            }}
-                          >
-                            <span className={styles.optionLeft}>
-                              <span
-                                className={styles.optionDot}
-                                style={{ background: opt.color }}
-                              />
-                              <span className={styles.optionEmoji}>{opt.emoji}</span>
-                              <span className={styles.optionLabel}>{opt.value}</span>
-                            </span>
-                            {newClass.subject === opt.value && (
-                              <Check size={15} weight="bold" className={styles.optionCheck} />
-                            )}
-                          </button>
-                        ))}
+                      <div className="text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full mr-1 whitespace-nowrap">
+                        Mặc định
                       </div>
-                    )}
+                    </button>
+                    <p className="text-[12px] text-slate-500 mt-2 font-medium">
+                      * Môn học được gán mặc định theo chuyên môn của giáo viên do Admin cấp.
+                    </p>
                   </div>
                 </div>
 

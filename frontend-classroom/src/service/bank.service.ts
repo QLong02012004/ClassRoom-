@@ -8,6 +8,8 @@ export interface IBankItem {
     title: string;
     description: string;
     maxScore: number;
+    subject?: string;
+    sharingStatus?: 'CENTER_SHARED' | 'PRIVATE';
     quizQuestions?: any[];
     durationMinutes?: number;
     shuffleQuestions?: boolean;

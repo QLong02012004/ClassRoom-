@@ -412,7 +412,7 @@ export default function TeacherAttendance() {
                       return (
                         <Table.Row key={student._id} id={student._id} className="hover:bg-slate-50/50 transition-colors">
                           <Table.Cell className="py-3 px-4 border-b border-slate-100">
-                            <Checkbox aria-label={`Select ${student.name}`} slot="selection" variant="secondary">
+                            <Checkbox aria-label={`Select ${student.name}`} slot="selection">
                               <Checkbox.Content>
                                 <Checkbox.Control>
                                   <Checkbox.Indicator />
