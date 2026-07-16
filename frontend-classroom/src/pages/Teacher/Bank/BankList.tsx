@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { bankService } from '../../../service/bank.service';
 import type { IBankItem } from '../../../service/bank.service';
 import { useToast } from '../../../components/Styles/ToastContext';
-import { Plus, BookOpen, FileText, DotsThree, Trash, PencilSimple, Clock, CaretDown } from 'phosphor-react';
+import { Plus, BookOpen, FileText, DotsThree, Trash, PencilSimple, Clock, CaretDown, MagnifyingGlass, Funnel } from 'phosphor-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../../components/ui/dropdown-menu';
 import QuizBuilder from '../../../components/ui/QuizBuilder/QuizBuilder';
 import AssignmentBuilder from '../../../components/ui/AssignmentBuilder/AssignmentBuilder';
@@ -55,13 +55,28 @@ export default function BankList() {
     });
     const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
+    // State bộ lọc và tìm kiếm
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterType, setFilterType] = useState("all");
+    const [filterSubject, setFilterSubject] = useState("all");
+
+    // Lọc dữ liệu
+    const filteredItems = useMemo(() => {
+        return items.filter(item => {
+            const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchType = filterType === "all" || item.type === filterType;
+            const matchSubject = filterSubject === "all" || item.subject === filterSubject;
+            return matchSearch && matchType && matchSubject;
+        });
+    }, [items, searchTerm, filterType, filterSubject]);
+
     // State phân trang
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
-    const totalPages = Math.ceil(items.length / itemsPerPage);
-    const currentItems = items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-    const startIdx = items.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-    const endIdx = Math.min(currentPage * itemsPerPage, items.length);
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+    const currentItems = filteredItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const startIdx = filteredItems.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endIdx = Math.min(currentPage * itemsPerPage, filteredItems.length);
     const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
     const loadBankItems = async () => {
@@ -339,6 +354,81 @@ export default function BankList() {
                                 </div>
                             ) : (
                                 <>
+                                    {/* SEARCH AND FILTER BAR */}
+                                    <div className="mb-4 flex flex-col sm:flex-row gap-3 justify-between">
+                                        <div className="relative w-full sm:w-[320px]">
+                                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                <MagnifyingGlass size={18} className="text-slate-400" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                placeholder="Tìm kiếm tài nguyên theo tiêu đề..."
+                                                value={searchTerm}
+                                                onChange={(e) => {
+                                                    setSearchTerm(e.target.value);
+                                                    setCurrentPage(1);
+                                                }}
+                                                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        className="pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white min-w-[140px] flex items-center justify-between relative hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                            <Funnel size={16} className="text-slate-400" />
+                                                        </div>
+                                                        <span>
+                                                            {filterType === 'all' ? 'Tất cả loại' : filterType === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
+                                                        </span>
+                                                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                                            <CaretDown size={14} className="text-slate-400" />
+                                                        </div>
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 min-w-[140px]">
+                                                    <DropdownMenuItem onClick={() => { setFilterType('all'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Tất cả loại</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => { setFilterType('quiz'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Trắc nghiệm</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => { setFilterType('document'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Bài tập</DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        className="pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white min-w-[140px] flex items-center justify-between relative hover:bg-slate-50 transition-colors"
+                                                    >
+                                                        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+                                                            <BookOpen size={16} className="text-slate-400" />
+                                                        </div>
+                                                        <span>
+                                                            {filterSubject === 'all' ? 'Tất cả môn' : filterSubject}
+                                                        </span>
+                                                        <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
+                                                            <CaretDown size={14} className="text-slate-400" />
+                                                        </div>
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 min-w-[140px]">
+                                                    <DropdownMenuItem onClick={() => { setFilterSubject('all'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Tất cả môn</DropdownMenuItem>
+                                                    {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                                                        <DropdownMenuItem
+                                                            key={subj}
+                                                            onClick={() => { setFilterSubject(subj); setCurrentPage(1); }}
+                                                            className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors"
+                                                        >
+                                                            {subj}
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
+
                                     {/* BULK ACTION TOOLBAR */}
                                     {selectedIds.length > 0 && (
                                         <div className="mb-4 flex items-center justify-between bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg shadow-sm animate-in fade-in duration-200">
@@ -376,8 +466,10 @@ export default function BankList() {
                                                             </Checkbox.Content>
                                                         </Checkbox>
                                                     </Table.Column>
-                                                    <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider w-[180px]" id="type">Loại + Trạng thái</Table.Column>
-                                                    <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider w-[120px]" id="subject">Môn học</Table.Column>
+                                                    <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider w-[240px]" id="type">Loại + Trạng thái</Table.Column>
+                                                    <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider w-[120px]" id="subject">
+
+                                                    </Table.Column>
                                                     <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider w-[280px]" id="title">Tiêu đề tài nguyên</Table.Column>
                                                     <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider text-center w-[120px]" id="maxScore">Điểm tối đa</Table.Column>
                                                     <Table.Column className="after:hidden px-5 py-3.5 font-semibold text-slate-600 text-xs uppercase tracking-wider text-center w-[120px]" id="duration">Thời gian</Table.Column>
@@ -396,18 +488,18 @@ export default function BankList() {
                                                                 </Checkbox>
                                                             </Table.Cell>
                                                             <Table.Cell className="px-5 py-3.5">
-                                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                                    <span className="px-2.5 py-1 text-xs font-bold rounded-full inline-block text-center leading-none bg-slate-100 text-slate-600 border border-slate-200">
+                                                                <div className="flex items-center gap-1.5 flex-nowrap">
+                                                                    <span className="px-2.5 py-1 text-xs font-bold rounded-full inline-block text-center leading-none bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                                         {item.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
                                                                     </span>
-                                                                    <span className="px-2.5 py-1 text-xs font-bold rounded-full inline-block text-center leading-none bg-slate-100 text-slate-600 border border-slate-200">
+                                                                    <span className="px-2.5 py-1 text-xs font-bold rounded-full inline-block text-center leading-none bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                                         {item.sharingStatus === 'CENTER_SHARED' ? 'Chung' : 'Cá nhân'}
                                                                     </span>
                                                                 </div>
                                                             </Table.Cell>
                                                             <Table.Cell className="px-5 py-3.5">
                                                                 {item.subject ? (
-                                                                    <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-blue-50 text-blue-600 leading-none inline-block">
+                                                                    <span className="px-3 py-1.5 text-xs font-bold rounded-full bg-blue-50 text-blue-600 leading-none inline-block">
                                                                         {item.subject}
                                                                     </span>
                                                                 ) : (
@@ -449,7 +541,7 @@ export default function BankList() {
                                             <Table.Footer>
                                                 <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
                                                     <Pagination.Summary className="text-sm text-slate-500 font-medium">
-                                                        Hiển thị {startIdx} đến {endIdx} trong số {items.length} kết quả
+                                                        Hiển thị {startIdx} đến {endIdx} trong số {filteredItems.length} kết quả
                                                     </Pagination.Summary>
                                                     <Pagination.Content>
                                                         <Pagination.Item>

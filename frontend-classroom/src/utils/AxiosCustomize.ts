@@ -111,7 +111,10 @@ instance.interceptors.response.use(
     // Lấy message lỗi từ backend (nếu có) hoặc dùng lỗi mặc định
     const errorMessage =
       (error.response?.data as any)?.message || 'Đã xảy ra lỗi kết nối đến máy chủ';
-    return Promise.reject(new Error(errorMessage));
+    
+    // Gán message vào error nhưng vẫn trả về error gốc (AxiosError) để giữ lại error.response cho các component cần xử lý status code (vd: 409 Conflict)
+    error.message = errorMessage;
+    return Promise.reject(error);
   }
 );
 

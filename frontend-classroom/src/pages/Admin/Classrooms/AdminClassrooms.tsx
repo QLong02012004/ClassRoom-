@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import type {
-  ColumnDef,
-  SortingState,
-  ColumnFiltersState,
-} from "@tanstack/react-table";
-import type {
-  ColumnDef as ColumnDefType
-} from "@tanstack/react-table";
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Pagination,
+  Checkbox,
+  Chip
+} from "@heroui/react";
+import type { Selection } from "@heroui/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
@@ -29,15 +25,17 @@ import {
   X,
   MagnifyingGlass,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Eye
 } from "phosphor-react";
 
 import { PrimaryButton } from "@/components/ui/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -62,18 +60,54 @@ import { useToast } from "../../../components/Styles/ToastContext";
 import { CustomConfirmDialog } from "@/components/ui/CustomConfirmDialog";
 
 import { classroomService, type IClassroomItem, type IClassroomActivities } from "../../../service/classroom.service";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
+import { StudentsTable } from "../../../components/ui/StudentsTable";
+import { attendanceService } from "../../../service/attendance.service";
+import type { Student } from "../../../utils/mockDb";
+import { getMockStudents } from "../../../utils/mockDb";
 
 export default function AdminClassrooms() {
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("all");
   const toast = useToast();
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+  const [page, setPage] = useState(1);
+  const ROWS_PER_PAGE = 10;
 
   const [classes, setClasses] = useState<IClassroomItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<IClassroomItem | null>(null);
   const [classActivities, setClassActivities] = useState<IClassroomActivities | null>(null);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
+  const [classStudents, setClassStudents] = useState<Student[]>([]);
+  const [isStudentsModalOpen, setIsStudentsModalOpen] = useState(false);
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false);
+
+  const handleOpenStudentsModal = async (classId: string) => {
+    setIsStudentsModalOpen(true);
+    setIsLoadingStudents(true);
+    try {
+      const res = await attendanceService.getClassroomStudents(classId);
+      if (res && res.data) {
+        const list = res.data.map((s: any) => ({
+          _id: s._id,
+          name: s.name,
+          email: s.email,
+          parentPhone: s.parentPhone || "Không có",
+          studentCode: s.studentCode || `HS-${s._id.substring(0, 4)}`,
+        })) as any[];
+        setClassStudents(list);
+      }
+    } catch (err) {
+      console.warn("Không thể tải danh sách học sinh từ API, dùng mock:", err);
+      const list = getMockStudents(classId);
+      setClassStudents(list);
+    } finally {
+      setIsLoadingStudents(false);
+    }
+  };
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -86,7 +120,7 @@ export default function AdminClassrooms() {
     title: "",
     description: "",
     actionType: 'default',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   useEffect(() => {
@@ -147,6 +181,34 @@ export default function AdminClassrooms() {
     fetchClasses();
   }, []);
 
+  const filteredClasses = React.useMemo(() => {
+    let result = classes;
+    if (globalFilter) {
+      const lowerFilter = globalFilter.toLowerCase();
+      result = result.filter(c => c.name.toLowerCase().includes(lowerFilter) || c.id.toLowerCase().includes(lowerFilter));
+    }
+    if (statusFilter) {
+      result = result.filter(c => c.status === statusFilter);
+    }
+    if (subjectFilter && subjectFilter !== 'all') {
+      result = result.filter(c => c.subject === subjectFilter);
+    }
+    return result;
+  }, [classes, globalFilter, statusFilter, subjectFilter]);
+
+  const totalPages = Math.ceil(filteredClasses.length / ROWS_PER_PAGE);
+  const paginatedClasses = React.useMemo(() => {
+    const startIdx = (page - 1) * ROWS_PER_PAGE;
+    return filteredClasses.slice(startIdx, startIdx + ROWS_PER_PAGE);
+  }, [page, filteredClasses]);
+
+  const selectedIds = React.useMemo(() => {
+    if (selectedKeys === "all") {
+      return filteredClasses.map(c => c._id);
+    }
+    return Array.from(selectedKeys) as string[];
+  }, [selectedKeys, filteredClasses]);
+
   const handleDeleteClass = (id: string, name: string) => {
     setConfirmDialog({
       isOpen: true,
@@ -187,155 +249,51 @@ export default function AdminClassrooms() {
     });
   };
 
-  // Column Definitions
-  const columns: ColumnDefType<IClassroomItem>[] = [
-    {
-      accessorKey: "name",
-      header: "Tên lớp học & Mã lớp",
-      cell: ({ row }) => {
-        const cls = row.original;
-        // Determine icon color based on status for visual flair
-        let iconBg = "bg-blue-100";
-        let iconColor = "text-blue-600";
-        if (cls.status === "Locked") { iconBg = "bg-red-100"; iconColor = "text-red-600"; }
-
-        return (
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg} ${iconColor}`}>
-              <GraduationCap size={20} weight="fill" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-slate-900">{cls.name}</span>
-              <span className="text-xs text-slate-500 font-medium">{cls.id}</span>
-            </div>
-          </div>
-        );
-      },
-      filterFn: (row, id, value) => {
-        const nameMatch = row.original.name.toLowerCase().includes(value.toLowerCase());
-        const idMatch = row.original.id.toLowerCase().includes(value.toLowerCase());
-        return nameMatch || idMatch;
-      },
-    },
-    {
-      accessorKey: "teacher",
-      header: "Giáo viên phụ trách",
-      cell: ({ row }) => {
-        const teacher = row.original.teacher;
-        return (
-          <Link
-            to={`/admin/teachers`}
-            className="flex items-center gap-2 hover:underline text-blue-600 decoration-blue-300 transition-all"
-            onClick={(e) => e.stopPropagation()} // Prevent row click
-          >
-            <Avatar className="h-7 w-7 border border-slate-100">
-              <AvatarImage src={teacher.avatar} alt={teacher.name} />
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-bold">{teacher.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <span className="font-semibold text-sm">{teacher.name}</span>
-          </Link>
-        );
-      },
-    },
-    {
-      accessorKey: "subject",
-      header: "Bộ môn",
-      cell: ({ row }) => <span className="font-semibold text-slate-700">{row.original.subject}</span>,
-      filterFn: (row, id, value) => {
-        return value === "" || row.getValue(id) === value;
-      },
-    },
-    {
-      accessorKey: "students",
-      header: "Sĩ số",
-      cell: ({ row }) => <span className="font-semibold text-slate-700">{row.original.studentCount} HS</span>,
-    },
-    {
-      accessorKey: "createdAt",
-      header: "Ngày tạo",
-      cell: ({ row }) => <span className="text-slate-600 font-medium text-sm">{new Date(row.original.createdAt).toLocaleDateString("vi-VN")}</span>,
-    },
-    {
-      accessorKey: "status",
-      header: "Trạng thái",
-      cell: ({ row }) => {
-        const status = row.getValue("status") as string;
-        if (status === "Active") {
-          return (
-            <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Đang hoạt động
-            </Badge>
-          );
+  const handleBulkDelete = () => {
+    if (selectedIds.length === 0) return;
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: "Cảnh báo xóa nhiều lớp",
+      description: `Bạn sắp xóa vĩnh viễn ${selectedIds.length} lớp học cùng toàn bộ dữ liệu liên quan. Hành động này không thể hoàn tác.`,
+      actionType: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await Promise.all(selectedIds.map(id => classroomService.deleteClassroom(id)));
+          toast.success(`Đã xóa ${selectedIds.length} lớp học thành công!`, 3000);
+          setSelectedKeys(new Set());
+          fetchClasses();
+        } catch (error: any) {
+          toast.error("Lỗi khi xóa hàng loạt: " + error.message, 3000);
         }
-        return (
-          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 gap-1.5">
-            <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-            Đã khóa
-          </Badge>
-        );
-      },
-      filterFn: (row, id, value) => {
-        return value === "" || row.getValue(id) === value;
-      },
-    },
-    {
-      id: "actions",
-      header: () => <div className="text-right w-full">Hành động</div>,
-      cell: ({ row }) => {
-        const cls = row.original;
-        const isViolation = cls.status === "Locked";
+      }
+    });
+  };
 
-        return (
-          <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-            <PrimaryButton
-              variant="outline"
-              size="icon"
-              className={`h-8 w-8 transition-colors ${isViolation ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700' : 'text-slate-500 hover:text-slate-800'}`}
-              title={isViolation ? "Mở khóa lớp học" : "Khóa lớp học"}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLockClass(cls._id, cls.name, isViolation);
-              }}
-            >
-              <LockKey size={16} weight="bold" />
-            </PrimaryButton>
+  const handleBulkLock = () => {
+    if (selectedIds.length === 0) return;
+    
+    setConfirmDialog({
+      isOpen: true,
+      title: "Khóa nhiều lớp học?",
+      description: `Bạn có chắc chắn muốn khóa ${selectedIds.length} lớp học đã chọn? Các lớp này sẽ bị tạm ngưng.`,
+      actionType: 'warning',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await Promise.all(selectedIds.map(id => classroomService.updateClassroomStatus(id, 'Locked')));
+          toast.success(`Đã khóa ${selectedIds.length} lớp học!`, 3000);
+          setSelectedKeys(new Set());
+          fetchClasses();
+        } catch (error: any) {
+          toast.error("Lỗi khi cập nhật hàng loạt: " + error.message, 3000);
+        }
+      }
+    });
+  };
 
-            <PrimaryButton
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-              title="Xóa lớp học"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteClass(cls._id, cls.name);
-              }}
-            >
-              <Trash size={16} weight="bold" />
-            </PrimaryButton>
-          </div>
-        );
-      },
-    },
-  ];
 
-  const table = useReactTable({
-    data: classes,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    onSortingChange: setSorting,
-    getSortedRowModel: getSortedRowModel(),
-    onColumnFiltersChange: setColumnFilters,
-    getFilteredRowModel: getFilteredRowModel(),
-    state: {
-      sorting,
-      columnFilters,
-      globalFilter,
-    },
-    onGlobalFilterChange: setGlobalFilter,
-    globalFilterFn: "auto",
-  });
 
   return (
     <div className="flex h-full min-h-screen bg-[#fafafa]">
@@ -462,6 +420,31 @@ export default function AdminClassrooms() {
           </Card>
         </div>
 
+        {/* BULK ACTION TOOLBAR */}
+        {selectedIds.length > 0 && (
+          <div className="flex items-center justify-between bg-blue-50 border border-blue-200 px-4 py-3 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 mb-2">
+            <span className="text-sm font-medium text-blue-800">
+              Đã chọn <strong className="text-blue-900 text-base mx-1">{selectedIds.length}</strong> lớp học
+            </span>
+            <div className="flex items-center gap-3">
+              <PrimaryButton 
+                className="bg-orange-100 text-orange-600 hover:bg-orange-200 font-medium flex items-center gap-2 h-9 border-none shadow-none"
+                onClick={handleBulkLock}
+              >
+                <LockKey weight="bold" size={16} />
+                Khóa các lớp đã chọn
+              </PrimaryButton>
+              <PrimaryButton 
+                className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-medium flex items-center gap-2 h-9 border-none shadow-none" 
+                onClick={handleBulkDelete}
+              >
+                <Trash weight="bold" size={16} />
+                Xóa các lớp đã chọn
+              </PrimaryButton>
+            </div>
+          </div>
+        )}
+
         {/* TABLE TOOLBAR */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
           <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
@@ -479,14 +462,14 @@ export default function AdminClassrooms() {
               <DropdownMenuTrigger asChild>
                 <PrimaryButton variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
                   <Funnel size={16} weight="bold" />
-                  Trạng thái {table.getColumn("status")?.getFilterValue() ? `: ${table.getColumn("status")?.getFilterValue()}` : ""}
+                  Trạng thái {statusFilter ? `: ${statusFilter === "Active" ? "Đang hoạt động" : "Đã khóa"}` : ""}
                 </PrimaryButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[180px]">
-                <DropdownMenuItem onClick={() => table.getColumn("status")?.setFilterValue("Active")}>Đang hoạt động</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => table.getColumn("status")?.setFilterValue("Locked")}>Đã khóa</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("Active")}>Đang hoạt động</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("Locked")}>Đã khóa</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => table.getColumn("status")?.setFilterValue("")} className="font-bold text-slate-500">Tất cả trạng thái</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("")} className="font-bold text-slate-500">Tất cả trạng thái</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -494,9 +477,7 @@ export default function AdminClassrooms() {
 
         {/* DATA TABLE */}
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col flex-1 overflow-hidden">
-          <Tabs defaultValue="all" className="w-full pt-2" onValueChange={(val) => {
-            table.getColumn("subject")?.setFilterValue(val === 'all' ? "" : val);
-          }}>
+          <Tabs value={subjectFilter} className="w-full pt-2" onValueChange={setSubjectFilter}>
             <div className="px-4 border-b border-slate-100 flex justify-between items-center bg-white h-12 overflow-x-auto">
               <TabsList className="bg-transparent border-b border-transparent h-auto p-0 flex justify-start gap-6">
                 <TabsTrigger value="all" className="rounded-full px-4 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold text-sm">Tất cả</TabsTrigger>
@@ -509,107 +490,204 @@ export default function AdminClassrooms() {
             </div>
           </Tabs>
 
-          <div className="overflow-x-auto flex-1">
+          <div className="overflow-x-auto flex-1 h-full flex flex-col">
             <Table>
-              <TableHeader className="bg-slate-50/50">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="border-b-slate-200 hover:bg-transparent">
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} className="text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap">
-                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={`skeleton-${i}`} className="border-b-slate-100 hover:bg-transparent">
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
-                          <div className="flex flex-col gap-1.5 w-full">
-                            <Skeleton className="h-4 w-3/4 max-w-[150px]" />
-                            <Skeleton className="h-3 w-1/2 max-w-[100px]" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-7 w-7 rounded-full shrink-0" />
-                          <Skeleton className="h-4 w-24" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Skeleton className="h-4 w-16" />
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Skeleton className="h-4 w-12" />
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Skeleton className="h-4 w-20" />
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                      </TableCell>
-                      <TableCell className="py-3">
-                        <div className="flex justify-end">
-                          <Skeleton className="h-8 w-8 rounded-md" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      className={`border-b-slate-100 cursor-pointer transition-colors ${selectedClass?._id === row.original._id ? 'bg-blue-50/60 hover:bg-blue-50/80' : 'hover:bg-slate-50/80'}`}
-                      onClick={() => setSelectedClass(row.original)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3">
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                        </TableCell>
+              <Table.ScrollContainer className="max-h-[calc(100vh-320px)] overflow-scroll flex-1 min-h-[400px]">
+                <Table.Content
+                  selectedKeys={selectedKeys}
+                  selectionMode="multiple"
+                  onSelectionChange={setSelectedKeys}
+                >
+                  <Table.Header>
+                    <Table.Column className="after:hidden" id="selection">
+                      <Checkbox aria-label="Select all" slot="selection">
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                        </Checkbox.Content>
+                      </Checkbox>
+                    </Table.Column>
+                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="name">Tên lớp học & Mã lớp</Table.Column>
+                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="teacher">Giáo viên phụ trách</Table.Column>
+                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="subject">Bộ môn</Table.Column>
+                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="students">Sĩ số</Table.Column>
+                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="createdAt">Ngày tạo</Table.Column>
+                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="status">Trạng thái</Table.Column>
+                    <Table.Column className="after:hidden text-end text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="actions">Hành động</Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {isLoading ? (
+                      <Table.Row key="loading" id="loading">
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell>
+                          <div className="py-10 text-slate-500 font-medium">Đang tải dữ liệu...</div>
+                        </Table.Cell>
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                      </Table.Row>
+                    ) : paginatedClasses.length === 0 ? (
+                      <Table.Row key="empty" id="empty">
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell>
+                          <div className="py-10 text-slate-500 font-medium">Không tìm thấy kết quả nào.</div>
+                        </Table.Cell>
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                        <Table.Cell />
+                      </Table.Row>
+                    ) : (
+                      paginatedClasses.map((cls) => (
+                        <Table.Row key={cls._id} id={cls._id}>
+                          <Table.Cell className="py-4 border-b border-slate-100">
+                            <Checkbox aria-label={`Select ${cls.name}`} slot="selection">
+                              <Checkbox.Content>
+                                <Checkbox.Control>
+                                  <Checkbox.Indicator />
+                                </Checkbox.Control>
+                              </Checkbox.Content>
+                            </Checkbox>
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${cls.status === "Locked" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                                <GraduationCap size={20} weight="fill" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-slate-900">{cls.name}</span>
+                                <span className="text-xs text-slate-500 font-medium">{cls.id}</span>
+                              </div>
+                            </div>
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            <Link
+                              to={`/admin/teachers`}
+                              className="flex items-center gap-2 hover:underline text-blue-600 decoration-blue-300 transition-all"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Avatar className="h-7 w-7 border border-slate-100">
+                                <AvatarImage src={cls.teacher.avatar} alt={cls.teacher.name} />
+                                <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-bold">{cls.teacher.name.charAt(0)}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-semibold text-sm">{cls.teacher.name}</span>
+                            </Link>
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            <span className="font-semibold text-slate-700">{cls.subject}</span>
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            <span className="font-semibold text-slate-700">{cls.studentCount} HS</span>
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            <span className="text-slate-600 font-medium text-sm">{new Date(cls.createdAt).toLocaleDateString("vi-VN")}</span>
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            {cls.status === "Active" ? (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                Đang hoạt động
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                Đã khóa
+                              </Badge>
+                            )}
+                          </Table.Cell>
+                          <Table.Cell className="py-4 border-b border-slate-100">
+                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                              <PrimaryButton
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                                title="Xem chi tiết lớp học"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedClass(cls);
+                                }}
+                              >
+                                <Eye size={16} weight="bold" />
+                              </PrimaryButton>
+                              <PrimaryButton
+                                variant="outline"
+                                size="icon"
+                                className={`h-8 w-8 transition-colors ${cls.status === 'Locked' ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700' : 'text-slate-500 hover:text-slate-800'}`}
+                                title={cls.status === 'Locked' ? "Mở khóa lớp học" : "Khóa lớp học"}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLockClass(cls._id, cls.name, cls.status === 'Locked');
+                                }}
+                              >
+                                <LockKey size={16} weight="bold" />
+                              </PrimaryButton>
+                              <PrimaryButton
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                title="Xóa lớp học"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteClass(cls._id, cls.name);
+                                }}
+                              >
+                                <Trash size={16} weight="bold" />
+                              </PrimaryButton>
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))
+                    )}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
+              <Table.Footer>
+                {totalPages > 0 && (
+                  <Pagination size="sm" className="flex items-center justify-between w-full px-4 py-3 border-t border-slate-100 bg-white sticky bottom-0 z-10">
+                    <Pagination.Summary className="text-sm text-slate-500 font-medium">
+                      Hiển thị {paginatedClasses.length} trên tổng {filteredClasses.length} kết quả
+                    </Pagination.Summary>
+                    <Pagination.Content>
+                      <Pagination.Item>
+                        <Pagination.Previous
+                          isDisabled={page === 1}
+                          onPress={() => setPage((p) => Math.max(1, p - 1))}
+                        >
+                          <Pagination.PreviousIcon />
+                          Trang trước
+                        </Pagination.Previous>
+                      </Pagination.Item>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <Pagination.Item key={p}>
+                          <Pagination.Link
+                            isActive={p === page}
+                            onPress={() => setPage(p)}
+                            className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
+                          >
+                            {p}
+                          </Pagination.Link>
+                        </Pagination.Item>
                       ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="h-32 text-center text-slate-500 font-medium">
-                      Không tìm thấy kết quả nào.
-                    </TableCell>
-                  </TableRow>
+                      <Pagination.Item>
+                        <Pagination.Next
+                          isDisabled={page === totalPages}
+                          onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                          Trang sau
+                          <Pagination.NextIcon />
+                        </Pagination.Next>
+                      </Pagination.Item>
+                    </Pagination.Content>
+                  </Pagination>
                 )}
-              </TableBody>
+              </Table.Footer>
             </Table>
-          </div>
-
-          {/* PAGINATION */}
-          <div className="flex items-center justify-between border-t border-slate-100 p-4 bg-white mt-auto">
-            <p className="text-sm text-slate-500 font-medium">
-              Hiển thị {table.getRowModel().rows?.length} trên tổng {table.getFilteredRowModel().rows.length} kết quả
-            </p>
-            <div className="flex items-center gap-2">
-              <PrimaryButton
-                variant="outline"
-                size="sm"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="text-slate-600 font-semibold"
-              >
-                Trang trước
-              </PrimaryButton>
-              <PrimaryButton
-                variant="outline"
-                size="sm"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="text-slate-600 font-semibold"
-              >
-                Trang tiếp
-              </PrimaryButton>
-            </div>
           </div>
         </div>
       </div>
@@ -670,6 +748,12 @@ export default function AdminClassrooms() {
             </div>
 
             <div className="mt-auto pt-6 flex flex-col gap-3">
+              <PrimaryButton
+                onClick={() => handleOpenStudentsModal(selectedClass._id)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 shadow-sm"
+              >
+                Xem danh sách học sinh
+              </PrimaryButton>
               <PrimaryButton className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 shadow-sm">
                 Vào xem trực tiếp
               </PrimaryButton>
@@ -681,8 +765,28 @@ export default function AdminClassrooms() {
         </div>
       )}
 
+      {/* Students Modal */}
+      <Dialog open={isStudentsModalOpen} onOpenChange={setIsStudentsModalOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Danh sách học sinh - {selectedClass?.name}</DialogTitle>
+            <DialogDescription>
+              Xem danh sách các học sinh đang tham gia vào lớp học này. (Chế độ xem - Chỉ giáo viên mới có quyền chỉnh sửa)
+            </DialogDescription>
+          </DialogHeader>
+          {isLoadingStudents ? (
+            <div className="py-10 text-center text-slate-500">Đang tải danh sách học sinh...</div>
+          ) : (
+            <StudentsTable
+              students={classStudents}
+              readOnly={true}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Custom Confirm Dialog */}
-      <CustomConfirmDialog 
+      <CustomConfirmDialog
         isOpen={confirmDialog.isOpen}
         onOpenChange={(open) => setConfirmDialog(prev => ({ ...prev, isOpen: open }))}
         title={confirmDialog.title}

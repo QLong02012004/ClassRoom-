@@ -27,56 +27,103 @@
   gap: 24px;
 }
 
-.headerRow {
+.header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   flex-wrap: wrap;
+  gap: 16px;
+  background: white;
+  padding: 16px 24px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.todayControls {
+  display: flex;
+  align-items: center;
   gap: 16px;
 }
 
-.pageTitle {
-  font-size: 24px;
+.btnToday {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    color: #0f172a;
+  }
+}
+
+.navArrows {
+  display: flex;
+  gap: 4px;
+}
+
+.btnIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+}
+
+.headerTitle {
+  font-size: 22px;
   font-weight: 700;
   color: #0f172a;
   margin: 0;
 }
 
-.pageSubtitle {
-  font-size: 14px;
-  color: #64748b;
-  margin: 6px 0 0;
-  font-weight: 500;
-}
-
-.viewToggle {
+.headerRight {
   display: flex;
   align-items: center;
-  background: #f1f5f9;
-  padding: 4px;
-  border-radius: 12px;
+  gap: 16px;
 }
 
-.viewBtn {
-  padding: 8px 24px;
+.viewSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  color: #64748b;
-  background: transparent;
-  border: none;
+  color: #334155;
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    color: #1e293b;
+    background: #f8fafc;
+    border-color: #cbd5e1;
   }
-}
-
-.activeView {
-  background: #fff;
-  color: #ef4444; 
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
 .calendarCard {
@@ -90,12 +137,13 @@
 
 .calendarHeader {
   display: grid;
-  grid-template-columns: 80px repeat(5, 1fr);
+  grid-template-columns: 80px repeat(7, 1fr);
   border-bottom: 1px solid #e2e8f0;
   background: #f8fafc;
 }
 
-.timeColumnHeader, .dayColumnHeader {
+.timeColumnHeader,
+.dayColumnHeader {
   padding: 16px 10px;
   text-align: center;
   display: flex;
@@ -114,15 +162,30 @@
 
 .dayColumnHeader {
   border-right: 1px solid #e2e8f0;
+
   &:last-child {
     border-right: none;
   }
 }
 
 .todayHeader {
-  background: #f0fdf4; 
-  .dayText, .dateText {
+  background: transparent;
+
+  .dayText {
     color: #ef4444;
+  }
+
+  .dateText {
+    color: #fff;
+    background: #ef4444;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.2);
+    font-size: 18px;
   }
 }
 
@@ -141,8 +204,29 @@
 .calendarBody {
   display: flex;
   background: #fff;
-  height: 1200px; /* Tổng chiều cao: 15 tiếng * 80px */
+  height: calc(100vh - 250px);
+  min-height: 500px;
   overflow-y: auto;
+
+  /* Custom Scrollbar - Style macOS */
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
+    border: 2px solid #fff;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+  }
 }
 
 .timeLabelsColumn {
@@ -157,17 +241,26 @@
   justify-content: center;
   align-items: flex-start;
   padding-top: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  color: #9ca3af;
   position: relative;
 }
 
 .daysColumnsGrid {
   flex: 1;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   position: relative;
+}
+
+/* Modifiers for Day View */
+.dayViewGridHeader {
+  grid-template-columns: 80px 1fr !important;
+}
+
+.dayViewGridBody {
+  grid-template-columns: 1fr !important;
 }
 
 .gridLinesAbsolute {
@@ -187,16 +280,44 @@
   background: #f1f5f9;
 }
 
+/* Đường kẻ đỏ thời gian hiện tại */
+.currentTimeLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: #ef4444;
+  /* Màu đỏ */
+  z-index: 10;
+  pointer-events: none;
+}
+
+.currentTimeDot {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 10px;
+  height: 10px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
 .dayColumn {
   position: relative;
   border-right: 1px solid #f1f5f9;
+  user-select: none;
+  /* Prevent text selection during drag */
+
   &:last-child {
-    border-right: none;
+    border-right:
+      none;
   }
 }
 
 .todayColBg {
-  background: #f0fdf420; /* Rất nhạt cho cột hôm nay */
+  background: #f0fdf420;
+  /* Rất nhạt cho cột hôm nay */
 }
 
 .lessonCardAbsolute {
@@ -207,26 +328,195 @@
   border-left: 3px solid #3b82f6;
   border-radius: 8px;
   padding: 8px 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   transition: all 0.2s ease;
   z-index: 2;
 
+  &:active {
+    cursor: grabbing !important;
+  }
+
   &:hover {
     transform: scale(1.02);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    z-index: 3;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    z-index: 50;
+  }
+
+  .tooltipContent {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 10px);
+    transform: translateY(-50%);
+    width: 260px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.25);
+    padding: 16px;
+    display: none;
+    border: 1px solid #e2e8f0;
+    pointer-events: none;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 50%;
+      transform: translateY(-50%) rotate(45deg);
+      width: 12px;
+      height: 12px;
+      background: white;
+      border-left: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+  }
+
+  &:hover .tooltipContent {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Color Themes for Lesson Cards */
+.theme_blue {
+  background: #eff6ff;
+  border-left-color: #3b82f6;
+
+  .lessonTime {
+    color: #64748b;
+  }
+
+  .lessonTitle {
+    color: #1e3a8a;
+  }
+
+  .lessonRoom {
+    color: #475569;
+  }
+}
+
+.theme_green {
+  background: #f0fdf4;
+  border-left-color: #22c55e;
+
+  .lessonTime {
+    color: #15803d;
+  }
+
+  .lessonTitle {
+    color: #14532d;
+  }
+
+  .lessonRoom {
+    color: #166534;
+  }
+}
+
+.theme_purple {
+  background: #faf5ff;
+  border-left-color: #a855f7;
+
+  .lessonTime {
+    color: #7e22ce;
+  }
+
+  .lessonTitle {
+    color: #581c87;
+  }
+
+  .lessonRoom {
+    color: #6b21a8;
+  }
+}
+
+.theme_orange {
+  background: #fff7ed;
+  border-left-color: #f97316;
+
+  .lessonTime {
+    color: #c2410c;
+  }
+
+  .lessonTitle {
+    color: #7c2d12;
+  }
+
+  .lessonRoom {
+    color: #9a3412;
+  }
+}
+
+.theme_pink {
+  background: #fdf2f8;
+  border-left-color: #ec4899;
+
+  .lessonTime {
+    color: #be185d;
+  }
+
+  .lessonTitle {
+    color: #831843;
+  }
+
+  .lessonRoom {
+    color: #9d174d;
+  }
+}
+
+.theme_teal {
+  background: #f0fdfa;
+  border-left-color: #14b8a6;
+
+  .lessonTime {
+    color: #0f766e;
+  }
+
+  .lessonTitle {
+    color: #134e4a;
+  }
+
+  .lessonRoom {
+    color: #115e59;
   }
 }
 
 .lessonOngoing {
-  background: #2a2d3a;
-  border-left-color: #ef4444;
-  color: #fff;
+  background: #2a2d3a !important;
+  border-left-color: #ef4444 !important;
+  color: #fff !important;
 
-  .lessonTime { color: #94a3b8; }
-  .lessonTitle { color: #fff; }
-  .lessonRoom { color: #cbd5e1; }
+  .lessonTime {
+    color: #94a3b8 !important;
+  }
+
+  .lessonTitle {
+    color: #fff !important;
+  }
+
+  .lessonRoom {
+    color: #cbd5e1 !important;
+  }
+}
+
+/* Drag to create Ghost Element */
+.creatingSlotGhost {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px dashed #3b82f6;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 4px;
+  pointer-events: none;
+  z-index: 100;
+  backdrop-filter: blur(2px);
 }
 
 .lessonTime {
@@ -359,8 +649,70 @@
   }
 }
 
+/* Empty States */
+.emptyOngoingCard {
+  background: white;
+  border-radius: 20px;
+  padding: 32px 24px;
+  border: 1px dashed #cbd5e1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  gap: 12px;
+
+  .emptyIconWrapper {
+    width: 64px;
+    height: 64px;
+    background: #fff7ed;
+    /* orange-50 */
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  h4 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+  }
+
+  p {
+    font-size: 13px;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+  }
+}
+
+.emptyTodayState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  gap: 16px;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 16px;
+  margin-top: 8px;
+
+  p {
+    font-size: 14px;
+    color: #64748b;
+    margin: 0;
+    font-weight: 500;
+  }
+}
+
 /* Các Card Chung */
-.todayScheduleCard, .filterCard {
+.todayScheduleCard,
+.filterCard {
   background: #fff;
   border-radius: 20px;
   padding: 24px;
@@ -410,6 +762,7 @@
 
   &:last-child {
     padding-bottom: 0;
+
     &::after {
       display: none;
     }
@@ -438,9 +791,20 @@
   box-shadow: 0 0 0 2px #fff;
 }
 
-.dot_green { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2); }
-.dot_red { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
-.dot_blue { background: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+.dot_green {
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.dot_red {
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+.dot_blue {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
 
 .timelineContent {
   flex: 1;
@@ -467,9 +831,20 @@
   border-radius: 6px;
 }
 
-.badge_green { background: #dcfce7; color: #16a34a; }
-.badge_red { background: #fee2e2; color: #ef4444; }
-.badge_blue { background: #dbeafe; color: #2563eb; }
+.badge_green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.badge_red {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.badge_blue {
+  background: #dbeafe;
+  color: #2563eb;
+}
 
 .viewMoreBtn {
   width: 100%;
@@ -493,34 +868,27 @@
 }
 
 /* Filter Chips */
-.filterChips {
+.filterDropdownBtn {
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.filterChip {
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 13px;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
   font-weight: 600;
-  background: #f1f5f9;
-  color: #475569;
+  color: #fff;
+  background: vars.$primary;
   border: none;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(254, 103, 71, 0.25);
 
   &:hover {
-    background: #e2e8f0;
-  }
-}
-
-.activeChip {
-  background: #9f4728;
-  color: #fff;
-
-  &:hover {
-    background: #8a3a1f;
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(254, 103, 71, 0.35);
   }
 }
 
@@ -545,33 +913,218 @@
   }
 }
 
-/* MODAL */
+/* ── MODAL LÊN LỊCH ── */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  padding: 24px;
 }
 
 .modalContent {
-  background: white;
-  width: 90%;
-  max-width: 750px;
-  border-radius: 16px;
+  background: #fff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
   padding: 32px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: vars.$shadow-premium;
+}
+
+.modalHeader {
   display: flex;
-  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
 
   h3 {
-    font-size: 1.5rem;
-    font-weight: 800;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
     color: #0f172a;
-    margin: 0 0 16px 0;
+  }
+}
+
+.btnClose {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 4px;
+  border-radius: 8px;
+
+  &:hover {
+    color: #ef4444;
+    background: #fee2e2;
+  }
+}
+
+.formRow3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.formRow2 {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+
+  .formLabel {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 6px !important;
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  input,
+  select,
+  .dropdownTriggerBtn {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #1e293b;
+    background: #fff;
+    outline: none;
+    transition: all 0.2s ease;
+
+    &:focus {
+      border-color: vars.$primary;
+      box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.15);
+    }
+  }
+
+  .dropdownTriggerBtn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+  }
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btnCancel {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  background: #f1f5f9;
+  color: #475569;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+}
+
+.btnSubmit {
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 14px;
+  background: #D97757;
+  /* Màu cam đất ấm áp chuyên nghiệp */
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 10px rgba(217, 119, 87, 0.25);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 100px;
+
+  &:hover {
+    background: #C46648;
+    box-shadow: 0 6px 14px rgba(217, 119, 87, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+}
+
+/* Conflict Alert & Suggestions */
+.conflictAlert {
+  display: flex;
+  gap: 12px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+  color: #991b1b;
+}
+
+.conflictAlertContent {
+  flex: 1;
+
+  p {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+  }
+}
+
+.suggestionChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.suggestionChip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+  border-radius: 16px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #fca5a5;
+    color: #991b1b;
+    transform: translateY(-1px);
   }
 }
 
@@ -586,7 +1139,8 @@
     margin-bottom: 8px;
   }
 
-  input, select {
+  input,
+  select {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid #cbd5e1;
@@ -603,7 +1157,7 @@
 .formRow {
   display: flex;
   gap: 12px;
-  
+
   .formGroup {
     flex: 1;
   }
@@ -649,6 +1203,11 @@
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

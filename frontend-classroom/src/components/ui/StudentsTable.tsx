@@ -7,12 +7,13 @@ import type { Student } from "../../utils/mockDb";
 
 interface StudentsTableProps {
   students: Student[];
-  onEdit: (student: Student) => void;
-  onDelete: (studentId: string, studentName: string) => void;
+  onEdit?: (student: Student) => void;
+  onDelete?: (studentId: string, studentName: string) => void;
   onBulkDelete?: (studentIds: string[]) => void;
+  readOnly?: boolean;
 }
 
-export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, onDelete, onBulkDelete }) => {
+export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, onDelete, onBulkDelete, readOnly = false }) => {
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
   const [page, setPage] = useState(1);
   const ROWS_PER_PAGE = 10;
@@ -50,9 +51,9 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
           <span className="text-sm font-medium text-slate-700">
             Đã chọn <strong className="text-primary">{selectedIds.length}</strong> học sinh
           </span>
-          <Button 
-            className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-medium flex items-center gap-2" 
-            size="sm" 
+          <Button
+            className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-medium flex items-center gap-2"
+            size="sm"
             onPress={handleBulkDeleteClick}
           >
             <Trash weight="bold" size={16} />
@@ -71,15 +72,19 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
             onSelectionChange={setSelectedKeys}
           >
             <Table.Header>
-              <Table.Column className="after:hidden" id="selection">
-                <Checkbox aria-label="Select all" slot="selection">
-                  <Checkbox.Content>
-                    <Checkbox.Control>
-                      <Checkbox.Indicator />
-                    </Checkbox.Control>
-                  </Checkbox.Content>
-                </Checkbox>
-              </Table.Column>
+              {readOnly ? (
+                <Table.Column className="after:hidden w-0 p-0 m-0 border-none" id="selection-hidden" />
+              ) : (
+                <Table.Column className="after:hidden" id="selection">
+                  <Checkbox aria-label="Select all" slot="selection">
+                    <Checkbox.Content>
+                      <Checkbox.Control>
+                        <Checkbox.Indicator />
+                      </Checkbox.Control>
+                    </Checkbox.Content>
+                  </Checkbox>
+                </Table.Column>
+              )}
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">
                 STT
               </Table.Column>
@@ -92,14 +97,18 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="contact">
                 Liên hệ
               </Table.Column>
-              <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
-                Hành động
-              </Table.Column>
+              {readOnly ? (
+                <Table.Column className="after:hidden w-0 p-0 m-0 border-none" id="actions-hidden" />
+              ) : (
+                <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
+                  Hành động
+                </Table.Column>
+              )}
             </Table.Header>
             <Table.Body>
               {students.length === 0 ? (
                 <Table.Row key="empty" id="empty">
-                  <Table.Cell className="pr-0" />
+                  {readOnly ? <Table.Cell className="p-0 border-none w-0" /> : <Table.Cell className="pr-0" />}
                   <Table.Cell />
                   <Table.Cell />
                   <Table.Cell>
@@ -108,7 +117,7 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
                     </div>
                   </Table.Cell>
                   <Table.Cell />
-                  <Table.Cell />
+                  {readOnly ? <Table.Cell className="p-0 border-none w-0" /> : <Table.Cell />}
                 </Table.Row>
               ) : (
                 paginatedItems.map((student, idx) => {
@@ -117,15 +126,19 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
 
                   return (
                     <Table.Row key={student._id} id={student._id}>
-                      <Table.Cell>
-                        <Checkbox aria-label={`Select ${student.name}`} slot="selection">
-                          <Checkbox.Content>
-                            <Checkbox.Control>
-                              <Checkbox.Indicator />
-                            </Checkbox.Control>
-                          </Checkbox.Content>
-                        </Checkbox>
-                      </Table.Cell>
+                      {readOnly ? (
+                        <Table.Cell className="p-0 border-none w-0" />
+                      ) : (
+                        <Table.Cell>
+                          <Checkbox aria-label={`Select ${student.name}`} slot="selection">
+                            <Checkbox.Content>
+                              <Checkbox.Control>
+                                <Checkbox.Indicator />
+                              </Checkbox.Control>
+                            </Checkbox.Content>
+                          </Checkbox>
+                        </Table.Cell>
+                      )}
                       <Table.Cell className="font-medium text-slate-500">
                         #{actualIdx + 1}
                       </Table.Cell>
@@ -150,14 +163,18 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
                           {student.parentPhone || "Không có"}
                         </span>
                       </Table.Cell>
-                      <Table.Cell>
-                        <div className="flex items-center justify-end gap-1 relative">
-                          <StudentActionMenu
-                            onEdit={() => onEdit(student)}
-                            onDelete={() => onDelete(student._id, student.name)}
-                          />
-                        </div>
-                      </Table.Cell>
+                      {readOnly ? (
+                        <Table.Cell className="p-0 border-none w-0" />
+                      ) : (
+                        <Table.Cell>
+                          <div className="flex items-center justify-end gap-1 relative">
+                            <StudentActionMenu
+                              onEdit={() => onEdit && onEdit(student)}
+                              onDelete={() => onDelete && onDelete(student._id, student.name)}
+                            />
+                          </div>
+                        </Table.Cell>
+                      )}
                     </Table.Row>
                   );
                 })

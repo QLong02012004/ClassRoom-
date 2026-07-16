@@ -37,6 +37,19 @@ export const scheduleService = {
     return await api.post(`/api/v1/schedule`, data);
   },
 
+  // Cập nhật lịch dạy
+  updateSchedule: async (id: string, data: {
+    classId?: string;
+    subject?: string;
+    chapter?: string;
+    dayOfWeek?: number;
+    startTime?: string;
+    endTime?: string;
+    progress?: number;
+  }): Promise<IBackendRes<ISchedule>> => {
+    return await api.put(`/api/v1/schedule/${id}`, data);
+  },
+
   // Xóa lịch dạy
   deleteSchedule: async (id: string): Promise<IBackendRes<ISchedule>> => {
     return await api.delete(`/api/v1/schedule/${id}`);

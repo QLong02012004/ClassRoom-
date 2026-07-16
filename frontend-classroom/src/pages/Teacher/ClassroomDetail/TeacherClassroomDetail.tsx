@@ -24,7 +24,8 @@ import {
   ClipboardText,
   PushPin,
   GridFour,
-  List
+  List,
+  TrendUp
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
@@ -1110,8 +1111,12 @@ export default function TeacherClassroomDetail() {
             <div className={styles.classSidebar}>
               <div className={styles.classMergedCard}>
                 <div className={styles.classBanner}>
-                  <h2 className="text-xl font-black text-white mb-1 leading-tight">{classroom?.className || "Đang tải..."}</h2>
-                  <p className="text-white/90 font-medium text-sm">{classroom?.subject || "Môn học chung"}</p>
+                  <div className={styles.bannerOverlay}></div>
+                  <h2 className="text-xl font-black text-white mb-1 leading-tight relative z-10">{classroom?.className || "Đang tải..."}</h2>
+                  <p className="text-white/90 font-medium text-sm relative z-10 flex items-center gap-1.5">
+                    <BookOpen size={16} />
+                    {classroom?.subject || "Môn học chung"}
+                  </p>
                 </div>
                 <div className={styles.classInfo}>
                   <button
@@ -1119,25 +1124,37 @@ export default function TeacherClassroomDetail() {
                     onClick={() => navigate(`/classrooms/${classId}/students`)}
                     title="Quản lý học sinh"
                   >
-                    <Users size={18} weight="duotone" className="text-blue-500" />
-                    <span>Sĩ số: <strong>{classroom?.studentCount || 0}</strong> học sinh</span>
-                    <span className={styles.rowActionText}>Quản lý &rarr;</span>
+                    <div className={styles.iconWrapper}>
+                      <Users size={20} weight="fill" className="text-blue-500" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Sĩ số lớp</span>
+                      <span className="text-sm text-slate-800"><strong>{classroom?.studentCount || 0}</strong> học sinh</span>
+                    </div>
+                    <span className={styles.rowActionText}>Xem &rarr;</span>
                   </button>
                 </div>
               </div>
 
               {/* THỐNG KÊ (Đã gộp từ tab Báo cáo) */}
               <div className={styles.reportCardMini}>
-                <h3>Tiến độ trung bình lớp</h3>
+                <div className={styles.reportHeader}>
+                  <div className={styles.headerIcon}>
+                    <TrendUp size={20} weight="bold" className="text-emerald-500" />
+                  </div>
+                  <h3>Tiến độ trung bình</h3>
+                </div>
                 <div className={styles.reportMetricsMini}>
                   <div className={styles.statMetricMini}>
                     <span className={styles.statNumMini}>92%</span>
                     <span className={styles.statDescMini}>Hoàn thành</span>
                   </div>
+                  <div className={styles.statDivider}></div>
                   <div className={styles.statMetricMini}>
                     <span className={styles.statNumMini}>8.4</span>
                     <span className={styles.statDescMini}>GPA</span>
                   </div>
+                  <div className={styles.statDivider}></div>
                   <div className={styles.statMetricMini}>
                     <span className={styles.statNumMini}>96%</span>
                     <span className={styles.statDescMini}>Chuyên cần</span>
