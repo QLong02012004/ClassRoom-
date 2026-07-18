@@ -11,6 +11,7 @@ import notificationRoutes from './notificationRoutes';
 import uploadRoutes from './uploadRoutes';
 import bankRoutes from './bankRoutes';
 import activityRoutes from './activityRoutes';
+import analyticsRoutes from './analyticsRoutes';
 
 const apiRouter = Router();
 
@@ -26,6 +27,7 @@ apiRouter.use('/announcements', announcementRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/upload', uploadRoutes);
 apiRouter.use('/bank', bankRoutes);
+apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/', activityRoutes);
 
 export default apiRouter;

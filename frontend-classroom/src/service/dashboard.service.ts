@@ -72,5 +72,8 @@ export const dashboardService = {
   },
   getTeacherDashboardStats: async (): Promise<IBackendRes<ITeacherDashboardStats>> => {
     return await api.get('/api/v1/dashboard/teacher');
+  },
+  getStudentDashboardStats: async (): Promise<IBackendRes<any>> => {
+    return await api.get('/api/v1/dashboard/student');
   }
 };

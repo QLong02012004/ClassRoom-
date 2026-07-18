@@ -59,6 +59,19 @@
   max-height: 90vh;
   position: relative;
   overflow: hidden;
+
+  &.reverse {
+    flex-direction: row-reverse;
+
+    .authLeft {
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      border-right: none;
+    }
+  }
+
+  &:not(.reverse) .authLeft {
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+  }
 }
 
 .authLeft,
@@ -75,7 +88,6 @@
   padding: 48px;
   background: rgba(255, 255, 255, 0.02);
   justify-content: center;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
 
   @media (max-width: 1024px) {
     display: none;

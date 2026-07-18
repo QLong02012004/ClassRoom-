@@ -60,6 +60,23 @@ export const createStudentAccount = async (req: Request, res: Response, next: Ne
     }
 };
 
+// [POST] /api/v1/auth/register-student
+// (Học sinh tự đăng ký)
+export const registerStudentAccount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { name, email, password, parentPhone } = req.body;
+
+        const result = await createAccountService(name, email, password, 'student', parentPhone);
+
+        res.status(201).json({
+            message: 'Đăng ký tài khoản thành công!',
+            user: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // [POST] /api/v1/auth/login
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {

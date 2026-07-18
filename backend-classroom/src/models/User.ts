@@ -14,6 +14,10 @@ export interface IUser extends Document {
     phone?: string;
     address?: string;
     subject?: string;
+    xp?: number;
+    level?: number;
+    streak?: number;
+    lastLoginDate?: Date;
     createdAt: Date;
 }
 
@@ -30,6 +34,10 @@ const UserSchema = new Schema<IUser>({
     phone: { type: String, default: '' },
     address: { type: String, default: '' },
     subject: { type: String, default: '' },
+    xp: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    streak: { type: Number, default: 0 },
+    lastLoginDate: { type: Date },
     createdAt: { type: Date, default: Date.now }
 });
 

@@ -162,6 +162,42 @@ export const getClassroomStudents = async (req: Request, res: Response, next: Ne
     }
 };
 
+// Thêm học sinh có sẵn vào lớp
+export const addStudentToClassroom = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id: classId } = req.params;
+        const teacherId = (req as any).user?.id;
+        const { studentId } = req.body;
+
+        if (!studentId) {
+            return res.status(400).json({ message: 'Thiếu ID học sinh' });
+        }
+
+        const classroom = await ClassModel.findOne({ _id: classId as any, teacherId: teacherId as any });
+
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền thao tác' });
+        }
+
+        // Kiểm tra xem học sinh đã có trong lớp chưa
+        const isStudentExist = classroom.students.some(id => id.toString() === studentId);
+        if (isStudentExist) {
+            return res.status(400).json({ message: 'Học sinh này đã có trong lớp học rồi!' });
+        }
+
+        // Thêm học sinh vào mảng students
+        classroom.students.push(studentId as any);
+        await classroom.save();
+
+        res.status(200).json({
+            message: 'Đã thêm học sinh vào lớp thành công',
+            data: classroom
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 
 // Hàm sinh mã ngẫu nhiên 6 ký tự
 const generateClassCode = (): string => {
@@ -389,6 +425,62 @@ export const getAdminClassroomActivities = async (req: Request, res: Response, n
             data: {
                 currentTopic,
                 recentActivities: activities.slice(0, 5) // Chỉ lấy 5 sự kiện mới nhất
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// [POST] /api/v1/classrooms/join
+// Học sinh tham gia lớp học bằng mã code
+export const joinClassroomByCode = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const studentId = (req as any).user?.id;
+        const { code } = req.body;
+
+        if (!code) {
+            res.status(400);
+            return next(new Error('Vui lòng nhập mã lớp học'));
+        }
+
+        if (!studentId) {
+            res.status(401);
+            return next(new Error('Chưa đăng nhập'));
+        }
+
+        // Tìm lớp học theo mã
+        const targetClass = await ClassModel.findOne({ code });
+
+        if (!targetClass) {
+            res.status(404);
+            return next(new Error('Mã lớp học không tồn tại'));
+        }
+
+        if (targetClass.status === ClassStatus.LOCKED || targetClass.status === ClassStatus.ARCHIVED) {
+            res.status(400);
+            return next(new Error('Lớp học này đã bị khóa hoặc không còn hoạt động'));
+        }
+
+        // Kiểm tra xem học sinh đã có trong lớp chưa
+        const isAlreadyEnrolled = targetClass.students.some(
+            (sId) => sId.toString() === studentId.toString()
+        );
+
+        if (isAlreadyEnrolled) {
+            res.status(400);
+            return next(new Error('Bạn đã tham gia lớp học này rồi'));
+        }
+
+        // Thêm học sinh vào lớp
+        targetClass.students.push(studentId);
+        await targetClass.save();
+
+        res.status(200).json({
+            message: 'Tham gia lớp học thành công',
+            data: {
+                classId: targetClass._id,
+                className: targetClass.name
             }
         });
     } catch (error) {

@@ -72,13 +72,13 @@ export default function TeacherClassrooms() {
     });
   };
 
-  const [newClass, setNewClass] = useState({ className: "", subject: user?.subject || "Toán học" });
+  const [newClass, setNewClass] = useState({ className: "", subject: (user as any)?.subject || "Toán học" });
 
   useEffect(() => {
-    if (user?.subject) {
-      setNewClass(prev => ({ ...prev, subject: user.subject }));
+    if ((user as any)?.subject) {
+      setNewClass(prev => ({ ...prev, subject: (user as any).subject }));
     }
-  }, [user?.subject]);
+  }, [(user as any)?.subject]);
 
   const selectedSubject = SUBJECT_OPTIONS.find(o => o.value === newClass.subject) || { value: newClass.subject, emoji: "📚", color: "#64748b" };
 
@@ -202,7 +202,7 @@ export default function TeacherClassrooms() {
         await classroomService.createClassroom(newClass);
         toast.success(`Tạo lớp học "${newClass.className}" thành công!`);
       }
-      setNewClass({ className: "", subject: user?.subject || "Toán học" });
+      setNewClass({ className: "", subject: (user as any)?.subject || "Toán học" });
       setEditingId(null);
       setShowModal(false);
       loadData();
@@ -214,7 +214,7 @@ export default function TeacherClassrooms() {
   const handleEditClick = (e: React.MouseEvent, cls: ITeacherClassroom) => {
     e.stopPropagation();
     setEditingId(cls._id);
-    setNewClass({ className: cls.name, subject: cls.subject || user?.subject || "Toán học" });
+    setNewClass({ className: cls.name, subject: cls.subject || (user as any)?.subject || "Toán học" });
     setShowModal(true);
   };
 
@@ -415,7 +415,7 @@ export default function TeacherClassrooms() {
 
           <AnimatedAddButton onClick={() => {
             setEditingId(null);
-            setNewClass({ className: "", subject: user?.subject || "Toán học" });
+            setNewClass({ className: "", subject: (user as any)?.subject || "Toán học" });
             setShowModal(true);
           }}>
             Tạo lớp học mới

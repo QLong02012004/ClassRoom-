@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { 
-    getAdminClassrooms, 
-    updateClassroomStatus, 
+import {
+    getAdminClassrooms,
+    updateClassroomStatus,
     deleteClassroom,
     getTeacherClassrooms,
     getClassroomStudents,
@@ -11,7 +11,9 @@ import {
     hardDeleteClassroom,
     getStudentClassrooms,
     getClassroomDetail,
-    getAdminClassroomActivities
+    getAdminClassroomActivities,
+    addStudentToClassroom,
+    joinClassroomByCode
 } from '../controllers/classroomController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -31,6 +33,9 @@ router.get('/admin/:id/activities', protect, authorize('admin'), getAdminClassro
 router.delete('/:id', protect, authorize('admin'), deleteClassroom);
 
 // --- STUDENT ROUTES ---
+// Học sinh tham gia lớp bằng mã
+router.post('/join', protect, authorize('student'), joinClassroomByCode);
+
 // Lấy danh sách lớp học của học sinh
 router.get('/student', protect, authorize('student'), getStudentClassrooms);
 
@@ -40,6 +45,9 @@ router.get('/teacher', protect, authorize('teacher'), getTeacherClassrooms);
 
 // Lấy danh sách học sinh của một lớp (dùng cho điểm danh)
 router.get('/:id/students', protect, authorize('teacher'), getClassroomStudents);
+
+// Thêm học sinh có sẵn vào lớp
+router.post('/:id/students/add', protect, authorize('teacher'), addStudentToClassroom);
 
 // Tạo lớp học mới
 router.post('/', protect, authorize('teacher'), createClassroom);

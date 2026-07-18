@@ -25,7 +25,13 @@ import {
   PushPin,
   GridFour,
   List,
-  TrendUp
+  TrendUp,
+  CaretDown,
+  FolderOpen,
+  BookBookmark,
+  Calculator,
+  PaperPlaneTilt,
+  Lightbulb
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
@@ -46,14 +52,16 @@ import Checkbox from "../../../components/ui/Checkbox/Checkbox";
 import { CustomConfirmDialog } from "../../../components/ui/CustomConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
 import { ScrollArea } from "../../../components/ui/scroll-area";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../components/ui/dropdown-menu";
 import { QuizActionMenu } from "../../../components/ui/QuizActionMenu";
 import AnimatedSendButton from "../../../components/ui/AnimatedSendButton";
 import CustomImageUpload from "../../../components/ui/CustomImageUpload";
 import NumberStepper from "../../../components/ui/NumberStepper";
 import AiGenerateButton from "../../../components/ui/AiGenerateButton/AiGenerateButton";
 import FolderImportButton from "../../../components/ui/FolderImportButton/FolderImportButton";
-import CustomRadio from "../../../components/ui/CustomRadio/CustomRadio";
 import QuizBuilder from "../../../components/ui/QuizBuilder/QuizBuilder";
+import QuizPreviewModal from "../../../components/ui/QuizPreviewModal/QuizPreviewModal";
+import { ClassErrorInsights } from "./components/ClassErrorInsights";
 import styles from "./TeacherClassroomDetail.module.scss";
 
 export default function TeacherClassroomDetail() {
@@ -130,6 +138,7 @@ export default function TeacherClassroomDetail() {
   const [loadingResults, setLoadingResults] = useState(false);
   const [isCreatingQuiz, setIsCreatingQuiz] = useState(false);
   const [editingQuizId, setEditingQuizId] = useState<string | null>(null);
+  const [quizResultTab, setQuizResultTab] = useState<"scores" | "errors">("scores");
 
   const [isDeleteQuizDialogOpen, setIsDeleteQuizDialogOpen] = useState(false);
   const [quizToDelete, setQuizToDelete] = useState<any>(null);
@@ -139,9 +148,12 @@ export default function TeacherClassroomDetail() {
 
   // State giao bài từ Ngân hàng đề
   const [isAssignFromBankOpen, setIsAssignFromBankOpen] = useState(false);
+  const [previewBankItem, setPreviewBankItem] = useState<any>(null);
   const [bankItems, setBankItems] = useState<any[]>([]);
   const [loadingBank, setLoadingBank] = useState(false);
   const [selectedBankItem, setSelectedBankItem] = useState<any | null>(null);
+  const [bankSearchQuery, setBankSearchQuery] = useState("");
+  const [bankFilterOrigin, setBankFilterOrigin] = useState("all");
 
   // Form giao bài
   const [assignTitle, setAssignTitle] = useState("");
@@ -1564,14 +1576,34 @@ export default function TeacherClassroomDetail() {
               /* SUBMISSIONS RESULTS TABLE */
               <div className={styles.submissionsView}>
                 <div className={styles.submissionsHeader}>
-                  <button className={styles.backBtn} onClick={() => setSelectedQuiz(null)}>
+                  <button className={styles.backBtn} onClick={() => {
+                    setSelectedQuiz(null);
+                    setQuizResultTab("scores");
+                  }}>
                     <ArrowLeft size={16} weight="bold" />
                     Quay lại danh sách đề thi
                   </button>
-                  <h3>Bảng điểm: {selectedQuiz.title}</h3>
+                  <h3>Phân tích: {selectedQuiz.title}</h3>
                 </div>
 
-                {loadingResults ? (
+                <div className="flex items-center gap-4 mb-6 border-b border-slate-200">
+                  <button 
+                    className={`pb-3 px-2 font-semibold text-sm border-b-2 transition-colors ${quizResultTab === 'scores' ? 'border-[#FE6747] text-[#FE6747]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setQuizResultTab('scores')}
+                  >
+                    Bảng điểm & Bài nộp
+                  </button>
+                  <button 
+                    className={`pb-3 px-2 font-semibold text-sm border-b-2 transition-colors ${quizResultTab === 'errors' ? 'border-[#FE6747] text-[#FE6747]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    onClick={() => setQuizResultTab('errors')}
+                  >
+                    💡 Phân tích lỗi sai của lớp
+                  </button>
+                </div>
+
+                {quizResultTab === 'scores' ? (
+                  <>
+                    {loadingResults ? (
                   <p style={{ textAlign: "center", color: "#64748b", fontWeight: 600 }}>Đang tải bảng điểm...</p>
                 ) : quizResults.length === 0 ? (
                   <div className={styles.emptyFeed}>
@@ -1624,6 +1656,10 @@ export default function TeacherClassroomDetail() {
                       </tbody>
                     </table>
                   </div>
+                )}
+                </>
+                ) : (
+                  <ClassErrorInsights activityId={selectedQuiz._id} />
                 )}
               </div>
             ) : (
@@ -1950,19 +1986,53 @@ export default function TeacherClassroomDetail() {
 
       {/* Modal chọn bài tập từ ngân hàng để giao */}
       <Dialog open={isAssignFromBankOpen} onOpenChange={(open) => { if (!open) setIsAssignFromBankOpen(false); }}>
-        <DialogContent className="sm:max-w-[700px] bg-white rounded-2xl p-6 overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-900">
+        <DialogContent className="sm:max-w-[700px] w-[95vw] max-h-[95vh] flex flex-col bg-white rounded-2xl p-6 overflow-hidden">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+                <FolderOpen className="text-orange-500" size={24} weight="duotone" />
+              </div>
               Giao bài tập từ Ngân hàng đề
             </DialogTitle>
             <DialogDescription className="text-slate-500 text-sm mt-1">
-              Chọn đề thi trắc nghiệm hoặc bài tập đã soạn sẵn để giao cho lớp học.
+              Chọn bài tập đã soạn sẵn để giao cho lớp học.
             </DialogDescription>
           </DialogHeader>
 
           {!selectedBankItem ? (
-            <div className="mt-4 flex flex-col gap-4">
-              <div className="text-sm font-semibold text-slate-700">Danh sách tài nguyên sẵn có:</div>
+            <div className="mt-2 flex flex-col gap-4 flex-1 overflow-hidden min-h-0">
+              <div className="flex flex-col gap-3 flex-shrink-0">
+                <div className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                  <BookBookmark className="text-orange-500" size={18} weight="duotone" />
+                  Danh sách tài nguyên sẵn có
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm bài tập..."
+                    value={bankSearchQuery}
+                    onChange={(e) => setBankSearchQuery(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                  />
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none cursor-pointer bg-white flex items-center gap-2">
+                      {bankFilterOrigin === "all" ? "Tất cả" : bankFilterOrigin === "CENTER_SHARED" ? "Thư viện chung" : "Cá nhân"}
+                      <CaretDown size={14} className="text-slate-500" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-40 bg-white shadow-lg border border-slate-100">
+                      <DropdownMenuItem onClick={() => setBankFilterOrigin("all")} className="cursor-pointer font-medium text-slate-700">
+                        Tất cả
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setBankFilterOrigin("CENTER_SHARED")} className="cursor-pointer font-medium text-slate-700">
+                        Thư viện chung
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setBankFilterOrigin("PRIVATE")} className="cursor-pointer font-medium text-slate-700">
+                        Cá nhân
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
               {loadingBank ? (
                 <div className="text-center py-8 text-slate-400">Đang tải ngân hàng đề...</div>
               ) : bankItems.length === 0 ? (
@@ -1970,31 +2040,100 @@ export default function TeacherClassroomDetail() {
                   Ngân hàng đề của bạn đang trống. Hãy tạo đề thi/bài tập ở menu Ngân hàng trước.
                 </div>
               ) : (
-                <ScrollArea className="h-[400px] pr-2">
+                <ScrollArea className="flex-1 pr-2 min-h-0">
                   <div className="flex flex-col gap-3">
-                    {bankItems.map((item) => (
-                      <div key={item._id} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${item.type === 'quiz' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                            {item.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
-                          </span>
+                    {(() => {
+                      const filtered = bankItems.filter(item => {
+                        const searchLower = bankSearchQuery.toLowerCase();
+                        const matchesSearch = (item.title?.toLowerCase().includes(searchLower)) || (item.description?.toLowerCase().includes(searchLower));
+                        if (!matchesSearch) return false;
+                        if (bankFilterOrigin === 'CENTER_SHARED' && item.sharingStatus !== 'CENTER_SHARED') return false;
+                        if (bankFilterOrigin === 'PRIVATE' && item.sharingStatus !== 'PRIVATE') return false;
+                        return true;
+                      });
+                      
+                      if (filtered.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-sm text-slate-500">
+                            Không tìm thấy bài tập nào phù hợp.
+                          </div>
+                        );
+                      }
+                      
+                      return filtered.map((item) => (
+                        <div key={item._id} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-colors">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border ${item.type === 'quiz' ? 'bg-orange-50/50 border-orange-100' : 'bg-emerald-50/50 border-emerald-100'}`}>
+                            {item.type === 'quiz' ? (
+                              <ClipboardText size={24} weight="duotone" className="text-orange-500" />
+                            ) : (
+                              <Calculator size={24} weight="duotone" className="text-emerald-500" />
+                            )}
+                          </div>
                           <div>
-                            <h4 className="font-semibold text-slate-800 text-sm">{item.title}</h4>
-                            <p className="text-xs text-slate-400 mt-0.5 truncate max-w-[320px]">{item.description || 'Không có mô tả'}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${item.type === 'quiz' ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                                {item.type === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
+                              </span>
+                              <h4 className="font-semibold text-slate-800 text-sm">{item.title}</h4>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 font-medium">
+                              {item.type === 'quiz' && (
+                                <>
+                                  <div className="flex items-center gap-1" title="Số lượng câu hỏi">
+                                    <BookOpen size={13} weight="duotone" className="text-blue-500" />
+                                    {item.quizQuestions?.length || 0} câu hỏi
+                                  </div>
+                                  <div className="flex items-center gap-1" title="Thời gian làm bài">
+                                    <Clock size={13} weight="duotone" className="text-orange-500" />
+                                    {item.durationMinutes || 0} phút
+                                  </div>
+                                </>
+                              )}
+                              <div className="flex items-center gap-1" title="Nguồn gốc">
+                                <Users size={13} weight="duotone" className="text-emerald-500" />
+                                {item.sharingStatus === 'CENTER_SHARED' ? "Thư viện chung" : "Cá nhân"}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectBankItem(item)}
-                          className="px-3 py-1.5 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-colors"
-                        >
-                          Chọn giao
-                        </button>
+                        <div className="flex items-center gap-2">
+                          {item.type === 'quiz' && item.quizQuestions && item.quizQuestions.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewBankItem(item)}
+                              className="p-1.5 text-slate-500 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors border border-transparent hover:border-orange-200"
+                              title="Xem trước câu hỏi"
+                            >
+                              <Eye size={16} weight="bold" />
+                            </button>
+                          )}
+                          <AnimatedSendButton 
+                            text="Chọn giao" 
+                            onClick={() => handleSelectBankItem(item)} 
+                          />
+                        </div>
                       </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </ScrollArea>
               )}
+
+              {/* Tip Box */}
+              <div className="mt-2 mb-2 p-4 bg-[#fff8f3] rounded-xl border border-orange-100 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Lightbulb size={24} weight="duotone" className="text-orange-500" />
+                  <div>
+                    <h5 className="text-sm font-bold text-orange-600">Mẹo nhỏ</h5>
+                    <p className="text-xs text-orange-600/80 mt-0.5">Bạn có thể xem trước đề trước khi giao cho lớp để đảm bảo nội dung phù hợp.</p>
+                  </div>
+                </div>
+                <button className="flex items-center gap-2 px-3 py-1.5 border border-orange-200 bg-white rounded-lg text-xs font-semibold text-orange-600 hover:bg-orange-50 transition-colors whitespace-nowrap">
+                  <Eye size={16} weight="duotone" />
+                  Xem hướng dẫn
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleConfirmAssign} className="mt-4 flex flex-col gap-4">
@@ -2114,6 +2253,16 @@ export default function TeacherClassroomDetail() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* QUIZ PREVIEW MODAL */}
+      {previewBankItem && (
+        <QuizPreviewModal
+          isOpen={!!previewBankItem}
+          onClose={() => setPreviewBankItem(null)}
+          quizTitle={previewBankItem.title}
+          quizQuestions={previewBankItem.quizQuestions || []}
+        />
+      )}
     </div>
   );
 }

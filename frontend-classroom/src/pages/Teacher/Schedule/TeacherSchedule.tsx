@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { ArrowRight, CheckCircle, BookOpen, Clock, Trash, Plus, Spinner, X, CaretDown, Coffee, CalendarCheck, Users, MapPin, VideoCamera, WarningCircle, CaretLeft, CaretRight, CalendarBlank, Chalkboard, BookBookmark, Calendar, Note, ChartLineUp } from "phosphor-react";
+import { ArrowRight, CheckCircle, BookOpen, Clock, Trash, Plus, Spinner, X, CaretDown, Coffee, CalendarCheck, Users, MapPin, VideoCamera, WarningCircle, CaretLeft, CaretRight, CalendarBlank, Chalkboard, BookBookmark, Calendar, Note, ChartLineUp, Fire } from "phosphor-react";
 import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
@@ -14,6 +14,7 @@ import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import FireEffect from "./FireEffect";
 import styles from "./TeacherSchedule.module.scss";
 
 const TIME_SLOTS = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00"];
@@ -55,10 +56,12 @@ export default function TeacherSchedule() {
   const [schedules, setSchedules] = useState<ISchedule[]>([]);
 
   const [activeView, setActiveView] = useState("Tuần");
-  const [activeFilter, setActiveFilter] = useState("Tất cả lớp");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [filterSearch, setFilterSearch] = useState("");
 
   // Form states
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [miniCalendarDate, setMiniCalendarDate] = useState(new Date());
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [subject, setSubject] = useState("");
@@ -141,6 +144,29 @@ export default function TeacherSchedule() {
     }
   };
 
+  const generateMiniCalendarDays = useCallback(() => {
+    const year = miniCalendarDate.getFullYear();
+    const month = miniCalendarDate.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const startDay = firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1;
+
+    const calendarDays = [];
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = startDay - 1; i >= 0; i--) {
+      calendarDays.push({ day: prevMonthDays - i, isCurrentMonth: false, date: new Date(year, month - 1, prevMonthDays - i) });
+    }
+    for (let i = 1; i <= daysInMonth; i++) {
+      calendarDays.push({ day: i, isCurrentMonth: true, date: new Date(year, month, i) });
+    }
+    const remaining = 42 - calendarDays.length;
+    for (let i = 1; i <= remaining; i++) {
+      calendarDays.push({ day: i, isCurrentMonth: false, date: new Date(year, month + 1, i) });
+    }
+    return calendarDays;
+  }, [miniCalendarDate]);
+
   const today = new Date();
   const currentHour = today.getHours();
   const currentMinute = today.getMinutes();
@@ -175,16 +201,12 @@ export default function TeacherSchedule() {
     loadInitialData();
   }, [loadInitialData]);
 
-  // Bộ lọc danh sách lớp cho sidebar
-  const filters = useMemo(() => {
-    return ["Tất cả lớp", ...classes.map(c => c.name)];
-  }, [classes]);
-
+  // Bộ lọc danh sách lớp cho sidebar (Not needed as we moved to combobox)
   // Lọc lịch dạy hiển thị trên lịch
   const filteredSchedules = useMemo(() => {
-    if (activeFilter === "Tất cả lớp") return schedules;
-    return schedules.filter(s => s.classId?.name === activeFilter);
-  }, [schedules, activeFilter]);
+    if (activeFilters.length === 0) return schedules;
+    return schedules.filter(s => activeFilters.includes(s.classId?.name || ""));
+  }, [schedules, activeFilters]);
 
   // Lịch đang diễn ra hoặc sắp diễn ra tiếp theo
   const ongoingLesson = useMemo(() => {
@@ -470,6 +492,64 @@ export default function TeacherSchedule() {
             </div>
             <h2 className={styles.headerTitle}>{getHeaderMonthYearString()}</h2>
           </div>
+
+          <div className={styles.headerCenter}>
+            <div className={styles.filterCombobox}>
+              {activeFilters.length > 0 && (
+                <div className={styles.filterChips}>
+                  {activeFilters.map(f => (
+                    <span key={f} className={styles.filterChip}>
+                      {f}
+                      <button onClick={(e) => { e.stopPropagation(); setActiveFilters(prev => prev.filter(x => x !== f)); }}>
+                        <X size={12} weight="bold" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button className={styles.filterTrigger}>
+                    {activeFilters.length === 0 && <span className={styles.placeholder}>Chọn lớp...</span>}
+                    <Plus size={16} weight="bold" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 bg-white border border-slate-200 shadow-lg rounded-xl p-0 overflow-hidden" style={{ zIndex: 1100 }}>
+                  <div className={styles.comboboxSearch}>
+                    <input
+                      type="text"
+                      placeholder="Tìm tên lớp..."
+                      value={filterSearch}
+                      onChange={(e) => setFilterSearch(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div className="max-h-64 overflow-y-auto p-1">
+                    {classes.filter(c => c.name.toLowerCase().includes(filterSearch.toLowerCase())).map(c => {
+                      const isSelected = activeFilters.includes(c.name);
+                      return (
+                        <DropdownMenuItem
+                          key={c._id}
+                          onClick={() => {
+                            setActiveFilters(prev => isSelected ? prev.filter(f => f !== c.name) : [...prev, c.name]);
+                          }}
+                          className={`px-3 py-2 text-sm rounded-lg cursor-pointer transition-colors flex justify-between items-center outline-none ${isSelected ? "bg-teal-50 text-teal-700 font-medium" : "text-slate-700 hover:bg-slate-50"}`}
+                        >
+                          {c.name}
+                          {isSelected && <CheckCircle size={16} weight="fill" color="#0d9488" />}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                    {classes.filter(c => c.name.toLowerCase().includes(filterSearch.toLowerCase())).length === 0 && (
+                      <div className="px-3 py-4 text-center text-sm text-slate-500">
+                        Không tìm thấy lớp học.
+                      </div>
+                    )}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
           <div className={styles.headerRight}>
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
@@ -542,14 +622,18 @@ export default function TeacherSchedule() {
                 ))}
 
                 {/* Đường kẻ thời gian hiện tại (Current Time Line) */}
-                {currentTime >= START_HOUR && currentTime <= 23 && (
-                  <div
-                    className={styles.currentTimeLine}
-                    style={{ top: (currentTime - START_HOUR) * HOUR_HEIGHT }}
-                  >
-                    <div className={styles.currentTimeDot}></div>
-                  </div>
-                )}
+                {currentTime >= START_HOUR && currentTime <= 23 && (() => {
+                  const formattedTime = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+                  return (
+                    <div
+                      className={styles.currentTimeLine}
+                      style={{ top: (currentTime - START_HOUR) * HOUR_HEIGHT }}
+                    >
+                      <div className={styles.currentTimeLabel}>{formattedTime}</div>
+                      <div className={styles.currentTimeDot}></div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {loadingData ? (
@@ -572,9 +656,21 @@ export default function TeacherSchedule() {
                       const start = parseTime(lesson.startTime);
                       const end = parseTime(lesson.endTime);
                       const top = (start - START_HOUR) * HOUR_HEIGHT;
-                      const height = (end - start) * HOUR_HEIGHT;
+                      // Trừ đi 4px chiều cao để tạo khe hở (gap) giữa các khối lịch liền kề nhau
+                      const height = (end - start) * HOUR_HEIGHT - 6; 
                       const isOngoing = lesson._id === ongoingLesson?._id;
+                      const isCurrent = isOngoing && currentTime >= start && currentTime <= end;
+                      const isUpcoming = isOngoing && currentTime < start;
+                      const isUpcoming15Mins = isUpcoming && (start - currentTime <= 0.25);
                       const themeClass = getClassTheme(lesson.classId?._id);
+
+                      let stateClass = "";
+                      if (isCurrent) stateClass = styles.lessonOngoing;
+                      else if (isUpcoming) stateClass = styles.lessonUpcoming;
+
+                      if (day.isToday && (isCurrent || isUpcoming15Mins)) {
+                        stateClass += ` ${styles.lessonHeartbeat}`;
+                      }
 
                       return (
                         <div
@@ -582,7 +678,7 @@ export default function TeacherSchedule() {
                           draggable={true}
                           onDragStart={(e) => handleDragStart(e, lesson._id)}
                           onClick={() => handleEditSchedule(lesson)}
-                          className={`${styles.lessonCardAbsolute} ${themeClass} ${isOngoing ? styles.lessonOngoing : ""}`}
+                          className={`${styles.lessonCardAbsolute} ${themeClass} ${stateClass}`}
                           style={{ top, height, cursor: 'grab' }}
                         >
                           <button
@@ -600,6 +696,9 @@ export default function TeacherSchedule() {
                           >
                             <Trash size={14} />
                           </button>
+
+                          {day.isToday && (isCurrent || isUpcoming15Mins) && <FireEffect />}
+
                           <div className={styles.lessonTime}>{lesson.startTime} - {lesson.endTime}</div>
                           <div className={styles.lessonTitle}>{lesson.classId?.name || "Lớp học"} - {lesson.subject}</div>
                           <div className={styles.lessonRoom}>{lesson.chapter || "Chương trình học"}</div>
@@ -648,44 +747,52 @@ export default function TeacherSchedule() {
 
       {/* THANH CÔNG CỤ (RIGHT SIDEBAR) */}
       <div className={styles.rightSidebar}>
-        {/* Khối Bộ lọc nhanh */}
-        <div className={styles.filterCard}>
-          <div className={styles.cardHeader}>
-            <h4>Bộ lọc theo lớp</h4>
-          </div>
-          <DropdownMenu modal={false}>
-            <DropdownMenuTrigger asChild>
-              <button className={styles.filterDropdownBtn}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {activeFilter}
-                </span>
-                <CaretDown size={16} weight="bold" />
+        {/* MINI CALENDAR */}
+        <div className={styles.miniCalendarCard}>
+          <div className={styles.miniCalendarHeader}>
+            <span className={styles.miniCalendarTitle}>
+              Tháng {miniCalendarDate.getMonth() + 1}, {miniCalendarDate.getFullYear()}
+            </span>
+            <div className={styles.miniCalendarNav}>
+              <button className={styles.miniNavBtn} onClick={() => setMiniCalendarDate(new Date(miniCalendarDate.getFullYear(), miniCalendarDate.getMonth() - 1, 1))}>
+                <CaretLeft size={16} weight="bold" />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64 bg-white border border-slate-200 shadow-lg rounded-xl p-2 max-h-72 overflow-y-auto" style={{ zIndex: 1100, width: '280px' }}>
-                {filters.map((filter) => (
-                  <DropdownMenuItem
-                    key={filter}
-                    onClick={() => setActiveFilter(filter)}
-                    className={`px-3 py-2.5 text-sm rounded-lg cursor-pointer transition-colors flex justify-between items-center outline-none mb-1 ${activeFilter === filter
-                      ? "font-bold"
-                      : "text-slate-700 hover:bg-slate-50"
-                      }`}
-                    style={activeFilter === filter ? { color: "#FE6747", backgroundColor: "rgba(254, 103, 71, 0.1)" } : {}}
-                  >
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{filter}</span>
-                    {activeFilter === filter && <CheckCircle size={16} weight="fill" color="#FE6747" />}
-                  </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <button className={styles.miniNavBtn} onClick={() => setMiniCalendarDate(new Date(miniCalendarDate.getFullYear(), miniCalendarDate.getMonth() + 1, 1))}>
+                <CaretRight size={16} weight="bold" />
+              </button>
+            </div>
+          </div>
+          <div className={styles.miniCalendarGrid}>
+            {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map(d => (
+              <div key={d} className={styles.miniCalendarDayName}>{d}</div>
+            ))}
+            {generateMiniCalendarDays().map((d, i) => {
+              const isSelected = d.date.toDateString() === currentDate.toDateString();
+              const isToday = d.date.toDateString() === new Date().toDateString();
+              return (
+                <button
+                  key={i}
+                  className={`${styles.miniCalendarDay} ${!d.isCurrentMonth ? styles.notCurrentMonth : ''} ${isSelected ? styles.selectedDay : ''} ${isToday && !isSelected ? styles.todayDay : ''}`}
+                  onClick={() => {
+                    setCurrentDate(d.date);
+                    setMiniCalendarDate(d.date);
+                  }}
+                >
+                  {d.day}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Khối Đang diễn ra */}
         {ongoingLesson && (
           <div className={styles.ongoingCard}>
             <div className={styles.ongoingHeader}>
-              <span className={styles.ongoingBadge}>ĐANG DIỄN RA</span>
+              <span className={`${styles.ongoingBadge} ${styles.pulseBadge}`}>
+                <Fire size={16} weight="fill" className={styles.pulseIcon} style={{ marginRight: '4px' }} />
+                ĐANG DIỄN RA
+              </span>
               <span className={styles.ongoingTime}>{ongoingLesson.startTime} - {ongoingLesson.endTime}</span>
             </div>
             <h3 className={styles.ongoingClass}>
@@ -800,15 +907,15 @@ export default function TeacherSchedule() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 bg-white border border-slate-200 shadow-lg rounded-xl p-1" style={{ zIndex: 1100, maxHeight: 250, overflowY: 'auto' }}>
-                      {classes.map(c => (
-                        <DropdownMenuItem
-                          key={c._id}
-                          onClick={() => { setSelectedClassId(c._id); setConflictData(null); }}
-                          className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors"
-                        >
-                          {c.name}
-                        </DropdownMenuItem>
-                      ))}
+                    {classes.map(c => (
+                      <DropdownMenuItem
+                        key={c._id}
+                        onClick={() => { setSelectedClassId(c._id); setConflictData(null); }}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors"
+                      >
+                        {c.name}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -830,23 +937,23 @@ export default function TeacherSchedule() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-56 bg-white border border-slate-200 shadow-lg rounded-xl p-1" style={{ zIndex: 1100, maxHeight: 250, overflowY: 'auto' }}>
-                      {[
-                        { label: "Thứ 2", value: 1 },
-                        { label: "Thứ 3", value: 2 },
-                        { label: "Thứ 4", value: 3 },
-                        { label: "Thứ 5", value: 4 },
-                        { label: "Thứ 6", value: 5 },
-                        { label: "Thứ 7", value: 6 },
-                        { label: "Chủ Nhật", value: 7 },
-                      ].map(d => (
-                        <DropdownMenuItem
-                          key={d.value}
-                          onClick={() => { setDayOfWeek(d.value); setConflictData(null); }}
-                          className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors"
-                        >
-                          {d.label}
-                        </DropdownMenuItem>
-                      ))}
+                    {[
+                      { label: "Thứ 2", value: 1 },
+                      { label: "Thứ 3", value: 2 },
+                      { label: "Thứ 4", value: 3 },
+                      { label: "Thứ 5", value: 4 },
+                      { label: "Thứ 6", value: 5 },
+                      { label: "Thứ 7", value: 6 },
+                      { label: "Chủ Nhật", value: 7 },
+                    ].map(d => (
+                      <DropdownMenuItem
+                        key={d.value}
+                        onClick={() => { setDayOfWeek(d.value); setConflictData(null); }}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center transition-colors"
+                      >
+                        {d.label}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -875,15 +982,15 @@ export default function TeacherSchedule() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-48 bg-white border border-slate-200 shadow-lg rounded-xl p-1" style={{ zIndex: 1100, maxHeight: 200, overflowY: 'auto' }}>
-                      {TIME_OPTIONS.map(time => (
-                        <DropdownMenuItem
-                          key={time}
-                          onClick={() => { setStartTime(time); setConflictData(null); }}
-                          className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center"
-                        >
-                          {time}
-                        </DropdownMenuItem>
-                      ))}
+                    {TIME_OPTIONS.map(time => (
+                      <DropdownMenuItem
+                        key={time}
+                        onClick={() => { setStartTime(time); setConflictData(null); }}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center"
+                      >
+                        {time}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -897,15 +1004,15 @@ export default function TeacherSchedule() {
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent className="w-48 bg-white border border-slate-200 shadow-lg rounded-xl p-1" style={{ zIndex: 1100, maxHeight: 200, overflowY: 'auto' }}>
-                      {TIME_OPTIONS.map(time => (
-                        <DropdownMenuItem
-                          key={time}
-                          onClick={() => { setEndTime(time); setConflictData(null); }}
-                          className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center"
-                        >
-                          {time}
-                        </DropdownMenuItem>
-                      ))}
+                    {TIME_OPTIONS.map(time => (
+                      <DropdownMenuItem
+                        key={time}
+                        onClick={() => { setEndTime(time); setConflictData(null); }}
+                        className="px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer flex justify-between items-center"
+                      >
+                        {time}
+                      </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

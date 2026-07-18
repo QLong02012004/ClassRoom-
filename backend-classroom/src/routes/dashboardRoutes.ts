@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAdminStats, getTeacherDashboardStats } from '../controllers/dashboardController';
+import { getAdminStats, getTeacherDashboardStats, getStudentDashboardStats } from '../controllers/dashboardController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -9,5 +9,8 @@ router.get('/admin', protect, authorize('admin'), getAdminStats);
 
 // Lấy thống kê teacher dashboard
 router.get('/teacher', protect, authorize('teacher', 'admin'), getTeacherDashboardStats);
+
+// Lấy thống kê student dashboard
+router.get('/student', protect, authorize('student'), getStudentDashboardStats);
 
 export default router;

@@ -53,10 +53,10 @@ const Header: React.FC = () => {
             <button
               className={`${styles.menuItem} ${activeTab === "quizzes" ? styles.active : ""}`}
               onClick={() => handleTabClick("quizzes")}
-              title={isCollapsed ? "Trắc nghiệm" : undefined}
+              title={isCollapsed ? "Bài tập" : undefined}
             >
               <FileText size={20} weight={activeTab === "quizzes" ? "fill" : "regular"} />
-              <span className={styles.menuText}>Trắc nghiệm</span>
+              <span className={styles.menuText}>Bài tập</span>
             </button>
             <button
               className={`${styles.menuItem} ${isStudentsPage ? styles.active : ""}`}

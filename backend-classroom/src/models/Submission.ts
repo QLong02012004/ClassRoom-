@@ -7,11 +7,20 @@ export interface IAttachment {
     size: string;
 }
 
+export interface ISubmissionComment {
+    userId: Types.ObjectId;
+    name: string;
+    isTeacher: boolean;
+    text: string;
+    createdAt: Date;
+}
+
 export interface ISubmission extends Document {
     assignmentId: Types.ObjectId;
     studentId: Types.ObjectId;
     submissionText?: string;
     attachments: IAttachment[];
+    comments: ISubmissionComment[];
     status: SubmissionStatus;
     submittedAt: Date;
 }
@@ -22,11 +31,20 @@ const AttachmentSchema = new Schema<IAttachment>({
     size: { type: String, default: '' }
 });
 
+const SubmissionCommentSchema = new Schema<ISubmissionComment>({
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    name: { type: String, required: true },
+    isTeacher: { type: Boolean, default: false },
+    text: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+});
+
 const SubmissionSchema = new Schema<ISubmission>({
     assignmentId: { type: Schema.Types.ObjectId, ref: 'ClassActivity', required: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     submissionText: { type: String, default: '' },
     attachments: [AttachmentSchema],
+    comments: { type: [SubmissionCommentSchema], default: [] },
     status: { type: String, enum: Object.values(SubmissionStatus), default: SubmissionStatus.SUBMITTED },
     submittedAt: { type: Date, default: Date.now }
 });

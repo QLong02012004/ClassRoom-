@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Alarm, CaretLeft, CaretRight, Info, PaperPlaneRight, GridFour, Trophy } from "phosphor-react";
+import { Alarm, CaretLeft, CaretRight, Info, GridFour, Trophy } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { activityService } from "../../../service/activity.service.ts";
 import styles from "./TakeExam.module.scss";
+import { PrimaryButton } from "../../../components/ui/PrimaryButton.tsx";
 
 export default function TakeExam() {
   const { id } = useParams<{ id: string }>();
@@ -23,9 +24,9 @@ export default function TakeExam() {
     if (!id) return;
     try {
       setLoading(true);
-      const activityRes = await activityService.getActivityById(id);
-      if (activityRes && activityRes.data) {
-        const activity = activityRes.data;
+      const activityRes: any = await activityService.getActivityById(id);
+      const activity = activityRes.data || activityRes;
+      if (activity && activity._id) {
         const fetchedQuiz = {
           _id: activity._id,
           title: activity.title,
@@ -38,9 +39,10 @@ export default function TakeExam() {
 
         let fetchedResult = null;
         try {
-          const resultRes = await activityService.getMyQuizResult(id);
-          if (resultRes && resultRes.data) {
-            fetchedResult = resultRes.data;
+          const resultRes: any = await activityService.getMyQuizResult(id);
+          const resultData = resultRes.data || resultRes;
+          if (resultData && resultData.score !== undefined) {
+            fetchedResult = resultData;
           }
         } catch (e) { } // Ignore if no result
 
@@ -113,11 +115,12 @@ export default function TakeExam() {
 
         // Refetch to get the correct answers and update UI to review mode
         try {
-          const resultRes = await activityService.getMyQuizResult(quiz._id);
-          if (resultRes && resultRes.data) {
-            setResult(resultRes.data);
+          const resultRes: any = await activityService.getMyQuizResult(quiz._id);
+          const resultData = resultRes.data || resultRes;
+          if (resultData && resultData.score !== undefined) {
+            setResult(resultData);
             const answersMap: Record<number, number> = {};
-            resultRes.data.answers.forEach((ans: number, idx: number) => {
+            resultData.answers.forEach((ans: number, idx: number) => {
               if (ans !== -1) {
                 answersMap[idx] = ans;
               }
@@ -355,10 +358,12 @@ export default function TakeExam() {
                 Quay lại lớp học
               </button>
             ) : (
-              <button className={styles.btnSubmit} onClick={handleManualSubmit}>
+              <PrimaryButton 
+                onClick={handleManualSubmit}
+                style={{ width: '100%', padding: '24px 0', fontSize: '1.05rem', marginTop: '12px' }}
+              >
                 Nộp bài thi
-                <PaperPlaneRight size={18} weight="bold" />
-              </button>
+              </PrimaryButton>
             )}
 
             <p className={styles.submitNote}>

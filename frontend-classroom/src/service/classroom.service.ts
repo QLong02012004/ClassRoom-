@@ -70,16 +70,24 @@ export const classroomService = {
     return await api.get('/api/v1/classrooms/student');
   },
 
+  joinClassByCode: async (code: string): Promise<IBackendRes<any>> => {
+    return await api.post('/api/v1/classrooms/join', { code });
+  },
+
   getClassroomDetail: async (id: string): Promise<IBackendRes<ITeacherClassroom>> => {
     return await api.get(`/api/v1/classrooms/${id}`);
   },
-  
+
   createClassroom: async (data: { className: string; subject: string }): Promise<IBackendRes<ITeacherClassroom>> => {
     return await api.post('/api/v1/classrooms', data);
   },
 
   updateClassroom: async (id: string, data: { className: string; subject: string }): Promise<IBackendRes<ITeacherClassroom>> => {
     return await api.put(`/api/v1/classrooms/${id}`, data);
+  },
+
+  addExistingStudent: async (id: string, studentId: string): Promise<IBackendRes<any>> => {
+    return await api.post(`/api/v1/classrooms/${id}/students/add`, { studentId });
   },
 
   softDeleteClassroom: async (id: string): Promise<IBackendRes<ITeacherClassroom>> => {

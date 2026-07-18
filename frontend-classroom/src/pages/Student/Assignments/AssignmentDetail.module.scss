@@ -663,3 +663,131 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* --- COMMENTS SECTION --- */
+.commentsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.commentBubble {
+  display: flex;
+  gap: 12px;
+  max-width: 85%;
+  
+  &.studentBubble {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+    
+    .commentContent {
+      background: #f1f5f9;
+      border-radius: 16px 16px 4px 16px;
+    }
+  }
+
+  &.teacherBubble {
+    align-self: flex-start;
+    
+    .commentContent {
+      background: rgba(254, 103, 71, 0.08);
+      border-radius: 16px 16px 16px 4px;
+    }
+    
+    .commentAvatar {
+      background: #FE6747;
+      color: white;
+    }
+  }
+}
+
+.commentAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.commentContent {
+  padding: 12px 16px;
+}
+
+.commentHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.commentName {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+}
+
+.commentTime {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.commentText {
+  font-size: 0.95rem;
+  color: #334155;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.commentInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 24px;
+  padding: 6px 6px 6px 16px;
+  transition: all 0.2s;
+
+  &:focus-within {
+    border-color: #fca5a5;
+    box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+  }
+}
+
+.commentInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  background: transparent;
+  color: vars.$dark-text;
+
+  &::placeholder {
+    color: #94a3b8;
+  }
+}
+
+.sendCommentBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #FE6747;
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #e55a30;
+    transform: scale(1.05);
+  }
+}

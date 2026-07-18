@@ -16,6 +16,25 @@ export default function StudentClassrooms() {
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [attendanceRate, setAttendanceRate] = useState<number>(95);
   const [studentCount, setStudentCount] = useState<number>(35);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [classCode, setClassCode] = useState("");
+  const [isJoining, setIsJoining] = useState(false);
+
+  const handleJoinClass = async () => {
+    if (!classCode.trim()) return;
+    try {
+      setIsJoining(true);
+      const res = await classroomService.joinClassByCode(classCode.trim());
+      toast.success(res.message || "Tham gia lớp học thành công!");
+      setShowJoinModal(false);
+      setClassCode("");
+      loadData(); // Reload danh sách lớp
+    } catch (err: any) {
+      toast.error(err.message || "Không thể tham gia lớp học, kiểm tra lại mã Code.");
+    } finally {
+      setIsJoining(false);
+    }
+  };
 
   const loadData = async () => {
     const currentUsername = user?.name || localStorage.getItem("username") || "Học sinh A";
@@ -35,7 +54,7 @@ export default function StudentClassrooms() {
           status: c.status
         }));
         setClassrooms(backendClasses);
-        
+
         // Cập nhật số học sinh thực tế
         const firstClass = res.data[0];
         setStudentCount(firstClass.students?.length || 35);
@@ -97,13 +116,54 @@ export default function StudentClassrooms() {
           <h2>Lớp học của tôi</h2>
           <p>Quản lý và theo dõi tiến độ tham gia lớp học của bạn.</p>
         </div>
+        <button className={styles.btnJoinHeader} onClick={() => setShowJoinModal(true)}>
+          <Plus size={20} weight="bold" />
+          <span>Tham gia lớp học</span>
+        </button>
       </div>
+
+      {/* JOIN CLASS MODAL */}
+      {showJoinModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <h3>Tham gia lớp học</h3>
+            <div className={styles.formGroup}>
+              <label>Mã lớp học (6 ký tự)</label>
+              <input
+                type="text"
+                placeholder="VD: REACT1"
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value.toUpperCase())}
+                maxLength={6}
+              />
+            </div>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.btnCancel}
+                onClick={() => {
+                  setShowJoinModal(false);
+                  setClassCode("");
+                }}
+              >
+                Hủy
+              </button>
+              <button
+                className={styles.btnConfirm}
+                onClick={handleJoinClass}
+                disabled={isJoining || classCode.length < 3}
+              >
+                {isJoining ? "Đang xử lý..." : "Tham gia"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. CLASSES GRID */}
       <div className={styles.classesGrid}>
         {classrooms.map((cls) => (
-          <div 
-            key={cls._id} 
+          <div
+            key={cls._id}
             className={styles.classCard}
             onClick={() => navigate(`/classrooms/${cls._id}`)}
             style={{ cursor: "pointer" }}
@@ -114,7 +174,7 @@ export default function StudentClassrooms() {
               </div>
               <span className={styles.statusTag}>Đang diễn ra</span>
             </div>
-            
+
             <div className={styles.cardMiddle}>
               <h3 className={styles.classTitle}>{cls.className}</h3>
               <div className={styles.teacherInfo}>
@@ -129,9 +189,9 @@ export default function StudentClassrooms() {
                 <span className={styles.progressVal}>{attendanceRate}%</span>
               </div>
               <div className={styles.progressBarBg}>
-                <div 
-                  className={styles.progressBarFill} 
-                  style={{ width: `${attendanceRate}%` }} 
+                <div
+                  className={styles.progressBarFill}
+                  style={{ width: `${attendanceRate}%` }}
                 />
               </div>
             </div>
@@ -139,11 +199,11 @@ export default function StudentClassrooms() {
             <div className={styles.cardFooter}>
               <div className={styles.avatarsGroup}>
                 {mockAvatars.map((av, index) => (
-                  <img 
+                  <img
                     key={index}
-                    src={av} 
-                    alt="Student avatar" 
-                    style={{ zIndex: 3 - index }} 
+                    src={av}
+                    alt="Student avatar"
+                    style={{ zIndex: 3 - index }}
                   />
                 ))}
                 <span className={styles.avatarMore}>+{studentCount - 3}</span>

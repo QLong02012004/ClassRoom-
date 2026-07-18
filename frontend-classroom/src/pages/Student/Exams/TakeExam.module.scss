@@ -36,8 +36,8 @@
 }
 
 .qCountBadge {
-  background: #fee2e2;
-  color: #EF4444;
+  background: #FFF0ED;
+  color: #FE6747;
   font-weight: 700;
   font-size: 0.85rem;
   padding: 6px 12px;
@@ -51,14 +51,14 @@
 }
 
 .timerCard {
-  background: #FF6A3D;
+  background: #FE6747;
   border-radius: 12px;
   padding: 12px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
   color: white;
-  box-shadow: 0 4px 15px rgba(255, 106, 61, 0.3);
+  box-shadow: 0 4px 15px rgba(254, 103, 71, 0.3);
 
   svg {
     font-size: 28px;
@@ -110,7 +110,7 @@
 }
 
 .qLabel {
-  color: #EF4444;
+  color: #FE6747;
   font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.5px;
@@ -155,26 +155,26 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    border-color: #fca5a5;
-    background: #fff5f5;
+    border-color: #FE6747;
+    background: #FFF7F5;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.08);
+    box-shadow: 0 4px 12px rgba(254, 103, 71, 0.08);
 
     .optLetter {
-      background: #fee2e2;
-      color: #EF4444;
-      border-color: #fca5a5;
+      background: #FFF7F5;
+      color: #FE6747;
+      border-color: #FE6747;
     }
   }
 
   &.selected {
-    border-color: #EF4444;
-    background: #fef2f2;
-    box-shadow: 0 0 0 1px #EF4444;
+    border-color: #FE6747;
+    background: #FFF0ED;
+    box-shadow: 0 0 0 1px #FE6747;
     transform: translateY(0);
     
     &:hover {
-      box-shadow: 0 0 0 1px #EF4444, 0 4px 12px rgba(239, 68, 68, 0.08);
+      box-shadow: 0 0 0 1px #FE6747, 0 4px 12px rgba(254, 103, 71, 0.08);
     }
   }
 
@@ -192,7 +192,7 @@
 
   &.wrong {
     border-color: #EF4444;
-    background: #fef2f2;
+    background: #FFF0ED;
     box-shadow: 0 0 0 1px #EF4444;
 
     .optLetter {
@@ -218,9 +218,9 @@
   transition: all 0.25s;
 
   &.selectedLetter {
-    background: #EF4444 !important;
+    background: #FE6747 !important;
     color: white !important;
-    border-color: #EF4444 !important;
+    border-color: #FE6747 !important;
   }
 }
 
@@ -245,8 +245,8 @@
   align-items: center;
   gap: 8px;
   background: white;
-  color: #B91C1C;
-  border: 1px solid #B91C1C;
+  color: #FE6747;
+  border: 1px solid #FE6747;
   padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
@@ -254,7 +254,7 @@
   transition: 0.2s;
 
   &:hover:not(:disabled) {
-    background: #fef2f2;
+    background: #FFF0ED;
   }
 
   &:disabled {
@@ -269,7 +269,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #B91C1C;
+  background: #FE6747;
   color: white;
   border: none;
   padding: 10px 20px;
@@ -279,7 +279,7 @@
   transition: 0.2s;
 
   &:hover:not(:disabled) {
-    background: #991b1b;
+    background: #E25838;
   }
 
   &:disabled {
@@ -358,7 +358,7 @@
   }
 
   &.current {
-    background: #991b1b;
+    background: #FE6747;
     color: white;
   }
 
@@ -412,7 +412,7 @@
     background: #10B981;
   }
   &.dotCurrent {
-    background: #991b1b;
+    background: #FE6747;
   }
   &.dotUnanswered {
     background: #e2e8f0;

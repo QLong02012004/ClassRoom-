@@ -14,7 +14,9 @@ import {
   X,
   Bell,
   Eye,
-  Info
+  Info,
+  ChatTeardropText,
+  PaperPlaneRight
 } from "phosphor-react";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
@@ -35,12 +37,39 @@ export default function AssignmentDetail() {
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mySubmission, setMySubmission] = useState<any>(null);
+  const [newComment, setNewComment] = useState("");
+  const [isSendingComment, setIsSendingComment] = useState(false);
+
+  const formatRelativeTime = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    if (minutes < 1) return "Vừa xong";
+    if (minutes < 60) return `${minutes} phút trước`;
+    if (hours < 24) return `${hours} giờ trước`;
+    return `${days} ngày trước`;
+  };
+
+  const handleSendComment = async () => {
+    if (!newComment.trim() || !assignment) return;
+    setIsSendingComment(true);
+    try {
+      await gradebookService.addComment(assignment._id, newComment);
+      setNewComment("");
+      loadData();
+    } catch (err) {
+      toast.error("Lỗi khi gửi bình luận");
+    } finally {
+      setIsSendingComment(false);
+    }
+  };
 
   const loadData = async () => {
     if (!id) return;
     try {
       const assignRes = await gradebookService.getAssignmentDetail(id);
-      const assignData = assignRes?.data || assignRes;
+      const assignData: any = assignRes?.data || assignRes;
       if (assignData && assignData._id) {
         const mappedAssign = {
           ...assignData,
@@ -193,36 +222,90 @@ export default function AssignmentDetail() {
             <h4 className={styles.sectionLabel}>Mô tả bài tập</h4>
             <p className={styles.description}>{assignment.description}</p>
 
-            <ul className={styles.requirementsList}>
-              <li>Trình bày chi tiết, rõ ràng các bước giải.</li>
-              <li>Định dạng: File PDF hoặc Word (.docx).</li>
-              <li>Lưu ý: Không sao chép, ưu tiên cách giải sáng tạo của bản thân.</li>
-            </ul>
+            {assignment.type === 'quiz' ? (
+              <ul className={styles.requirementsList}>
+                <li>Loại bài: Trắc nghiệm trực tuyến.</li>
+                <li>Thời gian làm bài: {assignment.durationMinutes || assignment.bankItemId?.durationMinutes || 15} phút.</li>
+                <li>Số câu hỏi: {assignment.bankItemId?.quizQuestions?.length || 0} câu.</li>
+                <li>Lưu ý: Không thể tạm dừng khi đã bắt đầu làm bài. Điểm số sẽ được ghi nhận ngay sau khi nộp.</li>
+              </ul>
+            ) : (
+              <ul className={styles.requirementsList}>
+                <li>Trình bày chi tiết, rõ ràng các bước giải.</li>
+                <li>Định dạng: File PDF hoặc Word (.docx).</li>
+                <li>Lưu ý: Không sao chép, ưu tiên cách giải sáng tạo của bản thân.</li>
+              </ul>
+            )}
 
             {/* Attachments */}
-            <h4 className={styles.sectionLabel} style={{ marginTop: 24 }}>
-              <FilePdf size={20} weight="fill" style={{ color: "#EF4444" }} />
-              Tài liệu đính kèm
+            {assignment.bankItemId?.fileUrl && (
+              <>
+                <h4 className={styles.sectionLabel} style={{ marginTop: 24 }}>
+                  <FilePdf size={20} weight="fill" style={{ color: "#EF4444" }} />
+                  Tài liệu đính kèm
+                </h4>
+                <div className={styles.attachmentsRow}>
+                  <div className={styles.attachFile} onClick={() => window.open(assignment.bankItemId.fileUrl, "_blank")}>
+                    <div className={`${styles.fileIconWrapper} ${assignment.bankItemId.fileUrl.endsWith('.pdf') ? styles.pdfBg : styles.docBg}`}>
+                      {assignment.bankItemId.fileUrl.endsWith('.pdf') ? (
+                        <FilePdf size={22} weight="fill" className={styles.pdfIcon} />
+                      ) : (
+                        <FileDoc size={22} weight="fill" className={styles.docIcon} />
+                      )}
+                    </div>
+                    <div>
+                      <span className={styles.fileName}>
+                        {assignment.bankItemId.fileUrl.split('/').pop() || "Tai-lieu-dinh-kem"}
+                      </span>
+                      <span className={styles.fileSize}>Tài liệu môn học</span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Comments Section */}
+            <hr className={styles.divider} style={{ marginTop: 32 }} />
+            <h4 className={styles.sectionLabel}>
+              <ChatTeardropText size={22} weight="fill" style={{ color: "#FE6747" }} />
+              Thảo luận với Giáo viên
             </h4>
-            <div className={styles.attachmentsRow}>
-              <div className={styles.attachFile}>
-                <div className={`${styles.fileIconWrapper} ${styles.pdfBg}`}>
-                  <FilePdf size={22} weight="fill" className={styles.pdfIcon} />
+            <div className={styles.commentsContainer}>
+              {(mySubmission?.comments || []).map((c: any, i: number) => (
+                <div key={i} className={`${styles.commentBubble} ${c.isTeacher ? styles.teacherBubble : styles.studentBubble}`}>
+                  <div className={styles.commentAvatar}>
+                    <User size={16} weight="fill" />
+                  </div>
+                  <div className={styles.commentContent}>
+                    <div className={styles.commentHeader}>
+                      <span className={styles.commentName}>{c.isTeacher ? c.name || teacherName : "Tôi"}</span>
+                      <span className={styles.commentTime}>{formatRelativeTime(c.createdAt)}</span>
+                    </div>
+                    <p className={styles.commentText}>{c.text}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className={styles.fileName}>Van-ban-Song-X...</span>
-                  <span className={styles.fileSize}>1.2 MB • PDF</span>
-                </div>
-              </div>
-              <div className={styles.attachFile}>
-                <div className={`${styles.fileIconWrapper} ${styles.docBg}`}>
-                  <FileDoc size={22} weight="fill" className={styles.docIcon} />
-                </div>
-                <div>
-                  <span className={styles.fileName}>Huong-dan-lam-...</span>
-                  <span className={styles.fileSize}>450 KB • Word</span>
-                </div>
-              </div>
+              ))}
+            </div>
+            <div className={styles.commentInputWrapper}>
+              <input 
+                type="text" 
+                placeholder="Nhắn tin cho giáo viên (không cần qua Zalo)..." 
+                className={styles.commentInput}
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSendComment();
+                }}
+                disabled={isSendingComment}
+              />
+              <button 
+                className={styles.sendCommentBtn}
+                onClick={handleSendComment}
+                disabled={isSendingComment || !newComment.trim()}
+                style={{ opacity: (!newComment.trim() || isSendingComment) ? 0.5 : 1 }}
+              >
+                <PaperPlaneRight size={18} weight="fill" />
+              </button>
             </div>
           </div>
         </div>
@@ -240,6 +323,15 @@ export default function AssignmentDetail() {
               <div className={styles.gradedBox}>
                 <CheckCircle size={40} weight="fill" className={styles.checkIcon} />
                 <p className={styles.gradedScore}>Điểm: <strong>{mySubmission.grade}/10</strong></p>
+                {assignment.type === 'quiz' && (
+                  <button
+                    className={styles.submitBtn}
+                    style={{ marginTop: 12, width: '100%' }}
+                    onClick={() => navigate(`/exams/${assignment._id}`)}
+                  >
+                    Xem chi tiết bài làm
+                  </button>
+                )}
                 {mySubmission.feedback && (
                   <p className={styles.feedback}>💬 &ldquo;{mySubmission.feedback}&rdquo;</p>
                 )}
@@ -250,78 +342,91 @@ export default function AssignmentDetail() {
                 <p>Đã nộp lúc {new Date(mySubmission.submittedAt).toLocaleString("vi-VN")}</p>
                 <p className={styles.subNote}>Đang chờ giáo viên chấm điểm...</p>
               </div>
-            ) : (
-              <>
-                {/* Drag & Drop area */}
-                <div
-                  className={`${styles.dropZone} ${isDragging ? styles.dragging : ""}`}
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    hidden
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleFileChange}
-                  />
-                  {selectedFile ? (
-                    <div className={styles.selectedFile}>
-                      <FilePdf size={28} weight="fill" style={{ color: "#EF4444" }} />
-                      <span>{selectedFile.name}</span>
-                      <button
-                        className={styles.removeFile}
-                        onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
-                      >
-                        <X size={14} weight="bold" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <div className={styles.uploadIconContainer}>
-                         <UploadSimple size={24} weight="bold" className={styles.uploadIcon} />
-                      </div>
-                      <p className={styles.dropText}>Kéo và thả file vào đây</p>
-                      <p className={styles.dropSubText}>Hoặc nhấn để chọn từ máy tính</p>
-                    </>
-                  )}
-                </div>
-
-                {/* Note */}
-                <label className={styles.noteLabel}>Ghi chú cho giáo viên</label>
-                <textarea
-                  className={styles.noteArea}
-                  placeholder="Nhập lời nhắn hoặc lưu ý cho giáo viên..."
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  rows={3}
-                />
-
-                {/* Submit button */}
-                <button
-                  className={styles.submitBtn}
-                  onClick={handleSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <span className={styles.loadingDots}>Đang nộp bài...</span>
-                  ) : (
-                    <>
+            ) : assignment.type === 'quiz' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: 1.5 }}>
+                      Đây là bài tập trắc nghiệm tính giờ. Hãy đảm bảo bạn có kết nối mạng ổn định trước khi bắt đầu.
+                    </p>
+                    <button
+                      className={styles.submitBtn}
+                      onClick={() => navigate(`/exams/${assignment._id}`)}
+                    >
                       <PaperPlaneTilt size={18} weight="bold" />
-                      Nộp bài tập ngay
-                    </>
-                  )}
-                </button>
-                <div className={styles.editNoteContainer}>
-                  <Info size={16} className={styles.infoIcon} />
-                  <p className={styles.editNote}>
-                    Bạn có thể chỉnh sửa bài nộp trước thời hạn chót.
-                  </p>
-                </div>
-              </>
-            )}
+                      Bắt đầu làm bài
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    {/* Drag & Drop area */}
+                    <div
+                      className={`${styles.dropZone} ${isDragging ? styles.dragging : ""}`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        hidden
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleFileChange}
+                      />
+                      {selectedFile ? (
+                        <div className={styles.selectedFile}>
+                          <FilePdf size={28} weight="fill" style={{ color: "#EF4444" }} />
+                          <span>{selectedFile.name}</span>
+                          <button
+                            className={styles.removeFile}
+                            onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+                          >
+                            <X size={14} weight="bold" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className={styles.uploadIconContainer}>
+                             <UploadSimple size={24} weight="bold" className={styles.uploadIcon} />
+                          </div>
+                          <p className={styles.dropText}>Kéo và thả file vào đây</p>
+                          <p className={styles.dropSubText}>Hoặc nhấn để chọn từ máy tính</p>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Note */}
+                    <label className={styles.noteLabel}>Ghi chú cho giáo viên</label>
+                    <textarea
+                      className={styles.noteArea}
+                      placeholder="Nhập lời nhắn hoặc lưu ý cho giáo viên..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      rows={3}
+                    />
+
+                    {/* Submit button */}
+                    <button
+                      className={styles.submitBtn}
+                      onClick={handleSubmit}
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <span className={styles.loadingDots}>Đang nộp bài...</span>
+                      ) : (
+                        <>
+                          <PaperPlaneTilt size={18} weight="bold" />
+                          Nộp bài tập ngay
+                        </>
+                      )}
+                    </button>
+                    <div className={styles.editNoteContainer}>
+                      <Info size={16} className={styles.infoIcon} />
+                      <p className={styles.editNote}>
+                        Bạn có thể chỉnh sửa bài nộp trước thời hạn chót.
+                      </p>
+                    </div>
+                  </>
+                )}
           </div>
 
           {/* Activity Log */}
@@ -335,7 +440,7 @@ export default function AssignmentDetail() {
                 <div>
                   <p className={styles.actText}>Bài tập đã được giao</p>
                   <span className={styles.actTime}>
-                    2 ngày trước • 08:30
+                    {formatRelativeTime(assignment.createdAt)} • {new Date(assignment.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
               </div>
@@ -348,7 +453,7 @@ export default function AssignmentDetail() {
                   <div>
                     <p className={styles.actText}>Bạn đã nộp bài</p>
                     <span className={styles.actTime}>
-                      {new Date(mySubmission.submittedAt).toLocaleDateString("vi-VN")} • {new Date(mySubmission.submittedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                      {formatRelativeTime(mySubmission.submittedAt)} • {new Date(mySubmission.submittedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                 </div>
@@ -363,20 +468,6 @@ export default function AssignmentDetail() {
                     <p className={styles.actText}>Giáo viên đã chấm điểm</p>
                     <span className={styles.actTime}>
                       Điểm: {mySubmission.grade}/10
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {!isSubmitted && (
-                <div className={styles.activityItem}>
-                  <div className={`${styles.actIconWrapper} ${styles.grayBg}`}>
-                     <Eye size={14} weight="bold" color="#64748B" />
-                  </div>
-                  <div>
-                    <p className={styles.actText}>Bạn đã xem tài liệu đính kèm</p>
-                    <span className={styles.actTime}>
-                      1 ngày trước • 14:15
                     </span>
                   </div>
                 </div>

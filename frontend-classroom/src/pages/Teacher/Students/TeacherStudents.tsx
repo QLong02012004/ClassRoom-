@@ -17,6 +17,7 @@ import {
 import { authService } from "../../../service/auth.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { attendanceService } from "../../../service/attendance.service.ts";
+import { userService } from "../../../service/user.service.ts";
 import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
 import { StudentsTable } from "../../../components/ui/StudentsTable";
 import styles from "./TeacherStudents.module.scss";
@@ -32,6 +33,13 @@ export default function TeacherStudents() {
   const [showModal, setShowModal] = useState(false);
   const [newStudent, setNewStudent] = useState({ name: "", email: "", password: "", parentPhone: "" });
   
+  // States for adding existing student
+  const [activeTab, setActiveTab] = useState<"new" | "existing">("new");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+
   // States for editing student
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
@@ -134,6 +142,45 @@ export default function TeacherStudents() {
     }
   };
 
+  useEffect(() => {
+    if (activeTab === "existing" && searchQuery.trim().length >= 2) {
+      setIsSearching(true);
+      const timer = setTimeout(() => {
+        userService.getUsers({ role: 'student', search: searchQuery })
+          .then(res => {
+             setSearchResults(res.data || []);
+             setIsSearching(false);
+          })
+          .catch(() => {
+             setSearchResults([]);
+             setIsSearching(false);
+          });
+      }, 500);
+      return () => clearTimeout(timer);
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery, activeTab]);
+
+  const handleAddExistingStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !selectedStudentId) {
+      toast.error("Vui lòng chọn một học sinh!");
+      return;
+    }
+    try {
+      await classroomService.addExistingStudent(id, selectedStudentId);
+      toast.success("Đã thêm học sinh vào lớp thành công!");
+      setShowModal(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      setSelectedStudentId(null);
+      loadData();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Lỗi khi thêm học sinh.");
+    }
+  };
+
   const handleDeleteStudent = (studentId: string, studentName: string) => {
     setDeleteConfirm({
       isOpen: true,
@@ -190,22 +237,36 @@ export default function TeacherStudents() {
     setShowEditModal(true);
   };
 
-  const handleUpdateStudent = (e: React.FormEvent) => {
+  const handleUpdateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingStudentId) return;
-    if (!editForm.name || !editForm.email || !editForm.password) {
+    if (!editForm.name || !editForm.email) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return;
     }
 
     try {
+      // 1. Gọi API cập nhật thông tin user
+      await userService.updateUser(editingStudentId, {
+        name: editForm.name,
+        email: editForm.email,
+        parentPhone: editForm.parentPhone || undefined
+      } as any);
+
+      // 2. Nếu có nhập mật khẩu mới thì gọi API reset password
+      if (editForm.password) {
+        await userService.resetUserPassword(editingStudentId, editForm.password);
+      }
+
+      // 3. Vẫn update mockDb để dự phòng nếu backend không hoạt động
       updateMockStudent(editingStudentId, editForm.name, editForm.parentPhone || "Không có", editForm.email, editForm.password);
+      
       toast.success(`Cập nhật tài khoản học sinh "${editForm.name}" thành công!`);
       setShowEditModal(false);
       setEditingStudentId(null);
       loadData();
-    } catch (err) {
-      toast.error("Lỗi khi cập nhật tài khoản học sinh.");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Lỗi khi cập nhật tài khoản học sinh.");
     }
   };
 
@@ -241,64 +302,134 @@ export default function TeacherStudents() {
       {showModal && (
         <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3>Tạo Tài Khoản Học Sinh</h3>
-            <form onSubmit={handleCreateStudent}>
-              <div className={styles.formGroup}>
-                <label htmlFor="studentName">Họ và tên</label>
-                <input
-                  id="studentName"
-                  type="text"
-                  required
-                  placeholder="Ví dụ: Nguyễn Văn A"
-                  value={newStudent.name}
-                  onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                />
-              </div>
+            <h3>Thêm Học Sinh Vào Lớp</h3>
+            
+            <div className={styles.tabHeader}>
+              <button 
+                type="button"
+                className={`${styles.tabBtn} ${activeTab === 'new' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('new')}
+              >
+                Tạo mới
+              </button>
+              <button 
+                type="button"
+                className={`${styles.tabBtn} ${activeTab === 'existing' ? styles.activeTab : ''}`}
+                onClick={() => setActiveTab('existing')}
+              >
+                Thêm từ hệ thống
+              </button>
+            </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="studentEmail">Tên đăng nhập / Email</label>
-                <input
-                  id="studentEmail"
-                  type="text"
-                  required
-                  placeholder="Ví dụ: nva.class6@classroom.com"
-                  value={newStudent.email}
-                  onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                />
-              </div>
+            {activeTab === 'new' && (
+              <form onSubmit={handleCreateStudent}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="studentName">Họ và tên</label>
+                  <input
+                    id="studentName"
+                    type="text"
+                    required
+                    placeholder="Ví dụ: Nguyễn Văn A"
+                    value={newStudent.name}
+                    onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
+                  />
+                </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="studentPassword">Mật khẩu khởi tạo</label>
-                <input
-                  id="studentPassword"
-                  type="text"
-                  required
-                  placeholder="Ví dụ: password123"
-                  value={newStudent.password}
-                  onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
-                />
-              </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="studentEmail">Tên đăng nhập / Email</label>
+                  <input
+                    id="studentEmail"
+                    type="text"
+                    required
+                    placeholder="Ví dụ: nva.class6@classroom.com"
+                    value={newStudent.email}
+                    onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
+                  />
+                </div>
 
-              <div className={styles.formGroup}>
-                <label htmlFor="parentPhone">SĐT Phụ huynh (tùy chọn)</label>
-                <input
-                  id="parentPhone"
-                  type="text"
-                  placeholder="Ví dụ: 09xx"
-                  value={newStudent.parentPhone}
-                  onChange={(e) => setNewStudent({ ...newStudent, parentPhone: e.target.value })}
-                />
-              </div>
+                <div className={styles.formGroup}>
+                  <label htmlFor="studentPassword">Mật khẩu khởi tạo</label>
+                  <input
+                    id="studentPassword"
+                    type="text"
+                    required
+                    placeholder="Ví dụ: password123"
+                    value={newStudent.password}
+                    onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
+                  />
+                </div>
 
-              <div className={styles.modalActions}>
-                <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
-                  Hủy bỏ
-                </button>
-                <button type="submit" className={styles.btnConfirm}>
-                  Tạo tài khoản
-                </button>
-              </div>
-            </form>
+                <div className={styles.formGroup}>
+                  <label htmlFor="parentPhone">SĐT Phụ huynh (tùy chọn)</label>
+                  <input
+                    id="parentPhone"
+                    type="text"
+                    placeholder="Ví dụ: 09xx"
+                    value={newStudent.parentPhone}
+                    onChange={(e) => setNewStudent({ ...newStudent, parentPhone: e.target.value })}
+                  />
+                </div>
+
+                <div className={styles.modalActions}>
+                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
+                    Hủy bỏ
+                  </button>
+                  <button type="submit" className={styles.btnConfirm}>
+                    Tạo tài khoản
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {activeTab === 'existing' && (
+              <form onSubmit={handleAddExistingStudent}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="searchQuery">Tìm kiếm học sinh</label>
+                  <input
+                    id="searchQuery"
+                    type="text"
+                    placeholder="Nhập tên, email hoặc SĐT để tìm..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                
+                {searchQuery.trim().length > 0 && (
+                  <div className={styles.searchResults}>
+                    {isSearching ? (
+                      <div className={styles.noResults}>Đang tìm kiếm...</div>
+                    ) : searchResults.length > 0 ? (
+                      searchResults.map((user: any) => (
+                        <div 
+                          key={user._id} 
+                          className={`${styles.searchItem} ${selectedStudentId === user._id ? styles.selectedItem : ''}`}
+                          onClick={() => setSelectedStudentId(user._id)}
+                        >
+                          <div className={styles.itemName}>{user.name}</div>
+                          <div className={styles.itemEmail}>{user.email} - {user.parentPhone || 'Chưa có SĐT'}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className={styles.noResults}>Không tìm thấy học sinh nào.</div>
+                    )}
+                  </div>
+                )}
+
+                <div className={styles.modalActions}>
+                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
+                    Hủy bỏ
+                  </button>
+                  <button 
+                    type="submit" 
+                    className={styles.btnConfirm} 
+                    disabled={!selectedStudentId}
+                    style={{ opacity: !selectedStudentId ? 0.5 : 1, cursor: !selectedStudentId ? 'not-allowed' : 'pointer' }}
+                  >
+                    Thêm vào lớp
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
@@ -334,11 +465,10 @@ export default function TeacherStudents() {
               </div>
 
               <div className={styles.formGroup}>
-                <label htmlFor="editStudentPassword">Mật khẩu mới (Reset mật khẩu)</label>
+                <label htmlFor="editStudentPassword">Mật khẩu mới (Reset mật khẩu - Bỏ trống nếu không đổi)</label>
                 <input
                   id="editStudentPassword"
                   type="text"
-                  required
                   placeholder="Ví dụ: password123"
                   value={editForm.password}
                   onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}

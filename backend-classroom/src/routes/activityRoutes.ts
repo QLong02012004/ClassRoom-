@@ -9,7 +9,9 @@ import {
     getMySubmission,
     getAssignmentSubmissions,
     getMyQuizResult,
-    getQuizResults
+    getQuizResults,
+    getStudentActivities,
+    addComment
 } from '../controllers/activityController';
 import { protect } from '../middlewares/authMiddleware';
 
@@ -22,6 +24,9 @@ router.use(protect);
 router.post('/classes/:classId/activities', assignActivity);
 router.get('/classes/:classId/activities', getClassActivities);
 
+// Lấy toàn bộ bài tập của học sinh
+router.get('/activities/student', getStudentActivities);
+
 // Các endpoint thao tác trực tiếp trên 1 activity
 router.get('/activities/:id', getActivityById);
 router.put('/activities/:id', updateActivity);
@@ -33,5 +38,6 @@ router.get('/activities/:id/my-submission', getMySubmission);
 router.get('/activities/:id/submissions', getAssignmentSubmissions);
 router.get('/activities/:id/my-result', getMyQuizResult);
 router.get('/activities/:id/results', getQuizResults);
+router.post('/activities/:id/my-submission/comments', addComment);
 
 export default router;

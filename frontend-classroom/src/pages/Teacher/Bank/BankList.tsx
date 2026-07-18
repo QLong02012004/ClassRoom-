@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { bankService } from '../../../service/bank.service';
 import type { IBankItem } from '../../../service/bank.service';
 import { useToast } from '../../../components/Styles/ToastContext';
-import { Plus, BookOpen, FileText, DotsThree, Trash, PencilSimple, Clock, CaretDown, MagnifyingGlass, Funnel } from 'phosphor-react';
+import { Plus, BookOpen, FileText, DotsThree, Trash, PencilSimple, Clock, CaretDown, MagnifyingGlass, Funnel, Info, TextAa, ListChecks, DownloadSimple, CheckCircle, ClipboardText, Calculator } from 'phosphor-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../../components/ui/dropdown-menu';
 import QuizBuilder from '../../../components/ui/QuizBuilder/QuizBuilder';
 import AssignmentBuilder from '../../../components/ui/AssignmentBuilder/AssignmentBuilder';
@@ -12,6 +12,7 @@ import { PrimaryButton } from '../../../components/ui/PrimaryButton';
 import { BackButton } from '../../../components/ui/BackButton';
 import { useAuth } from '../../../context/AuthContext';
 import { BankActionMenu } from '../../../components/ui/BankActionMenu';
+import { ScrollArea } from '../../../components/ui/scroll-area';
 import {
     Dialog,
     DialogContent,
@@ -454,6 +455,7 @@ export default function BankList() {
                                                 className="min-w-[800px] w-full border-collapse"
                                                 selectedKeys={selectedKeys}
                                                 selectionMode="multiple"
+                                                selectionBehavior="toggle"
                                                 onSelectionChange={setSelectedKeys}
                                             >
                                                 <Table.Header>
@@ -477,7 +479,11 @@ export default function BankList() {
                                                 </Table.Header>
                                                 <Table.Body>
                                                     {currentItems.map(item => (
-                                                        <Table.Row key={item._id} id={item._id} className="hover:bg-slate-50/50 transition-colors border-b border-slate-100">
+                                                        <Table.Row 
+                                                            key={item._id} 
+                                                            id={item._id} 
+                                                            className="hover:bg-slate-50/50 transition-colors border-b border-slate-100 cursor-pointer"
+                                                        >
                                                             <Table.Cell className="px-5 py-3.5">
                                                                 <Checkbox aria-label={`Select ${item.title}`} slot="selection">
                                                                     <Checkbox.Content>
@@ -487,7 +493,7 @@ export default function BankList() {
                                                                     </Checkbox.Content>
                                                                 </Checkbox>
                                                             </Table.Cell>
-                                                            <Table.Cell className="px-5 py-3.5">
+                                                            <Table.Cell className="px-5 py-3.5" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenDetails(item); }}>
                                                                 <div className="flex items-center gap-1.5 flex-nowrap">
                                                                     <span className="px-2.5 py-1 text-xs font-bold rounded-full inline-block text-center leading-none bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                                         {item.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
@@ -497,7 +503,7 @@ export default function BankList() {
                                                                     </span>
                                                                 </div>
                                                             </Table.Cell>
-                                                            <Table.Cell className="px-5 py-3.5">
+                                                            <Table.Cell className="px-5 py-3.5" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenDetails(item); }}>
                                                                 {item.subject ? (
                                                                     <span className="px-3 py-1.5 text-xs font-bold rounded-full bg-blue-50 text-blue-600 leading-none inline-block">
                                                                         {item.subject}
@@ -506,15 +512,15 @@ export default function BankList() {
                                                                     <span className="text-slate-300 font-medium">—</span>
                                                                 )}
                                                             </Table.Cell>
-                                                            <Table.Cell className="px-5 py-3.5">
+                                                            <Table.Cell className="px-5 py-3.5" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenDetails(item); }}>
                                                                 <div className="font-semibold text-slate-800 max-w-[200px] truncate" title={item.title}>
                                                                     {item.title}
                                                                 </div>
                                                             </Table.Cell>
-                                                            <Table.Cell className="px-5 py-3.5 text-center font-medium text-slate-700">
+                                                            <Table.Cell className="px-5 py-3.5 text-center font-medium text-slate-700" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenDetails(item); }}>
                                                                 {item.maxScore} điểm
                                                             </Table.Cell>
-                                                            <Table.Cell className="px-5 py-3.5 text-center font-medium text-slate-600">
+                                                            <Table.Cell className="px-5 py-3.5 text-center font-medium text-slate-600" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); e.preventDefault(); handleOpenDetails(item); }}>
                                                                 {item.type === 'quiz' && item.durationMinutes ? (
                                                                     <span className="inline-flex items-center gap-1 justify-center">
                                                                         <Clock size={14} /> {item.durationMinutes} phút
@@ -523,7 +529,7 @@ export default function BankList() {
                                                                     <span className="text-slate-300">—</span>
                                                                 )}
                                                             </Table.Cell>
-                                                            <Table.Cell className="px-5 py-3.5 text-center">
+                                                            <Table.Cell className="px-5 py-3.5 text-center" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}>
                                                                 <div className="flex items-center justify-center relative">
                                                                     <BankActionMenu
                                                                         onViewDetails={() => handleOpenDetails(item)}
@@ -587,107 +593,151 @@ export default function BankList() {
 
             {/* Modal Xem chi tiết học liệu */}
             <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-                <DialogContent className="sm:max-w-[550px] max-h-[85vh] overflow-y-auto bg-white">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                            <BookOpen size={24} className="text-primary" />
-                            Chi tiết học liệu
+                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] flex flex-col overflow-hidden bg-white p-0">
+                    <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
+                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedDetailsItem?.type === 'quiz' ? 'bg-orange-100 text-orange-500' : 'bg-emerald-100 text-emerald-500'}`}>
+                                {selectedDetailsItem?.type === 'quiz' ? <ClipboardText size={24} weight="duotone" /> : <Calculator size={24} weight="duotone" />}
+                            </div>
+                            {selectedDetailsItem?.title}
                         </DialogTitle>
-                        <DialogDescription className="text-slate-500">
+                        <DialogDescription className="text-slate-500 mt-1 pl-[52px]">
                             Thông tin chi tiết được lưu trữ trong Ngân hàng học liệu.
                         </DialogDescription>
                     </DialogHeader>
                     {selectedDetailsItem && (
-                        <div className="space-y-4 py-4 text-slate-700">
-                            <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3">
-                                <span className="font-semibold text-slate-500 text-sm">Tiêu đề:</span>
-                                <span className="col-span-2 font-bold text-slate-900 text-base">{selectedDetailsItem.title}</span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3">
-                                <span className="font-semibold text-slate-500 text-sm">Loại:</span>
-                                <span className="col-span-2">
-                                    <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${selectedDetailsItem.type === 'quiz' ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                        {selectedDetailsItem.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
-                                    </span>
-                                </span>
-                            </div>
-                            {selectedDetailsItem.subject && (
-                                <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3">
-                                    <span className="font-semibold text-slate-500 text-sm">Môn học:</span>
-                                    <span className="col-span-2 font-semibold text-blue-600">{selectedDetailsItem.subject}</span>
+                        <div className="flex-1 overflow-hidden p-6 flex flex-col md:flex-row gap-6">
+                            {/* Cột trái: Thông tin chung */}
+                            <ScrollArea className="w-full md:w-[320px] lg:w-[350px] flex-shrink-0 h-[450px]" type="auto">
+                                <div className="space-y-4 pr-4">
+                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                    <Info size={18} className="text-orange-500" weight="duotone" /> 
+                                    Thông tin chung
+                                </h3>
+                                <div className="bg-orange-50/30 border border-orange-100 rounded-xl p-4 space-y-3">
+                                    <div className="flex items-center justify-between border-b border-orange-100 pb-2">
+                                        <span className="font-medium text-slate-500 text-sm">Loại tài nguyên:</span>
+                                        <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full border ${selectedDetailsItem.type === 'quiz' ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                                            {selectedDetailsItem.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập tự luận'}
+                                        </span>
+                                    </div>
+                                    {selectedDetailsItem.subject && (
+                                        <div className="flex items-center justify-between border-b border-orange-100 pb-2">
+                                            <span className="font-medium text-slate-500 text-sm">Môn học:</span>
+                                            <span className="font-bold text-blue-600 text-sm">{selectedDetailsItem.subject}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between border-b border-orange-100 pb-2">
+                                        <span className="font-medium text-slate-500 text-sm">Phạm vi chia sẻ:</span>
+                                        <span className={`px-2 py-0.5 text-[11px] font-bold rounded-md ${selectedDetailsItem.sharingStatus === 'CENTER_SHARED' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
+                                            {selectedDetailsItem.sharingStatus === 'CENTER_SHARED' ? 'Thư viện chung' : 'Cá nhân'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between border-b border-orange-100 pb-2">
+                                        <span className="font-medium text-slate-500 text-sm">Điểm tối đa:</span>
+                                        <span className="font-bold text-slate-800 text-sm">{selectedDetailsItem.maxScore} điểm</span>
+                                    </div>
+                                    {selectedDetailsItem.type === 'quiz' && selectedDetailsItem.durationMinutes && (
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-medium text-slate-500 text-sm">Thời gian làm bài:</span>
+                                            <span className="font-bold text-slate-800 text-sm flex items-center gap-1">
+                                                <Clock size={16} className="text-orange-500" />
+                                                {selectedDetailsItem.durationMinutes} phút
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                            <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3">
-                                <span className="font-semibold text-slate-500 text-sm">Phạm vi chia sẻ:</span>
-                                <span className="col-span-2">
-                                    <span className={`px-2 py-0.5 text-xs font-bold rounded-md ${selectedDetailsItem.sharingStatus === 'CENTER_SHARED' ? 'bg-purple-100 text-purple-600' : 'bg-slate-100 text-slate-500'}`}>
-                                        {selectedDetailsItem.sharingStatus === 'CENTER_SHARED' ? 'Chung (Toàn trung tâm)' : 'Cá nhân (Chỉ bạn)'}
-                                    </span>
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3">
-                                <span className="font-semibold text-slate-500 text-sm">Điểm tối đa:</span>
-                                <span className="col-span-2 font-semibold">{selectedDetailsItem.maxScore} điểm</span>
-                            </div>
-                            {selectedDetailsItem.type === 'quiz' && selectedDetailsItem.durationMinutes && (
-                                <div className="grid grid-cols-3 gap-2 border-b border-slate-100 pb-3">
-                                    <span className="font-semibold text-slate-500 text-sm">Thời gian làm bài:</span>
-                                    <span className="col-span-2 font-semibold">{selectedDetailsItem.durationMinutes} phút</span>
-                                </div>
-                            )}
-                            <div className="flex flex-col gap-1 border-b border-slate-100 pb-3">
-                                <span className="font-semibold text-slate-500 text-sm">Mô tả chi tiết:</span>
-                                <div className="bg-slate-50 p-3 rounded-lg text-sm text-slate-600 italic whitespace-pre-wrap mt-1 border border-slate-100">
-                                    {selectedDetailsItem.description || "Không có mô tả chi tiết."}
-                                </div>
-                            </div>
-
-                            {selectedDetailsItem.type === 'document' && selectedDetailsItem.fileUrl && (
-                                <div className="flex flex-col gap-2 pt-2">
-                                    <span className="font-semibold text-slate-500 text-sm">File đính kèm:</span>
-                                    <a
-                                        href={selectedDetailsItem.fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-primary hover:underline font-bold text-sm bg-orange-50 w-fit px-3 py-1.5 rounded-lg border border-orange-100"
-                                    >
-                                        <FileText size={16} /> Tải xuống file tài liệu
-                                    </a>
-                                </div>
-                            )}
-
-                            {selectedDetailsItem.type === 'quiz' && selectedDetailsItem.quizQuestions && (
-                                <div className="flex flex-col gap-2 pt-2">
-                                    <span className="font-semibold text-slate-500 text-sm">Danh sách câu hỏi ({selectedDetailsItem.quizQuestions.length} câu):</span>
-                                    <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1 border border-slate-100 rounded-xl p-3 bg-slate-50">
-                                        {selectedDetailsItem.quizQuestions.map((q: any, qIdx: number) => (
-                                            <div key={q._id || qIdx} className="bg-white p-3 rounded-lg border border-slate-100 text-xs shadow-sm">
-                                                <p className="font-bold text-slate-800 mb-1.5">Câu {qIdx + 1}: {q.questionText}</p>
-                                                <div className="grid grid-cols-2 gap-1.5 pl-2">
-                                                    {q.options.map((opt: string, optIdx: number) => (
-                                                        <div key={optIdx} className={`p-1.5 rounded ${optIdx === q.correctOptionIndex ? 'bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold' : 'bg-slate-50 text-slate-600'}`}>
-                                                            {String.fromCharCode(65 + optIdx)}. {opt}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
+                                
+                                <div className="mt-4">
+                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                                        <TextAa size={18} className="text-orange-500" weight="duotone" />
+                                        Mô tả chi tiết
+                                    </h3>
+                                    <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-600 leading-relaxed border border-slate-200 whitespace-pre-wrap">
+                                        {selectedDetailsItem.description || <span className="text-slate-400 italic">Không có mô tả chi tiết.</span>}
                                     </div>
                                 </div>
-                            )}
+                                </div>
+                            </ScrollArea>
+
+                            {/* Cột phải: Nội dung */}
+                            <div className="flex-[1.5] border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-6">
+                                {selectedDetailsItem.type === 'document' && selectedDetailsItem.fileUrl ? (
+                                    <div className="h-full border border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
+                                        <FileText size={64} weight="duotone" className="text-emerald-500 mb-4" />
+                                        <h4 className="text-lg font-bold text-slate-800 mb-2">Tài liệu đính kèm</h4>
+                                        <p className="text-slate-500 text-sm mb-6 max-w-xs">
+                                            Học liệu này là dạng file tự luận. Bạn có thể tải file về để xem chi tiết nội dung.
+                                        </p>
+                                        <a
+                                            href={selectedDetailsItem.fileUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 text-white font-bold text-sm bg-emerald-500 hover:bg-emerald-600 transition-colors px-6 py-2.5 rounded-xl shadow-sm"
+                                        >
+                                            <DownloadSimple size={18} weight="bold" /> Tải xuống tài liệu
+                                        </a>
+                                    </div>
+                                ) : selectedDetailsItem.type === 'quiz' && selectedDetailsItem.quizQuestions ? (
+                                    <div className="flex flex-col h-full max-h-[500px]">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                                <ListChecks size={18} className="text-orange-500" weight="duotone" />
+                                                Danh sách câu hỏi
+                                            </h3>
+                                            <span className="px-3 py-1 bg-orange-100 text-orange-700 font-bold text-xs rounded-full">
+                                                {selectedDetailsItem.quizQuestions.length} câu
+                                            </span>
+                                        </div>
+                                        <ScrollArea className="flex-1 pr-4 h-[400px]" type="auto">
+                                            <div className="space-y-4">
+                                                {selectedDetailsItem.quizQuestions.map((q: any, qIdx: number) => (
+                                                <div key={q._id || qIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-orange-200 transition-colors">
+                                                    <div className="flex items-start gap-3 mb-3">
+                                                        <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0 mt-0.5">
+                                                            {qIdx + 1}
+                                                        </div>
+                                                        <p className="font-semibold text-slate-800 leading-snug text-sm">{q.questionText}</p>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-10">
+                                                        {q.options.map((opt: string, optIdx: number) => {
+                                                            const isCorrect = optIdx === q.correctOptionIndex;
+                                                            return (
+                                                                <div key={optIdx} className={`p-2.5 rounded-lg text-sm flex items-center gap-2 ${isCorrect ? 'bg-orange-50 border border-orange-200 text-orange-800 font-medium' : 'bg-slate-50 border border-slate-100 text-slate-600'}`}>
+                                                                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCorrect ? 'bg-orange-500 text-white' : 'bg-white border border-slate-300 text-slate-500'}`}>
+                                                                        {String.fromCharCode(65 + optIdx)}
+                                                                    </div>
+                                                                    <span className="flex-1">{opt}</span>
+                                                                    {isCorrect && <CheckCircle size={16} weight="fill" className="text-orange-500 flex-shrink-0" />}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            </div>
+                                        </ScrollArea>
+                                    </div>
+                                ) : (
+                                    <div className="h-full border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 text-sm font-medium">
+                                        Không có nội dung chi tiết
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
-                    <DialogFooter>
-                        <PrimaryButton
+                    <DialogFooter className="m-0 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
+                        <button
                             type="button"
                             onClick={() => setShowDetailsDialog(false)}
-                            className="bg-primary text-white font-semibold"
+                            className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm rounded-xl transition-colors"
                         >
                             Đóng
-                        </PrimaryButton>
+                        </button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
 
             {/* Modal Chỉnh sửa học liệu */}
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>

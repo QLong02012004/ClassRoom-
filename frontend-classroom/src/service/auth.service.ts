@@ -26,5 +26,9 @@ export const authService = {
   createStudent: async (data: { name: string, email: string, password: string, parentPhone?: string, classId?: string }): Promise<any> => {
     return await api.post('/api/v1/auth/create-student', data);
   },
+
+  registerStudent: async (data: { name: string, email: string, password: string, parentPhone?: string }): Promise<any> => {
+    return await api.post('/api/v1/auth/register-student', data);
+  }
 };
 

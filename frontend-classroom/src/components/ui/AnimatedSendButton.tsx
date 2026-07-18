@@ -4,12 +4,14 @@ import styled from 'styled-components';
 interface AnimatedSendButtonProps {
   onClick?: () => void;
   disabled?: boolean;
+  text?: string;
+  className?: string;
 }
 
-const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabled }) => {
+const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabled, text = "Send", className }) => {
   return (
-    <StyledWrapper>
-      <button onClick={onClick} disabled={disabled}>
+    <StyledWrapper className={className}>
+      <button onClick={onClick} disabled={disabled} style={{ width: '100%', justifyContent: 'center' }}>
         <div className="svg-wrapper-1">
           <div className="svg-wrapper">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width={24} height={24}>
@@ -18,7 +20,7 @@ const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabl
             </svg>
           </div>
         </div>
-        <span>Send</span>
+        <span>{text}</span>
       </button>
     </StyledWrapper>
   );

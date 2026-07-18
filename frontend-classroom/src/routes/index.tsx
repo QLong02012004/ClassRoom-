@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Login from "../pages/Auth/Login/Login";
+import Register from "../pages/Auth/Register/Register";
 import Dashboard from "../pages/Dashboard";
 import Classrooms from "../pages/Classrooms";
 import Assignments from "../pages/Assignments";
@@ -19,6 +20,7 @@ import ProtectedRoute from "../components/Layout/ProtectedRoute.tsx";
 import Gradebook from "../pages/Gradebook";
 import Attendance from "../pages/Attendance";
 import Schedule from "../pages/Schedule";
+import Practice from "../pages/Student/Practice/Practice";
 import { useAuth } from "../context/AuthContext";
 
 // Redirect về trang phù hợp theo role
@@ -42,6 +44,10 @@ export const router = createBrowserRouter([
   {
     path: "/login",
     element: <Login />,
+  },
+  {
+    path: "/register",
+    element: <Register />,
   },
   {
     // Cần phải đăng nhập mới được vào các trang bên trong
@@ -115,6 +121,10 @@ export const router = createBrowserRouter([
           {
             path: "schedule",
             element: <Schedule />,
+          },
+          {
+            path: "practice",
+            element: <Practice />,
           },
           // Các trang con khác sẽ thêm ở đây
         ],

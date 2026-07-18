@@ -4,7 +4,61 @@ import { BankItemModel } from '../models/BankItem';
 import { QuizResultModel } from '../models/QuizResult';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
+import { ClassModel } from '../models/Class';
 import { SubmissionStatus } from '../constants/enums';
+
+// Lấy toàn bộ bài tập của học sinh
+export const getStudentActivities = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const studentId = (req as any).user?.id;
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        // Tìm các lớp mà học sinh này đang tham gia
+        const classes = await ClassModel.find({ students: studentId }).lean();
+        const classIds = classes.map(c => c._id);
+
+        // Lấy tất cả bài tập thuộc các lớp đó
+        const activities = await ClassActivityModel.find({ classId: { $in: classIds } }).lean();
+
+        // Lấy tất cả bài nộp và điểm của học sinh này
+        const submissions = await SubmissionModel.find({ studentId }).lean();
+        const grades = await GradeModel.find({ studentId }).lean();
+        const quizResults = await QuizResultModel.find({ studentId }).lean();
+
+        // Ghép dữ liệu
+        const enrichedActivities = activities.map(activity => {
+            const classInfo = classes.find(c => c._id.toString() === activity.classId.toString());
+            const submission = submissions.find(s => s.assignmentId.toString() === activity._id.toString());
+            const grade = grades.find(g => g.assignmentId.toString() === activity._id.toString());
+            const quiz = quizResults.find(q => q.quizId.toString() === activity._id.toString());
+
+            let finalSubmission = null;
+            if (activity.type === 'quiz' && quiz) {
+                finalSubmission = {
+                    status: 'graded',
+                    grade: quiz.score
+                };
+            } else if (submission) {
+                finalSubmission = {
+                    ...submission,
+                    status: grade ? 'graded' : submission.status,
+                    grade: grade ? grade.score : null
+                };
+            }
+
+            return {
+                ...activity,
+                className: classInfo ? classInfo.name : 'Không xác định',
+                subject: classInfo ? classInfo.subject : '',
+                submission: finalSubmission
+            };
+        });
+
+        res.status(200).json({ data: enrichedActivities });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi lấy danh sách bài tập học sinh', error });
+    }
+};
 
 // Giao một hoạt động mới từ ngân hàng cho lớp
 export const assignActivity = async (req: Request, res: Response) => {
@@ -261,5 +315,58 @@ export const getAssignmentSubmissions = async (req: Request, res: Response): Pro
         res.status(200).json({ data: mappedSubmissions });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi lấy danh sách bài nộp lớp học', error });
+    }
+};
+
+// Gửi bình luận vào bài nộp
+export const addComment = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const user = (req as any).user;
+        const { text } = req.body;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        if (!user) return res.status(401).json({ message: 'Chưa đăng nhập' });
+        if (!text) return res.status(400).json({ message: 'Thiếu nội dung bình luận' });
+
+        const isTeacher = user.role === 'teacher' || user.role === 'admin';
+        // Đối với học sinh, thêm vào my-submission
+        // Lưu ý: Nếu giáo viên bình luận, họ cũng cần có endpoint tương tự nhưng truyền `studentId`.
+        // Tạm thời để đơn giản, endpoint này phục vụ học sinh gửi bình luận vào bài nộp của mình.
+        const studentId = user.id;
+
+        const newComment = {
+            userId: user.id,
+            name: user.name || 'Người dùng', // name should ideally come from User
+            isTeacher,
+            text,
+            createdAt: new Date()
+        };
+
+        // Tìm kiếm User để lấy tên thật
+        const { UserModel } = await import('../models/User');
+        const userInfo = await UserModel.findById(user.id);
+        if (userInfo) {
+            newComment.name = userInfo.name;
+        }
+
+        const submission = await SubmissionModel.findOneAndUpdate(
+            { assignmentId: activityId, studentId },
+            {
+                $push: { comments: newComment },
+                // Nếu chưa nộp, cập nhật trạng thái
+                $setOnInsert: {
+                    status: SubmissionStatus.PENDING,
+                    attachments: [],
+                    submissionText: '',
+                    submittedAt: new Date()
+                }
+            },
+            { upsert: true, new: true }
+        );
+
+        res.status(200).json({ message: 'Bình luận thành công', data: submission });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi gửi bình luận', error });
     }
 };

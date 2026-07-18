@@ -244,13 +244,14 @@ export const changePassword = async (req: AuthRequest, res: Response, next: Next
 export const updateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { id } = req.params;
-        const { name, email, subject, role } = req.body;
+        const { name, email, subject, role, parentPhone } = req.body;
 
         const updateData: any = {};
         if (name !== undefined) updateData.name = name;
         if (email !== undefined) updateData.email = email;
         if (subject !== undefined) updateData.subject = subject;
         if (role !== undefined) updateData.role = role;
+        if (parentPhone !== undefined) updateData.parentPhone = parentPhone;
 
         // Nếu cập nhật email, kiểm tra xem email có bị trùng với tài khoản khác không
         if (email) {

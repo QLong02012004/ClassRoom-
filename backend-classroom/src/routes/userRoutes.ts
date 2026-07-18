@@ -7,8 +7,8 @@ const router = Router();
 // Lấy danh sách người dùng (Chỉ admin hoặc teacher mới được xem)
 router.get('/', protect, authorize('admin', 'teacher'), getUsers);
 
-// Chỉnh sửa thông tin thành viên (Chỉ Admin)
-router.put('/:id', protect, authorize('admin'), updateUser);
+// Chỉnh sửa thông tin thành viên (Admin hoặc Teacher)
+router.put('/:id', protect, authorize('admin', 'teacher'), updateUser);
 
 // Cập nhật trạng thái khóa / mở khóa (Admin hoặc Teacher)
 router.put('/:id/status', protect, authorize('admin', 'teacher'), updateUserStatus);

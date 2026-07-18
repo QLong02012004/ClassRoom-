@@ -39,13 +39,22 @@ export interface ISubmissionAttachment {
   size: string;
 }
 
+export interface ISubmissionComment {
+  userId: string;
+  name: string;
+  isTeacher: boolean;
+  text: string;
+  createdAt: string;
+}
+
 export interface ISubmission {
   _id?: string;
   assignmentId: string;
   studentId: string | { _id: string; name: string; email: string; avatar?: string };
   submissionText?: string;
   attachments: ISubmissionAttachment[];
-  status: 'submitted' | 'late' | 'graded';
+  comments?: ISubmissionComment[];
+  status: 'pending' | 'submitted' | 'late' | 'graded';
   submittedAt: string;
   grade?: number | null;
   feedback?: string | null;
@@ -74,12 +83,12 @@ export const gradebookService = {
     maxScore?: number;
     category?: string;
   }): Promise<IBackendRes<IAssignment>> => {
-    return await api.post(`/api/v1/assignments`, data);
+    return await api.post(`/api/v1/classes/${data.classId}/activities`, data);
   },
 
   // Lấy danh sách bài tập của lớp
   getAssignments: async (classId: string): Promise<IBackendRes<IAssignment[]>> => {
-    return await api.get(`/api/v1/assignments`, { params: { classId } });
+    return await api.get(`/api/v1/classes/${classId}/activities`);
   },
 
   // Lấy danh sách điểm số của học sinh trong lớp học cụ thể
@@ -102,7 +111,7 @@ export const gradebookService = {
 
   // Lấy danh sách bài tập của học sinh kèm trạng thái nộp bài và điểm số
   getStudentAssignments: async (): Promise<IBackendRes<any[]>> => {
-    return await api.get('/api/v1/assignments/student');
+    return await api.get('/api/v1/activities/student');
   },
 
   // Lấy chi tiết bài tập
@@ -129,6 +138,11 @@ export const gradebookService = {
     } catch {
       return { data: null } as any;
     }
+  },
+
+  // Học sinh thêm bình luận vào bài nộp
+  addComment: async (id: string, text: string): Promise<IBackendRes<ISubmission>> => {
+    return await api.post(`/api/v1/activities/${id}/my-submission/comments`, { text });
   },
 
   // Giáo viên lấy danh sách bài nộp của cả lớp cho bài tập này

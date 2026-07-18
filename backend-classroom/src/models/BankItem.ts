@@ -13,6 +13,7 @@ export interface IQuizQuestion {
     optionImages?: string[];
     correctOptionIndex: number;
     points: number;
+    tags?: string[];
 }
 
 export enum BankItemSharingStatus {
@@ -48,7 +49,8 @@ const QuizQuestionSchema = new Schema<IQuizQuestion>({
     options: [{ type: String, required: true }],
     optionImages: [{ type: String }],
     correctOptionIndex: { type: Number, required: true },
-    points: { type: Number, required: true, default: 1 }
+    points: { type: Number, required: true, default: 1 },
+    tags: [{ type: String }]
 });
 
 const BankItemSchema = new Schema<IBankItem>({

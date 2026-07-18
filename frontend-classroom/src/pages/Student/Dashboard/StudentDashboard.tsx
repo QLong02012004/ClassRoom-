@@ -13,173 +13,120 @@ import {
   ChatCircle,
   PaperPlaneTilt,
   CaretDown,
-  CaretUp
+  CaretUp,
+  Fire,
+  StarFour,
+  Medal,
+  PlayCircle,
+  Clock,
+  CalendarCheck,
+  CheckCircle,
+  GraduationCap
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
-import { classroomService } from "../../../service/classroom.service.ts";
-import { gradebookService } from "../../../service/gradebook.service.ts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
+import { WeaknessRadar } from "./components/WeaknessRadar";
+import { dashboardService } from "../../../service/dashboard.service.ts";
+import { analyticsService } from "../../../service/analytics.service.ts";
 import { announcementService } from "../../../service/announcement.service.ts";
 import type { IComment } from "../../../service/announcement.service.ts";
 import styles from "./StudentDashboard.module.scss";
+
+import { ChartBarStacked } from "./components/ChartBarStacked";
 
 export default function StudentDashboard() {
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
   
-  // Trạng thái người dùng
   const [username, setUsername] = useState<string>("Học sinh A");
-
-  // Lớp học
-  const [classrooms, setClassrooms] = useState<any[]>([]);
   
-  // Chỉ số thống kê học sinh
-  const [overallGPA, setOverallGPA] = useState<string>("Chưa có");
-  const [attendanceRate, setAttendanceRate] = useState<number>(98);
-  const [pendingAssignmentsCount, setPendingAssignmentsCount] = useState<number>(0);
+  // Dashboard State
+  const [stats, setStats] = useState<any>({
+    totalClasses: 0,
+    attendanceRate: 0,
+    pendingAssignmentsCount: 0,
+    totalXP: 0
+  });
+  const [gamification, setGamification] = useState<any>({
+    xp: 0,
+    level: 1,
+    streak: 0
+  });
+  const [todoList, setTodoList] = useState<any[]>([]);
+  const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
+  const [learningProgress, setLearningProgress] = useState<any[]>([]);
+  const [weeklyGoals, setWeeklyGoals] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [studentAnnouncements, setStudentAnnouncements] = useState<any[]>([]);
-  const [studentAssignments, setStudentAssignments] = useState<any[]>([]);
-
+  const [weaknessData, setWeaknessData] = useState<any[]>([]);
+  
+  // Practice Modal
+  const [practiceDialogOpen, setPracticeDialogOpen] = useState(false);
+  const [selectedPracticeTag, setSelectedPracticeTag] = useState("");
+  const [practiceLimit, setPracticeLimit] = useState(10);
+  
   // Trạng thái bình luận
   const [expandedAnn, setExpandedAnn] = useState<string | null>(null);
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [sendingComment, setSendingComment] = useState<string | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
+  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
 
-  // Tải dữ liệu từ database thật
   const loadData = async () => {
     const currentUsername = user?.name || localStorage.getItem("username") || "Học sinh A";
     setUsername(currentUsername);
 
-    let joinedClassIds: string[] = [];
-    let backendClasses: any[] = [];
-
-    // 1. Tải danh sách lớp học thật
     try {
-      const res = await classroomService.getStudentClassrooms();
+      const res = await dashboardService.getStudentDashboardStats();
       if (res && res.data) {
-        backendClasses = res.data.map((c: any) => ({
-          _id: c._id,
-          className: c.name || c.className,
-          subject: c.subject || "",
-          teacherName: c.teacherId?.name || "Giáo viên",
-          status: c.status
-        }));
-        setClassrooms(backendClasses);
-        joinedClassIds = backendClasses.map((c: any) => c._id);
+        setStats(res.data.stats || {});
+        setGamification(res.data.gamification || {});
+        setTodoList(res.data.todoList || []);
+        setTodaySchedule(res.data.todaySchedule || []);
+        setLearningProgress(res.data.learningProgress || []);
+        setStudentAnnouncements(res.data.announcements || []);
+        setWeeklyGoals(res.data.weeklyGoals || []);
+      }
+
+      const weaknessRes = await analyticsService.getStudentWeaknessRadar();
+      if (weaknessRes && weaknessRes.data && weaknessRes.data.length > 0) {
+        setWeaknessData(weaknessRes.data);
+      } else {
+        // Mock data để demo UI
+        setWeaknessData([
+          { tag: 'Hàm số mũ và logarit', total: 10, wrong: 8, errorRate: 80 },
+          { tag: 'Hình học không gian', total: 12, wrong: 7, errorRate: 58 }
+        ]);
       }
     } catch (err: any) {
-      toast.error(err.message || "Lỗi tải thông tin lớp học từ server!");
+      toast.error(err.message || "Lỗi tải thông tin dashboard từ server!");
     }
 
-    // 2. Thiết lập thống kê mặc định (không dùng mock DB)
-    setOverallGPA("Chưa có");
-    setAttendanceRate(100);
-
-    // 3. Tải danh sách bài tập thật
-    let pendingCount = 0;
-    const studentAssignmentsList: any[] = [];
-
-    try {
-      if (joinedClassIds.length > 0) {
-        for (const classId of joinedClassIds) {
-          const resAssign = await gradebookService.getAssignments(classId);
-          if (resAssign && resAssign.data) {
-            resAssign.data.forEach((item: any) => {
-              const cls = backendClasses.find(c => c._id === classId);
-              studentAssignmentsList.push({
-                _id: item._id,
-                title: item.title,
-                description: item.description,
-                deadline: item.dueDate || item.deadline,
-                className: cls ? cls.className : "Lớp học",
-                submission: null 
-              });
-              pendingCount++;
-            });
-          }
-        }
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Lỗi tải danh sách bài tập từ server!");
-    }
-
-    setPendingAssignmentsCount(pendingCount);
-    setStudentAssignments(studentAssignmentsList);
-
-    // 4. Bảng tin thông báo
-    const studentAnnouncementsList: any[] = [];
-    try {
-      if (joinedClassIds.length > 0) {
-        for (const classId of joinedClassIds) {
-          const resAnn = await announcementService.getAnnouncements(classId);
-          if (resAnn && resAnn.data) {
-            resAnn.data.forEach((ann: any) => {
-              const cls = backendClasses.find(c => c._id === classId);
-              studentAnnouncementsList.push({
-                _id: ann._id,
-                title: ann.type === "material" ? "Tài liệu mới" : ann.type === "reminder" ? "Lời nhắc" : "Thông báo mới",
-                content: ann.content,
-                createdAt: ann.createdAt,
-                authorName: ann.authorId?.name || "Giáo viên",
-                className: cls ? cls.className : "Lớp học",
-                comments: ann.comments || [],
-                type: ann.type
-              });
-            });
-          }
-        }
-      }
-      studentAnnouncementsList.sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    } catch (err: any) {
-      toast.error(err.message || "Lỗi tải bảng tin lớp học từ server!");
-    }
-    setStudentAnnouncements(studentAnnouncementsList);
+    // Mock load announcements from old logic or API.
+    // Assuming backend returns it or we just use empty array for now since we focused on Gamification.
+    // For now we'll fetch announcements from timeline API if we had one.
   };
 
   useEffect(() => {
     loadData();
   }, [username, user]);
 
-  // Toggle mở/đóng bình luận
-  const toggleExpand = (annId: string) => {
-    setExpandedAnn(prev => prev === annId ? null : annId);
-    setTimeout(() => commentInputRef.current?.focus(), 100);
-  };
-
-  // Gửi bình luận
-  const handleSendComment = async (annId: string) => {
-    const text = (commentTexts[annId] || "").trim();
-    if (!text) return;
-
-    setSendingComment(annId);
-    try {
-      const res = await announcementService.addComment(annId, text);
-      if (res && res.data) {
-        const comments = res.data.comments;
-        // Cập nhật comments trong state
-        setStudentAnnouncements(prev =>
-          prev.map(ann =>
-            ann._id === annId
-              ? { ...ann, comments: comments || ann.comments }
-              : ann
-          )
-        );
-        setCommentTexts(prev => ({ ...prev, [annId]: "" }));
-        toast.success("Đã gửi bình luận!");
+  const handleTaskComplete = (taskId: string) => {
+    setCompletedTasks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+        toast.success("Tuyệt vời! Bạn đã hoàn thành một công việc.");
       }
-    } catch (err: any) {
-      toast.error(err.message || "Không thể gửi bình luận. Vui lòng thử lại!");
-    } finally {
-      setSendingComment(null);
-    }
+      return newSet;
+    });
   };
 
-  // Định dạng ngày tháng
   const formatDate = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -189,42 +136,56 @@ export default function StudentDashboard() {
     }
   };
 
-  // Định dạng giờ phút
-  const formatDateTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      return `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')} - ${date.getDate()}/${date.getMonth() + 1}`;
-    } catch (e) {
-      return isoString;
-    }
+  const handlePracticeClick = (tag: string) => {
+    setSelectedPracticeTag(tag);
+    setPracticeLimit(10);
+    setPracticeDialogOpen(true);
+  };
+
+  const handleStartPractice = () => {
+    setPracticeDialogOpen(false);
+    navigate(`/practice?tag=${encodeURIComponent(selectedPracticeTag)}&limit=${practiceLimit}`);
   };
 
   return (
     <div className={styles.dashboard}>
-      {/* 1. WELCOME BANNER GRADIENT */}
+      {/* 1. WELCOME BANNER (SEO EDUCATION STYLE) */}
       <div className={styles.welcomeBanner}>
-        <div className={styles.welcomeText}>
-          <h1>Chào buổi sáng, {username}! 👋</h1>
-          <p>
-            Chúc mừng bạn đã hoàn thành {attendanceRate}% số buổi học tuần này. 
-            Bạn có {pendingAssignmentsCount} bài tập cần hoàn thành trong hôm nay.
-          </p>
-        </div>
-        <div className={styles.bannerActions}>
-          <button 
-            className={styles.btnPrimary} 
-            onClick={() => {
-              const section = document.getElementById("assignments-section");
-              if (section) section.scrollIntoView({ behavior: "smooth" });
-            }}
-          >
-            Xem bài tập ngay
-          </button>
-          <button className={styles.btnSecondary}>Xem lịch học</button>
+        <div className={styles.welcomeContent}>
+          <div className={styles.welcomeText}>
+            <h1>Khám phá tri thức, {username}! 🚀</h1>
+            <p>
+              Hành trình học tập của bạn đang diễn ra rất tốt. Hôm nay bạn có <strong>{todoList.length}</strong> nhiệm vụ và <strong>{todaySchedule.length}</strong> lớp học chờ đón. Hãy chinh phục những cột mốc mới nhé!
+            </p>
+            
+            {/* QUICK ACTIONS */}
+            <div className={styles.quickActions}>
+              <button className={styles.btnQuick} onClick={() => navigate("/classrooms")}>
+                <PlayCircle size={20} weight="duotone" />
+                Vào lớp học
+              </button>
+              <button className={styles.btnQuick} onClick={() => navigate("/assignments")}>
+                <CheckSquare size={20} weight="duotone" />
+                Làm bài tập
+              </button>
+              <button className={styles.btnQuick} onClick={() => navigate("/schedule")}>
+                <CalendarCheck size={20} weight="duotone" />
+                Xem lịch học
+              </button>
+              <button className={styles.btnQuick}>
+                <Book size={20} weight="duotone" />
+                Kho tài liệu
+              </button>
+            </div>
+          </div>
+          
+          <div className={styles.heroImageWrapper}>
+            <img src="/education_hero_illustration_1784359209588.png" alt="Education Hero" className={styles.heroImage} />
+          </div>
         </div>
       </div>
 
-      {/* 2. STAT CARDS */}
+      {/* 2. STAT CARDS WITH PROGRESS */}
       <section className={styles.statsGrid}>
         <div className={styles.statCard}>
           <div className={`${styles.statIcon} ${styles.orangeBg}`}>
@@ -233,11 +194,11 @@ export default function StudentDashboard() {
           <span className={styles.statLabel}>Tổng số lớp học</span>
           <div className={styles.statBottomRow}>
             <span className={styles.statValue}>
-              {classrooms.length.toString().padStart(2, '0')}
+              {stats.totalClasses.toString().padStart(2, '0')}
             </span>
-            <span className={`${styles.statSubtext} ${styles.success}`}>
-              Hoạt động
-            </span>
+          </div>
+          <div className={styles.progressBarWrapper}>
+             <div className={styles.progressBar} style={{ width: '100%', background: '#f97316' }}></div>
           </div>
         </div>
 
@@ -248,11 +209,14 @@ export default function StudentDashboard() {
           <span className={styles.statLabel}>Tỉ lệ chuyên cần</span>
           <div className={styles.statBottomRow}>
             <span className={styles.statValue}>
-              {attendanceRate}%
+              {stats.attendanceRate}%
             </span>
             <span className={`${styles.statSubtext} ${styles.success}`}>
-              +2% tháng này
+              Tốt
             </span>
+          </div>
+          <div className={styles.progressBarWrapper}>
+             <div className={styles.progressBar} style={{ width: `${stats.attendanceRate}%`, background: '#10b981' }}></div>
           </div>
         </div>
 
@@ -263,11 +227,11 @@ export default function StudentDashboard() {
           <span className={styles.statLabel}>Bài tập cần nộp</span>
           <div className={styles.statBottomRow}>
             <span className={styles.statValue}>
-              {pendingAssignmentsCount.toString().padStart(2, '0')}
+              {stats.pendingAssignmentsCount.toString().padStart(2, '0')}
             </span>
-            <span className={`${styles.statSubtext} ${styles.danger}`}>
-              Hạn chót hôm nay
-            </span>
+          </div>
+          <div className={styles.progressBarWrapper}>
+             <div className={styles.progressBar} style={{ width: '60%', background: '#ef4444' }}></div>
           </div>
         </div>
 
@@ -275,245 +239,207 @@ export default function StudentDashboard() {
           <div className={`${styles.statIcon} ${styles.blueBg}`}>
             <Star size={24} weight="duotone" />
           </div>
-          <span className={styles.statLabel}>Điểm trung bình</span>
+          <span className={styles.statLabel}>Kinh nghiệm (XP)</span>
           <div className={styles.statBottomRow}>
-            <span className={styles.statValue}>
-              {overallGPA}
-            </span>
-            <span className={`${styles.statSubtext} ${styles.info}`}>
-              {parseFloat(overallGPA) >= 8.0 ? "Xuất sắc" : parseFloat(overallGPA) >= 6.5 ? "Khá" : "Trung bình"}
-            </span>
+            {stats.totalXP === 0 ? (
+              <>
+                <span className={styles.statValue} style={{ color: '#cbd5e1' }}>0</span>
+                <span className={styles.statSubtext} style={{ color: '#94a3b8', fontWeight: 600 }}>Tân binh</span>
+              </>
+            ) : (
+              <>
+                <span className={styles.statValue}>{stats.totalXP}</span>
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-yellow-100 text-yellow-700 uppercase tracking-wide">
+                  Level {Math.floor(stats.totalXP / 100) + 1}
+                </span>
+              </>
+            )}
+          </div>
+          <div className={styles.progressBarWrapper}>
+             <div className={styles.progressBar} style={{ width: stats.totalXP ? `${Math.min(100, (stats.totalXP % 100))}%` : '0%', background: '#eab308' }}></div>
           </div>
         </div>
       </section>
 
-      {/* 3. TWO-COLUMN LAYOUT */}
+      {/* 3. ROW 2: TODO LIST & TODAY SCHEDULE */}
       <section className={styles.middleGrid}>
         
-        {/* Left Column: Upcoming deadlines */}
-        <div className={styles.deadlineSection} id="assignments-section">
-          <div className={styles.deadlineHeader}>
-            <h3>Hạn chót sắp tới</h3>
+        {/* Left Column: Todo List */}
+        <div className={styles.todoSection}>
+          <div className={styles.sectionHeader}>
+            <h3>Việc cần làm hôm nay</h3>
             <button className={styles.btnViewAll} onClick={() => navigate("/assignments")}>
               Xem tất cả
             </button>
           </div>
-          <div className={styles.deadlineList}>
-            {studentAssignments.length > 0 ? (
-              studentAssignments.slice(0, 3).map((assign, idx) => {
-                const isGraded = assign.submission?.status === "graded";
-                const isSubmitted = assign.submission !== null;
-                
-                // Xác định icon và class dựa trên môn học
-                let subjectClass = styles.defaultSub;
-                let SubjectIcon = BookOpen;
-                const lowerSubject = assign.className.toLowerCase() || "";
-                
-                if (lowerSubject.includes("toán")) {
-                  subjectClass = styles.math;
-                  SubjectIcon = Compass;
-                } else if (lowerSubject.includes("hóa")) {
-                  subjectClass = styles.chemistry;
-                  SubjectIcon = Flask;
-                } else if (lowerSubject.includes("văn") || lowerSubject.includes("ngữ văn")) {
-                  subjectClass = styles.literature;
-                  SubjectIcon = Book;
-                }
-
-                // Độ ưu tiên
-                let urgencyClass = styles.medium;
-                let urgencyText = "Bình thường";
-                
-                const timeDiff = new Date(assign.deadline).getTime() - new Date().getTime();
-                const hoursDiff = timeDiff / (1000 * 60 * 60);
-                
-                if (hoursDiff <= 24 && hoursDiff > 0) {
-                  urgencyClass = styles.high;
-                  urgencyText = "Gấp";
-                } else if (idx === 0) {
-                  urgencyClass = styles.high;
-                  urgencyText = "Gấp";
-                } else if (idx === 2) {
-                  urgencyClass = styles.low;
-                  urgencyText = "Mới";
-                }
-
+          <div className={styles.todoList}>
+            {todoList.length > 0 ? (
+              todoList.map((task, idx) => {
+                const isCompleted = completedTasks.has(task._id);
                 return (
-                  <div key={assign._id} className={styles.deadlineItem}>
-                    <div className={`${styles.subjectIcon} ${subjectClass}`}>
-                      <SubjectIcon size={24} weight="duotone" />
+                  <div key={task._id} className={`${styles.todoItem} ${isCompleted ? styles.completed : ''}`}>
+                    <div 
+                      className={`${styles.checkbox} ${isCompleted ? styles.checked : ''}`}
+                      onClick={() => handleTaskComplete(task._id)}
+                    >
+                      {isCompleted && <CheckCircle size={20} weight="fill" color="#10b981" />}
+                      {!isCompleted && <div className={styles.circle}></div>}
                     </div>
                     <div className={styles.itemInfo}>
-                      <h4 className={styles.itemTitle}>{assign.title}</h4>
+                      <h4 className={styles.itemTitle}>{task.title}</h4>
                       <span className={styles.itemMeta}>
-                        {assign.className} • {formatDate(assign.deadline)}
+                        {task.className} • Hạn: {formatDate(task.dueDate)}
                       </span>
                     </div>
                     <div className={styles.itemRight}>
-                      <span className={`${styles.urgencyBadge} ${urgencyClass}`}>{urgencyText}</span>
-                      {isGraded ? (
-                        <span className={styles.gradeBadge}>Điểm: {assign.submission.grade}</span>
-                      ) : isSubmitted ? (
-                        <span className={styles.statusText}>Đang xử lý...</span>
+                      {idx === 0 && !isCompleted ? (
+                        <span className={`${styles.urgencyBadge} ${styles.high}`}>Gấp</span>
                       ) : (
-                        <button className={styles.actionLink} onClick={() => navigate(`/assignments/${assign._id}`)}>
-                          Nộp bài <ArrowRight size={14} weight="bold" />
-                        </button>
+                        <span className={`${styles.urgencyBadge} ${styles.medium}`}>Bình thường</span>
                       )}
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div 
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "40px 20px",
-                  color: "#64748b",
-                  background: "#fff",
-                  borderRadius: "12px",
-                  textAlign: "center",
-                  border: "1px dashed #e2e8f0"
-                }}
-              >
-                <Clipboard size={32} weight="light" style={{ marginBottom: "12px" }} />
-                <p style={{ margin: 0, fontSize: "14px", fontWeight: 500 }}>Chưa có bài tập nào được giao</p>
-                <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#94a3b8" }}>Bạn đã hoàn thành toàn bộ bài tập của lớp học.</p>
+              <div className={styles.emptyState}>
+                 <img src="/empty_tasks_illustration_1784358523914.png" alt="All done" className={styles.emptyImg} />
+                 <p className={styles.emptyTitle}>Tuyệt vời!</p>
+                 <p className={styles.emptySub}>Bạn đã hoàn thành tất cả nhiệm vụ hôm nay. Hãy nghỉ ngơi hoặc ôn lại bài cũ nhé!</p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Column: Recent activity timeline */}
-        <div className={styles.activityTimeline}>
-          <h3>Hoạt động gần đây</h3>
-          <div className={styles.timelineWrapper}>
-            {studentAnnouncements.length > 0 ? (
-              studentAnnouncements.map((ann) => {
-                const isExpanded = expandedAnn === ann._id;
-                const commentCount = ann.comments?.length || 0;
-                const dotColor =
-                  ann.type === "reminder" ? styles.orange
-                  : ann.type === "material" ? styles.blue
-                  : styles.red;
-
-                return (
-                  <div key={ann._id} className={`${styles.timelineItem} ${isExpanded ? styles.timelineItemExpanded : ""}`}>
-                    <span className={`${styles.timelineDot} ${dotColor}`}></span>
-                    <div className={styles.timelineHeader}>
-                      <span className={styles.author}>{ann.authorName} ({ann.className})</span>
-                      <span className={styles.time}>{formatDate(ann.createdAt)}</span>
-                    </div>
-                    <p className={styles.timelineContent}>
-                      <strong>{ann.title}</strong>: {ann.content}
-                    </p>
-
-                    {/* Nút mở rộng bình luận */}
-                    <button
-                      className={styles.commentToggleBtn}
-                      onClick={() => toggleExpand(ann._id)}
-                      aria-expanded={isExpanded}
-                    >
-                      <ChatCircle size={14} weight="duotone" />
-                      <span>{commentCount > 0 ? `${commentCount} bình luận` : "Trả lời"}</span>
-                      {isExpanded ? <CaretUp size={12} /> : <CaretDown size={12} />}
-                    </button>
-
-                    {/* Khu vực bình luận mở rộng */}
-                    {isExpanded && (
-                      <div className={styles.commentSection}>
-                        {/* Danh sách bình luận cũ */}
-                        {commentCount > 0 && (
-                          <div className={styles.commentList}>
-                            {ann.comments.map((cmt: IComment, idx: number) => (
-                              <div key={cmt._id || idx} className={styles.commentItem}>
-                                <div className={styles.commentAvatar}>
-                                  {(cmt.authorName || "?").charAt(0).toUpperCase()}
-                                </div>
-                                <div className={styles.commentBody}>
-                                  <div className={styles.commentMeta}>
-                                    <span className={styles.commentAuthor}>{cmt.authorName}</span>
-                                    <span className={styles.commentTime}>{formatDateTime(cmt.createdAt)}</span>
-                                  </div>
-                                  <p className={styles.commentText}>{cmt.content}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Ô nhập bình luận mới */}
-                        <div className={styles.commentInputRow}>
-                          <div className={styles.commentAvatar} style={{ background: "#6366f1" }}>
-                            {(user?.name || "B").charAt(0).toUpperCase()}
-                          </div>
-                          <div className={styles.commentInputWrapper}>
-                            <textarea
-                              ref={isExpanded ? commentInputRef : undefined}
-                              className={styles.commentInput}
-                              placeholder="Viết bình luận..."
-                              value={commentTexts[ann._id] || ""}
-                              rows={2}
-                              onChange={e =>
-                                setCommentTexts(prev => ({ ...prev, [ann._id]: e.target.value }))
-                              }
-                              onKeyDown={e => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                  e.preventDefault();
-                                  handleSendComment(ann._id);
-                                }
-                              }}
-                            />
-                            <button
-                              className={styles.commentSendBtn}
-                              onClick={() => handleSendComment(ann._id)}
-                              disabled={sendingComment === ann._id || !(commentTexts[ann._id] || "").trim()}
-                              title="Gửi (Enter)"
-                            >
-                              {sendingComment === ann._id ? (
-                                <span className={styles.sendSpinner} />
-                              ) : (
-                                <PaperPlaneTilt size={16} weight="fill" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+        {/* Right Column: Schedule */}
+        <div className={styles.scheduleSection}>
+          <div className={styles.sectionHeader}>
+            <h3>Lịch học hôm nay</h3>
+          </div>
+          <div className={styles.scheduleList}>
+            {todaySchedule.length > 0 ? (
+              todaySchedule.map((cls, idx) => (
+                <div key={cls._id} className={styles.scheduleItem}>
+                  <div className={styles.timeCol}>
+                    <span className={styles.time}>{cls.startTime}</span>
+                    <span className={styles.timeEnd}>{cls.endTime}</span>
                   </div>
-                );
-              })
+                  <div className={styles.divider}></div>
+                  <div className={styles.infoCol}>
+                    <h4>{cls.className}</h4>
+                    <p>{cls.teacherName}</p>
+                  </div>
+                  <div className={styles.actionCol}>
+                    <button className={styles.btnJoin}>Vào lớp</button>
+                  </div>
+                </div>
+              ))
             ) : (
-              <div 
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "40px 20px",
-                  color: "#64748b",
-                  background: "#fff",
-                  borderRadius: "12px",
-                  textAlign: "center",
-                  border: "1px dashed #e2e8f0"
-                }}
-              >
-                <Bell size={32} weight="light" style={{ marginBottom: "12px" }} />
-                <p style={{ margin: 0, fontSize: "14px", fontWeight: 500 }}>Chưa có hoạt động nào</p>
-                <p style={{ margin: "4px 0 0 0", fontSize: "12px", color: "#94a3b8" }}>Các thông báo mới từ lớp học sẽ xuất hiện tại đây.</p>
+              <div className={styles.emptyState}>
+                 <GraduationCap size={48} weight="duotone" color="#94a3b8" />
+                 <p className={styles.emptyTitle}>Hôm nay bạn được nghỉ!</p>
+                 <p className={styles.emptySub}>Không có lịch học nào được xếp trong ngày hôm nay.</p>
               </div>
             )}
           </div>
-
-          <button className={styles.btnViewAllActivity}>
-            Xem tất cả hoạt động
-          </button>
         </div>
       </section>
 
+      {/* WEAKNESS RADAR SECTION */}
+      <section className="mb-6">
+        <WeaknessRadar data={weaknessData} onPracticeClick={handlePracticeClick} />
+      </section>
+
+      {/* 4. ROW 3: LEARNING PROGRESS & WEEKLY GOALS */}
+      <section className={styles.bottomGrid}>
+         <ChartBarStacked data={learningProgress} />
+
+         <div className={styles.goalsSection}>
+            <h3>Mục tiêu tuần này</h3>
+            <div className={styles.goalsList}>
+               {weeklyGoals.map(goal => {
+                 const percentage = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                 return (
+                   <div key={goal.id} className={styles.goalItem}>
+                     <div className={styles.goalInfo}>
+                       <h4>{goal.title}</h4>
+                       <span>{goal.current}/{goal.target} {goal.unit}</span>
+                     </div>
+                     <div className={styles.goalProgress}>
+                       <div className={styles.goalProgressBar} style={{ width: `${percentage}%`}}></div>
+                     </div>
+                   </div>
+                 );
+               })}
+            </div>
+         </div>
+      </section>
+      
+      {/* 5. ROW 4: ANNOUNCEMENTS */}
+      <section className={styles.timelineSection}>
+          <h3>Thông báo từ giáo viên</h3>
+          <div className={styles.timelineList}>
+             {studentAnnouncements.length > 0 ? (
+               studentAnnouncements.map((ann) => (
+                 <div key={ann.id} className={styles.timelineItem}>
+                    <div className={`${styles.timelineDot} ${styles.blue}`}></div>
+                    <div className={styles.timelineContent}>
+                       <span className={styles.timelineTime}>{ann.time} - {ann.authorName} ({ann.className})</span>
+                       <p className={styles.timelineAction}>{ann.content}</p>
+                    </div>
+                 </div>
+               ))
+             ) : (
+                <div className={styles.emptyState}>
+                 <img src="/empty_activities_illustration_1784358537578.png" alt="No announcements" className={styles.emptyImgSmall} />
+                 <p className={styles.emptySub}>Chưa có thông báo nào từ giáo viên.</p>
+              </div>
+             )}
+          </div>
+      </section>
+
+      {/* PRACTICE DIALOG */}
+      <Dialog open={practiceDialogOpen} onOpenChange={setPracticeDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-[#FE6747] text-xl">Luyện tập ngay!</DialogTitle>
+            <DialogDescription>
+              Bạn đang chọn luyện tập chuyên đề <b>{selectedPracticeTag}</b>. Hãy chọn số lượng câu hỏi bạn muốn làm nhé.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex justify-center gap-4">
+              {[5, 10, 15, 20].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPracticeLimit(num)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    practiceLimit === num 
+                      ? 'bg-[#FE6747] text-white shadow-md' 
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {num} câu
+                </button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <button 
+              onClick={() => setPracticeDialogOpen(false)}
+              className="px-4 py-2 rounded-lg font-medium text-slate-500 hover:bg-slate-100"
+            >
+              Hủy
+            </button>
+            <button 
+              onClick={handleStartPractice}
+              className="px-6 py-2 rounded-lg font-bold text-white bg-[#FE6747] hover:bg-[#e5593c] transition-colors"
+            >
+              Bắt đầu làm bài
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
