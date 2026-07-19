@@ -30,6 +30,7 @@ import {
 } from "phosphor-react";
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
+import { gradebookService } from "../../../service/gradebook.service";
 
 const NavBar: React.FC = () => {
   const location = useLocation();
@@ -81,10 +82,55 @@ const NavBar: React.FC = () => {
 
   const fetchNotifications = async () => {
     try {
-      if (userRole === "admin") {
-        const res = await notificationService.getNotifications();
-        if (res.data) setNotifications(res.data);
+      let serverNotifs: INotificationItem[] = [];
+      const res = await notificationService.getNotifications();
+      if (res.data) serverNotifs = res.data;
+
+      if (userRole === "student") {
+        const assignRes = await gradebookService.getStudentAssignments();
+        const assignments = assignRes.data || [];
+        const now = Date.now();
+        const localReminders: INotificationItem[] = [];
+
+        assignments.forEach((assign: any) => {
+          if (assign.submission?.status === "graded" || assign.submission) return;
+          const deadline = new Date(assign.dueDate || assign.deadline).getTime();
+          const diff = deadline - now;
+          if (diff > 0 && diff < 3 * 24 * 60 * 60 * 1000) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            
+            let timeText = "";
+            let colorCls = "";
+            
+            if (days >= 1) {
+                timeText = `Còn ${days} ngày nữa đến hạn.`;
+                colorCls = days === 1 ? "text-orange-500" : "text-amber-500";
+            } else {
+                timeText = `Còn ${hours} giờ nữa đến hạn!`;
+                colorCls = "text-red-500";
+            }
+
+            const isRead = localStorage.getItem(`read_reminder_${assign._id}`) === 'true';
+
+            localReminders.push({
+              _id: `reminder_${assign._id}`,
+              recipientRole: 'student',
+              sender: { _id: 'system', name: 'Hệ thống', email: '' },
+              title: `🔔 Nhắc hạn: ${assign.title}`,
+              message: `<span class="${colorCls} font-medium">${timeText}</span>`,
+              type: 'assignment',
+              readBy: [],
+              isRead: isRead,
+              createdAt: new Date().toISOString()
+            } as any);
+          }
+        });
+        
+        serverNotifs = [...localReminders, ...serverNotifs];
       }
+
+      setNotifications(serverNotifs);
     } catch (error) {
       console.error("Lỗi lấy thông báo:", error);
     }
@@ -99,6 +145,14 @@ const NavBar: React.FC = () => {
   const handleNotificationClick = async (notif: INotificationItem) => {
     if (!notif.isRead) {
       try {
+        if (notif._id.startsWith("reminder_")) {
+          localStorage.setItem(`read_${notif._id}`, "true");
+          setNotifications((prev) =>
+            prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+          );
+          return;
+        }
+
         await notificationService.markAsRead(notif._id);
         setNotifications((prev) =>
           prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
@@ -230,7 +284,7 @@ const NavBar: React.FC = () => {
                                   <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1"></span>
                                 )}
                               </div>
-                              <span className="text-xs text-slate-500 block whitespace-normal">{notif.message}</span>
+                              <span className="text-xs text-slate-500 block whitespace-normal" dangerouslySetInnerHTML={{ __html: notif.message }} />
                             </div>
                           ))}
                         </div>

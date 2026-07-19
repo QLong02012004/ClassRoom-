@@ -336,6 +336,7 @@ export const getStudentClassrooms = async (req: Request, res: Response, next: Ne
         const studentId = (req as any).user?.id;
         const classes = await ClassModel.find({ students: studentId, status: { $ne: ClassStatus.ARCHIVED } })
             .populate('teacherId', 'name avatar')
+            .populate('students', 'name avatar')
             .sort({ createdAt: -1 });
 
         res.status(200).json({

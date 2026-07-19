@@ -9,6 +9,7 @@ export interface IAssignment {
   dueDate: string;
   maxScore: number;
   category: string;
+  allowMultipleSubmissions?: boolean;
   createdAt: string;
 }
 
@@ -47,6 +48,12 @@ export interface ISubmissionComment {
   createdAt: string;
 }
 
+export interface ISubmissionHistory {
+  submissionText?: string;
+  attachments: ISubmissionAttachment[];
+  submittedAt: string;
+}
+
 export interface ISubmission {
   _id?: string;
   assignmentId: string;
@@ -58,6 +65,7 @@ export interface ISubmission {
   submittedAt: string;
   grade?: number | null;
   feedback?: string | null;
+  history?: ISubmissionHistory[];
 }
 
 export const gradebookService = {
@@ -82,6 +90,7 @@ export const gradebookService = {
     dueDate: string;
     maxScore?: number;
     category?: string;
+    allowMultipleSubmissions?: boolean;
   }): Promise<IBackendRes<IAssignment>> => {
     return await api.post(`/api/v1/classes/${data.classId}/activities`, data);
   },

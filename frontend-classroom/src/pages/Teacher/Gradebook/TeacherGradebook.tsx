@@ -91,6 +91,7 @@ export default function TeacherGradebook() {
   const [editDueDate, setEditDueDate] = useState("");
   const [editMaxScore, setEditMaxScore] = useState(10);
   const [editCategory, setEditCategory] = useState("homework");
+  const [editAllowMultiple, setEditAllowMultiple] = useState(false);
   const [updatingAssignment, setUpdatingAssignment] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -382,6 +383,7 @@ export default function TeacherGradebook() {
     setEditDueDate(dateStr);
     setEditMaxScore(task.maxScore);
     setEditCategory(task.category);
+    setEditAllowMultiple(task.allowMultipleSubmissions ?? false);
   };
 
   // Lưu chỉnh sửa bài tập
@@ -395,7 +397,8 @@ export default function TeacherGradebook() {
         title: editTitle,
         dueDate: editDueDate,
         maxScore: editMaxScore,
-        category: editCategory
+        category: editCategory,
+        allowMultipleSubmissions: editAllowMultiple
       });
       toast.success("Cập nhật bài tập thành công!");
       setSelectedAssignmentForEdit(null);
@@ -886,6 +889,19 @@ export default function TeacherGradebook() {
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                type="checkbox"
+                id="editAllowMultiple"
+                checked={editAllowMultiple}
+                onChange={(e) => setEditAllowMultiple(e.target.checked)}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#FE6747' }}
+              />
+              <label htmlFor="editAllowMultiple" style={{ cursor: 'pointer', margin: 0, fontWeight: 500, fontSize: '0.9rem', color: '#475569' }}>
+                Cho phép học sinh nộp bài nhiều lần
+              </label>
             </div>
 
             <div className="flex justify-end gap-3 mt-4">

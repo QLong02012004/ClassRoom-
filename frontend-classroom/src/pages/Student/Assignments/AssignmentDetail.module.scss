@@ -257,7 +257,7 @@
   &.pdfBg {
     background: #fee2e2;
   }
-  
+
   &.docBg {
     background: #e0f2fe;
   }
@@ -331,7 +331,8 @@
   transition: all 0.2s ease;
   background: white;
 
-  &:hover, &.dragging {
+  &:hover,
+  &.dragging {
     border-color: #EF4444;
     background: #fef2f2;
   }
@@ -467,8 +468,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .editNoteContainer {
@@ -549,12 +557,15 @@
   &.orangeBg {
     background: #d97706;
   }
+
   &.greenBg {
     background: #10B981;
   }
+
   &.blueBg {
     background: #3B82F6;
   }
+
   &.grayBg {
     background: white;
     border: 2px solid #cbd5e1;
@@ -661,7 +672,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* --- COMMENTS SECTION --- */
@@ -676,11 +689,11 @@
   display: flex;
   gap: 12px;
   max-width: 85%;
-  
+
   &.studentBubble {
     align-self: flex-end;
     flex-direction: row-reverse;
-    
+
     .commentContent {
       background: #f1f5f9;
       border-radius: 16px 16px 4px 16px;
@@ -689,12 +702,12 @@
 
   &.teacherBubble {
     align-self: flex-start;
-    
+
     .commentContent {
       background: rgba(254, 103, 71, 0.08);
       border-radius: 16px 16px 16px 4px;
     }
-    
+
     .commentAvatar {
       background: #FE6747;
       color: white;
@@ -790,4 +803,108 @@
     background: #e55a30;
     transform: scale(1.05);
   }
+}
+
+/* --- HISTORY & RESUBMISSION --- */
+.resubmitBtn {
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #10B981;
+  color: #10B981;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #10B981;
+    color: white;
+  }
+}
+
+.cancelResubmitBtn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  background: transparent;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #f1f5f9;
+  }
+}
+
+.historyCard {
+  background: #f8fafc;
+  border-radius: 20px;
+  padding: 24px;
+  border: none;
+  margin-bottom: 16px;
+}
+
+.historyTimeline {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 14px;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 6px;
+    bottom: 16px;
+    width: 2px;
+    border-left: 2px dashed #cbd5e1;
+  }
+}
+
+.historyItem {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.historyDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  margin-top: 5px;
+  position: relative;
+  left: 0;
+}
+
+.historyDotActive {
+  background: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.historyContent {
+  display: flex;
+  flex-direction: column;
+}
+
+.historyLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: vars.$dark-text;
+}
+
+.historyDate {
+  font-size: 0.8rem;
+  color: #64748b;
 }

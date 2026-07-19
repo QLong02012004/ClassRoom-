@@ -14,8 +14,6 @@ export default function StudentClassrooms() {
   const { user } = useAuth();
   const [username, setUsername] = useState<string>("Học sinh A");
   const [classrooms, setClassrooms] = useState<any[]>([]);
-  const [attendanceRate, setAttendanceRate] = useState<number>(95);
-  const [studentCount, setStudentCount] = useState<number>(35);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [classCode, setClassCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
@@ -50,14 +48,16 @@ export default function StudentClassrooms() {
           className: c.name || c.className,
           subject: c.subject || "",
           teacherName: c.teacherId?.name || "Thầy Nguyễn Văn A",
-          studentCount: c.students?.length || 35,
-          status: c.status
+          studentCount: c.students?.length || 0,
+          avatars: c.students?.slice(0, 3).map((s: any) => {
+            if (s.avatar) return s.avatar;
+            const fallbackName = s.name || "HS";
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=FE6747&color=fff&size=80`;
+          }) || [],
+          status: c.status,
+          attendanceRate: c.attendanceRate || Math.floor(Math.random() * (100 - 85 + 1)) + 85
         }));
         setClassrooms(backendClasses);
-
-        // Cập nhật số học sinh thực tế
-        const firstClass = res.data[0];
-        setStudentCount(firstClass.students?.length || 35);
         return;
       }
     } catch (err) {
@@ -71,7 +71,6 @@ export default function StudentClassrooms() {
     );
     const joinedClassIds = studentRecords.map(s => s.classId);
     const listClassrooms = db.classrooms.filter(c => joinedClassIds.includes(c._id));
-    setClassrooms(listClassrooms);
 
     // Tính tỷ lệ chuyên cần từ attendances
     let totalAtt = 0;
@@ -87,14 +86,23 @@ export default function StudentClassrooms() {
         }
       });
     });
-    setAttendanceRate(totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 92);
+    const globalAttendanceRate = totalAtt > 0 ? Math.round((presentAtt / totalAtt) * 100) : 92;
 
-    // Lấy số học sinh thực tế trong lớp đó
-    if (joinedClassIds.length > 0) {
-      const targetClassId = joinedClassIds[0];
-      const count = db.students.filter(s => s.classId === targetClassId).length;
-      setStudentCount(count + 32); // Fallback để giao diện khớp với "+32" và "35 học sinh" trong hình mẫu
-    }
+    const mappedMockClasses = listClassrooms.map(c => {
+      const classStudents = db.students.filter(s => s.classId === c._id);
+      return {
+        ...c,
+        className: c.className,
+        teacherName: c.teacherId, // Mock DB format
+        studentCount: classStudents.length,
+        avatars: classStudents.slice(0, 3).map(s => {
+          if (s.avatar) return s.avatar;
+          return `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=FE6747&color=fff&size=80`;
+        }),
+        attendanceRate: globalAttendanceRate
+      };
+    });
+    setClassrooms(mappedMockClasses);
   };
 
   useEffect(() => {
@@ -169,46 +177,56 @@ export default function StudentClassrooms() {
             style={{ cursor: "pointer" }}
           >
             <div className={styles.cardTop}>
-              <div className={styles.iconBox}>
-                <span className={styles.iconSigma}>Σ</span>
-              </div>
+              <h3 className={styles.classTitle} style={{ margin: 0 }}>{cls.className}</h3>
               <span className={styles.statusTag}>Đang diễn ra</span>
             </div>
 
             <div className={styles.cardMiddle}>
-              <h3 className={styles.classTitle}>{cls.className}</h3>
               <div className={styles.teacherInfo}>
                 <User size={16} weight="bold" />
-                <span>{cls.teacherName || cls.teacher?.name || "Thầy Nguyễn Văn A"}</span>
+                <span style={{ textTransform: 'capitalize' }}>
+                  {(() => {
+                    const name = (cls.teacherName || cls.teacher?.name || "Nguyễn Văn A").toLowerCase();
+                    if (name.startsWith("thầy") || name.startsWith("cô") || name.startsWith("gv") || name.startsWith("giáo viên")) {
+                      return name;
+                    }
+                    return `Thầy/Cô ${name}`;
+                  })()}
+                </span>
               </div>
             </div>
 
             <div className={styles.cardProgress}>
               <div className={styles.progressText}>
                 <span>Chuyên cần</span>
-                <span className={styles.progressVal}>{attendanceRate}%</span>
+                <span className={styles.progressVal}>{cls.attendanceRate}%</span>
               </div>
               <div className={styles.progressBarBg}>
                 <div
                   className={styles.progressBarFill}
-                  style={{ width: `${attendanceRate}%` }}
+                  style={{ width: `${cls.attendanceRate}%` }}
                 />
               </div>
             </div>
 
             <div className={styles.cardFooter}>
               <div className={styles.avatarsGroup}>
-                {mockAvatars.map((av, index) => (
-                  <img
-                    key={index}
-                    src={av}
-                    alt="Student avatar"
-                    style={{ zIndex: 3 - index }}
-                  />
-                ))}
-                <span className={styles.avatarMore}>+{studentCount - 3}</span>
+                {cls.avatars && cls.avatars.length > 0 && (
+                  cls.avatars.map((av: string, index: number) => (
+                    <img
+                      key={index}
+                      src={av}
+                      alt="Student avatar"
+                      style={{ zIndex: 3 - index }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = mockAvatars[index % mockAvatars.length]; }}
+                    />
+                  ))
+                )}
+                {cls.studentCount > 3 && (
+                  <span className={styles.avatarMore}>+{cls.studentCount - 3}</span>
+                )}
               </div>
-              <span className={styles.studentCountText}>{studentCount} học sinh</span>
+              <span className={styles.studentCountText}>{cls.studentCount} học sinh</span>
             </div>
           </div>
         ))}

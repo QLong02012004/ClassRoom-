@@ -55,7 +55,7 @@ export default function TeacherAssignments() {
   const [grades, setGrades] = useState<IGrade[]>([]);
 
   const [activeTab, setActiveTab] = useState("all");
-  
+
   // Form create assignment
   const [title, setTitle] = useState("");
   const [deadline, setDeadline] = useState("");
@@ -63,6 +63,7 @@ export default function TeacherAssignments() {
   const [customCategory, setCustomCategory] = useState("");
   const [maxScore, setMaxScore] = useState(10);
   const [description, setDescription] = useState("");
+  const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState(true);
 
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadingData, setLoadingData] = useState(false);
@@ -146,6 +147,7 @@ export default function TeacherAssignments() {
         maxScore,
         category: finalCategory,
         description,
+        allowMultipleSubmissions,
       });
       toast.success("Giao bài tập mới thành công!");
       setTitle("");
@@ -154,6 +156,7 @@ export default function TeacherAssignments() {
       setCustomCategory("");
       setMaxScore(10);
       setDescription("");
+      setAllowMultipleSubmissions(true);
       loadData();
     } catch {
       toast.error("Tạo bài tập thất bại!");
@@ -165,11 +168,11 @@ export default function TeacherAssignments() {
   // Open Grading Modal
   const openGradingModal = async (assignment: IAssignment) => {
     setSelectedAssignment(assignment);
-    
+
     // Pre-populate scores & feedbacks
     const scoresMap: { [key: string]: string } = {};
     const feedbacksMap: { [key: string]: string } = {};
-    
+
     grades.forEach(g => {
       if (g.assignmentId === assignment._id) {
         scoresMap[g.studentId] = String(g.score);
@@ -340,10 +343,10 @@ export default function TeacherAssignments() {
                     <button type="button" className={`${styles.selectInput} flex justify-between items-center bg-white text-left w-full h-[42px]`}>
                       <span>
                         {assignCategory === "attitude" ? "Chuyên cần / Thái độ (Hệ số 1)" :
-                         assignCategory === "homework" ? "Bài tập về nhà (Hệ số 1)" :
-                         assignCategory === "periodic" ? "Kiểm tra định kỳ (Hệ số 1)" :
-                         assignCategory === "mock_exam" ? "Thi thử (Hệ số 1)" :
-                         "Tùy chỉnh (Khác)"}
+                          assignCategory === "homework" ? "Bài tập về nhà (Hệ số 1)" :
+                            assignCategory === "periodic" ? "Kiểm tra định kỳ (Hệ số 1)" :
+                              assignCategory === "mock_exam" ? "Thi thử (Hệ số 1)" :
+                                "Tùy chỉnh (Khác)"}
                       </span>
                       <CaretDown size={14} weight="bold" />
                     </button>
@@ -419,6 +422,20 @@ export default function TeacherAssignments() {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
+            </div>
+
+            {/* Checkbox Multiple Submissions */}
+            <div className={styles.formGroup} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <input
+                type="checkbox"
+                id="allowMultipleSubmissions"
+                checked={allowMultipleSubmissions}
+                onChange={(e) => setAllowMultipleSubmissions(e.target.checked)}
+                style={{ width: 16, height: 16, cursor: 'pointer', accentColor: '#FE6747' }}
+              />
+              <label htmlFor="allowMultipleSubmissions" style={{ cursor: 'pointer', margin: 0, fontWeight: 500, fontSize: '0.9rem', color: '#475569' }}>
+                Cho phép học sinh nộp bài nhiều lần (trước hạn/chưa chấm)
+              </label>
             </div>
 
             {/* Submit */}

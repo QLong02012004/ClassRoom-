@@ -64,7 +64,7 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
 export const assignActivity = async (req: Request, res: Response) => {
     try {
         const { classId } = req.params;
-        const { bankItemId, dueDate, category, title, maxScore, description, durationMinutes, status } = req.body;
+        const { bankItemId, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
 
         const bankItem = await BankItemModel.findById(bankItemId);
         if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
@@ -79,7 +79,8 @@ export const assignActivity = async (req: Request, res: Response) => {
             category,
             maxScore: maxScore || bankItem.maxScore,
             durationMinutes: durationMinutes || bankItem.durationMinutes,
-            status: status || 'open'
+            status: status || 'open',
+            allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true
         });
 
         await newActivity.save();
@@ -237,13 +238,32 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
         const isLate = new Date(activity.dueDate).getTime() < Date.now();
         const status = isLate ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED;
 
+        const existingSubmission = await SubmissionModel.findOne({ assignmentId: activityId, studentId });
+
+        if (existingSubmission && (existingSubmission.submissionText || existingSubmission.attachments?.length > 0)) {
+            // Check if multiple submissions are allowed
+            if (activity.allowMultipleSubmissions === false) {
+                return res.status(403).json({ message: 'Bài tập này chỉ cho phép nộp một lần duy nhất' });
+            }
+        }
+
+        let history = existingSubmission ? existingSubmission.history || [] : [];
+        if (existingSubmission && (existingSubmission.submissionText || existingSubmission.attachments?.length > 0)) {
+            history.push({
+                submissionText: existingSubmission.submissionText || '',
+                attachments: existingSubmission.attachments,
+                submittedAt: existingSubmission.submittedAt
+            });
+        }
+
         const submission = await SubmissionModel.findOneAndUpdate(
             { assignmentId: activityId, studentId },
             {
                 submissionText,
                 attachments: attachments || [],
                 status,
-                submittedAt: new Date()
+                submittedAt: new Date(),
+                history
             },
             { upsert: true, new: true }
         );
@@ -344,7 +364,7 @@ export const addComment = async (req: Request, res: Response): Promise<any> => {
         };
 
         // Tìm kiếm User để lấy tên thật
-        const { UserModel } = await import('../models/User');
+        const { UserModel } = await import('../models/User.js');
         const userInfo = await UserModel.findById(user.id);
         if (userInfo) {
             newComment.name = userInfo.name;

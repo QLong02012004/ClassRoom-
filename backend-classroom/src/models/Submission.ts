@@ -15,6 +15,12 @@ export interface ISubmissionComment {
     createdAt: Date;
 }
 
+export interface ISubmissionHistory {
+    submissionText?: string;
+    attachments: IAttachment[];
+    submittedAt: Date;
+}
+
 export interface ISubmission extends Document {
     assignmentId: Types.ObjectId;
     studentId: Types.ObjectId;
@@ -23,6 +29,7 @@ export interface ISubmission extends Document {
     comments: ISubmissionComment[];
     status: SubmissionStatus;
     submittedAt: Date;
+    history: ISubmissionHistory[];
 }
 
 const AttachmentSchema = new Schema<IAttachment>({
@@ -39,6 +46,12 @@ const SubmissionCommentSchema = new Schema<ISubmissionComment>({
     createdAt: { type: Date, default: Date.now }
 });
 
+const SubmissionHistorySchema = new Schema<ISubmissionHistory>({
+    submissionText: { type: String, default: '' },
+    attachments: [AttachmentSchema],
+    submittedAt: { type: Date, required: true }
+});
+
 const SubmissionSchema = new Schema<ISubmission>({
     assignmentId: { type: Schema.Types.ObjectId, ref: 'ClassActivity', required: true },
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -46,7 +59,8 @@ const SubmissionSchema = new Schema<ISubmission>({
     attachments: [AttachmentSchema],
     comments: { type: [SubmissionCommentSchema], default: [] },
     status: { type: String, enum: Object.values(SubmissionStatus), default: SubmissionStatus.SUBMITTED },
-    submittedAt: { type: Date, default: Date.now }
+    submittedAt: { type: Date, default: Date.now },
+    history: { type: [SubmissionHistorySchema], default: [] }
 });
 
 // Mỗi học sinh chỉ có duy nhất một bản ghi nộp bài cho mỗi bài tập

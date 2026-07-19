@@ -23,16 +23,23 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
+import { SecondaryButton } from "../../../components/ui/SecondaryButton";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import styles from "./StudentAssignments.module.scss";
 
 export default function StudentAssignments() {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("pending");
   const [filterClass, setFilterClass] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, filterClass, filterType, searchQuery]);
 
   useEffect(() => {
     const fetchAssignments = async () => {
@@ -122,57 +129,59 @@ export default function StudentAssignments() {
     return (
       <div
         key={assign._id}
-        className={`${styles.assignCard} group hover:shadow-lg hover:border-[#FE6747]/30 transition-all duration-300 ${status === "late" ? styles.lateCard : ""} ${isDone ? styles.doneCard : ""}`}
+        className={`${styles.assignCard} group ${status === "late" ? styles.lateCard : ""} ${isDone ? styles.doneCard : ""}`}
         onClick={() => navigate(`/assignments/${assign._id}`)}
       >
-        <div className={`${styles.subjectIcon} ${getAssignmentColorClass(assign.type)}`}>
-          {getAssignmentIcon(assign.type)}
-        </div>
-        <div className={styles.cardInfo}>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="bg-[#FE6747]/10 text-[#FE6747] border border-[#FE6747]/20 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded shadow-sm">
+        <div className="flex justify-between items-start w-full mb-4">
+          <div className="flex gap-1.5 flex-wrap">
+            <span className="bg-[#FE6747]/10 text-[#FE6747] border border-[#FE6747]/20 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded shadow-sm w-fit whitespace-nowrap">
               {assign.className}
             </span>
-            <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded shadow-sm">
+            <span className="bg-slate-100 text-slate-600 border border-slate-200 text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded shadow-sm w-fit whitespace-nowrap">
               {assign.type?.toLowerCase() === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
             </span>
           </div>
-          <h4 className={styles.cardTitle}>{assign.title}</h4>
-          <div className={styles.cardMeta}>
-            <Clock size={13} />
-            <span>Hạn: {formatDeadline(assign.deadline)}</span>
-            {!isDone && timeLeft && <span className={`${styles.timeBadge} ${styles.urgent}`}>{timeLeft}</span>}
-            {!isDone && !timeLeft && <span className={`${styles.timeBadge} ${styles.overdue}`}>Quá hạn</span>}
-          </div>
-        </div>
-        {status === "graded" ? (
-          <div className="flex flex-col items-end gap-0.5 flex-shrink-0 text-right">
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-black text-[#FE6747]">{assign.submission?.grade || 0}</span>
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Điểm</span>
-            </div>
-            <div className="flex text-amber-400 text-xs mb-1 tracking-widest">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <span key={i}>{i < Math.round((assign.submission?.grade || 0) / 2) ? '★' : '☆'}</span>
-              ))}
-            </div>
-            <span className="text-[11px] font-semibold text-slate-500 underline decoration-slate-300 underline-offset-2 group-hover:text-[#FE6747] group-hover:decoration-[#FE6747] transition-all cursor-pointer">
-              Xem chi tiết
-            </span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {isDone ? (
-              <CheckCircle size={18} className="text-[#10B981]" />
+          
+          <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 rounded-full border border-slate-200 shadow-sm flex-shrink-0">
+             {isDone ? (
+              <CheckCircle size={14} className="text-[#10B981]" weight="bold" />
             ) : (
-              <span className={`w-2 h-2 rounded-full flex-shrink-0 ${status === 'late' ? 'bg-[#EF4444]' : 'bg-[#f59e0b]'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full ${status === 'late' ? 'bg-[#EF4444]' : 'bg-[#f59e0b]'}`} />
             )}
-            <span className={`text-[12.5px] font-bold whitespace-nowrap transition-colors duration-300 ${!isDone ? 'text-slate-500 group-hover:text-[#FE6747]' : 'text-slate-500'}`}>
+            <span className={`text-[11px] font-bold ${!isDone ? 'text-slate-600 group-hover:text-[#FE6747] transition-colors' : 'text-slate-500'}`}>
               {getStatusLabel(status)}
             </span>
-            <ArrowRight size={16} className={`transition-all duration-300 ${!isDone ? 'text-slate-400 group-hover:text-[#FE6747] group-hover:translate-x-1' : 'text-slate-400'}`} />
           </div>
-        )}
+        </div>
+
+        <h4 className={`${styles.cardTitle} mb-4`}>{assign.title}</h4>
+
+        <div className="flex flex-col mt-auto pt-4 border-t border-slate-100 gap-3">
+          <div className={`${styles.cardMeta} flex-wrap`}>
+            <Clock size={14} className="text-slate-400" />
+            <span className="text-[12px] font-medium">Hạn: {formatDeadline(assign.deadline)}</span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              {!isDone && timeLeft && <span className={`${styles.timeBadge} ${styles.urgent} whitespace-nowrap inline-block`}>{timeLeft}</span>}
+              {!isDone && !timeLeft && <span className={`${styles.timeBadge} ${styles.overdue} whitespace-nowrap inline-block`}>Quá hạn</span>}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {status === "graded" ? (
+                <div className="flex items-baseline gap-1">
+                  <span className="text-xl font-black text-[#FE6747]">{assign.submission?.grade || 0}</span>
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Điểm</span>
+                </div>
+              ) : (
+                <SecondaryButton className="!text-[11px] !px-4 !py-2 !font-bold">
+                  {isDone ? "Xem chi tiết" : "Làm bài ngay"}
+                </SecondaryButton>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     );
   };
@@ -186,9 +195,46 @@ export default function StudentAssignments() {
         </div>
       );
     }
+    
+    const totalPages = Math.ceil(list.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedList = list.slice(startIndex, startIndex + itemsPerPage);
+
     return (
-      <div className={styles.assignmentList}>
-        {list.map(renderAssignmentCard)}
+      <div className="flex flex-col gap-6">
+        <div className={styles.assignmentList}>
+          {paginatedList.map(renderAssignmentCard)}
+        </div>
+        
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-2 mb-8">
+            <button 
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Trước
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }).map((_, i) => (
+                <button
+                  key={i}
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium transition-colors ${currentPage === i + 1 ? 'bg-[#FE6747] text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'}`}
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
+              ))}
+            </div>
+            <button 
+              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Sau
+            </button>
+          </div>
+        )}
       </div>
     );
   };

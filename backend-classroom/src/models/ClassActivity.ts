@@ -11,11 +11,12 @@ export interface IClassActivity extends Document {
     dueDate: Date;
     maxScore: number;
     category: string;
-    
+    allowMultipleSubmissions: boolean;
+
     // For quizzes
     durationMinutes?: number;
     status?: QuizStatus; // OPEN, CLOSED, etc.
-    
+
     createdAt: Date;
 }
 
@@ -28,10 +29,11 @@ const ClassActivitySchema = new Schema<IClassActivity>({
     dueDate: { type: Date, required: true },
     maxScore: { type: Number, default: 10 },
     category: { type: String, default: 'homework' },
-    
+    allowMultipleSubmissions: { type: Boolean, default: true },
+
     durationMinutes: { type: Number },
     status: { type: String, enum: Object.values(QuizStatus) },
-    
+
     createdAt: { type: Date, default: Date.now }
 });
 

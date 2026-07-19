@@ -49,6 +49,7 @@ import FolderUpload from "../../../components/ui/FolderUpload/FolderUpload";
 import FolderFileCard from "../../../components/ui/FolderUpload/FolderFileCard";
 import Switch3D from "../../../components/ui/Switch3D";
 import Checkbox from "../../../components/ui/Checkbox/Checkbox";
+import { Checkbox as UiCheckbox } from "../../../components/ui/checkbox";
 import { CustomConfirmDialog } from "../../../components/ui/CustomConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
 import { ScrollArea } from "../../../components/ui/scroll-area";
@@ -162,6 +163,7 @@ export default function TeacherClassroomDetail() {
   const [assignDueDate, setAssignDueDate] = useState("");
   const [assignMaxScore, setAssignMaxScore] = useState(10);
   const [assignDurationMinutes, setAssignDurationMinutes] = useState(15);
+  const [assignAllowMultiple, setAssignAllowMultiple] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
 
   // Form states cho tạo đề trắc nghiệm
@@ -169,6 +171,7 @@ export default function TeacherClassroomDetail() {
   const [quizDuration, setQuizDuration] = useState(15);
   const [defaultPoints, setDefaultPoints] = useState<number>(1);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
+  const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<Array<{
     questionText: string;
@@ -656,7 +659,7 @@ export default function TeacherClassroomDetail() {
     setQuizQuestions(updated);
   };
 
-  const handleSaveQuiz = async (quizData: { title: string; durationMinutes: number; questions: any[]; shuffleQuestions: boolean; shuffleOptions: boolean; }) => {
+  const handleSaveQuiz = async (quizData: { title: string; durationMinutes: number; questions: any[]; shuffleQuestions: boolean; shuffleOptions: boolean; allowMultipleSubmissions?: boolean; }) => {
     if (!classId) return;
     setIsSavingQuiz(true);
     try {
@@ -674,7 +677,8 @@ export default function TeacherClassroomDetail() {
           });
           await activityService.updateActivity(editingQuizId, {
             title: quizData.title,
-            durationMinutes: quizData.durationMinutes
+            durationMinutes: quizData.durationMinutes,
+            allowMultipleSubmissions: quizData.allowMultipleSubmissions
           });
         }
         toast.success("Cập nhật đề thi trắc nghiệm thành công!");
@@ -698,7 +702,8 @@ export default function TeacherClassroomDetail() {
           bankItemId: bankItemId,
           title: quizData.title,
           durationMinutes: quizData.durationMinutes,
-          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+          dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          allowMultipleSubmissions: quizData.allowMultipleSubmissions
         });
         toast.success("Tạo đề thi trắc nghiệm thành công!");
       }
@@ -817,6 +822,7 @@ export default function TeacherClassroomDetail() {
     setAssignMaxScore(item.maxScore || 10);
     setAssignDurationMinutes(item.durationMinutes || 15);
     setAssignCategory(item.type === 'quiz' ? 'periodic' : 'homework');
+    setAssignAllowMultiple(false);
 
     // Hạn nộp mặc định là 7 ngày sau
     const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -837,7 +843,8 @@ export default function TeacherClassroomDetail() {
         category: assignCategory,
         dueDate: assignDueDate,
         maxScore: assignMaxScore,
-        durationMinutes: selectedBankItem.type === 'quiz' ? assignDurationMinutes : undefined
+        durationMinutes: selectedBankItem.type === 'quiz' ? assignDurationMinutes : undefined,
+        allowMultipleSubmissions: assignAllowMultiple
       });
       toast.success("Giao bài tập mới thành công!");
       setIsAssignFromBankOpen(false);
@@ -877,6 +884,7 @@ export default function TeacherClassroomDetail() {
     }));
     setQuizQuestions(formattedQuestions);
     setEditingQuizId(quizItem._id);
+    setAllowMultipleSubmissions(quizItem.allowMultipleSubmissions ?? false);
     setIsCreatingQuiz(true);
   };
 
@@ -1565,7 +1573,8 @@ export default function TeacherClassroomDetail() {
                     durationMinutes: quizDuration,
                     questions: quizQuestions,
                     shuffleQuestions: shuffleQuestions,
-                    shuffleOptions: shuffleOptions
+                    shuffleOptions: shuffleOptions,
+                    allowMultipleSubmissions: allowMultipleSubmissions
                   } : null}
                   onSubmit={handleSaveQuiz}
                   onCancel={handleCancelCreate}
@@ -1986,7 +1995,7 @@ export default function TeacherClassroomDetail() {
 
       {/* Modal chọn bài tập từ ngân hàng để giao */}
       <Dialog open={isAssignFromBankOpen} onOpenChange={(open) => { if (!open) setIsAssignFromBankOpen(false); }}>
-        <DialogContent className="sm:max-w-[700px] w-[95vw] max-h-[95vh] flex flex-col bg-white rounded-2xl p-6 overflow-hidden">
+        <DialogContent className="sm:max-w-[800px] w-[95vw] max-h-[95vh] flex flex-col bg-white rounded-2xl p-6 overflow-hidden">
           <DialogHeader className="flex-shrink-0">
             <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
@@ -2137,18 +2146,30 @@ export default function TeacherClassroomDetail() {
             </div>
           ) : (
             <form onSubmit={handleConfirmAssign} className="mt-4 flex flex-col gap-4">
-              <ScrollArea className="h-[400px] pr-2">
-                <div className="flex flex-col gap-4 pb-2">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBankItem(null)}
-                      className="text-xs font-semibold text-orange-500 hover:text-orange-600"
-                    >
-                      &larr; Quay lại chọn bài khác
-                    </button>
-                    <span className="text-slate-300">|</span>
-                    <span className="text-xs text-slate-500 font-semibold">Đang giao: {selectedBankItem.title}</span>
+              <div className="flex flex-col gap-4 pb-2">
+                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100 justify-between">
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedBankItem(null)}
+                        className="text-xs font-semibold text-orange-500 hover:text-orange-600"
+                      >
+                        &larr; Quay lại chọn bài khác
+                      </button>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-xs text-slate-500 font-semibold">Đang giao: {selectedBankItem.title}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <UiCheckbox
+                        id="assignAllowMultiple"
+                        checked={assignAllowMultiple}
+                        onCheckedChange={(checked) => setAssignAllowMultiple(checked as boolean)}
+                      />
+                      <label htmlFor="assignAllowMultiple" className="cursor-pointer m-0 font-medium text-xs text-slate-500">
+                        Cho phép học sinh nộp nhiều lần
+                      </label>
+                    </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
@@ -2231,9 +2252,8 @@ export default function TeacherClassroomDetail() {
                     )}
                   </div>
                 </div>
-              </ScrollArea>
 
-              <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-100">
+              <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-100 shrink-0">
                 <button
                   type="button"
                   onClick={() => { setSelectedBankItem(null); setIsAssignFromBankOpen(false); }}
@@ -2241,13 +2261,13 @@ export default function TeacherClassroomDetail() {
                 >
                   Hủy bỏ
                 </button>
-                <button
+                <PrimaryButton
                   type="submit"
                   disabled={isAssigning}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors disabled:opacity-50"
+                  className="px-4 py-2 font-semibold"
                 >
                   {isAssigning ? "Đang giao bài..." : "Giao bài ngay"}
-                </button>
+                </PrimaryButton>
               </div>
             </form>
           )}

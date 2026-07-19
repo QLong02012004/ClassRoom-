@@ -420,6 +420,10 @@
     background: vars.$primary;
     border: none;
     color: white;
+    font-weight: 800 !important;
+    font-size: 0.95rem !important;
+    letter-spacing: 0.5px !important;
+    text-transform: none !important;
     box-shadow: 0 4px 12px rgba(254, 103, 71, 0.2);
 
     &:hover {

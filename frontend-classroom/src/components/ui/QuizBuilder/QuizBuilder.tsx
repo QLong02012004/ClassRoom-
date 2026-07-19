@@ -20,6 +20,7 @@ export interface QuizBuilderProps {
     questions: any[];
     shuffleQuestions: boolean;
     shuffleOptions: boolean;
+    allowMultipleSubmissions?: boolean;
   }) => Promise<void>;
   onCancel: () => void;
   isSaving?: boolean;
@@ -33,6 +34,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
   const [defaultPoints, setDefaultPoints] = useState<number>(1);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
+  const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<Array<{
     questionText: string;
     options: string[];
@@ -65,6 +67,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       setQuizDuration(initialData.durationMinutes || 15);
       setShuffleQuestions(!!initialData.shuffleQuestions);
       setShuffleOptions(!!initialData.shuffleOptions);
+      setAllowMultipleSubmissions(!!initialData.allowMultipleSubmissions);
       if (initialData.questions && initialData.questions.length > 0) {
         setQuizQuestions(initialData.questions);
       }
@@ -374,7 +377,8 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
         durationMinutes: quizDuration,
         questions: quizQuestions,
         shuffleQuestions,
-        shuffleOptions
+        shuffleOptions,
+        allowMultipleSubmissions
       });
     } catch (err: any) {
       // Error is handled in parent
@@ -417,7 +421,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
           </div>
         </div>
 
-        <div className={styles.formRow} style={{ marginTop: '16px', gap: '24px', justifyContent: 'flex-start' }}>
+        <div style={{ display: 'flex', marginTop: '16px', gap: '24px', justifyContent: 'flex-start', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>
             <Checkbox id="shuffle-questions-cb" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
             <label htmlFor="shuffle-questions-cb" style={{ cursor: 'pointer', userSelect: 'none' }}>Đảo vị trí câu hỏi</label>
@@ -425,6 +429,10 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>
             <Checkbox id="shuffle-options-cb" checked={shuffleOptions} onChange={(e) => setShuffleOptions(e.target.checked)} />
             <label htmlFor="shuffle-options-cb" style={{ cursor: 'pointer', userSelect: 'none' }}>Đảo vị trí đáp án</label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', color: '#475569', fontWeight: 600 }}>
+            <Checkbox id="allow-multiple-cb" checked={allowMultipleSubmissions} onChange={(e) => setAllowMultipleSubmissions(e.target.checked)} />
+            <label htmlFor="allow-multiple-cb" style={{ cursor: 'pointer', userSelect: 'none' }}>Cho phép học sinh nộp nhiều lần</label>
           </div>
         </div>
 

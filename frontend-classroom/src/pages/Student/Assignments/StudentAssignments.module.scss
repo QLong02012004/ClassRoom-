@@ -19,7 +19,7 @@
   h2 {
     font-size: 1.6rem;
     font-weight: 800;
-    color: vars.$dark-text;
+    color: #FE6747;
     margin: 0 0 4px 0;
   }
 
@@ -66,27 +66,27 @@
 
 /* --- ASSIGNMENT LIST --- */
 .assignmentList {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
 
 .assignCard {
   display: flex;
-  align-items: center;
-  gap: 18px;
+  flex-direction: column;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 24px;
   cursor: pointer;
   transition: vars.$transition-normal;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
+  height: 100%;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
-    border-color: rgba(0, 0, 0, 0.08);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(254, 103, 71, 0.1);
+    border-color: rgba(254, 103, 71, 0.2);
 
     .arrow {
       transform: translateX(3px);
@@ -94,7 +94,7 @@
   }
 
   &.lateCard {
-    border-left: 3px solid #EF4444;
+    border-top: 4px solid #EF4444;
     background: #fffafa;
   }
 
@@ -143,11 +143,14 @@
 }
 
 .cardTitle {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: vars.$dark-text;
-  margin: 4px 0 6px 0;
-  white-space: nowrap;
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
 }
