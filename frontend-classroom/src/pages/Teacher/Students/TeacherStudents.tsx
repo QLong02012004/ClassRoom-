@@ -18,8 +18,8 @@ import { authService } from "../../../service/auth.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { attendanceService } from "../../../service/attendance.service.ts";
 import { userService } from "../../../service/user.service.ts";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
-import { StudentsTable } from "../../../components/ui/StudentsTable";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import { StudentsTable } from "../../../components/ui/Tables/StudentsTable";
 import styles from "./TeacherStudents.module.scss";
 
 export default function TeacherStudents() {

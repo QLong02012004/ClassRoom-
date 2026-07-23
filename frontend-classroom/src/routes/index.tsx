@@ -1,6 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Login from "../pages/Auth/Login/Login";
-import Register from "../pages/Auth/Register/Register";
 import Dashboard from "../pages/Dashboard";
 import Classrooms from "../pages/Classrooms";
 import Assignments from "../pages/Assignments";
@@ -12,6 +11,7 @@ import StudentResults from "../pages/Student/Results/StudentResults";
 import StudentProfile from "../pages/Student/Profile/StudentProfile";
 import TeacherClassroomDetail from "../pages/Teacher/ClassroomDetail/TeacherClassroomDetail";
 import StudentClassroomDetail from "../pages/Student/Classrooms/StudentClassroomDetail";
+import StudentGrades from "../pages/Student/Grades/StudentGrades";
 import BankList from "../pages/Teacher/Bank/BankList";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminClassrooms from "../pages/Admin/Classrooms/AdminClassrooms";
@@ -21,6 +21,9 @@ import Gradebook from "../pages/Gradebook";
 import Attendance from "../pages/Attendance";
 import Schedule from "../pages/Schedule";
 import Practice from "../pages/Student/Practice/Practice";
+import StudentMaterials from "../pages/Student/Materials/StudentMaterials";
+import StudentMaterialDetail from "../pages/Student/Materials/StudentMaterialDetail";
+import StudentAssistant from "../pages/Student/Chat/StudentAssistant";
 import { useAuth } from "../context/AuthContext";
 
 // Redirect về trang phù hợp theo role
@@ -47,7 +50,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/register",
-    element: <Register />,
+    element: <Login />,
   },
   {
     // Cần phải đăng nhập mới được vào các trang bên trong
@@ -99,6 +102,10 @@ export const router = createBrowserRouter([
             element: <StudentProfile />,
           },
           {
+            path: "grades",
+            element: <StudentGrades />,
+          },
+          {
             path: "admin/users",
             element: <AdminUsers />,
           },
@@ -125,6 +132,18 @@ export const router = createBrowserRouter([
           {
             path: "practice",
             element: <Practice />,
+          },
+          {
+            path: "materials",
+            element: <StudentMaterials />,
+          },
+          {
+            path: "materials/:id",
+            element: <StudentMaterialDetail />,
+          },
+          {
+            path: "chat",
+            element: <StudentAssistant />,
           },
           // Các trang con khác sẽ thêm ở đây
         ],

@@ -17,8 +17,8 @@ import {
   CheckCircle,
   PencilSimple,
   Users,
-  DotsSixVertical,
-  Image,
+
+
   X as XIcon,
   ChatCircleText,
   ClipboardText,
@@ -30,7 +30,7 @@ import {
   FolderOpen,
   BookBookmark,
   Calculator,
-  PaperPlaneTilt,
+
   Lightbulb
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
@@ -41,27 +41,23 @@ import { activityService } from "../../../service/activity.service.ts";
 import { bankService } from "../../../service/bank.service.ts";
 import type { IAnnouncement } from "../../../service/announcement.service.ts";
 import * as XLSX from "xlsx";
-import { PrimaryButton } from "../../../components/ui/PrimaryButton";
+import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
 import { Table, Checkbox as HeroCheckbox } from "@heroui/react";
 import type { Selection } from "@heroui/react";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
-import FolderUpload from "../../../components/ui/FolderUpload/FolderUpload";
-import FolderFileCard from "../../../components/ui/FolderUpload/FolderFileCard";
-import Switch3D from "../../../components/ui/Switch3D";
-import Checkbox from "../../../components/ui/Checkbox/Checkbox";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import FolderUpload from "../../../components/ui/Uploads/FolderUpload/FolderUpload";
+import FolderFileCard from "../../../components/ui/Uploads/FolderUpload/FolderFileCard";
+import Switch3D from "../../../components/ui/FormControls/Switch3D";
 import { Checkbox as UiCheckbox } from "../../../components/ui/checkbox";
-import { CustomConfirmDialog } from "../../../components/ui/CustomConfirmDialog";
+import { CustomConfirmDialog } from "../../../components/ui/Dialogs/CustomConfirmDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
 import { ScrollArea } from "../../../components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../components/ui/dropdown-menu";
-import { QuizActionMenu } from "../../../components/ui/QuizActionMenu";
-import AnimatedSendButton from "../../../components/ui/AnimatedSendButton";
-import CustomImageUpload from "../../../components/ui/CustomImageUpload";
-import NumberStepper from "../../../components/ui/NumberStepper";
-import AiGenerateButton from "../../../components/ui/AiGenerateButton/AiGenerateButton";
-import FolderImportButton from "../../../components/ui/FolderImportButton/FolderImportButton";
-import QuizBuilder from "../../../components/ui/QuizBuilder/QuizBuilder";
-import QuizPreviewModal from "../../../components/ui/QuizPreviewModal/QuizPreviewModal";
+import { QuizActionMenu } from "../../../components/ui/ActionMenus/QuizActionMenu";
+import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton";
+import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
+import QuizBuilder from "../../../components/ui/Builders/QuizBuilder/QuizBuilder";
+import QuizPreviewModal from "../../../components/ui/Dialogs/QuizPreviewModal/QuizPreviewModal";
 import { ClassErrorInsights } from "./components/ClassErrorInsights";
 import styles from "./TeacherClassroomDetail.module.scss";
 
@@ -1596,13 +1592,13 @@ export default function TeacherClassroomDetail() {
                 </div>
 
                 <div className="flex items-center gap-4 mb-6 border-b border-slate-200">
-                  <button 
+                  <button
                     className={`pb-3 px-2 font-semibold text-sm border-b-2 transition-colors ${quizResultTab === 'scores' ? 'border-[#FE6747] text-[#FE6747]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     onClick={() => setQuizResultTab('scores')}
                   >
                     Bảng điểm & Bài nộp
                   </button>
-                  <button 
+                  <button
                     className={`pb-3 px-2 font-semibold text-sm border-b-2 transition-colors ${quizResultTab === 'errors' ? 'border-[#FE6747] text-[#FE6747]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                     onClick={() => setQuizResultTab('errors')}
                   >
@@ -1613,60 +1609,60 @@ export default function TeacherClassroomDetail() {
                 {quizResultTab === 'scores' ? (
                   <>
                     {loadingResults ? (
-                  <p style={{ textAlign: "center", color: "#64748b", fontWeight: 600 }}>Đang tải bảng điểm...</p>
-                ) : quizResults.length === 0 ? (
-                  <div className={styles.emptyFeed}>
-                    <p>Chưa có học sinh nào nộp bài thi trắc nghiệm này.</p>
-                  </div>
-                ) : (
-                  <div className={styles.submissionsTableWrapper}>
-                    <table className={styles.submissionsTable}>
-                      <thead>
-                        <tr>
-                          <th>Học sinh</th>
-                          <th>Thời gian nộp</th>
-                          <th>Số câu đúng</th>
-                          <th>Điểm thi</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {quizResults.map((resItem) => {
-                          const student = resItem.studentId || {};
-                          const name = student.name || "Học sinh";
-                          const email = student.email || "";
-                          const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
-                          const score = resItem.score;
-
-                          let badgeClass = styles.scoreBadge;
-                          if (score < 5) badgeClass += ` ${styles.low}`;
-                          else if (score < 8) badgeClass += ` ${styles.mid}`;
-
-                          const correctCount = Math.round((score / 10) * resItem.totalQuestions);
-
-                          return (
-                            <tr key={resItem._id}>
-                              <td>
-                                <div className={styles.studentCell}>
-                                  <img src={avatarUrl} alt="" className={styles.studentAvatar} />
-                                  <div className={styles.studentInfo}>
-                                    <span className={styles.studentName}>{name}</span>
-                                    <span className={styles.studentEmail}>{email}</span>
-                                  </div>
-                                </div>
-                              </td>
-                              <td>{new Date(resItem.submittedAt).toLocaleString("vi-VN")}</td>
-                              <td>{correctCount}/{resItem.totalQuestions} câu</td>
-                              <td>
-                                <span className={badgeClass}>{score}/10</span>
-                              </td>
+                      <p style={{ textAlign: "center", color: "#64748b", fontWeight: 600 }}>Đang tải bảng điểm...</p>
+                    ) : quizResults.length === 0 ? (
+                      <div className={styles.emptyFeed}>
+                        <p>Chưa có học sinh nào nộp bài thi trắc nghiệm này.</p>
+                      </div>
+                    ) : (
+                      <div className={styles.submissionsTableWrapper}>
+                        <table className={styles.submissionsTable}>
+                          <thead>
+                            <tr>
+                              <th>Học sinh</th>
+                              <th>Thời gian nộp</th>
+                              <th>Số câu đúng</th>
+                              <th>Điểm thi</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-                </>
+                          </thead>
+                          <tbody>
+                            {quizResults.map((resItem) => {
+                              const student = resItem.studentId || {};
+                              const name = student.name || "Học sinh";
+                              const email = student.email || "";
+                              const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=3b82f6&color=fff&bold=true`;
+                              const score = resItem.score;
+
+                              let badgeClass = styles.scoreBadge;
+                              if (score < 5) badgeClass += ` ${styles.low}`;
+                              else if (score < 8) badgeClass += ` ${styles.mid}`;
+
+                              const correctCount = Math.round((score / 10) * resItem.totalQuestions);
+
+                              return (
+                                <tr key={resItem._id}>
+                                  <td>
+                                    <div className={styles.studentCell}>
+                                      <img src={avatarUrl} alt="" className={styles.studentAvatar} />
+                                      <div className={styles.studentInfo}>
+                                        <span className={styles.studentName}>{name}</span>
+                                        <span className={styles.studentEmail}>{email}</span>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td>{new Date(resItem.submittedAt).toLocaleString("vi-VN")}</td>
+                                  <td>{correctCount}/{resItem.totalQuestions} câu</td>
+                                  <td>
+                                    <span className={badgeClass}>{score}/10</span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <ClassErrorInsights activityId={selectedQuiz._id} />
                 )}
@@ -2060,7 +2056,7 @@ export default function TeacherClassroomDetail() {
                         if (bankFilterOrigin === 'PRIVATE' && item.sharingStatus !== 'PRIVATE') return false;
                         return true;
                       });
-                      
+
                       if (filtered.length === 0) {
                         return (
                           <div className="text-center py-8 text-sm text-slate-500">
@@ -2068,61 +2064,61 @@ export default function TeacherClassroomDetail() {
                           </div>
                         );
                       }
-                      
+
                       return filtered.map((item) => (
                         <div key={item._id} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:bg-slate-50/80 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border ${item.type === 'quiz' ? 'bg-orange-50/50 border-orange-100' : 'bg-emerald-50/50 border-emerald-100'}`}>
-                            {item.type === 'quiz' ? (
-                              <ClipboardText size={24} weight="duotone" className="text-orange-500" />
-                            ) : (
-                              <Calculator size={24} weight="duotone" className="text-emerald-500" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${item.type === 'quiz' ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
-                                {item.type === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
-                              </span>
-                              <h4 className="font-semibold text-slate-800 text-sm">{item.title}</h4>
-                            </div>
-                            <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 font-medium">
-                              {item.type === 'quiz' && (
-                                <>
-                                  <div className="flex items-center gap-1" title="Số lượng câu hỏi">
-                                    <BookOpen size={13} weight="duotone" className="text-blue-500" />
-                                    {item.quizQuestions?.length || 0} câu hỏi
-                                  </div>
-                                  <div className="flex items-center gap-1" title="Thời gian làm bài">
-                                    <Clock size={13} weight="duotone" className="text-orange-500" />
-                                    {item.durationMinutes || 0} phút
-                                  </div>
-                                </>
+                          <div className="flex items-center gap-4">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 border ${item.type === 'quiz' ? 'bg-orange-50/50 border-orange-100' : 'bg-emerald-50/50 border-emerald-100'}`}>
+                              {item.type === 'quiz' ? (
+                                <ClipboardText size={24} weight="duotone" className="text-orange-500" />
+                              ) : (
+                                <Calculator size={24} weight="duotone" className="text-emerald-500" />
                               )}
-                              <div className="flex items-center gap-1" title="Nguồn gốc">
-                                <Users size={13} weight="duotone" className="text-emerald-500" />
-                                {item.sharingStatus === 'CENTER_SHARED' ? "Thư viện chung" : "Cá nhân"}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${item.type === 'quiz' ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
+                                  {item.type === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}
+                                </span>
+                                <h4 className="font-semibold text-slate-800 text-sm">{item.title}</h4>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-500 font-medium">
+                                {item.type === 'quiz' && (
+                                  <>
+                                    <div className="flex items-center gap-1" title="Số lượng câu hỏi">
+                                      <BookOpen size={13} weight="duotone" className="text-blue-500" />
+                                      {item.quizQuestions?.length || 0} câu hỏi
+                                    </div>
+                                    <div className="flex items-center gap-1" title="Thời gian làm bài">
+                                      <Clock size={13} weight="duotone" className="text-orange-500" />
+                                      {item.durationMinutes || 0} phút
+                                    </div>
+                                  </>
+                                )}
+                                <div className="flex items-center gap-1" title="Nguồn gốc">
+                                  <Users size={13} weight="duotone" className="text-emerald-500" />
+                                  {item.sharingStatus === 'CENTER_SHARED' ? "Thư viện chung" : "Cá nhân"}
+                                </div>
                               </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            {item.type === 'quiz' && item.quizQuestions && item.quizQuestions.length > 0 && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewBankItem(item)}
+                                className="p-1.5 text-slate-500 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors border border-transparent hover:border-orange-200"
+                                title="Xem trước câu hỏi"
+                              >
+                                <Eye size={16} weight="bold" />
+                              </button>
+                            )}
+                            <AnimatedSendButton
+                              text="Chọn giao"
+                              onClick={() => handleSelectBankItem(item)}
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          {item.type === 'quiz' && item.quizQuestions && item.quizQuestions.length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => setPreviewBankItem(item)}
-                              className="p-1.5 text-slate-500 hover:text-orange-500 hover:bg-orange-50 rounded-lg transition-colors border border-transparent hover:border-orange-200"
-                              title="Xem trước câu hỏi"
-                            >
-                              <Eye size={16} weight="bold" />
-                            </button>
-                          )}
-                          <AnimatedSendButton 
-                            text="Chọn giao" 
-                            onClick={() => handleSelectBankItem(item)} 
-                          />
-                        </div>
-                      </div>
                       ));
                     })()}
                   </div>
@@ -2147,111 +2143,111 @@ export default function TeacherClassroomDetail() {
           ) : (
             <form onSubmit={handleConfirmAssign} className="mt-4 flex flex-col gap-4">
               <div className="flex flex-col gap-4 pb-2">
-                  <div className="flex items-center gap-2 pb-3 border-b border-slate-100 justify-between">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedBankItem(null)}
-                        className="text-xs font-semibold text-orange-500 hover:text-orange-600"
-                      >
-                        &larr; Quay lại chọn bài khác
-                      </button>
-                      <span className="text-slate-300">|</span>
-                      <span className="text-xs text-slate-500 font-semibold">Đang giao: {selectedBankItem.title}</span>
-                    </div>
+                <div className="flex items-center gap-2 pb-3 border-b border-slate-100 justify-between">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBankItem(null)}
+                      className="text-xs font-semibold text-orange-500 hover:text-orange-600"
+                    >
+                      &larr; Quay lại chọn bài khác
+                    </button>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-xs text-slate-500 font-semibold">Đang giao: {selectedBankItem.title}</span>
+                  </div>
 
-                    <div className="flex items-center gap-2">
-                      <UiCheckbox
-                        id="assignAllowMultiple"
-                        checked={assignAllowMultiple}
-                        onCheckedChange={(checked) => setAssignAllowMultiple(checked as boolean)}
-                      />
-                      <label htmlFor="assignAllowMultiple" className="cursor-pointer m-0 font-medium text-xs text-slate-500">
-                        Cho phép học sinh nộp nhiều lần
-                      </label>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <UiCheckbox
+                      id="assignAllowMultiple"
+                      checked={assignAllowMultiple}
+                      onCheckedChange={(checked) => setAssignAllowMultiple(checked as boolean)}
+                    />
+                    <label htmlFor="assignAllowMultiple" className="cursor-pointer m-0 font-medium text-xs text-slate-500">
+                      Cho phép học sinh nộp nhiều lần
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Tiêu đề bài giao</label>
+                  <input
+                    type="text"
+                    value={assignTitle}
+                    onChange={(e) => setAssignTitle(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Mô tả chi tiết</label>
+                  <textarea
+                    value={assignDescription}
+                    onChange={(e) => setAssignDescription(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-bold text-slate-700 uppercase">Phân loại điểm</label>
+                    <select
+                      value={assignCategory}
+                      onChange={(e) => setAssignCategory(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    >
+                      <option value="homework">Bài tập về nhà</option>
+                      <option value="periodic">Kiểm tra định kỳ</option>
+                      <option value="mock_exam">Thi thử</option>
+                      <option value="attitude">Chuyên cần / Thái độ</option>
+                    </select>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase">Tiêu đề bài giao</label>
+                    <label className="text-xs font-bold text-slate-700 uppercase">Hạn nộp</label>
                     <input
-                      type="text"
-                      value={assignTitle}
-                      onChange={(e) => setAssignTitle(e.target.value)}
+                      type="datetime-local"
+                      value={assignDueDate}
+                      onChange={(e) => setAssignDueDate(e.target.value)}
                       className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                       required
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase">Mô tả chi tiết</label>
-                    <textarea
-                      value={assignDescription}
-                      onChange={(e) => setAssignDescription(e.target.value)}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase">Phân loại điểm</label>
-                      <select
-                        value={assignCategory}
-                        onChange={(e) => setAssignCategory(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-                      >
-                        <option value="homework">Bài tập về nhà</option>
-                        <option value="periodic">Kiểm tra định kỳ</option>
-                        <option value="mock_exam">Thi thử</option>
-                        <option value="attitude">Chuyên cần / Thái độ</option>
-                      </select>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase">Hạn nộp</label>
-                      <input
-                        type="datetime-local"
-                        value={assignDueDate}
-                        onChange={(e) => setAssignDueDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-                        required
+                    <label className="text-xs font-bold text-slate-700 uppercase">Điểm tối đa</label>
+                    <div style={{ display: 'flex' }}>
+                      <NumberStepper
+                        value={assignMaxScore}
+                        onChange={(val) => setAssignMaxScore(Number(val))}
+                        min={1}
+                        max={100}
+                        step={1}
+                        fullWidth
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  {selectedBankItem.type === 'quiz' && (
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase">Điểm tối đa</label>
+                      <label className="text-xs font-bold text-slate-700 uppercase">Thời gian làm bài (phút)</label>
                       <div style={{ display: 'flex' }}>
                         <NumberStepper
-                          value={assignMaxScore}
-                          onChange={(val) => setAssignMaxScore(Number(val))}
+                          value={assignDurationMinutes}
+                          onChange={(val) => setAssignDurationMinutes(Number(val))}
                           min={1}
-                          max={100}
+                          max={180}
                           step={1}
                           fullWidth
                         />
                       </div>
                     </div>
-
-                    {selectedBankItem.type === 'quiz' && (
-                      <div className="flex flex-col gap-1.5">
-                        <label className="text-xs font-bold text-slate-700 uppercase">Thời gian làm bài (phút)</label>
-                        <div style={{ display: 'flex' }}>
-                          <NumberStepper
-                            value={assignDurationMinutes}
-                            onChange={(val) => setAssignDurationMinutes(Number(val))}
-                            min={1}
-                            max={180}
-                            step={1}
-                            fullWidth
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
+              </div>
 
               <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-100 shrink-0">
                 <button

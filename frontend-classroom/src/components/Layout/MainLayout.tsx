@@ -1,26 +1,34 @@
 import React from "react";
 import { Outlet } from "react-router-dom";
-import NavBar from "./Navbar/Navbar.tsx";
-import Header from "./Header/Header.tsx";
+import Sidebar from "./Sidebar/Sidebar";
+import TopHeader from "./TopHeader/TopHeader";
+import Header from "./Header/Header";
+import OnboardingTour from "../common/OnboardingTour/OnboardingTour";
 
 const MainLayout: React.FC = () => {
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
-      {/* Top Navbar */}
-      <NavBar />
+    <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden font-sans">
+      <OnboardingTour />
 
-      {/* Main Container */}
-      <div className="flex flex-row flex-grow w-full">
-        {/* Sidebar - Flush Left */}
-        <Header />
+      {/* Global Sidebar (fixed position) */}
+      <Sidebar />
 
-        {/* Content Area */}
-        <div className="flex-grow w-full flex flex-col">
-          <div className="w-full max-w-7xl mx-auto flex-grow flex flex-col">
-            <main className="flex-grow p-4 md:p-6 w-full">
+      {/* Main Content Area - offset by 72px for the fixed sidebar */}
+      <div className="flex flex-col flex-1 pl-[72px] w-full h-screen">
+        {/* Top Header */}
+        <TopHeader />
+
+        {/* Content Wrapper */}
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sub-Sidebar (for class details, etc.) */}
+          <Header />
+
+          {/* Actual Page Content */}
+          <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="w-full max-w-7xl mx-auto h-full">
               <Outlet />
-            </main>
-          </div>
+            </div>
+          </main>
         </div>
       </div>
     </div>

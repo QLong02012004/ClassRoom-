@@ -4,7 +4,7 @@ import { Alarm, CaretLeft, CaretRight, Info, GridFour, Trophy } from "phosphor-r
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { activityService } from "../../../service/activity.service.ts";
 import styles from "./TakeExam.module.scss";
-import { PrimaryButton } from "../../../components/ui/PrimaryButton.tsx";
+import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton.tsx";
 
 export default function TakeExam() {
   const { id } = useParams<{ id: string }>();

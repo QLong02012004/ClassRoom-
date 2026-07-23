@@ -29,7 +29,7 @@ import {
   Eye
 } from "phosphor-react";
 
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,11 +57,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "../../../components/Styles/ToastContext";
-import { CustomConfirmDialog } from "@/components/ui/CustomConfirmDialog";
+import { CustomConfirmDialog } from "@/components/ui/Dialogs/CustomConfirmDialog";
 
 import { classroomService, type IClassroomItem, type IClassroomActivities } from "../../../service/classroom.service";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
-import { StudentsTable } from "../../../components/ui/StudentsTable";
+import { StudentsTable } from "../../../components/ui/Tables/StudentsTable";
 import { attendanceService } from "../../../service/attendance.service";
 import type { Student } from "../../../utils/mockDb";
 import { getMockStudents } from "../../../utils/mockDb";

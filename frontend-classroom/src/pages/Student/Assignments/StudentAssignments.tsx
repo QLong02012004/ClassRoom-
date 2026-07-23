@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
-import { SecondaryButton } from "../../../components/ui/SecondaryButton";
+import { SecondaryButton } from "../../../components/ui/Buttons/SecondaryButton";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import styles from "./StudentAssignments.module.scss";
 
@@ -129,7 +129,7 @@ export default function StudentAssignments() {
     return (
       <div
         key={assign._id}
-        className={`${styles.assignCard} group ${status === "late" ? styles.lateCard : ""} ${isDone ? styles.doneCard : ""}`}
+        className={`${styles.assignCard} group ${status === "late" ? styles.lateCard : ""} ${isDone ? styles.doneCard : ""} tour-step-assign-card`}
         onClick={() => navigate(`/assignments/${assign._id}`)}
       >
         <div className="flex justify-between items-start w-full mb-4">
@@ -250,7 +250,7 @@ export default function StudentAssignments() {
 
       {/* Bộ lọc nâng cao */}
       <div className="flex flex-col md:flex-row gap-3 bg-white p-3 md:p-4 rounded-xl border border-slate-200 shadow-sm mt-1 mb-6">
-        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg flex-grow">
+        <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg flex-grow tour-step-search">
           <MagnifyingGlass size={18} className="text-slate-400" />
           <input 
             type="text" 
@@ -261,7 +261,7 @@ export default function StudentAssignments() {
           />
         </div>
         
-        <div className="flex flex-wrap md:flex-nowrap gap-3">
+        <div className="flex flex-wrap md:flex-nowrap gap-3 tour-step-filters">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg px-4 py-2.5 outline-none font-medium hover:bg-slate-100 transition-colors min-w-[140px] h-[42px] cursor-pointer">
               {filterType === "all" ? "Môn học (Tất cả)" : (filterType === "quiz" ? "Trắc nghiệm" : "Tự luận")}

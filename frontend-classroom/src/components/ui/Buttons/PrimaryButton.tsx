@@ -11,6 +11,10 @@ const buttonVariants = cva(
       variant: {
         default:
           "group relative isolate overflow-hidden border-2 border-primary bg-transparent text-primary hover:text-primary-foreground before:absolute before:left-0 before:top-0 before:-z-10 before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-primary before:scale-0 before:transition-transform before:duration-[800ms] before:ease-out hover:before:scale-100",
+        solid:
+          "group relative isolate overflow-hidden border-2 border-primary bg-primary text-white before:absolute before:left-0 before:top-0 before:-z-10 before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-white/25 before:scale-0 before:transition-transform before:duration-[800ms] before:ease-out hover:before:scale-100",
+        muted:
+          "group relative isolate overflow-hidden border-2 border-transparent bg-[#A9d6e5] text-slate-900 hover:text-white before:absolute before:left-0 before:top-0 before:-z-10 before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-primary before:scale-0 before:transition-transform before:duration-[800ms] before:ease-out hover:before:scale-100",
         outline:
           "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
         secondary:

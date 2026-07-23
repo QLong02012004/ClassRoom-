@@ -1,16 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X } from "phosphor-react";
-import { useToast } from "../../Styles/ToastContext";
-import NumberStepper from "../NumberStepper";
-import Checkbox from "../Checkbox/Checkbox";
-import CustomImageUpload from "../CustomImageUpload";
-import CustomRadio from "../CustomRadio/CustomRadio";
-import AiGenerateButton from "../AiGenerateButton/AiGenerateButton";
-import FolderImportButton from "../FolderImportButton/FolderImportButton";
-import QuizPreviewModal from "../QuizPreviewModal/QuizPreviewModal";
+import { useToast } from "../../../Styles/ToastContext";
+import NumberStepper from "../../FormControls/NumberStepper";
+import Checkbox from "../../FormControls/Checkbox/Checkbox";
+import CustomImageUpload from "../../Uploads/CustomImageUpload";
+import CustomRadio from "../../FormControls/CustomRadio/CustomRadio";
+import AiGenerateButton from "../../Buttons/AiGenerateButton/AiGenerateButton";
+import FolderImportButton from "../../Buttons/FolderImportButton/FolderImportButton";
+import QuizPreviewModal from "../../Dialogs/QuizPreviewModal/QuizPreviewModal";
 import * as XLSX from "xlsx";
 import styles from "./QuizBuilder.module.scss";
-import { SecondaryButton } from "../SecondaryButton";
+import { SecondaryButton } from "../../Buttons/SecondaryButton";
 
 export interface QuizBuilderProps {
   initialData?: any;

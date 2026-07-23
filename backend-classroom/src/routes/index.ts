@@ -12,6 +12,7 @@ import uploadRoutes from './uploadRoutes';
 import bankRoutes from './bankRoutes';
 import activityRoutes from './activityRoutes';
 import analyticsRoutes from './analyticsRoutes';
+import chatRoutes from './chatRoutes';
 
 const apiRouter = Router();
 
@@ -19,6 +20,7 @@ const apiRouter = Router();
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/users', userRoutes);
 apiRouter.use('/dashboard', dashboardRoutes);
+apiRouter.use('/chat', chatRoutes);
 apiRouter.use('/classrooms', classroomRoutes);
 apiRouter.use('/attendance', attendanceRoutes);
 apiRouter.use('/grades', gradeRoutes);

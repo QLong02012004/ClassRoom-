@@ -24,7 +24,7 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent, ISubmission } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import styles from "./TeacherAssignments.module.scss";
 
 const categoryLabels: Record<string, string> = {

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import styles from "./AssignmentBuilder.module.scss";
-import NumberStepper from "../NumberStepper";
-import { SecondaryButton } from "../SecondaryButton";
+import NumberStepper from "../../FormControls/NumberStepper";
+import { SecondaryButton } from "../../Buttons/SecondaryButton";
+import { Plus, X, Upload } from 'phosphor-react';
 
 export interface AssignmentBuilderProps {
   initialData?: any;

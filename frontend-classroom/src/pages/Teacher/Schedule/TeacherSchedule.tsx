@@ -7,13 +7,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "../../../components/ui/dropdown-menu";
-import { SecondaryButton } from "../../../components/ui/SecondaryButton";
+import { SecondaryButton } from "../../../components/ui/Buttons/SecondaryButton";
 import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import FireEffect from "./FireEffect";
 import styles from "./TeacherSchedule.module.scss";
 

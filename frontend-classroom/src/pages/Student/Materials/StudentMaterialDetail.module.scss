@@ -1,0 +1,264 @@
+@use "../../../components/Styles/variables.module" as vars;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1300px;
+  margin: 0 auto;
+  font-family: vars.$font-main;
+}
+
+/* --- HEADER --- */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  .btnBack {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: vars.$dark-text;
+    cursor: pointer;
+    transition: vars.$transition-fast;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+
+    &:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      transform: translateX(-2px);
+    }
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: vars.$text-sub;
+
+    span {
+      cursor: pointer;
+
+      &:first-child:hover {
+        color: vars.$primary;
+        text-decoration: underline;
+      }
+    }
+
+    .separator {
+      color: #cbd5e1;
+      cursor: default;
+
+      &:hover {
+        text-decoration: none;
+      }
+    }
+
+    .current {
+      font-weight: 600;
+      color: vars.$dark-text;
+      cursor: default;
+
+      &:hover {
+        text-decoration: none;
+      }
+    }
+  }
+}
+
+/* --- CONTENT GRID --- */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- PREVIEW COLUMN --- */
+.previewColumn {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.videoPreview {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1e293b, #0f172a);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .playButton {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: vars.$transition-fast;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: scale(1.1);
+    }
+  }
+}
+
+.docPreview,
+.linkPreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+  background: #f8fafc;
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+
+  p {
+    color: vars.$text-sub;
+    font-size: 1rem;
+    max-width: 300px;
+  }
+}
+
+.previewBtnDownload {
+  margin-top: 16px;
+}
+
+.linkBtn {
+  background: vars.$secondary;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: vars.$transition-fast;
+
+  &:hover {
+    background: #236b7a;
+  }
+}
+
+/* --- INFO COLUMN --- */
+.infoColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.infoCard {
+  background: white;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+
+  .subjectTag {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: vars.$primary;
+    background: rgba(244, 124, 32, 0.1);
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+    width: fit-content;
+  }
+
+  .title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    line-height: 1.3;
+    margin: 0;
+  }
+
+  .description {
+    font-size: 0.95rem;
+    color: vars.$text-sub;
+    line-height: 1.6;
+    margin: 0;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .metaList {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    .metaItem {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: vars.$secondary;
+
+      .metaText {
+        display: flex;
+        flex-direction: column;
+
+        .metaLabel {
+          font-size: 0.75rem;
+          color: vars.$text-sub;
+          font-weight: 500;
+        }
+
+        .metaValue {
+          font-size: 0.95rem;
+          color: vars.$dark-text;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .actions {
+    margin-top: auto;
+    padding-top: 24px;
+
+    .mainActionBtn {
+      width: 100%;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 1rem;
+    }
+  }
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 100px 0;
+  color: vars.$dark-text;
+}

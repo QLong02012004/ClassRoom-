@@ -1,0 +1,190 @@
+@import "../../Styles/variables.module.scss";
+
+.topHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  background-color: #ffffff;
+  border-bottom: 1px solid $sidebar-border;
+  width: 100%;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+
+  .brandName {
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .divider {
+    color: #cbd5e1;
+  }
+
+  .pageTitle {
+    color: #475569;
+    font-weight: 500;
+  }
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.streakBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(244, 124, 32, 0.1); // Light primary orange
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  color: $primary;
+
+  .streakIcon {
+    color: $primary;
+  }
+}
+
+.iconBtn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #64748b;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
+
+  .notifDot {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background-color: #ef4444;
+    border-radius: 50%;
+    border: 2px solid #ffffff;
+  }
+}
+
+.languageSelect {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f1f5f9;
+  }
+}
+
+.profileDropdown {
+  position: relative;
+}
+
+.profileBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f8fafc; // Light gray as requested
+  border: 1px solid #e2e8f0; // Border as requested
+  color: #475569;
+  padding: 6px 12px;
+  border-radius: 24px; // Fully rounded edges
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+  }
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 200px;
+  background-color: #ffffff;
+  border: 1px solid $sidebar-border;
+  border-radius: 12px;
+  box-shadow: $shadow-md;
+  z-index: 100;
+  overflow: hidden;
+  padding: 8px 0;
+}
+
+.dropdownHeader {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 8px;
+
+  .userName {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 14px;
+  }
+  
+  .userRole {
+    color: #64748b;
+    font-size: 12px;
+    margin-top: 2px;
+  }
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: #475569;
+  font-size: 14px;
+  text-decoration: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f8fafc;
+    color: $primary;
+  }
+}
+
+.dropdownItemLogout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: #ef4444;
+  font-size: 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #fef2f2;
+  }
+}

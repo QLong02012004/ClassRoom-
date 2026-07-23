@@ -36,19 +36,14 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 20px;
-    background: vars.$primary;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-size: 0.85rem;
+    padding: 28px;
+    font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(254, 103, 71, 0.15);
     transition: vars.$transition-fast;
 
     &:hover {
-      background: #e0583b;
       transform: translateY(-2px);
       box-shadow: 0 6px 16px rgba(254, 103, 71, 0.25);
     }
@@ -116,8 +111,8 @@
     .statusTag {
       font-size: 0.7rem;
       font-weight: 700;
-      color: #10B981;
-      background: rgba(16, 185, 129, 0.08);
+      color: vars.$success;
+      background: rgba(47, 143, 163, 0.1);
       padding: 4px 10px;
       border-radius: 99px;
       text-transform: uppercase;
@@ -163,7 +158,7 @@
 
     .progressBarBg {
       width: 100%;
-      height: 6px;
+      height: 8px;
       background: #f1f5f9;
       border-radius: 99px;
       overflow: hidden;
@@ -269,7 +264,7 @@
 /* --- 3. BOTTOM BANNER --- */
 .bottomBanner {
   background: linear-gradient(135deg, rgba(254, 103, 71, 0.02) 0%, rgba(254, 103, 71, 0.07) 100%),
-              url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M0 0h100v100H0z' fill='none'/%3E%3Cpath d='M10 10h80v80H10z' fill='none'/%3E%3C/svg%3E") repeat;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M0 0h100v100H0z' fill='none'/%3E%3Cpath d='M10 10h80v80H10z' fill='none'/%3E%3C/svg%3E") repeat;
   background-size: cover;
   border-radius: 20px;
   padding: 36px 40px;
@@ -314,7 +309,7 @@
 
   @media (max-width: 640px) {
     padding: 24px;
-    
+
     &::after {
       display: none;
     }
@@ -347,7 +342,7 @@
   h3 {
     font-size: 1.2rem;
     font-weight: 800;
-    color: vars.$dark-text;
+    color: vars.$primary;
     margin: 0 0 16px 0;
   }
 
@@ -386,6 +381,7 @@
   .modalActions {
     display: flex;
     justify-content: flex-end;
+    align-items: center;
     gap: 12px;
     margin-top: 24px;
 
@@ -411,13 +407,12 @@
     }
 
     .btnConfirm {
-      background: vars.$primary;
-      border: none;
-      color: white;
+      padding: 10px 18px;
+      font-size: 0.85rem;
+      font-weight: 700;
       box-shadow: 0 4px 10px rgba(254, 103, 71, 0.2);
 
       &:hover {
-        background: #e0583b;
         box-shadow: 0 6px 14px rgba(254, 103, 71, 0.3);
       }
     }
@@ -429,6 +424,7 @@
     opacity: 0;
     transform: translateY(15px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

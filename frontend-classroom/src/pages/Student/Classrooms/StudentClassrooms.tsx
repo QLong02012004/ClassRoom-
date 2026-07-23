@@ -7,6 +7,9 @@ import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
 import { classroomService } from "../../../service/classroom.service.ts";
 import styles from "./StudentClassrooms.module.scss";
+import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton.tsx";
+import { SecondaryButton } from "../../../components/ui/Buttons/SecondaryButton.tsx";
+import AnimatedProgressBar from "../../../components/ui/AnimatedProgressBar.tsx";
 
 export default function StudentClassrooms() {
   const toast = useToast();
@@ -49,10 +52,12 @@ export default function StudentClassrooms() {
           subject: c.subject || "",
           teacherName: c.teacherId?.name || "Thầy Nguyễn Văn A",
           studentCount: c.students?.length || 0,
-          avatars: c.students?.slice(0, 3).map((s: any) => {
+          avatars: c.students?.slice(0, 3).map((s: any, idx: number) => {
             if (s.avatar) return s.avatar;
             const fallbackName = s.name || "HS";
-            return `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=FE6747&color=fff&size=80`;
+            const colors = ["F47C20", "2F8FA3", "A9D6E5", "D8C3A5"];
+            const bg = colors[idx % colors.length];
+            return `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=${bg}&color=fff&size=80`;
           }) || [],
           status: c.status,
           attendanceRate: c.attendanceRate || Math.floor(Math.random() * (100 - 85 + 1)) + 85
@@ -95,9 +100,11 @@ export default function StudentClassrooms() {
         className: c.className,
         teacherName: c.teacherId, // Mock DB format
         studentCount: classStudents.length,
-        avatars: classStudents.slice(0, 3).map(s => {
+        avatars: classStudents.slice(0, 3).map((s, idx) => {
           if (s.avatar) return s.avatar;
-          return `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=FE6747&color=fff&size=80`;
+          const colors = ["F47C20", "2F8FA3", "A9D6E5", "D8C3A5"];
+          const bg = colors[idx % colors.length];
+          return `https://ui-avatars.com/api/?name=${encodeURIComponent(s.name)}&background=${bg}&color=fff&size=80`;
         }),
         attendanceRate: globalAttendanceRate
       };
@@ -124,10 +131,10 @@ export default function StudentClassrooms() {
           <h2>Lớp học của tôi</h2>
           <p>Quản lý và theo dõi tiến độ tham gia lớp học của bạn.</p>
         </div>
-        <button className={styles.btnJoinHeader} onClick={() => setShowJoinModal(true)}>
+        <PrimaryButton className={`${styles.btnJoinHeader} tour-step-join-class`} onClick={() => setShowJoinModal(true)}>
           <Plus size={20} weight="bold" />
           <span>Tham gia lớp học</span>
-        </button>
+        </PrimaryButton>
       </div>
 
       {/* JOIN CLASS MODAL */}
@@ -155,20 +162,20 @@ export default function StudentClassrooms() {
               >
                 Hủy
               </button>
-              <button
+              <SecondaryButton
                 className={styles.btnConfirm}
                 onClick={handleJoinClass}
                 disabled={isJoining || classCode.length < 3}
               >
                 {isJoining ? "Đang xử lý..." : "Tham gia"}
-              </button>
+              </SecondaryButton>
             </div>
           </div>
         </div>
       )}
 
       {/* 2. CLASSES GRID */}
-      <div className={styles.classesGrid}>
+      <div className={`${styles.classesGrid} tour-step-class-list`}>
         {classrooms.map((cls) => (
           <div
             key={cls._id}
@@ -202,9 +209,10 @@ export default function StudentClassrooms() {
                 <span className={styles.progressVal}>{cls.attendanceRate}%</span>
               </div>
               <div className={styles.progressBarBg}>
-                <div
-                  className={styles.progressBarFill}
-                  style={{ width: `${cls.attendanceRate}%` }}
+                <AnimatedProgressBar 
+                  progress={cls.attendanceRate} 
+                  height="100%" 
+                  barColor="linear-gradient(90deg, #f47c20, #d8c3a5, #A9d6e5, #2f8fa3)" 
                 />
               </div>
             </div>

@@ -4,14 +4,14 @@ import type { IBankItem } from '../../../service/bank.service';
 import { useToast } from '../../../components/Styles/ToastContext';
 import { Plus, BookOpen, FileText, DotsThree, Trash, PencilSimple, Clock, CaretDown, MagnifyingGlass, Funnel, Info, TextAa, ListChecks, DownloadSimple, CheckCircle, ClipboardText, Calculator } from 'phosphor-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../../components/ui/dropdown-menu';
-import QuizBuilder from '../../../components/ui/QuizBuilder/QuizBuilder';
-import AssignmentBuilder from '../../../components/ui/AssignmentBuilder/AssignmentBuilder';
+import QuizBuilder from '../../../components/ui/Builders/QuizBuilder/QuizBuilder';
+import AssignmentBuilder from '../../../components/ui/Builders/AssignmentBuilder/AssignmentBuilder';
 import { Table, Checkbox, Pagination } from "@heroui/react";
 import type { Selection } from "@heroui/react";
-import { PrimaryButton } from '../../../components/ui/PrimaryButton';
-import { BackButton } from '../../../components/ui/BackButton';
+import { PrimaryButton } from '../../../components/ui/Buttons/PrimaryButton';
+import { BackButton } from '../../../components/ui/Buttons/BackButton';
 import { useAuth } from '../../../context/AuthContext';
-import { BankActionMenu } from '../../../components/ui/BankActionMenu';
+import { BankActionMenu } from '../../../components/ui/ActionMenus/BankActionMenu';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import {
     Dialog,

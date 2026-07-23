@@ -49,44 +49,45 @@
 
   --popover-foreground: oklch(0.145 0 0);
 
-  --primary: #FE6747;
+  --primary: #f47c20;
 
   --primary-foreground: #FFFFFF;
 
-  --secondary: #10B981;
+  --secondary: #2f8fa3;
 
   --secondary-foreground: #FFFFFF;
 
-  /* HeroUI & NextUI primary brand color: Orange #FE6747 (HSL: 11 99% 64%) */
-  --heroui-primary: 11 99% 64%;
-  --heroui-primary-50: 11 99% 95%;
-  --heroui-primary-100: 11 99% 90%;
-  --heroui-primary-200: 11 99% 80%;
-  --heroui-primary-300: 11 99% 70%;
-  --heroui-primary-400: 11 99% 65%;
-  --heroui-primary-500: 11 99% 64%;
-  --heroui-primary-600: 11 99% 55%;
-  --heroui-primary-700: 11 99% 45%;
-  --heroui-primary-800: 11 99% 35%;
-  --heroui-primary-900: 11 99% 25%;
+  /* HeroUI & NextUI primary brand color: Sunscreen Orange #f47c20 (HSL: 26 91% 54%) */
+  --heroui-primary: 26 91% 54%;
+  --heroui-primary-50: 26 91% 95%;
+  --heroui-primary-100: 26 91% 90%;
+  --heroui-primary-200: 26 91% 80%;
+  --heroui-primary-300: 26 91% 70%;
+  --heroui-primary-400: 26 91% 60%;
+  --heroui-primary-500: 26 91% 54%;
+  --heroui-primary-600: 26 91% 45%;
+  --heroui-primary-700: 26 91% 35%;
+  --heroui-primary-800: 26 91% 25%;
+  --heroui-primary-900: 26 91% 15%;
 
-  --nextui-primary: 11 99% 64%;
-  --nextui-primary-50: 11 99% 95%;
-  --nextui-primary-100: 11 99% 90%;
-  --nextui-primary-200: 11 99% 80%;
-  --nextui-primary-300: 11 99% 70%;
-  --nextui-primary-400: 11 99% 65%;
-  --nextui-primary-500: 11 99% 64%;
-  --nextui-primary-600: 11 99% 55%;
-  --nextui-primary-700: 11 99% 45%;
-  --nextui-primary-800: 11 99% 35%;
-  --nextui-primary-900: 11 99% 25%;
+  --nextui-primary: 26 91% 54%;
+  --nextui-primary-50: 26 91% 95%;
+  --nextui-primary-100: 26 91% 90%;
+  --nextui-primary-200: 26 91% 80%;
+  --nextui-primary-300: 26 91% 70%;
+  --nextui-primary-400: 26 91% 60%;
+  --nextui-primary-500: 26 91% 54%;
+  --nextui-primary-600: 26 91% 45%;
+  --nextui-primary-700: 26 91% 35%;
+  --nextui-primary-800: 26 91% 25%;
+  --nextui-primary-900: 26 91% 15%;
 
-  --muted: oklch(0.97 0 0);
+  --muted: #d8c3a5;
 
   --muted-foreground: oklch(0.556 0 0);
 
   --accent-foreground: oklch(0.205 0 0);
+  --accent: #A9d6e5;
 
   --destructive: oklch(0.577 0.245 27.325);
 
@@ -94,9 +95,9 @@
 
   --ring: oklch(0.708 0 0);
 
-  --chart-1: #FE6747;
+  --chart-1: #f47c20;
 
-  --chart-2: #10B981;
+  --chart-2: #2f8fa3;
 
   --chart-3: #3B82F6;
 
@@ -252,20 +253,20 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --primary: #f47c20;
   --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: #2f8fa3;
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: #d8c3a5;
   --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
+  --accent: #A9d6e5;
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: #FE6747;
-  --chart-2: #10B981;
+  --chart-1: #f47c20;
+  --chart-2: #2f8fa3;
   --chart-3: #3B82F6;
   --chart-4: #8B5CF6;
   --chart-5: #F59E0B;
@@ -298,25 +299,44 @@
   }
 }
 
-/* Force all selected checkboxes in tables to have the theme orange background (#FE6747) */
+/* Force all selected checkboxes in tables to have the theme orange background (#f47c20) */
 span[data-selected="true"]::after,
 span[data-selected="true"] > span {
-  background: #FE6747 !important;
-  background-color: #FE6747 !important;
-  border-color: #FE6747 !important;
+  background: #f47c20 !important;
+  background-color: #f47c20 !important;
+  border-color: #f47c20 !important;
 }
 
 span[data-selected="true"] {
-  border-color: #FE6747 !important;
+  border-color: #f47c20 !important;
 }
 
 tr[data-selected="true"],
 tr[data-selected="true"]:hover {
-  background-color: rgba(254, 103, 71, 0.08) !important;
+  background-color: rgba(244, 124, 32, 0.08) !important;
 }
 
 span[data-selected="true"] svg {
   stroke: #ffffff !important;
   fill: #ffffff !important;
   color: #ffffff !important;
+}
+
+/* --- CUSTOM SCROLLBAR --- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
 }

@@ -166,8 +166,9 @@ const NavBar: React.FC = () => {
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const getNavLinks = () => {
+    const dashboardName = userRole === "student" ? "Trang chủ" : "Bảng điều khiển";
     const commonLinks = [
-      { name: "Bảng điều khiển", path: "/dashboard", icon: <SquaresFour size={20} weight={isActive("/dashboard") ? "fill" : "regular"} /> }
+      { name: dashboardName, path: "/dashboard", icon: <SquaresFour size={20} weight={isActive("/dashboard") ? "fill" : "regular"} /> }
     ];
 
     if (userRole === "student") {

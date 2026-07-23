@@ -17,7 +17,7 @@ export const SecondaryButton: React.FC<SecondaryButtonProps> = ({ children, clas
 
 const StyledWrapper = styled.div`
   .btn {
-   --color: #FE6747;
+   --color: #f47c20;
    --color2: #ffffff;
    padding: 0.8em 1.75em;
    background-color: transparent;

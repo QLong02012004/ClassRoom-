@@ -14,8 +14,8 @@ import {
 } from "phosphor-react";
 import { ClimbingBoxLoader } from "react-spinners";
 
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
-import { AnimatedAddButton } from "@/components/ui/AnimatedAddButton";
+import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
+import { AnimatedAddButton } from "@/components/ui/Buttons/AnimatedAddButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input as HeroInput, Select, ListBox, ListBoxItem, Table, Chip, Checkbox, Avatar as HeroAvatar, Pagination } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -28,8 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ActionMenu } from "@/components/ui/ActionMenu";
-import { CustomConfirmDialog } from "@/components/ui/CustomConfirmDialog";
+import { ActionMenu } from "@/components/ui/ActionMenus/ActionMenu";
+import { CustomConfirmDialog } from "@/components/ui/Dialogs/CustomConfirmDialog";
 import {
   Dialog,
   DialogContent,

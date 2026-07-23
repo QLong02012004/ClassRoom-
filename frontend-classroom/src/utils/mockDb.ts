@@ -38,6 +38,7 @@ export interface Student {
   parentPhone: string;
   classId: string;
   grades: Grades;
+  avatar?: string;
 }
 
 export interface AttendanceRecord {

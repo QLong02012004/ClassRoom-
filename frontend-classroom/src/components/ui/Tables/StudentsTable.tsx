@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Table, Avatar as HeroAvatar, Chip, Checkbox, Button, Pagination } from "@heroui/react";
 import type { Selection } from "@heroui/react";
 import { Trash } from "phosphor-react";
-import { StudentActionMenu } from "./StudentActionMenu";
-import type { Student } from "../../utils/mockDb";
+import { StudentActionMenu } from "../ActionMenus/StudentActionMenu";
+import type { Student } from "../../../utils/mockDb";
 
 interface StudentsTableProps {
   students: Student[];

@@ -24,7 +24,7 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import type { IStudent, IAttendanceRecord, IAttendance } from "../../../service/attendance.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { Table, Avatar as HeroAvatar, Checkbox } from "@heroui/react";
 import type { Selection } from "@heroui/react";
 import styles from "./TeacherAttendance.module.scss";

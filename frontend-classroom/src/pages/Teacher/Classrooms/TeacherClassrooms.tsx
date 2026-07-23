@@ -6,7 +6,7 @@ import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { useAuth } from "../../../context/AuthContext";
 import styles from "./TeacherClassrooms.module.scss";
 import {

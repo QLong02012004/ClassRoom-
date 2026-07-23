@@ -27,7 +27,7 @@ import { userService } from '../../../service/user.service';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
 import styles from './StudentProfile.module.scss';
 
 const StudentProfile: React.FC = () => {

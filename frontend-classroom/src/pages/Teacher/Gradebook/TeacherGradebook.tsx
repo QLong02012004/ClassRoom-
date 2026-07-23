@@ -13,13 +13,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "../../../components/ui/dropdown-menu";
-import NumberStepper from "../../../components/ui/NumberStepper";
+import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
 import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { Table, Avatar as HeroAvatar } from "@heroui/react";
 import {
   Dialog,
@@ -29,7 +29,7 @@ import {
   DialogDescription,
 } from "../../../components/ui/dialog";
 import * as XLSX from "xlsx";
-import { ExcelImportButton, ExcelExportButton } from "../../../components/ui/ExcelButtons";
+import { ExcelImportButton, ExcelExportButton } from "../../../components/ui/Tables/ExcelButtons";
 import { activityService } from "../../../service/activity.service";
 import styles from "./TeacherGradebook.module.scss";
 

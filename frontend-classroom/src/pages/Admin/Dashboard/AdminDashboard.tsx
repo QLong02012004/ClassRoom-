@@ -11,7 +11,7 @@ import {
 import { Area, AreaChart, Bar, BarChart, Tooltip as RechartsTooltip, XAxis, CartesianGrid, YAxis, Label, Pie, PieChart, Sector, ComposedChart, Line, Legend } from "recharts";
 import { TrendingUp } from "lucide-react";
 
-import { PrimaryButton } from "@/components/ui/PrimaryButton";
+import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "../../../components/Styles/ToastContext";
 import { dashboardService, type IDashboardStats } from "../../../service/dashboard.service";
-import { AnimatedAddButton } from "../../../components/ui/AnimatedAddButton";
+import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 
 
 

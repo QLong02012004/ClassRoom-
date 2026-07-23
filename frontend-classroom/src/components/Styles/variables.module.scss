@@ -4,22 +4,25 @@
 // -------------------------------------------------------------
 
 // --- 1. MÀU THƯƠNG HIỆU CHỦ ĐẠO ---
-$primary: #FE6747;       // Cam San Hô - Điểm nhấn thương hiệu
-$secondary: #10B981;     // Xanh Lá Cao Cấp (thay cho Mint để tương phản tốt trên nền sáng)
-$dark-text: #0F172A;     // Xanh Slate Đậm - Màu chữ chính (Text Primary)
-$light-bg: #FFFFFF;      // Trắng Tinh - Nền cho các chiếc Card, form nhập liệu.
+
+$primary: #f47c20; // Sunscreen Orange - Điểm nhấn thương hiệu
+$secondary: #2f8fa3; // Ocean Blue - Màu phụ đạo
+$accent: #A9d6e5; // Sky Blue - Màu điểm xuyết
+$muted: #d8c3a5; // Sand Beige - Nền nhạt / làm dịu
+$dark-text: #0F172A; // Xanh Slate Đậm - Màu chữ chính (Text Primary)
+$light-bg: #FFFFFF; // Trắng Tinh - Nền cho các chiếc Card, form nhập liệu.
 
 // --- 2. MÀU BỔ TRỢ HỆ THỐNG SÁNG (LIGHT THEME) ---
-$bg-main: #F8FAFC;       // Nền chính (Slate-50) bao phủ toàn bộ trang
-$sidebar-bg: #FFFFFF;    // Nền Sidebar sáng màu tinh khiết
-$sidebar-border: #E2E8F0;// Đường viền Sidebar xám nhạt
-$text-sub: #64748B;      // Xám Slate - Dùng cho mô tả phụ
-$warning: #F59E0B;       // Vàng Hổ Phách - Điểm chuyên cần muộn
-$danger: #EF4444;        // Đỏ Dịu - Học sinh vắng mặt
+$bg-main: #F8FAFC; // Nền chính (Slate-50) bao phủ toàn bộ trang
+$sidebar-bg: #FFFFFF; // Nền Sidebar sáng màu tinh khiết
+$sidebar-border: #E2E8F0; // Đường viền Sidebar xám nhạt
+$text-sub: #64748B; // Xám Slate - Dùng cho mô tả phụ
+$warning: #F59E0B; // Vàng Hổ Phách - Điểm chuyên cần muộn
+$danger: #EF4444; // Đỏ Dịu - Học sinh vắng mặt
 
 // --- 3. MÀU TRẠNG THÁI HỆ THỐNG ---
 $success: $secondary;
-$info: #3B82F6;          // Xanh Dương - Thông báo hệ thống chung, hướng dẫn hoặc mẹo nhanh.
+$info: #3B82F6; // Xanh Dương - Thông báo hệ thống chung, hướng dẫn hoặc mẹo nhanh.
 
 // --- 4. HIỆU ỨNG BÓNG ĐỔ (SHADOWS) ---
 $shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -61,6 +64,8 @@ $weight-extrabold: 800;
 :export {
   primary: $primary;
   secondary: $secondary;
+  accent: $accent;
+  muted: $muted;
   darkText: $dark-text;
   lightBg: $light-bg;
   bgMain: $bg-main;

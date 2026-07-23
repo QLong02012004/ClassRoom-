@@ -24,7 +24,7 @@ import { announcementService } from "../../../service/announcement.service.ts";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { activityService } from "../../../service/activity.service.ts";
 import type { IAnnouncement } from "../../../service/announcement.service.ts";
-import FolderFileCard from "../../../components/ui/FolderUpload/FolderFileCard";
+import FolderFileCard from "../../../components/ui/Uploads/FolderUpload/FolderFileCard";
 import styles from "./StudentClassroomDetail.module.scss";
 
 export default function StudentClassroomDetail() {

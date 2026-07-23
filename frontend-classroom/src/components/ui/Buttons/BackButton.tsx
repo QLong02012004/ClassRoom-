@@ -25,17 +25,18 @@ const StyledWrapper = styled.div`
   
   .button {
     --main-size: 0.9rem;
-    --color-text: #ffffff;
-    --color-background: #FE6747;
-    --color-background-hover: #ff785c;
-    --color-outline: rgba(254, 103, 71, 0.25);
+    --color-text: #0F172A;
+    --color-text-hover: #ffffff;
+    --color-background: #ffffff;
+    --color-background-hover: #f47c20;
+    --color-outline: rgba(244, 124, 32, 0.25);
     --color-shadow: rgba(0, 0, 0, 0.25);
     cursor: pointer;
     display: inline-flex;
     justify-content: center;
     align-items: center;
     text-decoration: none;
-    border: none;
+    border: 1px solid #e2e8f0;
     border-radius: calc(var(--main-size) * 100);
     padding: 0.5em 1em 0.5em 0.8em;
     font-family: inherit;
@@ -43,8 +44,7 @@ const StyledWrapper = styled.div`
     font-size: var(--main-size);
     color: var(--color-text);
     background: var(--color-background);
-    box-shadow: 0 0 0.2em 0 var(--color-background);
-    transition: 0.5s;
+    transition: all 0.5s;
   }
 
   .button:active {
@@ -54,11 +54,12 @@ const StyledWrapper = styled.div`
   .button:hover {
     outline: 0.1em solid transparent;
     outline-offset: 0.2em;
-    box-shadow: 0 0 1em 0 var(--color-background);
-    animation:
-      ripple 1s linear infinite,
-      colorize 1s infinite;
-    transition: 0.5s;
+    box-shadow: 0 0 1em 0 var(--color-background-hover);
+    animation: ripple 1s linear infinite;
+    background: var(--color-background-hover);
+    color: var(--color-text-hover);
+    border-color: var(--color-background-hover);
+    transition: all 0.5s;
   }
 
   .button span {
@@ -86,6 +87,7 @@ const StyledWrapper = styled.div`
   .button:hover svg.back-arrow {
     margin-left: -0.3em;
     margin-right: 0.3em;
+    fill: var(--color-text-hover);
     transition: 0.5s;
     filter: drop-shadow(2px 2px 2px var(--color-shadow));
   }
@@ -131,17 +133,7 @@ const StyledWrapper = styled.div`
     }
   }
 
-  @keyframes colorize {
-    0% {
-      background: var(--color-background);
-    }
-    50% {
-      background: var(--color-background-hover);
-    }
-    100% {
-      background: var(--color-background);
-    }
-  }
+  /* Removed colorize keyframes since background transition is used directly on hover */
 
   @keyframes ripple {
     0% {
