@@ -48,6 +48,9 @@ export const getMyBankItems = async (req: Request, res: Response) => {
         } else if (user && user.role === 'admin') {
             // Admin xem được tất cả tài liệu của chính họ
             query.teacherId = user._id;
+        } else if (user && user.role === 'student') {
+            // Học sinh xem được tất cả tài liệu/đề thi chung do Admin tạo
+            query.sharingStatus = BankItemSharingStatus.CENTER_SHARED;
         } else {
             // Fallback nếu không có session user
             query.teacherId = req.query.teacherId;

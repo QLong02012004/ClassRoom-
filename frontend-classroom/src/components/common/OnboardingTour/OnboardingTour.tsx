@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Joyride, type EventData, STATUS, type Step } from 'react-joyride';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 
 const OnboardingTour: React.FC = () => {
+  const { user } = useAuth();
   const [run, setRun] = useState(false);
   const location = useLocation();
   const [steps, setSteps] = useState<Step[]>([]);
 
   useEffect(() => {
+    if (user?.role !== 'student') return;
     // Determine the base path
     const path = location.pathname;
     let pageKey = 'dashboard';

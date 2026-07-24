@@ -11,7 +11,7 @@ import {
   HardDrives,
   UserCircle
 } from "phosphor-react";
-import { MOCK_MATERIALS } from "./StudentMaterials";
+import { materialService } from "../../../service/material.service";
 import styles from "./StudentMaterialDetail.module.scss";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
 import { BackButton } from "../../../components/ui/Buttons/BackButton";
@@ -22,10 +22,20 @@ export default function StudentMaterialDetail() {
   const [material, setMaterial] = useState<any>(null);
 
   useEffect(() => {
-    const found = MOCK_MATERIALS.find(m => m.id === id);
-    if (found) {
-      setMaterial(found);
-    }
+    const fetchMaterial = async () => {
+      try {
+        const res = (await materialService.getPublicMaterials()) as any;
+        if (res && res.data) {
+          const found = res.data.find((m: any) => m._id === id);
+          if (found) {
+            setMaterial(found);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load material detail", error);
+      }
+    };
+    fetchMaterial();
   }, [id]);
 
   if (!material) {
@@ -64,7 +74,7 @@ export default function StudentMaterialDetail() {
         return (
           <div className={styles.linkPreview}>
             <LinkIcon size={80} weight="duotone" color="#2f8fa3" />
-            <a href="#" target="_blank" rel="noreferrer" className={styles.linkBtn}>Mở liên kết trong tab mới</a>
+            <a href={material.fileUrl} target="_blank" rel="noreferrer" className={styles.linkBtn}>Mở liên kết trong tab mới</a>
           </div>
         );
       default:
@@ -107,14 +117,14 @@ export default function StudentMaterialDetail() {
                 <CalendarBlank size={20} weight="duotone" />
                 <div className={styles.metaText}>
                   <span className={styles.metaLabel}>Ngày đăng</span>
-                  <span className={styles.metaValue}>{material.uploadedAt}</span>
+                  <span className={styles.metaValue}>{new Date(material.createdAt).toLocaleDateString("vi-VN")}</span>
                 </div>
               </div>
               <div className={styles.metaItem}>
                 <HardDrives size={20} weight="duotone" />
                 <div className={styles.metaText}>
                   <span className={styles.metaLabel}>Dung lượng</span>
-                  <span className={styles.metaValue}>{material.size}</span>
+                  <span className={styles.metaValue}>{material.size || "Link"}</span>
                 </div>
               </div>
             </div>

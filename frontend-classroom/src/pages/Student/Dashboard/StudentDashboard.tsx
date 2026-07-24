@@ -61,6 +61,11 @@ export default function StudentDashboard() {
   const [studentAnnouncements, setStudentAnnouncements] = useState<any[]>([]);
   const [weaknessData, setWeaknessData] = useState<any[]>([]);
 
+  // Leaderboard State
+  const [classes, setClasses] = useState<{_id: string, name: string}[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
   // Practice Modal
   const [practiceDialogOpen, setPracticeDialogOpen] = useState(false);
   const [selectedPracticeTag, setSelectedPracticeTag] = useState("");
@@ -130,6 +135,11 @@ export default function StudentDashboard() {
         setLearningProgress(res.data.learningProgress || []);
         setStudentAnnouncements(res.data.announcements || []);
         setWeeklyGoals(res.data.weeklyGoals || []);
+        const cls = res.data.classes || [];
+        setClasses(cls);
+        if (cls.length > 0 && !selectedClassId) {
+          setSelectedClassId(cls[0]._id);
+        }
       }
 
       const weaknessRes = await analyticsService.getStudentWeaknessRadar();
@@ -154,6 +164,19 @@ export default function StudentDashboard() {
   useEffect(() => {
     loadData();
   }, [username, user]);
+
+  useEffect(() => {
+    if (selectedClassId) {
+      dashboardService.getLeaderboard(selectedClassId).then(res => {
+        if (res && res.data) {
+          // Trả về tối đa top 10
+          setLeaderboard(res.data.slice(0, 10));
+        }
+      }).catch(err => {
+        console.error("Lỗi tải leaderboard:", err);
+      });
+    }
+  }, [selectedClassId]);
 
   const handleTaskComplete = (taskId: string) => {
     setCompletedTasks(prev => {
@@ -296,14 +319,18 @@ export default function StudentDashboard() {
           <span className={styles.statLabel}>Nộp bài đúng hạn</span>
           <div className={styles.statBottomRow}>
             <span className={styles.statValue}>
-              95%
+              {stats.onTimeSubmissionRate !== undefined ? stats.onTimeSubmissionRate : 95}%
             </span>
-            <span className={`${styles.statSubtext} ${styles.success}`}>
-              Xuất sắc 🎯
+            <span className={`${styles.statSubtext} ${
+              (stats.onTimeSubmissionRate || 95) >= 90 ? styles.success :
+              (stats.onTimeSubmissionRate || 95) >= 70 ? styles.warning : styles.danger
+            }`}>
+              {(stats.onTimeSubmissionRate || 95) >= 90 ? 'Xuất sắc 🎯' :
+               (stats.onTimeSubmissionRate || 95) >= 70 ? 'Khá 👍' : 'Cần cố gắng ⚠️'}
             </span>
           </div>
           <div className={styles.progressBarWrapper}>
-            <AnimatedProgressBar progress={95} width="100%" barColor="linear-gradient(90deg, #86efac, #22c55e)" />
+            <AnimatedProgressBar progress={stats.onTimeSubmissionRate !== undefined ? stats.onTimeSubmissionRate : 95} width="100%" barColor="linear-gradient(90deg, #86efac, #22c55e)" />
           </div>
         </div>
 
@@ -520,27 +547,38 @@ export default function StudentDashboard() {
         <div className={styles.rightColumn}>
           {/* LEADERBOARD WIDGET */}
           <div className={`${styles.widgetCard} tour-step-leaderboard`}>
-            <div className={styles.widgetHeader}>
-              <Crown size={24} weight="duotone" color="#eab308" />
-              <h3>Bảng xếp hạng XP</h3>
+            <div className={styles.widgetHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Crown size={24} weight="duotone" color="#eab308" />
+                <h3>Bảng xếp hạng XP</h3>
+              </div>
+              {classes.length > 0 && (
+                <select 
+                  className="text-xs p-1 rounded border border-slate-200 max-w-[120px] truncate bg-transparent focus:outline-none" 
+                  value={selectedClassId} 
+                  onChange={(e) => setSelectedClassId(e.target.value)}
+                >
+                  {classes.map(c => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
             </div>
             <div className={styles.leaderboardList}>
-              {[
-                { name: "Nguyễn Văn A", xp: 1250 },
-                { name: username, xp: gamification.xp || stats.totalXP || 1100 },
-                { name: "Trần Thị C", xp: 950 },
-              ].map((student, idx) => (
-                <div key={idx} className={`${styles.leaderboardItem} ${idx === 1 ? styles.currentUser : ''}`}>
+              {leaderboard.length > 0 ? leaderboard.map((student, idx) => (
+                <div key={student.id} className={`${styles.leaderboardItem} ${student.name === username ? styles.currentUser : ''}`}>
                   <div className={styles.rankBadge}>{idx + 1}</div>
-                  <div className={styles.avatarPlaceholder}>
-                     {student.name.charAt(0)}
+                  <div className={styles.avatarPlaceholder} style={{ overflow: 'hidden' }}>
+                     {student.avatar && student.avatar.length > 2 ? <img src={student.avatar} alt={student.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : student.name.charAt(0)}
                   </div>
                   <div className={styles.studentInfo}>
                     <span className={styles.name}>{student.name}</span>
                     <span className={styles.xp}>{student.xp} XP</span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>Chưa có dữ liệu.</div>
+              )}
             </div>
           </div>
 

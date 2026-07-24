@@ -426,37 +426,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
              return res.status(404).json({ message: "Không tìm thấy người dùng" });
         }
 
-        const now = new Date();
-        const lastLogin = user.lastLoginDate;
-        let streak = user.streak || 0;
-        
-        if (lastLogin) {
-            const lastLoginDate = new Date(lastLogin).setHours(0,0,0,0);
-            const todayDate = new Date(now).setHours(0,0,0,0);
-            const diffTime = Math.abs(todayDate - lastLoginDate);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-            
-            if (diffDays === 1) {
-                streak += 1;
-            } else if (diffDays > 1) {
-                streak = 1;
-            }
-        } else {
-            streak = 1;
-        }
 
-        user.lastLoginDate = now;
-        user.streak = streak;
-        // Mock XP addition for daily login
-        user.xp = (user.xp || 0) + 10;
-        user.level = Math.floor(user.xp / 100) + 1;
-        await user.save();
-
-        const gamification = {
-            xp: user.xp || 0,
-            level: user.level || 1,
-            streak: user.streak || 0
-        };
 
         const classes = await ClassModel.find({ students: studentId, status: ClassStatus.ACTIVE }).populate('teacherId', 'name avatar');
         const classIds = classes.map(c => c._id);
@@ -479,12 +449,14 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         const attendances = await AttendanceModel.find({ classId: { $in: classIds } });
         let totalRecords = 0;
         let presentCount = 0;
+        let lateCount = 0;
         attendances.forEach(att => {
             if (att.records) {
                 att.records.forEach(r => {
                     if (r.studentId.toString() === studentId.toString()) {
                         totalRecords++;
                         if (r.status === 'present') presentCount++;
+                        if (r.status === 'late') lateCount++;
                     }
                 });
             }
@@ -536,6 +508,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
                 status: 'upcoming'
             });
         }
+        const now = new Date();
         const last6Months: { year: number; month: number; label: string; desktop: number; mobile: number }[] = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -589,6 +562,44 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             { id: 'g2', title: 'Hoàn thành bài tập', target: 5, current: Math.min(5, submissions.length), unit: 'bài' }
         ];
 
+        let onTimeCount = 0;
+        let streak = 0;
+        const sortedSubmissions = [...submissions].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+
+        submissions.forEach(sub => {
+            const assignment = assignments.find(a => a._id.toString() === sub.assignmentId.toString());
+            const isLate = (assignment && assignment.dueDate) ? new Date(sub.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
+            if (!isLate) {
+                onTimeCount++;
+            }
+        });
+        
+        for (const sub of sortedSubmissions) {
+            const assignment = assignments.find(a => a._id.toString() === sub.assignmentId.toString());
+            const isLate = (assignment && assignment.dueDate) ? new Date(sub.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
+            if (!isLate) {
+                streak++;
+            } else {
+                break;
+            }
+        }
+        
+        const onTimeSubmissionRate = submissions.length === 0 ? 100 : Math.round((onTimeCount / submissions.length) * 100);
+
+        let totalXP = 0;
+        grades.forEach(g => {
+            totalXP += (g.score * 10);
+        });
+        totalXP += (onTimeCount * 50);
+        totalXP += (presentCount * 20);
+        totalXP += (lateCount * 5);
+        
+        const gamification = {
+            xp: totalXP,
+            level: Math.floor(totalXP / 100) + 1,
+            streak: streak
+        };
+
         res.status(200).json({
             message: 'Lấy dữ liệu thống kê học sinh thành công',
             data: {
@@ -597,16 +608,91 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
                     totalClasses: classes.length,
                     attendanceRate,
                     pendingAssignmentsCount,
-                    totalXP: user.xp || 0
+                    totalXP,
+                    onTimeSubmissionRate
                 },
                 todoList,
                 todaySchedule,
                 learningProgress,
                 announcements,
-                weeklyGoals
+                weeklyGoals,
+                classes: classes.map((c: any) => ({ _id: c._id, name: c.name }))
             }
         });
     } catch (error: any) {
+        next(error);
+    }
+};
+
+export const getLeaderboard = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const classIdQuery = req.query.classId;
+        if (!classIdQuery) {
+            return res.status(400).json({ message: "Thiếu classId" });
+        }
+        
+        const classId = classIdQuery as string;
+
+        const classObj = await ClassModel.findById(classId).populate('students', 'name avatar');
+        if (!classObj) {
+            return res.status(404).json({ message: "Không tìm thấy lớp học" });
+        }
+
+        const students = classObj.students as any[];
+
+        const assignments = await ClassActivityModel.find({ classId });
+        const assignmentIds = assignments.map(a => a._id);
+
+        const submissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } });
+        const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
+        const attendances = await AttendanceModel.find({ classId });
+
+        const leaderboardData = students.map(student => {
+            const studentId = student._id.toString();
+            
+            // Grades XP
+            const studentGrades = grades.filter(g => g.studentId.toString() === studentId);
+            const sumGrades = studentGrades.reduce((sum, g) => sum + g.score, 0);
+            
+            // Submissions XP
+            const studentSubmissions = submissions.filter(s => s.studentId.toString() === studentId);
+            const onTimeCount = studentSubmissions.filter(s => {
+                const assignment = assignments.find(a => a._id.toString() === s.assignmentId.toString());
+                const isLate = (assignment && assignment.dueDate) ? new Date(s.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
+                return !isLate;
+            }).length;
+            
+            // Attendance XP
+            let presentCount = 0;
+            let lateCount = 0;
+            attendances.forEach(att => {
+                if (att.records) {
+                    const record = att.records.find(r => r.studentId.toString() === studentId);
+                    if (record) {
+                        if (record.status === 'present') presentCount++;
+                        if (record.status === 'late') lateCount++;
+                    }
+                }
+            });
+
+            const totalXP = (sumGrades * 10) + (onTimeCount * 50) + (presentCount * 20) + (lateCount * 5);
+
+            return {
+                id: studentId,
+                name: student.name,
+                avatar: student.avatar,
+                xp: totalXP
+            };
+        });
+
+        // Sort descending
+        leaderboardData.sort((a, b) => b.xp - a.xp);
+
+        res.status(200).json({
+            message: 'Lấy bảng xếp hạng thành công',
+            data: leaderboardData
+        });
+    } catch (error) {
         next(error);
     }
 };

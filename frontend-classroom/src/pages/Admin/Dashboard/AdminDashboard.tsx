@@ -159,36 +159,36 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
               onMouseLeave={() => setActiveIndex(-1)}
             >
               {isLoading ? undefined : (
-                  <Label
-                    content={({ viewBox }) => {
-                      if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                        return (
-                          <text
+                <Label
+                  content={({ viewBox }) => {
+                    if (viewBox && "cx" in viewBox && "cy" in viewBox) {
+                      return (
+                        <text
+                          x={viewBox.cx}
+                          y={viewBox.cy}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                        >
+                          <tspan
                             x={viewBox.cx}
                             y={viewBox.cy}
-                            textAnchor="middle"
-                            dominantBaseline="middle"
+                            className="fill-foreground text-3xl font-bold"
                           >
-                            <tspan
-                              x={viewBox.cx}
-                              y={viewBox.cy}
-                              className="fill-foreground text-3xl font-bold"
-                            >
-                              {totalStudents.toLocaleString()}
-                            </tspan>
-                            <tspan
-                              x={viewBox.cx}
-                              y={(viewBox.cy || 0) + 24}
-                              className="fill-muted-foreground"
-                            >
-                              Học sinh
-                            </tspan>
-                          </text>
-                        )
-                      }
-                    }}
-                  />
-                )}
+                            {totalStudents.toLocaleString()}
+                          </tspan>
+                          <tspan
+                            x={viewBox.cx}
+                            y={(viewBox.cy || 0) + 24}
+                            className="fill-muted-foreground"
+                          >
+                            Học sinh
+                          </tspan>
+                        </text>
+                      )
+                    }
+                  }}
+                />
+              )}
             </Pie>
           </PieChart>
         </ChartContainer>
@@ -275,12 +275,12 @@ export default function AdminDashboard() {
             <Card x-chunk="dashboard-01-chunk-0" className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Tổng học sinh</CardTitle>
-                <Users className="h-5 w-5 text-blue-500" weight="duotone" />
+                <Users className="h-5 w-5 text-secondary" weight="duotone" />
               </CardHeader>
               <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
                 <div className="text-4xl font-bold tracking-tighter">{stats?.totalStudents?.toLocaleString() || 0}</div>
                 <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                  Tăng trưởng ổn định <ArrowUpRight className="h-4 w-4 text-blue-500" />
+                  Tăng trưởng ổn định <ArrowUpRight className="h-4 w-4 text-secondary" />
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   Số liệu thống kê tháng này
@@ -291,12 +291,12 @@ export default function AdminDashboard() {
             <Card x-chunk="dashboard-01-chunk-1" className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Tổng giáo viên</CardTitle>
-                <ChalkboardTeacher className="h-5 w-5 text-orange-500" weight="duotone" />
+                <ChalkboardTeacher className="h-5 w-5 text-primary" weight="duotone" />
               </CardHeader>
               <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
                 <div className="text-4xl font-bold tracking-tighter">{stats?.totalTeachers?.toLocaleString() || 0}</div>
                 <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                  Tuyển dụng thêm <ArrowUpRight className="h-4 w-4 text-orange-500" />
+                  Tuyển dụng thêm <ArrowUpRight className="h-4 w-4 text-primary" />
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   Giáo viên tham gia hệ thống
@@ -307,12 +307,12 @@ export default function AdminDashboard() {
             <Card x-chunk="dashboard-01-chunk-2" className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Lớp đang hoạt động</CardTitle>
-                <Chalkboard className="h-5 w-5 text-indigo-500" weight="duotone" />
+                <Chalkboard className="h-5 w-5 text-accent" weight="duotone" />
               </CardHeader>
               <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
                 <div className="text-4xl font-bold tracking-tighter">{stats?.activeClasses?.toLocaleString() || 0}</div>
                 <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                  Lớp học mới <ArrowUpRight className="h-4 w-4 text-indigo-500" />
+                  Lớp học mới <ArrowUpRight className="h-4 w-4 text-accent" />
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   Được tạo trong tuần này
@@ -323,12 +323,12 @@ export default function AdminDashboard() {
             <Card x-chunk="dashboard-01-chunk-3" className="flex flex-col">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Tỷ lệ tương tác</CardTitle>
-                <Activity className="h-5 w-5 text-emerald-500" weight="duotone" />
+                <Activity className="h-5 w-5 text-muted" weight="duotone" />
               </CardHeader>
               <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
                 <div className="text-4xl font-bold tracking-tighter">{`${stats?.engagementRate || 0}%`}</div>
                 <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                  Trạng thái online <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                  Trạng thái online <ArrowUpRight className="h-4 w-4 text-muted" />
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   Kể từ hôm qua
@@ -377,18 +377,18 @@ export default function AdminDashboard() {
                   content={isLoading ? undefined : <ChartTooltipContent indicator="dashed" />}
                 />
                 <Legend verticalAlign="top" height={36} />
-                <Bar 
-                  dataKey="assignments" 
-                  name="Số bài tập giao" 
-                  fill={isLoading ? "#e2e8f0" : "var(--color-assignments)"} 
-                  radius={4} 
+                <Bar
+                  dataKey="assignments"
+                  name="Số bài tập giao"
+                  fill={isLoading ? "#e2e8f0" : "var(--color-assignments)"}
+                  radius={4}
                   shape={isLoading ? <SkeletonBar /> : undefined}
                 />
-                <Bar 
-                  dataKey="averageScore" 
-                  name="Điểm trung bình (Hệ 10)" 
-                  fill={isLoading ? "#e2e8f0" : "var(--color-averageScore)"} 
-                  radius={4} 
+                <Bar
+                  dataKey="averageScore"
+                  name="Điểm trung bình (Hệ 10)"
+                  fill={isLoading ? "#e2e8f0" : "var(--color-averageScore)"}
+                  radius={4}
                   shape={isLoading ? <SkeletonBar /> : undefined}
                 />
               </BarChart>

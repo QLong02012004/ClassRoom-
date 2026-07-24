@@ -41,3 +41,32 @@ Vai trò có quyền lực cao nhất, tập trung vào việc quản lý vận 
 - **Quản lý toàn bộ Lớp học (`/admin/classrooms`)**: Tạo lớp học mới, phân công giáo viên vào lớp, giám sát hoạt động.
 - **Cài đặt hệ thống (`/admin/settings`)**: Tùy chỉnh các thông số cấu hình chung của nền tảng ClassRoom.
 - **Quản lý chuyên sâu**: Admin có quyền truy cập vào giao diện Quản lý Lớp giống hệt như Giáo viên để can thiệp (chỉnh sửa bài tập, xem điểm) khi cần thiết.
+
+---
+
+## 5. CƠ CHẾ GAMIFICATION & TÍNH ĐIỂM (XP)
+Nhằm tạo động lực học tập, hệ thống áp dụng cơ chế cộng điểm Kinh nghiệm (XP) cho học sinh dựa trên nỗ lực và kết quả thực tế. (XP sẽ quyết định Cấp độ - Level của học sinh).
+
+### 5.1 Dựa trên Điểm số (Nguồn XP chính)
+- Học sinh nhận được XP tương ứng với điểm số đạt được trong các bài kiểm tra/bài tập.
+- **Công thức**: `XP = Điểm số × 10`
+- *(Ví dụ: Đạt 10 điểm -> Nhận 100 XP, 8.5 điểm -> Nhận 85 XP).*
+
+### 5.2 Dựa trên Thái độ nộp bài
+- **Nộp bài đúng hạn**: Thưởng thêm **+50 XP** cho mỗi bài.
+- **Nộp bài trễ hạn**: Nhận **0 XP** thưởng (vẫn nhận XP từ điểm số nếu được chấm).
+
+### 5.3 Dựa trên Chuyên cần (Điểm danh)
+- **Có mặt (Present)**: **+20 XP**
+- **Đi muộn (Late)**: **+5 XP**
+- **Vắng mặt (Absent)**: **0 XP** (Trong tương lai có thể áp dụng trừ XP).
+
+### 5.4 Chuỗi học tập (Streak)
+- Streak không tính bằng số ngày đăng nhập, mà tính bằng **chuỗi số bài tập nộp đúng hạn liên tiếp**.
+- Nếu học sinh nộp trễ dù chỉ 1 bài, chuỗi Streak sẽ bị reset về 0.
+- *(Có thể thiết kế hệ thống mốc thưởng: Đạt Streak 5, 10, 20... sẽ được cộng thêm XP đột biến).*
+
+### 5.5 Phạm vi Xếp hạng (Leaderboard)
+- **Công bằng giữa các học viên**: Việc tính tổng XP và xếp hạng sẽ được **tách biệt theo từng Lớp học**. (Học viên học 3 lớp sẽ có 3 quỹ điểm XP và 3 vị trí xếp hạng khác nhau ở 3 lớp đó).
+- **Trên trang chủ (Dashboard)**: Bảng xếp hạng sẽ có bộ lọc chọn Lớp học (Dropdown), mặc định hiển thị xếp hạng của lớp học có hoạt động gần nhất.
+- **Trên trang Chi tiết lớp học**: Sẽ hiển thị trực tiếp Bảng xếp hạng nội bộ của riêng lớp học đó.

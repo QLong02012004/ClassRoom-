@@ -15,6 +15,7 @@ import StudentGrades from "../pages/Student/Grades/StudentGrades";
 import BankList from "../pages/Teacher/Bank/BankList";
 import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminClassrooms from "../pages/Admin/Classrooms/AdminClassrooms";
+import AdminDashboard from "../pages/Admin/Dashboard/AdminDashboard";
 import MainLayout from "../components/Layout/MainLayout.tsx";
 import ProtectedRoute from "../components/Layout/ProtectedRoute.tsx";
 import Gradebook from "../pages/Gradebook";
@@ -23,8 +24,15 @@ import Schedule from "../pages/Schedule";
 import Practice from "../pages/Student/Practice/Practice";
 import StudentMaterials from "../pages/Student/Materials/StudentMaterials";
 import StudentMaterialDetail from "../pages/Student/Materials/StudentMaterialDetail";
+import AdminMaterials from "../pages/Admin/Materials/AdminMaterials";
 import StudentAssistant from "../pages/Student/Chat/StudentAssistant";
 import { useAuth } from "../context/AuthContext";
+
+function MaterialsRouter() {
+  const { user } = useAuth();
+  if (user?.role === 'admin') return <AdminMaterials />;
+  return <StudentMaterials />;
+}
 
 // Redirect về trang phù hợp theo role
 function RoleRedirect() {
@@ -106,6 +114,10 @@ export const router = createBrowserRouter([
             element: <StudentGrades />,
           },
           {
+            path: "admin/dashboard",
+            element: <AdminDashboard />,
+          },
+          {
             path: "admin/users",
             element: <AdminUsers />,
           },
@@ -135,7 +147,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "materials",
-            element: <StudentMaterials />,
+            element: <MaterialsRouter />,
           },
           {
             path: "materials/:id",

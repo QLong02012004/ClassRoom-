@@ -91,9 +91,6 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
                 Học sinh
               </Table.Column>
-              <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="code">
-                Mã HS
-              </Table.Column>
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="contact">
                 Liên hệ
               </Table.Column>
@@ -109,7 +106,6 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
               {students.length === 0 ? (
                 <Table.Row key="empty" id="empty">
                   {readOnly ? <Table.Cell className="p-0 border-none w-0" /> : <Table.Cell className="pr-0" />}
-                  <Table.Cell />
                   <Table.Cell />
                   <Table.Cell>
                     <div className="py-10 text-slate-500 font-medium">
@@ -152,11 +148,6 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
                             <span className="text-sm font-medium text-slate-500 mt-0.5">{student.email || "Chưa có email"}</span>
                           </div>
                         </div>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Chip size="sm" variant="soft" className="bg-slate-100 text-slate-600 font-semibold border border-slate-200">
-                          {student.studentCode || `HS-${actualIdx + 1}`}
-                        </Chip>
                       </Table.Cell>
                       <Table.Cell>
                         <span className="text-sm text-slate-600">

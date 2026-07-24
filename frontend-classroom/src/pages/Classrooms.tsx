@@ -1,5 +1,6 @@
 import StudentClassrooms from "./Student/Classrooms/StudentClassrooms.tsx";
 import TeacherClassrooms from "./Teacher/Classrooms/TeacherClassrooms.tsx";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.tsx";
 
 export default function Classrooms() {
@@ -8,6 +9,10 @@ export default function Classrooms() {
 
   if (userRole === "STUDENT") {
     return <StudentClassrooms />;
+  }
+
+  if (userRole === "ADMIN") {
+    return <Navigate to="/admin/classrooms" replace />;
   }
 
   return <TeacherClassrooms />;

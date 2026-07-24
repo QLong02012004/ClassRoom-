@@ -75,5 +75,8 @@ export const dashboardService = {
   },
   getStudentDashboardStats: async (): Promise<IBackendRes<any>> => {
     return await api.get('/api/v1/dashboard/student');
+  },
+  getLeaderboard: async (classId: string): Promise<IBackendRes<any>> => {
+    return await api.get(`/api/v1/dashboard/student/leaderboard?classId=${classId}`);
   }
 };

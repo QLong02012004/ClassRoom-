@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FilePdf,
@@ -10,7 +10,8 @@ import {
   Funnel,
   CalendarBlank,
   HardDrives,
-  CaretDown
+  CaretDown,
+  BookOpen
 } from "phosphor-react";
 import {
   DropdownMenu,
@@ -19,105 +20,52 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "../../../components/ui/dropdown-menu";
+import { bankService } from "../../../service/bank.service";
 import styles from "./StudentMaterials.module.scss";
-
-// Mock Data
-export const MOCK_MATERIALS = [
-  {
-    id: "m1",
-    title: "Chuyên đề 1: Vectơ trong không gian",
-    subject: "Toán học",
-    className: "10A1",
-    grade: "Khối 10",
-    description: "Tài liệu lý thuyết và 50 bài tập trắc nghiệm về vectơ trong không gian. Có lời giải chi tiết ở cuối file.",
-    type: "pdf",
-    size: "2.4 MB",
-    uploadedAt: "2023-10-15",
-  },
-  {
-    id: "m2",
-    title: "Video bài giảng: Phương trình đường tròn",
-    subject: "Toán học",
-    className: "10A1",
-    grade: "Khối 10",
-    description: "Record lại buổi học ngày 10/10/2023 về phương pháp lập phương trình đường tròn đi qua 3 điểm.",
-    type: "video",
-    size: "150 MB",
-    uploadedAt: "2023-10-11",
-  },
-  {
-    id: "m3",
-    title: "Tài liệu ôn tập giữa kỳ 1",
-    subject: "Vật Lý",
-    className: "10A2",
-    grade: "Khối 10",
-    description: "Đề cương ôn tập chi tiết các dạng bài tập có khả năng ra thi cao nhất trong kỳ thi giữa kỳ 1 môn Vật Lý.",
-    type: "doc",
-    size: "1.1 MB",
-    uploadedAt: "2023-10-20",
-  },
-  {
-    id: "m4",
-    title: "Danh sách 100 câu trắc nghiệm cực hay",
-    subject: "Hóa học",
-    className: "11B1",
-    grade: "Khối 11",
-    description: "Các câu hỏi phân loại học sinh khá giỏi được tổng hợp từ các đề thi thử của các trường chuyên.",
-    type: "pdf",
-    size: "3.5 MB",
-    uploadedAt: "2023-10-25",
-  },
-  {
-    id: "m5",
-    title: "Website luyện tập vẽ đồ thị hàm số",
-    subject: "Toán học",
-    className: "Chung",
-    grade: "Khối 10",
-    description: "Công cụ trực quan giúp học sinh tự vẽ và kiểm tra đồ thị hàm số bậc 2, bậc 3.",
-    type: "link",
-    size: "Link",
-    uploadedAt: "2023-10-22",
-  },
-];
 
 export default function StudentMaterials() {
   const navigate = useNavigate();
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
   const [filterSubject, setFilterSubject] = useState("all");
   const [filterGrade, setFilterGrade] = useState("all");
 
-  // Format cho tag hiển thị: Môn học - Khối (ẩn tên lớp cụ thể)
-  const formatClassTag = (item: any) => `${item.subject} - ${item.grade}`;
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      try {
+        const res = (await bankService.getMyBankItems()) as any;
+        if (res && res.data) {
+          setMaterials(res.data);
+        }
+      } catch (error) {
+        console.error("Failed to load materials", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMaterials();
+  }, []);
 
-  const uniqueGrades = Array.from(new Set(MOCK_MATERIALS.map(m => m.grade)));
-  const uniqueSubjects = Array.from(new Set(MOCK_MATERIALS.map(m => m.subject)));
+  // Format cho tag hiển thị: Môn học
+  const formatClassTag = (item: any) => `${item.subject || 'Chung'}`;
+
+  const uniqueSubjects = Array.from(new Set(materials.map(m => m.subject).filter(Boolean)));
 
   const getIconAndColors = (type: string) => {
     switch (type) {
-      case "pdf":
+      case "quiz":
         return {
-          icon: <FilePdf size={24} weight="duotone" />,
-          bg: "rgba(244, 124, 32, 0.1)", // Primary (Orange) with opacity
+          icon: <HardDrives size={24} weight="duotone" />,
+          bg: "rgba(244, 124, 32, 0.1)", // Primary (Orange)
           accent: "#f47c20"
         };
-      case "video":
-        return {
-          icon: <VideoCamera size={24} weight="duotone" />,
-          bg: "rgba(47, 143, 163, 0.1)", // Secondary (Blue) with opacity
-          accent: "#2f8fa3"
-        };
-      case "doc":
+      case "document":
         return {
           icon: <FileDoc size={24} weight="duotone" />,
-          bg: "rgba(59, 130, 246, 0.1)", // Info (Blue) with opacity
+          bg: "rgba(59, 130, 246, 0.1)", // Info (Blue)
           accent: "#3B82F6"
-        };
-      case "link":
-        return {
-          icon: <LinkIcon size={24} weight="duotone" />,
-          bg: "rgba(169, 214, 229, 0.2)", // Accent (Light Blue)
-          accent: "#2f8fa3"
         };
       default:
         return {
@@ -128,108 +76,100 @@ export default function StudentMaterials() {
     }
   };
 
-  const filteredMaterials = MOCK_MATERIALS.filter(item => {
+  const filteredMaterials = materials.filter(item => {
     const searchLower = searchTerm.toLowerCase();
     const matchSearch = item.title.toLowerCase().includes(searchLower) ||
-      item.subject.toLowerCase().includes(searchLower) ||
-      item.grade.toLowerCase().includes(searchLower);
+      (item.subject && item.subject.toLowerCase().includes(searchLower));
     const matchType = filterType === "all" || item.type === filterType;
     const matchSubject = filterSubject === "all" || item.subject === filterSubject;
-    const matchGrade = filterGrade === "all" || item.grade === filterGrade;
-    return matchSearch && matchType && matchSubject && matchGrade;
+    return matchSearch && matchType && matchSubject;
   });
 
   return (
     <div className={styles.page}>
-      {/* HEADER */}
-      <div className={styles.pageHeader}>
-        <div>
-          <h2>Tài liệu học tập</h2>
-          <p>Truy cập và tải xuống các tài liệu, bài giảng do giáo viên cung cấp</p>
+      <div className={styles.header}>
+        <div className={styles.titleBox}>
+          <h1>Kho Tài Liệu Chung</h1>
+          <p>Truy cập ngân hàng đề thi và tài liệu được chia sẻ từ nhà trường</p>
         </div>
-      </div>
-
-      {/* TÌM KIẾM & BỘ LỌC */}
-      <div className={`${styles.filtersRow} tour-step-material-filters`}>
         <div className={styles.searchBox}>
-          <MagnifyingGlass size={20} weight="bold" color="#94a3b8" />
+          <MagnifyingGlass size={20} className={styles.searchIcon} />
           <input
             type="text"
-            placeholder="Tìm kiếm tài liệu, lớp học..."
+            placeholder="Tìm kiếm tài liệu, đề thi..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+      </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger className={styles.filterSelect}>
-            {filterType === "all" ? "Tất cả định dạng" :
-              filterType === "pdf" ? "Tài liệu PDF" :
-                filterType === "doc" ? "Văn bản Word" :
-                  filterType === "video" ? "Video bài giảng" : "Đường dẫn / Link"}
-            <CaretDown size={14} weight="bold" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup value={filterType} onValueChange={setFilterType}>
-              <DropdownMenuRadioItem value="all">Tất cả định dạng</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="pdf">Tài liệu PDF</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="doc">Văn bản Word</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="video">Video bài giảng</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="link">Đường dẫn / Link</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      <div className={styles.filterBar}>
+        <div className={styles.filterGroup}>
+          <div className={styles.filterIcon}><Funnel size={18} /> Lọc theo:</div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger className={styles.filterSelect}>
-            {filterSubject === "all" ? "Tất cả môn học" : filterSubject}
-            <CaretDown size={14} weight="bold" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup value={filterSubject} onValueChange={setFilterSubject}>
-              <DropdownMenuRadioItem value="all">Tất cả môn học</DropdownMenuRadioItem>
-              {uniqueSubjects.map(sub => (
-                <DropdownMenuRadioItem key={sub} value={sub}>{sub}</DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={styles.filterBtn}>
+                {filterType === "all" ? "Tất cả định dạng" : filterType === "quiz" ? "Trắc nghiệm" : "Tài liệu"}
+                <CaretDown size={14} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuRadioGroup value={filterType} onValueChange={setFilterType}>
+                <DropdownMenuRadioItem value="all">Tất cả định dạng</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="quiz">Trắc nghiệm</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="document">Tài liệu</DropdownMenuRadioItem>
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger className={styles.filterSelect}>
-            {filterGrade === "all" ? "Tất cả khối lớp" : filterGrade}
-            <CaretDown size={14} weight="bold" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup value={filterGrade} onValueChange={setFilterGrade}>
-              <DropdownMenuRadioItem value="all">Tất cả khối lớp</DropdownMenuRadioItem>
-              {uniqueGrades.map(gr => (
-                <DropdownMenuRadioItem key={gr} value={gr}>{gr}</DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={styles.filterBtn}>
+                {filterSubject === "all" ? "Tất cả môn học" : filterSubject}
+                <CaretDown size={14} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuRadioGroup value={filterSubject} onValueChange={setFilterSubject}>
+                <DropdownMenuRadioItem value="all">Tất cả môn học</DropdownMenuRadioItem>
+                {uniqueSubjects.map((sub: any) => (
+                  <DropdownMenuRadioItem key={sub} value={sub}>{sub}</DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* DANH SÁCH TÀI LIỆU */}
       <div className={styles.materialsGrid}>
-        {filteredMaterials.length > 0 ? (
+        {loading ? (
+          <div className="col-span-full text-center py-10 text-slate-500">Đang tải tài liệu...</div>
+        ) : filteredMaterials.length > 0 ? (
           filteredMaterials.map(item => {
             const { icon, bg, accent } = getIconAndColors(item.type);
 
             return (
               <div
-                key={item.id}
+                key={item._id}
                 className={`${styles.materialCard} tour-step-material-card`}
                 style={{ '--card-bg': bg, '--card-accent': accent } as React.CSSProperties}
-                onClick={() => navigate(`/materials/${item.id}`)}
+                onClick={() => {
+                  if (item.type === 'document' && item.fileUrl) {
+                    window.open(item.fileUrl, '_blank');
+                  } else if (item.type === 'quiz') {
+                    // Navigate to a practice route or just show a message since we don't have a direct bank practice route yet
+                    console.log("Tính năng luyện tập ngân hàng đề đang được phát triển!");
+                  }
+                }}
               >
                 <div className={styles.cardTop}>
                   <div className={styles.iconBox}>
                     {icon}
                   </div>
                   <div className={styles.titleBox}>
-                    <h3>{item.title}</h3>
+                    <h3 className="line-clamp-2">{item.title}</h3>
                     <span className={styles.subjectTag}>{formatClassTag(item)}</span>
                   </div>
                 </div>
@@ -240,15 +180,15 @@ export default function StudentMaterials() {
                   <div className={styles.metaInfo}>
                     <span>
                       <CalendarBlank size={14} weight="bold" />
-                      {item.uploadedAt}
+                      {new Date(item.createdAt).toLocaleDateString("vi-VN")}
                     </span>
                     <span>
                       <HardDrives size={14} weight="bold" />
-                      {item.size}
+                      {item.type === 'quiz' ? `${item.maxScore} điểm` : "Tài liệu"}
                     </span>
                   </div>
-                  <button className={styles.btnDownload} title={item.type === 'link' ? "Truy cập" : "Tải xuống"}>
-                    {item.type === 'link' ? <LinkIcon size={18} weight="bold" /> : <DownloadSimple size={18} weight="bold" />}
+                  <button className={styles.btnDownload} title={item.type === 'document' ? "Tải xuống" : "Luyện tập"}>
+                    {item.type === 'document' ? <DownloadSimple size={18} weight="bold" /> : <BookOpen size={18} weight="bold" />}
                   </button>
                 </div>
               </div>

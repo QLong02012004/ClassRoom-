@@ -18,7 +18,10 @@ import {
   Notebook,
   ChartBar,
   Books,
-  Sparkle
+  Sparkle,
+  ChartLineUp,
+  Users,
+  Gear
 } from "phosphor-react";
 import styles from "./Sidebar.module.scss";
 
@@ -52,9 +55,10 @@ const Sidebar: React.FC = () => {
       ];
     } else if (role === "admin") {
       return [
-        ...baseLinks,
-        { name: "Người dùng", path: "/admin/users", icon: BookOpen },
-        { name: "Quản lý Lớp", path: "/admin/classrooms", icon: GraduationCap },
+        { name: "Tổng quan", path: "/admin/dashboard", icon: ChartLineUp },
+        { name: "Quản lý Người dùng", path: "/admin/users", icon: Users },
+        { name: "Quản lý Lớp học", path: "/admin/classrooms", icon: Notebook },
+        { name: "Ngân hàng Đề & Bài tập", path: "/bank", icon: BookOpen },
       ];
     }
     return baseLinks;
