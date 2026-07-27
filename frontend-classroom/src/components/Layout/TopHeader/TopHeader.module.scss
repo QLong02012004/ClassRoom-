@@ -35,7 +35,7 @@
 .rightSection {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
 }
 
 .streakBadge {
@@ -62,8 +62,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   transition: background-color 0.2s;
 
@@ -73,10 +73,10 @@
 
   .notifDot {
     position: absolute;
-    top: 6px;
-    right: 8px;
-    width: 8px;
-    height: 8px;
+    top: 5px;
+    right: 6px;
+    width: 7px;
+    height: 7px;
     background-color: #ef4444;
     border-radius: 50%;
     border: 2px solid #ffffff;
@@ -86,12 +86,12 @@
 .languageSelect {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   color: #475569;
   font-weight: 500;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
-  padding: 6px 8px;
+  padding: 4px 6px;
   border-radius: 8px;
   transition: background-color 0.2s;
 
@@ -107,12 +107,12 @@
 .profileBtn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   background-color: #f8fafc; // Light gray as requested
   border: 1px solid #e2e8f0; // Border as requested
   color: #475569;
-  padding: 6px 12px;
-  border-radius: 24px; // Fully rounded edges
+  padding: 4px 8px;
+  border-radius: 20px; // Fully rounded edges
   cursor: pointer;
   transition: all 0.2s ease;
 

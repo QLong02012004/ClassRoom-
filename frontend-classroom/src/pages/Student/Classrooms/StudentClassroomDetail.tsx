@@ -31,18 +31,28 @@ export default function StudentClassroomDetail() {
   const { id: classId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const activeTab = (searchParams.get("tab") || "feed") as "feed" | "assignments" | "members" | "quizzes";
+  const activeTab = (searchParams.get("tab") || "feed") as "feed" | "assignments" | "members" | "quizzes" | "activities";
   const toast = useToast();
   const { user } = useAuth();
 
   const [classroom, setClassroom] = useState<any | null>(null);
   const [announcements, setAnnouncements] = useState<IAnnouncement[]>([]);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [quizzes, setQuizzes] = useState<any[]>([]);
+  const [allActivities, setAllActivities] = useState<any[]>([]);
+  const [activityTypeFilter, setActivityTypeFilter] = useState<"all" | "quiz" | "document">("all");
+  const [activityCategoryFilter, setActivityCategoryFilter] = useState<"all" | "homework" | "periodic">("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3;
-  const totalPages = Math.ceil(quizzes.length / itemsPerPage);
-  const currentQuizzes = quizzes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const filteredActivities = allActivities.filter((item: any) => {
+    if (activityTypeFilter === "quiz" && item.type !== "quiz") return false;
+    if (activityTypeFilter === "document" && item.type === "quiz") return false;
+    if (activityCategoryFilter === "homework" && item.category !== "homework" && item.category) return false;
+    if (activityCategoryFilter === "periodic" && item.category !== "periodic" && item.category !== "mock_exam") return false;
+    return true;
+  });
+
+  const itemsPerPage = 4;
+  const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
+  const currentActivities = filteredActivities.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const [filterType, setFilterType] = useState<"all" | "announcement" | "reminder" | "material">("all");
 
   // Bình luận
@@ -76,17 +86,20 @@ export default function StudentClassroomDetail() {
       toast.error(err.message || "Không thể tải bảng tin!");
     }
 
-    // Tải bài tập
+    // Tải danh sách hoạt động (bài tập & bài thi)
     try {
       const assignRes = await gradebookService.getAssignments(classId);
-      if (assignRes && assignRes.data) setAssignments(assignRes.data);
-    } catch (_) {}
-
-    try {
       const quizRes: any = await activityService.getClassActivities(classId);
       const activities = Array.isArray(quizRes) ? quizRes : (quizRes?.data || []);
-      const quizActivities = activities.filter((a: any) => a.type === 'quiz');
-      setQuizzes(quizActivities);
+      const assignList = assignRes && assignRes.data ? assignRes.data : [];
+      const existIds = new Set(activities.map((a: any) => a._id));
+      const merged = [...activities];
+      assignList.forEach((a: any) => {
+        if (!existIds.has(a._id)) {
+          merged.push({ ...a, type: 'document' });
+        }
+      });
+      setAllActivities(merged);
     } catch (_) {}
   };
 
@@ -209,16 +222,10 @@ export default function StudentClassroomDetail() {
           <Megaphone size={16} weight="duotone" /> Bảng tin
         </button>
         <button
-          className={`${styles.tab} ${activeTab === "assignments" ? styles.tabActive : ""}`}
-          onClick={() => navigate(`/classrooms/${classId}?tab=assignments`)}
+          className={`${styles.tab} ${activeTab === "activities" || activeTab === "assignments" || activeTab === "quizzes" ? styles.tabActive : ""}`}
+          onClick={() => navigate(`/classrooms/${classId}?tab=activities`)}
         >
-          <ClipboardText size={16} weight="duotone" /> Bài tập ({assignments.length})
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === "quizzes" ? styles.tabActive : ""}`}
-          onClick={() => navigate(`/classrooms/${classId}?tab=quizzes`)}
-        >
-          <GridFour size={16} weight="duotone" /> Trắc nghiệm ({quizzes.length})
+          <ClipboardText size={16} weight="duotone" /> Bài tập & Bài thi ({allActivities.length})
         </button>
         <button
           className={`${styles.tab} ${activeTab === "members" ? styles.tabActive : ""}`}
@@ -255,10 +262,10 @@ export default function StudentClassroomDetail() {
               </div>
 
               {/* Bài tập sắp hết hạn */}
-              {assignments.length > 0 && (
+              {allActivities.filter((a: any) => a.type !== "quiz").length > 0 && (
                 <div className={styles.sideCard}>
                   <h4>Bài tập sắp tới</h4>
-                  {assignments.slice(0, 3).map((a: any) => {
+                  {allActivities.filter((a: any) => a.type !== "quiz").slice(0, 3).map((a: any) => {
                     const urg = deadlineUrgency(a.dueDate || a.deadline);
                     return (
                       <div key={a._id} className={styles.miniAssign}>
@@ -491,40 +498,169 @@ export default function StudentClassroomDetail() {
           </div>
         )}
 
-        {/* ===== TAB: BÀI TẬP ===== */}
-        {activeTab === "assignments" && (
+        {/* ===== TAB: BÀI TẬP & BÀI THI ===== */}
+        {(activeTab === "activities" || activeTab === "assignments" || activeTab === "quizzes") && (
           <div className={styles.assignmentsTab}>
-            {assignments.length > 0 ? assignments.map((a: any) => {
-              const urg = deadlineUrgency(a.dueDate || a.deadline);
-              return (
-                <div key={a._id} className={styles.assignCard}>
-                  <div className={styles.assignLeft}>
-                    <div className={styles.assignIcon}>
-                      <ClipboardText size={22} weight="duotone" />
+            {/* FILTER BAR FOR STUDENT */}
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Hoạt động học tập</h3>
+                <p className="text-xs text-slate-500">Danh sách bài tập và đề thi được giao trong lớp</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Type Filter */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setActivityTypeFilter("all")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${activityTypeFilter === "all" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivityTypeFilter("quiz")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${activityTypeFilter === "quiz" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    Trắc nghiệm
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivityTypeFilter("document")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${activityTypeFilter === "document" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    Tự luận / File
+                  </button>
+                </div>
+
+                {/* Category Filter */}
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setActivityCategoryFilter("all")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${activityCategoryFilter === "all" ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    Tất cả mục đích
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivityCategoryFilter("homework")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${activityCategoryFilter === "homework" ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    Bài tập về nhà
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivityCategoryFilter("periodic")}
+                    className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all ${activityCategoryFilter === "periodic" ? "bg-white text-blue-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  >
+                    Kiểm tra / Thi thử
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {currentActivities.length > 0 ? (
+              <>
+                {currentActivities.map((act: any) => {
+                  const isQuiz = act.type === "quiz";
+                  const hasResult = act.result !== null && act.result !== undefined;
+                  const urg = deadlineUrgency(act.dueDate || act.deadline);
+                  const qCount = isQuiz ? (act.questions?.length || act.bankItemId?.quizQuestions?.length || 0) : 0;
+
+                  return (
+                    <div key={act._id} className={styles.assignCard}>
+                      <div className={styles.assignLeft}>
+                        <div className={styles.assignIcon} style={{ backgroundColor: isQuiz ? '#e0f2fe' : '#fff7ed', color: isQuiz ? '#0284c7' : '#f97316' }}>
+                          {isQuiz ? <Clock size={22} weight="duotone" /> : <ClipboardText size={22} weight="duotone" />}
+                        </div>
+                        <div className={styles.assignInfo}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${isQuiz ? "bg-sky-100 text-sky-700" : "bg-orange-100 text-orange-700"}`}>
+                              {isQuiz ? "Trắc nghiệm" : "Tự luận / File"}
+                            </span>
+                            {act.category && (
+                              <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-600">
+                                {act.category === "homework" ? "Bài tập về nhà" : "Kiểm tra / Thi thử"}
+                              </span>
+                            )}
+                          </div>
+                          <h4 className="text-base font-bold text-slate-800">{act.title}</h4>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {isQuiz
+                              ? `Thời gian: ${act.durationMinutes || 0} phút • Số câu hỏi: ${qCount} câu`
+                              : (act.description || "Bài tập nộp file / viết tự luận")}
+                          </p>
+                          {isQuiz && hasResult ? (
+                            <span className={styles.assignDeadline} style={{ color: '#10b981', fontWeight: 600 }}>
+                              Điểm thi: {act.result.score}/10 (Nộp lúc {new Date(act.result.submittedAt).toLocaleDateString('vi-VN')})
+                            </span>
+                          ) : (!isQuiz && (act.dueDate || act.deadline)) ? (
+                            <span className={styles.assignDeadline}>
+                              <CalendarBlank size={13} /> Hạn nộp: {formatDate(act.dueDate || act.deadline)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className={styles.assignRight}>
+                        {!isQuiz && <span className={`${styles.urgencyBadge} ${urg.cls}`}>{urg.text}</span>}
+                        {isQuiz ? (
+                          hasResult ? (
+                            <button
+                              className={styles.submitBtn}
+                              style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1.5px solid #e2e8f0' }}
+                              onClick={() => navigate(`/exams/${act._id}`)}
+                            >
+                              Xem kết quả
+                            </button>
+                          ) : (
+                            <button
+                              className={styles.submitBtn}
+                              onClick={() => navigate(`/exams/${act._id}`)}
+                            >
+                              Làm bài thi
+                            </button>
+                          )
+                        ) : (
+                          <button
+                            className={styles.submitBtn}
+                            onClick={() => navigate(`/assignments/${act._id}`)}
+                          >
+                            Làm bài
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <div className={styles.assignInfo}>
-                      <h4>{a.title}</h4>
-                      <p>{a.description || "Không có mô tả"}</p>
-                      <span className={styles.assignDeadline}>
-                        <CalendarBlank size={13} /> Hạn nộp: {formatDate(a.dueDate || a.deadline)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={styles.assignRight}>
-                    <span className={`${styles.urgencyBadge} ${urg.cls}`}>{urg.text}</span>
-                    <button
-                      className={styles.submitBtn}
-                      onClick={() => navigate(`/assignments/${a._id}`)}
+                  );
+                })}
+
+                {/* PAGINATION CONTROLS */}
+                {totalPages > 1 && (
+                  <div className={styles.paginationControls}>
+                    <button 
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                      disabled={currentPage === 1}
+                      className={styles.pageBtn}
                     >
-                      Làm bài
+                      Trước
+                    </button>
+                    <span className={styles.pageInfo}>
+                      Trang {currentPage} / {totalPages}
+                    </span>
+                    <button 
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                      disabled={currentPage === totalPages}
+                      className={styles.pageBtn}
+                    >
+                      Sau
                     </button>
                   </div>
-                </div>
-              );
-            }) : (
+                )}
+              </>
+            ) : (
               <div className={styles.emptyFeed}>
                 <ClipboardText size={36} weight="light" />
-                <p>Chưa có bài tập nào được giao.</p>
+                <p>Chưa có bài tập hoặc đề thi nào được giao.</p>
               </div>
             )}
           </div>
@@ -573,82 +709,6 @@ export default function StudentClassroomDetail() {
                 })}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ===== TAB: TRẮC NGHIỆM ===== */}
-        {activeTab === "quizzes" && (
-          <div className={styles.assignmentsTab}>
-            {quizzes.length > 0 ? (
-              <>
-                {currentQuizzes.map((q: any) => {
-              const hasResult = q.result !== null && q.result !== undefined;
-              return (
-                <div key={q._id} className={styles.assignCard}>
-                  <div className={styles.assignLeft}>
-                    <div className={styles.assignIcon} style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
-                      <Clock size={22} weight="duotone" />
-                    </div>
-                    <div className={styles.assignInfo}>
-                      <h4>{q.title}</h4>
-                      <p>Thời gian: {q.durationMinutes} phút • Số câu hỏi: {q.bankItemId?.quizQuestions?.length || 0} câu</p>
-                      {hasResult && (
-                        <span className={styles.assignDeadline} style={{ color: '#10b981', fontWeight: 600 }}>
-                          Điểm thi: {q.result.score}/10 (Nộp lúc {new Date(q.result.submittedAt).toLocaleDateString('vi-VN')})
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div className={styles.assignRight}>
-                    {hasResult ? (
-                      <button
-                        className={styles.submitBtn}
-                        style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1.5px solid #e2e8f0' }}
-                        onClick={() => navigate(`/exams/${q._id}`)}
-                      >
-                        Xem kết quả
-                      </button>
-                    ) : (
-                      <button
-                        className={styles.submitBtn}
-                        onClick={() => navigate(`/exams/${q._id}`)}
-                      >
-                        Làm bài thi
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-                {/* PAGINATION CONTROLS */}
-                {totalPages > 1 && (
-                  <div className={styles.paginationControls}>
-                    <button 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
-                      disabled={currentPage === 1}
-                      className={styles.pageBtn}
-                    >
-                      Trước
-                    </button>
-                    <span className={styles.pageInfo}>
-                      Trang {currentPage} / {totalPages}
-                    </span>
-                    <button 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
-                      disabled={currentPage === totalPages}
-                      className={styles.pageBtn}
-                    >
-                      Sau
-                    </button>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className={styles.emptyFeed}>
-                <Clock size={36} weight="light" />
-                <p>Chưa có đề thi trắc nghiệm nào được giao.</p>
-              </div>
-            )}
           </div>
         )}
       </div>

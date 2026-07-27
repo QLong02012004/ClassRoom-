@@ -1,6 +1,47 @@
 import { Request, Response } from 'express';
 import mammoth from 'mammoth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { supabase } from '../config/supabase';
+
+export const uploadFile = async (req: Request, res: Response): Promise<void> => {
+  try {
+    if (!req.file) {
+      res.status(400).json({ success: false, message: 'Vui lòng cung cấp file' });
+      return;
+    }
+
+    const file = req.file;
+    const fileName = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+
+    const { data, error } = await supabase.storage
+      .from('classroom-files')
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Lỗi khi upload lên Supabase:', error);
+      res.status(500).json({ success: false, message: 'Lỗi khi upload file', error: error.message });
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('classroom-files')
+      .getPublicUrl(fileName);
+
+    res.status(200).json({
+      success: true,
+      message: 'Upload file thành công',
+      data: {
+        url: publicUrlData.publicUrl
+      }
+    });
+  } catch (error: any) {
+    console.error('Error uploading file:', error);
+    res.status(500).json({ success: false, message: 'Lỗi hệ thống khi upload file', error: error.message });
+  }
+};
 
 export const uploadDocx = async (req: Request, res: Response): Promise<void> => {
   try {

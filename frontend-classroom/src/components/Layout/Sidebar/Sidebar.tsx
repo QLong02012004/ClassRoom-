@@ -5,23 +5,13 @@ import {
   House,
   GraduationCap,
   BookOpen,
-  Headphones,
-  Trophy,
-  Microphone,
-  Pencil,
   Bookmark,
-  ChatCircle,
-  Lightning,
-  Newspaper,
-  Medal,
-  Lightbulb,
   Notebook,
   ChartBar,
   Books,
   Sparkle,
   ChartLineUp,
   Users,
-  Gear
 } from "phosphor-react";
 import styles from "./Sidebar.module.scss";
 
@@ -31,7 +21,7 @@ const Sidebar: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const userRole = user?.role || "student";
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => location.pathname === path || (path === "/classrooms" && location.pathname.startsWith("/classrooms"));
 
   const getNavLinks = (role: string) => {
     const baseLinks = [
@@ -74,7 +64,6 @@ const Sidebar: React.FC = () => {
     >
       <div className={styles.logoContainer}>
         <div className={styles.logoIcon}>
-          {/* Thay thế bằng Logo SVG/Image thật nếu có */}
           <span className="text-2xl">🐧</span>
         </div>
         <span className={styles.logoText}>ClassRoom</span>

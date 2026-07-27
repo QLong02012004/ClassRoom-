@@ -3,7 +3,7 @@ import styles from "./AssignmentBuilder.module.scss";
 import NumberStepper from "../../FormControls/NumberStepper";
 import { SecondaryButton } from "../../Buttons/SecondaryButton";
 import { Plus, X, Upload } from 'phosphor-react';
-
+import { uploadService } from "../../../../service/upload.service";
 export interface AssignmentBuilderProps {
   initialData?: any;
   onSubmit: (assignmentData: {
@@ -26,6 +26,28 @@ export default function AssignmentBuilder({
   const [description, setDescription] = useState(initialData?.description || "");
   const [fileUrl, setFileUrl] = useState(initialData?.fileUrl || "");
   const [maxScore, setMaxScore] = useState(initialData?.maxScore || 10);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const res = await uploadService.uploadFile(file);
+      if (res && res.data && res.data.url) {
+        setFileUrl(res.data.url);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tải file lên:', error);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,7 +64,7 @@ export default function AssignmentBuilder({
       <div className={styles.formHeader}>
         <h3>Tạo file bài tập / tài liệu mới</h3>
       </div>
-      
+
       <form onSubmit={handleSubmit}>
         <div className={styles.formGroup}>
           <label htmlFor="assignment-title">Tiêu đề bài tập</label>
@@ -70,15 +92,33 @@ export default function AssignmentBuilder({
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
             <label htmlFor="assignment-file">Đường dẫn tài liệu (URL)</label>
-            <input
-              id="assignment-file"
-              type="url"
-              placeholder="Ví dụ: Link Google Drive, Link PDF..."
-              value={fileUrl}
-              onChange={(e) => setFileUrl(e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                id="assignment-file"
+                type="url"
+                placeholder="Ví dụ: Link Google Drive, Link PDF..."
+                value={fileUrl}
+                onChange={(e) => setFileUrl(e.target.value)}
+                style={{ flex: 1 }}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                <Upload size={18} />
+                {isUploading ? "Đang tải..." : "Tải file"}
+              </button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                style={{ display: 'none' }}
+              />
+            </div>
             <span style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-              Hãy dán link dẫn tới file tài liệu (nếu có).
+              Hãy dán link dẫn tới file tài liệu hoặc tải trực tiếp file lên.
             </span>
           </div>
 
@@ -101,7 +141,7 @@ export default function AssignmentBuilder({
           <button type="button" className={styles.btnCancel} onClick={onCancel} disabled={isSaving}>
             Hủy bỏ
           </button>
-          <SecondaryButton type="submit" className={styles.btnSave} disabled={isSaving || !title.trim()}>
+          <SecondaryButton type="submit" className={styles.btnSave} disabled={isSaving || !title.trim() || isUploading}>
             {isSaving ? "Đang lưu..." : "Lưu bài tập"}
           </SecondaryButton>
         </div>

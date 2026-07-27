@@ -11,7 +11,7 @@ import {
   Checkbox,
   Chip
 } from "@heroui/react";
-import type { Selection } from "@heroui/react";
+import type { Selection, SortDescriptor } from "@heroui/react";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
@@ -73,7 +73,6 @@ export default function AdminClassrooms() {
   const toast = useToast();
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
   const [page, setPage] = useState(1);
-  const ROWS_PER_PAGE = 10;
 
   const [classes, setClasses] = useState<IClassroomItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -177,11 +176,16 @@ export default function AdminClassrooms() {
     }
   };
 
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
+    column: "name",
+    direction: "ascending",
+  });
+
   useEffect(() => {
     fetchClasses();
   }, []);
 
-  const filteredClasses = React.useMemo(() => {
+  const filteredAndSortedClasses = React.useMemo(() => {
     let result = classes;
     if (globalFilter) {
       const lowerFilter = globalFilter.toLowerCase();
@@ -193,21 +197,47 @@ export default function AdminClassrooms() {
     if (subjectFilter && subjectFilter !== 'all') {
       result = result.filter(c => c.subject === subjectFilter);
     }
-    return result;
-  }, [classes, globalFilter, statusFilter, subjectFilter]);
 
-  const totalPages = Math.ceil(filteredClasses.length / ROWS_PER_PAGE);
+    return result.sort((a, b) => {
+      let first: any;
+      let second: any;
+      if (sortDescriptor.column === "teacher") {
+        first = a.teacher?.name || "";
+        second = b.teacher?.name || "";
+      } else {
+        first = (a as any)[sortDescriptor.column] || "";
+        second = (b as any)[sortDescriptor.column] || "";
+      }
+      let cmp = String(first).localeCompare(String(second), "vi", { numeric: true });
+      if (sortDescriptor.direction === "descending") {
+        cmp *= -1;
+      }
+      return cmp;
+    });
+  }, [classes, globalFilter, statusFilter, subjectFilter, sortDescriptor]);
+
+  const ROWS_PER_PAGE = 8;
+  const totalPages = Math.ceil(filteredAndSortedClasses.length / ROWS_PER_PAGE);
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const startIdx = (page - 1) * ROWS_PER_PAGE + 1;
+  const endIdx = Math.min(page * ROWS_PER_PAGE, filteredAndSortedClasses.length);
+
+  useEffect(() => {
+    setPage(1);
+  }, [globalFilter, statusFilter, subjectFilter]);
+
   const paginatedClasses = React.useMemo(() => {
-    const startIdx = (page - 1) * ROWS_PER_PAGE;
-    return filteredClasses.slice(startIdx, startIdx + ROWS_PER_PAGE);
-  }, [page, filteredClasses]);
+    const start = (page - 1) * ROWS_PER_PAGE;
+    return filteredAndSortedClasses.slice(start, start + ROWS_PER_PAGE);
+  }, [page, filteredAndSortedClasses]);
 
   const selectedIds = React.useMemo(() => {
     if (selectedKeys === "all") {
-      return filteredClasses.map(c => c._id);
+      return filteredAndSortedClasses.map(c => c._id);
     }
     return Array.from(selectedKeys) as string[];
-  }, [selectedKeys, filteredClasses]);
+  }, [selectedKeys, filteredAndSortedClasses]);
 
   const handleDeleteClass = (id: string, name: string) => {
     setConfirmDialog({
@@ -251,7 +281,7 @@ export default function AdminClassrooms() {
 
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) return;
-    
+
     setConfirmDialog({
       isOpen: true,
       title: "Cảnh báo xóa nhiều lớp",
@@ -273,7 +303,7 @@ export default function AdminClassrooms() {
 
   const handleBulkLock = () => {
     if (selectedIds.length === 0) return;
-    
+
     setConfirmDialog({
       isOpen: true,
       title: "Khóa nhiều lớp học?",
@@ -296,9 +326,9 @@ export default function AdminClassrooms() {
 
 
   return (
-    <div className="flex h-full min-h-screen bg-[#fafafa]">
+    <div className="flex w-full bg-[#F8FAFC]">
       {/* MAIN CONTENT */}
-      <div className={`flex-1 flex flex-col gap-6 p-4 md:p-6 transition-all duration-300 ${selectedClass ? 'md:pr-[380px]' : ''}`}>
+      <div className={`flex-1 flex flex-col gap-6 transition-all duration-300 ${selectedClass ? 'md:pr-[380px]' : ''}`}>
 
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -427,15 +457,15 @@ export default function AdminClassrooms() {
               Đã chọn <strong className="text-blue-900 text-base mx-1">{selectedIds.length}</strong> lớp học
             </span>
             <div className="flex items-center gap-3">
-              <PrimaryButton 
+              <PrimaryButton
                 className="bg-orange-100 text-orange-600 hover:bg-orange-200 font-medium flex items-center gap-2 h-9 border-none shadow-none"
                 onClick={handleBulkLock}
               >
                 <LockKey weight="bold" size={16} />
                 Khóa các lớp đã chọn
               </PrimaryButton>
-              <PrimaryButton 
-                className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-medium flex items-center gap-2 h-9 border-none shadow-none" 
+              <PrimaryButton
+                className="bg-rose-100 text-rose-600 hover:bg-rose-200 font-medium flex items-center gap-2 h-9 border-none shadow-none"
                 onClick={handleBulkDelete}
               >
                 <Trash weight="bold" size={16} />
@@ -476,7 +506,7 @@ export default function AdminClassrooms() {
         </div>
 
         {/* DATA TABLE */}
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col flex-1 overflow-hidden">
+        <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <Tabs value={subjectFilter} className="w-full pt-2" onValueChange={setSubjectFilter}>
             <div className="px-4 border-b border-slate-100 flex justify-between items-center bg-white h-12 overflow-x-auto">
               <TabsList className="bg-transparent border-b border-transparent h-auto p-0 flex justify-start gap-6">
@@ -490,64 +520,116 @@ export default function AdminClassrooms() {
             </div>
           </Tabs>
 
-          <div className="overflow-x-auto flex-1 h-full flex flex-col">
-            <Table>
-              <Table.ScrollContainer className="max-h-[calc(100vh-320px)] overflow-scroll flex-1 min-h-[400px]">
-                <Table.Content
-                  selectedKeys={selectedKeys}
-                  selectionMode="multiple"
-                  onSelectionChange={setSelectedKeys}
-                >
-                  <Table.Header>
-                    <Table.Column className="after:hidden" id="selection">
-                      <Checkbox aria-label="Select all" slot="selection">
-                        <Checkbox.Content>
-                          <Checkbox.Control>
-                            <Checkbox.Indicator />
-                          </Checkbox.Control>
-                        </Checkbox.Content>
-                      </Checkbox>
-                    </Table.Column>
-                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="name">Tên lớp học & Mã lớp</Table.Column>
-                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="teacher">Giáo viên phụ trách</Table.Column>
-                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="subject">Bộ môn</Table.Column>
-                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="students">Sĩ số</Table.Column>
-                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="createdAt">Ngày tạo</Table.Column>
-                    <Table.Column className="after:hidden text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="status">Trạng thái</Table.Column>
-                    <Table.Column className="after:hidden text-end text-[11px] font-bold text-slate-500 uppercase tracking-wider py-4 whitespace-nowrap border-b border-slate-200" id="actions">Hành động</Table.Column>
-                  </Table.Header>
-                  <Table.Body>
-                    {isLoading ? (
-                      <Table.Row key="loading" id="loading">
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell>
-                          <div className="py-10 text-slate-500 font-medium">Đang tải dữ liệu...</div>
-                        </Table.Cell>
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                      </Table.Row>
-                    ) : paginatedClasses.length === 0 ? (
-                      <Table.Row key="empty" id="empty">
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell>
-                          <div className="py-10 text-slate-500 font-medium">Không tìm thấy kết quả nào.</div>
-                        </Table.Cell>
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                        <Table.Cell />
-                      </Table.Row>
-                    ) : (
-                      paginatedClasses.map((cls) => (
+          <Table>
+            <Table.ScrollContainer className="min-h-[400px]">
+              <Table.Content
+                aria-label="Danh sách lớp học"
+                className="min-w-[800px]"
+                selectedKeys={selectedKeys}
+                selectionMode="multiple"
+                sortDescriptor={sortDescriptor}
+                onSelectionChange={setSelectedKeys}
+                onSortChange={setSortDescriptor}
+              >
+                <Table.Header>
+                  <Table.Column className="after:hidden" id="selection">
+                    <Checkbox aria-label="Select all" slot="selection">
+                      <Checkbox.Content>
+                        <Checkbox.Control>
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                      </Checkbox.Content>
+                    </Checkbox>
+                  </Table.Column>
+                  <Table.Column allowsSorting isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        STT
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        Tên lớp học & Mã lớp
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="teacher">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        Giáo viên phụ trách
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="subject">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        Bộ môn
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="studentCount">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        Sĩ số
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="createdAt">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        Ngày tạo
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="status">
+                    {({ sortDirection }) => (
+                      <Table.SortableColumnHeader sortDirection={sortDirection}>
+                        Trạng thái
+                      </Table.SortableColumnHeader>
+                    )}
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
+                    Hành động
+                  </Table.Column>
+                </Table.Header>
+                <Table.Body>
+                  {isLoading ? (
+                    <Table.Row key="loading" id="loading">
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell>
+                        <div className="py-10 text-slate-500 font-medium">Đang tải dữ liệu...</div>
+                      </Table.Cell>
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                    </Table.Row>
+                  ) : paginatedClasses.length === 0 ? (
+                    <Table.Row key="empty" id="empty">
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell>
+                        <div className="py-10 text-slate-500 font-medium">Không tìm thấy kết quả nào.</div>
+                      </Table.Cell>
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                    </Table.Row>
+                  ) : (
+                    paginatedClasses.map((cls, idx) => {
+                      const index = (page - 1) * ROWS_PER_PAGE + idx;
+                      return (
                         <Table.Row key={cls._id} id={cls._id}>
-                          <Table.Cell className="py-4 border-b border-slate-100">
-                            <Checkbox aria-label={`Select ${cls.name}`} slot="selection">
+                          <Table.Cell className="py-3">
+                            <Checkbox aria-label={`Select ${cls.name}`} slot="selection" variant="secondary">
                               <Checkbox.Content>
                                 <Checkbox.Control>
                                   <Checkbox.Indicator />
@@ -555,18 +637,21 @@ export default function AdminClassrooms() {
                               </Checkbox.Content>
                             </Checkbox>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="font-medium text-slate-500">
+                            #{index + 1}
+                          </Table.Cell>
+                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
                             <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${cls.status === "Locked" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
-                                <GraduationCap size={20} weight="fill" />
+                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${cls.status === "Locked" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                                <GraduationCap size={18} weight="fill" />
                               </div>
                               <div className="flex flex-col">
-                                <span className="font-bold text-slate-900">{cls.name}</span>
+                                <span className="font-semibold text-slate-900 text-[15px]">{cls.name}</span>
                                 <span className="text-xs text-slate-500 font-medium">{cls.id}</span>
                               </div>
                             </div>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
                             <Link
                               to={`/admin/teachers`}
                               className="flex items-center gap-2 hover:underline text-blue-600 decoration-blue-300 transition-all"
@@ -579,30 +664,22 @@ export default function AdminClassrooms() {
                               <span className="font-semibold text-sm">{cls.teacher.name}</span>
                             </Link>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
                             <span className="font-semibold text-slate-700">{cls.subject}</span>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
                             <span className="font-semibold text-slate-700">{cls.studentCount} HS</span>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
                             <span className="text-slate-600 font-medium text-sm">{new Date(cls.createdAt).toLocaleDateString("vi-VN")}</span>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100 cursor-pointer" onClick={() => setSelectedClass(cls)}>
-                            {cls.status === "Active" ? (
-                              <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-200 gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                Đang hoạt động
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                Đã khóa
-                              </Badge>
-                            )}
+                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                            <Chip color={cls.status === "Active" ? "success" : "danger"} size="sm" variant="soft" className="font-medium">
+                              {cls.status === "Active" ? "Hoạt động" : "Đã khóa"}
+                            </Chip>
                           </Table.Cell>
-                          <Table.Cell className="py-4 border-b border-slate-100">
-                            <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          <Table.Cell className="py-3">
+                            <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                               <PrimaryButton
                                 variant="outline"
                                 size="icon"
@@ -642,53 +719,53 @@ export default function AdminClassrooms() {
                             </div>
                           </Table.Cell>
                         </Table.Row>
-                      ))
-                    )}
-                  </Table.Body>
-                </Table.Content>
-              </Table.ScrollContainer>
-              <Table.Footer>
-                {totalPages > 0 && (
-                  <Pagination size="sm" className="flex items-center justify-between w-full px-4 py-3 border-t border-slate-100 bg-white sticky bottom-0 z-10">
-                    <Pagination.Summary className="text-sm text-slate-500 font-medium">
-                      Hiển thị {paginatedClasses.length} trên tổng {filteredClasses.length} kết quả
-                    </Pagination.Summary>
-                    <Pagination.Content>
-                      <Pagination.Item>
-                        <Pagination.Previous
-                          isDisabled={page === 1}
-                          onPress={() => setPage((p) => Math.max(1, p - 1))}
+                      );
+                    })
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+            <Table.Footer>
+              {totalPages > 0 && (
+                <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
+                  <Pagination.Summary className="text-sm text-slate-500 font-medium">
+                    Hiển thị {startIdx} đến {endIdx} trong số {filteredAndSortedClasses.length} kết quả
+                  </Pagination.Summary>
+                  <Pagination.Content>
+                    <Pagination.Item>
+                      <Pagination.Previous
+                        isDisabled={page === 1}
+                        onPress={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        <Pagination.PreviousIcon />
+                        Trang trước
+                      </Pagination.Previous>
+                    </Pagination.Item>
+                    {pages.map((p) => (
+                      <Pagination.Item key={p}>
+                        <Pagination.Link
+                          isActive={p === page}
+                          onPress={() => setPage(p)}
+                          className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
                         >
-                          <Pagination.PreviousIcon />
-                          Trang trước
-                        </Pagination.Previous>
+                          {p}
+                        </Pagination.Link>
                       </Pagination.Item>
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                        <Pagination.Item key={p}>
-                          <Pagination.Link
-                            isActive={p === page}
-                            onPress={() => setPage(p)}
-                            className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
-                          >
-                            {p}
-                          </Pagination.Link>
-                        </Pagination.Item>
-                      ))}
-                      <Pagination.Item>
-                        <Pagination.Next
-                          isDisabled={page === totalPages}
-                          onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                        >
-                          Trang sau
-                          <Pagination.NextIcon />
-                        </Pagination.Next>
-                      </Pagination.Item>
-                    </Pagination.Content>
-                  </Pagination>
-                )}
-              </Table.Footer>
-            </Table>
-          </div>
+                    ))}
+                    <Pagination.Item>
+                      <Pagination.Next
+                        isDisabled={page === totalPages}
+                        onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      >
+                        Trang sau
+                        <Pagination.NextIcon />
+                      </Pagination.Next>
+                    </Pagination.Item>
+                  </Pagination.Content>
+                </Pagination>
+              )}
+            </Table.Footer>
+          </Table>
         </div>
       </div>
 

@@ -401,14 +401,14 @@ export default function AdminDashboard() {
             <div className="grid gap-2">
               <CardTitle>Hoạt động gần đây</CardTitle>
             </div>
-            <PrimaryButton asChild size="sm" variant="ghost" className="ml-auto gap-1 text-primary hover:text-[#e55c3f] hover:bg-transparent">
+            <PrimaryButton asChild size="sm" variant="ghost" className="ml-auto gap-1 text-primary hover:text-primary/80 hover:bg-transparent">
               <a href="#">
                 Xem tất cả
                 <ArrowUpRight className="h-4 w-4" />
               </a>
             </PrimaryButton>
           </CardHeader>
-          <CardContent className="grid gap-8 max-h-[350px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f] pr-4">
+          <CardContent className="grid gap-8 max-h-[350px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-primary/80 pr-4">
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonAvatar key={`skeleton-avatar-${i}`} />

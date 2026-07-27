@@ -456,7 +456,7 @@ export default function AdminUsers() {
   // Removed @tanstack/react-table setup. Using direct HeroUI table rendering instead.
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-[1400px] mx-auto bg-[#fafafa] min-h-screen">
+    <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-[1400px] mx-auto bg-[#F8FAFC] min-h-screen">
 
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
