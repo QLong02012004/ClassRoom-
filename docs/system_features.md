@@ -45,28 +45,36 @@ Vai trò có quyền lực cao nhất, tập trung vào việc quản lý vận 
 ---
 
 ## 5. CƠ CHẾ GAMIFICATION & TÍNH ĐIỂM (XP)
-Nhằm tạo động lực học tập, hệ thống áp dụng cơ chế cộng điểm Kinh nghiệm (XP) cho học sinh dựa trên nỗ lực và kết quả thực tế. (XP sẽ quyết định Cấp độ - Level của học sinh).
+Nhằm tạo động lực học tập bền vững trong cả năm học và tránh lạm phát điểm số, hệ thống áp dụng cơ chế Gamification cân bằng (Option 3).
 
 ### 5.1 Dựa trên Điểm số (Nguồn XP chính)
 - Học sinh nhận được XP tương ứng với điểm số đạt được trong các bài kiểm tra/bài tập.
-- **Công thức**: `XP = Điểm số × 10`
-- *(Ví dụ: Đạt 10 điểm -> Nhận 100 XP, 8.5 điểm -> Nhận 85 XP).*
+- **Công thức**: `XP = Điểm số × 3`
+- *(Ví dụ: Đạt 10 điểm -> Nhận 30 XP, 8.5 điểm -> Nhận 25.5 XP).*
 
 ### 5.2 Dựa trên Thái độ nộp bài
-- **Nộp bài đúng hạn**: Thưởng thêm **+50 XP** cho mỗi bài.
+- **Nộp bài đúng hạn**: Thưởng thêm **+15 XP** cho mỗi bài.
 - **Nộp bài trễ hạn**: Nhận **0 XP** thưởng (vẫn nhận XP từ điểm số nếu được chấm).
 
 ### 5.3 Dựa trên Chuyên cần (Điểm danh)
-- **Có mặt (Present)**: **+20 XP**
-- **Đi muộn (Late)**: **+5 XP**
-- **Vắng mặt (Absent)**: **0 XP** (Trong tương lai có thể áp dụng trừ XP).
+- **Có mặt (Present / Đi đúng giờ)**: Cộng **+5 XP**
+- **Đi muộn (Late)**: Cộng **+2 XP**
+- **Vắng mặt (Absent)**: Bị trừ **-5 XP**
+- *(Lưu ý: Tổng XP toàn hệ thống luôn được giữ tối thiểu $\ge 0$)*.
 
-### 5.4 Chuỗi học tập (Streak)
+### 5.4 Công thức Cấp độ tăng dần (Exponential Level Scaling)
+Hệ thống cấp độ áp dụng độ khó tăng dần để giữ nguyên độ thử thách và giá trị cho học sinh giỏi trong cả năm học:
+- **Level 1 → Level 2**: Cần **100 XP**
+- **Level 2 → Level 3**: Cần **150 XP** (Tổng lũy kế 250 XP)
+- **Level 3 → Level 4**: Cần **200 XP** (Tổng lũy kế 450 XP)
+- **Công thức lên Level $N \rightarrow N+1$**: Cần $100 + (N - 1) \times 50$ XP.
+
+### 5.5 Chuỗi học tập (Streak)
 - Streak không tính bằng số ngày đăng nhập, mà tính bằng **chuỗi số bài tập nộp đúng hạn liên tiếp**.
 - Nếu học sinh nộp trễ dù chỉ 1 bài, chuỗi Streak sẽ bị reset về 0.
 - *(Có thể thiết kế hệ thống mốc thưởng: Đạt Streak 5, 10, 20... sẽ được cộng thêm XP đột biến).*
 
-### 5.5 Phạm vi Xếp hạng (Leaderboard)
+### 5.6 Phạm vi Xếp hạng (Leaderboard)
 - **Công bằng giữa các học viên**: Việc tính tổng XP và xếp hạng sẽ được **tách biệt theo từng Lớp học**. (Học viên học 3 lớp sẽ có 3 quỹ điểm XP và 3 vị trí xếp hạng khác nhau ở 3 lớp đó).
 - **Trên trang chủ (Dashboard)**: Bảng xếp hạng sẽ có bộ lọc chọn Lớp học (Dropdown), mặc định hiển thị xếp hạng của lớp học có hoạt động gần nhất.
 - **Trên trang Chi tiết lớp học**: Sẽ hiển thị trực tiếp Bảng xếp hạng nội bộ của riêng lớp học đó.

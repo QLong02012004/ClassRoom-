@@ -94,8 +94,45 @@ export const assignActivity = async (req: Request, res: Response) => {
 export const getClassActivities = async (req: Request, res: Response) => {
     try {
         const classId = req.params.classId as string;
-        const activities = await ClassActivityModel.find({ classId }).populate('bankItemId').sort({ createdAt: -1 });
-        res.json(activities);
+        const activities = await ClassActivityModel.find({ classId })
+            .populate('bankItemId')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const enrichedActivities = await Promise.all(
+            activities.map(async (act: any) => {
+                let submissionCount = 0;
+                let gradedCount = 0;
+                let pendingGradeCount = 0;
+
+                if (act.type === 'quiz') {
+                    submissionCount = await QuizResultModel.countDocuments({ quizId: act._id });
+                    gradedCount = submissionCount;
+                    pendingGradeCount = 0;
+                } else {
+                    const submissions = await SubmissionModel.find({
+                        assignmentId: act._id,
+                        status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.LATE, 'submitted', 'late', 'graded'] }
+                    }).select('studentId status').lean();
+
+                    submissionCount = submissions.length;
+
+                    const grades = await GradeModel.find({ assignmentId: act._id }).select('studentId').lean();
+                    gradedCount = grades.length;
+
+                    pendingGradeCount = Math.max(0, submissionCount - gradedCount);
+                }
+
+                return {
+                    ...act,
+                    submissionCount,
+                    gradedCount,
+                    pendingGradeCount
+                };
+            })
+        );
+
+        res.json(enrichedActivities);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi lấy danh sách hoạt động', error });
     }

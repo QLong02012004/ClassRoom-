@@ -414,6 +414,29 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
     }
 };
 
+export const calculateLevelAndProgress = (totalXP: number) => {
+    let level = 1;
+    let currentLevelXP = Math.max(0, Math.round(totalXP));
+    let requiredForCurrentLevel = 100 + (level - 1) * 50;
+
+    while (currentLevelXP >= requiredForCurrentLevel) {
+        currentLevelXP -= requiredForCurrentLevel;
+        level++;
+        requiredForCurrentLevel = 100 + (level - 1) * 50;
+    }
+
+    const xpInLevel = currentLevelXP;
+    const xpRequiredForNext = requiredForCurrentLevel;
+    const progressPercent = Math.min(100, Math.round((xpInLevel / xpRequiredForNext) * 100));
+
+    return {
+        level,
+        xpInLevel,
+        xpRequiredForNext,
+        progressPercent
+    };
+};
+
 export const getStudentDashboardStats = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const studentId = (req as any).user?.id;
@@ -423,7 +446,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
 
         const user = await UserModel.findById(studentId);
         if (!user) {
-             return res.status(404).json({ message: "Không tìm thấy người dùng" });
+            return res.status(404).json({ message: "Không tìm thấy người dùng" });
         }
 
 
@@ -450,6 +473,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         let totalRecords = 0;
         let presentCount = 0;
         let lateCount = 0;
+        let absentCount = 0;
         attendances.forEach(att => {
             if (att.records) {
                 att.records.forEach(r => {
@@ -457,6 +481,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
                         totalRecords++;
                         if (r.status === 'present') presentCount++;
                         if (r.status === 'late') lateCount++;
+                        if (r.status === 'absent') absentCount++;
                     }
                 });
             }
@@ -466,14 +491,14 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         const assignments = await ClassActivityModel.find({ classId: { $in: classIds } });
         const assignmentIds = assignments.map(a => a._id);
         const submissions = await SubmissionModel.find({ studentId, assignmentId: { $in: assignmentIds } });
-        
+
         let pendingAssignmentsCount = 0;
         const todoList: any[] = [];
 
         assignments.forEach(a => {
             const hasSub = submissions.some(s => s.assignmentId.toString() === a._id.toString());
             const cls: any = classes.find((c: any) => c._id.toString() === a.classId.toString());
-            
+
             if (!hasSub && a.dueDate && new Date(a.dueDate) >= new Date()) {
                 pendingAssignmentsCount++;
                 todoList.push({
@@ -573,7 +598,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
                 onTimeCount++;
             }
         });
-        
+
         for (const sub of sortedSubmissions) {
             const assignment = assignments.find(a => a._id.toString() === sub.assignmentId.toString());
             const isLate = (assignment && assignment.dueDate) ? new Date(sub.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
@@ -583,20 +608,23 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
                 break;
             }
         }
-        
+
         const onTimeSubmissionRate = submissions.length === 0 ? 100 : Math.round((onTimeCount / submissions.length) * 100);
 
-        let totalXP = 0;
+        let sumGrades = 0;
         grades.forEach(g => {
-            totalXP += (g.score * 10);
+            sumGrades += g.score;
         });
-        totalXP += (onTimeCount * 50);
-        totalXP += (presentCount * 20);
-        totalXP += (lateCount * 5);
-        
+
+        let totalXP = Math.max(0, Math.round((sumGrades * 3) + (onTimeCount * 15) + (presentCount * 5) + (lateCount * 2) - (absentCount * 5)));
+        const levelInfo = calculateLevelAndProgress(totalXP);
+
         const gamification = {
             xp: totalXP,
-            level: Math.floor(totalXP / 100) + 1,
+            level: levelInfo.level,
+            xpInLevel: levelInfo.xpInLevel,
+            xpRequiredForNext: levelInfo.xpRequiredForNext,
+            progressPercent: levelInfo.progressPercent,
             streak: streak
         };
 
@@ -630,7 +658,7 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
         if (!classIdQuery) {
             return res.status(400).json({ message: "Thiếu classId" });
         }
-        
+
         const classId = classIdQuery as string;
 
         const classObj = await ClassModel.findById(classId).populate('students', 'name avatar');
@@ -649,11 +677,11 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
 
         const leaderboardData = students.map(student => {
             const studentId = student._id.toString();
-            
+
             // Grades XP
             const studentGrades = grades.filter(g => g.studentId.toString() === studentId);
             const sumGrades = studentGrades.reduce((sum, g) => sum + g.score, 0);
-            
+
             // Submissions XP
             const studentSubmissions = submissions.filter(s => s.studentId.toString() === studentId);
             const onTimeCount = studentSubmissions.filter(s => {
@@ -661,21 +689,23 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
                 const isLate = (assignment && assignment.dueDate) ? new Date(s.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
                 return !isLate;
             }).length;
-            
+
             // Attendance XP
             let presentCount = 0;
             let lateCount = 0;
+            let absentCount = 0;
             attendances.forEach(att => {
                 if (att.records) {
                     const record = att.records.find(r => r.studentId.toString() === studentId);
                     if (record) {
                         if (record.status === 'present') presentCount++;
                         if (record.status === 'late') lateCount++;
+                        if (record.status === 'absent') absentCount++;
                     }
                 }
             });
 
-            const totalXP = (sumGrades * 10) + (onTimeCount * 50) + (presentCount * 20) + (lateCount * 5);
+            const totalXP = Math.max(0, Math.round((sumGrades * 3) + (onTimeCount * 15) + (presentCount * 5) + (lateCount * 2) - (absentCount * 5)));
 
             return {
                 id: studentId,

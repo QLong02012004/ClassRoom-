@@ -49,6 +49,15 @@ const getInitials = (name: string) =>
 // Format ngày hôm nay thành YYYY-MM-DD
 const todayStr = () => new Date().toISOString().split("T")[0];
 
+// Format ngày theo chuẩn Việt Nam DD/MM/YYYY
+const formatDateVN = (dateStr: string) => {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length < 3) return dateStr;
+  const [year, month, day] = parts;
+  return `${day}/${month}/${year}`;
+};
+
 type StatusType = "present" | "absent" | "late";
 
 interface StudentRow extends IStudent {
@@ -219,7 +228,8 @@ export default function TeacherAttendance() {
 
       {/* CLASS INFO & CONTROLS BAR */}
       <div className={styles.classInfoBar}>
-        <div style={{ display: "flex", gap: "24px", alignItems: "center" }}>
+        {/* Left Section: Class Dropdown + Date Picker + Search */}
+        <div className="flex items-center gap-3 flex-wrap">
           <div className={styles.classInfoLeft}>
             <div className={styles.classInfoIcon}>
               <Student size={20} weight="duotone" />
@@ -262,53 +272,88 @@ export default function TeacherAttendance() {
               {selectedClass?.subject && <span className={styles.subjectBadge}>{selectedClass.subject}</span>}
             </div>
           </div>
-          <div className="relative w-64">
+
+          {/* DATE PICKER SELECTOR (Strict DD/MM/YYYY) */}
+          <div className="relative inline-flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:border-orange-400 transition-all shadow-sm cursor-pointer">
+            <CalendarBlank size={18} weight="duotone" className="text-orange-500 flex-shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase font-bold text-slate-400 leading-none">Ngày điểm danh</span>
+              <span className="text-xs font-extrabold text-slate-800 tracking-wide font-mono mt-0.5">
+                {formatDateVN(selectedDate)}
+              </span>
+            </div>
+            {selectedDate === todayStr() ? (
+              <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full ml-1">Hôm nay</span>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedDate(todayStr());
+                }}
+                className="text-[10px] bg-slate-100 hover:bg-orange-50 hover:text-orange-600 text-slate-600 font-bold px-2 py-0.5 rounded-full ml-1 transition-colors border border-slate-200 z-20"
+                title="Quay về ngày hôm nay"
+              >
+                Về hôm nay
+              </button>
+            )}
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+              title="Click để chọn ngày khác"
+            />
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-48 sm:w-52">
             <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Tìm kiếm học sinh..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 transition-all shadow-sm"
+              className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 transition-all shadow-sm"
             />
           </div>
         </div>
 
-        {/* Stats */}
-        {!loadingStudents && students.length > 0 && selectedClass && (
-          <div className={styles.statsGroup}>
-            <div className={styles.statItem}>
-              <span className={`${styles.statNum} ${styles.total}`}>{students.length}</span>
-              <span className={styles.statLabel}>SĨ SỐ</span>
+        {/* Right Section: Stats & Save Button */}
+        <div className="flex items-center gap-3 flex-shrink-0">
+          {!loadingStudents && students.length > 0 && selectedClass && (
+            <div className={styles.statsGroup}>
+              <div className={styles.statItem}>
+                <span className={`${styles.statNum} ${styles.total}`}>{students.length}</span>
+                <span className={styles.statLabel}>SĨ SỐ</span>
+              </div>
+              <div className={styles.statDivider} />
+              <div className={styles.statItem}>
+                <span className={`${styles.statNum} ${styles.present}`}>{presentCount}</span>
+                <span className={styles.statLabel}>CÓ MẶT</span>
+              </div>
+              <div className={styles.statDivider} />
+              <div className={styles.statItem}>
+                <span className={`${styles.statNum} ${styles.late}`}>{lateCount}</span>
+                <span className={styles.statLabel}>MUỘN</span>
+              </div>
+              <div className={styles.statDivider} />
+              <div className={styles.statItem}>
+                <span className={`${styles.statNum} ${styles.absent}`}>{absentCount}</span>
+                <span className={styles.statLabel}>VẮNG</span>
+              </div>
             </div>
-            <div className={styles.statDivider} />
-            <div className={styles.statItem}>
-              <span className={`${styles.statNum} ${styles.present}`}>{presentCount}</span>
-              <span className={styles.statLabel}>CÓ MẶT</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.statItem}>
-              <span className={`${styles.statNum} ${styles.late}`}>{lateCount}</span>
-              <span className={styles.statLabel}>MUỘN</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.statItem}>
-              <span className={`${styles.statNum} ${styles.absent}`}>{absentCount}</span>
-              <span className={styles.statLabel}>VẮNG</span>
-            </div>
-          </div>
-        )}
+          )}
 
-        <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
           <AnimatedAddButton onClick={handleSave} disabled={saving || students.length === 0}>
             {saving ? (
-              <span className="flex items-center gap-2">
-                <Spinner size={18} className="animate-spin" />
+              <span className="flex items-center gap-2 whitespace-nowrap px-1">
+                <Spinner size={16} className="animate-spin" />
                 Đang lưu...
               </span>
             ) : (
-              <span className="flex items-center gap-2">
-                <FloppyDisk size={18} weight="bold" />
+              <span className="flex items-center gap-2 whitespace-nowrap px-1">
+                <FloppyDisk size={16} weight="bold" />
                 Lưu điểm danh
               </span>
             )}
@@ -348,11 +393,11 @@ export default function TeacherAttendance() {
           <Table>
             <Table.ScrollContainer className="min-h-[400px]">
               <Table.Content
-                aria-label="Bảng điểm danh" 
-                selectionMode="multiple" 
-                selectedKeys={selectedKeys} 
+                aria-label="Bảng điểm danh"
+                selectionMode="multiple"
+                selectedKeys={selectedKeys}
                 onSelectionChange={setSelectedKeys}
-                onRowAction={() => {}}
+                onRowAction={() => { }}
                 className="w-full bg-white p-0 rounded-xl overflow-hidden border border-slate-200 shadow-sm"
               >
                 <Table.Header>
@@ -421,115 +466,115 @@ export default function TeacherAttendance() {
                             </Checkbox>
                           </Table.Cell>
                           <Table.Cell className="py-3 px-4 border-b border-slate-100">
-                      <div className={styles.studentInfo}>
-                        <HeroAvatar size="md" className="border border-slate-100 shadow-sm font-semibold flex-shrink-0" style={{ backgroundColor: bg, color: color }}>
-                          <HeroAvatar.Fallback>{initials}</HeroAvatar.Fallback>
-                        </HeroAvatar>
-                        <div className="min-w-0 flex-1">
-                          <span className={`${styles.studentName} truncate max-w-[200px] block`} title={student.name}>{student.name}</span>
-                          <span className={`${styles.studentEmail} truncate max-w-[200px] block`} title={student.email}>{student.email}</span>
-                          {/* Lịch sử 5 buổi */}
-                          {attendanceHistory.length > 0 && (
-                            <div className="flex gap-1.5 mt-1.5 items-center">
-                              {[...attendanceHistory].reverse().map(historyRecord => {
-                                const record = historyRecord.records.find(r => r.studentId === student._id);
-                                const status = record?.status;
-                                let dotColor = "bg-slate-200";
-                                if (status === "present") dotColor = "bg-emerald-500";
-                                else if (status === "late") dotColor = "bg-amber-500";
-                                else if (status === "absent") dotColor = "bg-rose-500";
-                                
-                                const dateStr = new Date(historyRecord.date).toLocaleDateString("vi-VN");
-                                
-                                return (
-                                  <div 
-                                    key={historyRecord._id} 
-                                    className={`w-2 h-2 rounded-full ${dotColor} cursor-help transition-transform hover:scale-125`}
-                                    title={`${dateStr}: ${status === 'present' ? 'Có mặt' : status === 'late' ? 'Muộn' : status === 'absent' ? 'Vắng' : 'Chưa điểm danh'}`}
-                                  />
-                                );
-                              })}
+                            <div className={styles.studentInfo}>
+                              <HeroAvatar size="md" className="border border-slate-100 shadow-sm font-semibold flex-shrink-0" style={{ backgroundColor: bg, color: color }}>
+                                <HeroAvatar.Fallback>{initials}</HeroAvatar.Fallback>
+                              </HeroAvatar>
+                              <div className="min-w-0 flex-1">
+                                <span className={`${styles.studentName} truncate max-w-[200px] block`} title={student.name}>{student.name}</span>
+                                <span className={`${styles.studentEmail} truncate max-w-[200px] block`} title={student.email}>{student.email}</span>
+                                {/* Lịch sử 5 buổi */}
+                                {attendanceHistory.length > 0 && (
+                                  <div className="flex gap-1.5 mt-1.5 items-center">
+                                    {[...attendanceHistory].reverse().map(historyRecord => {
+                                      const record = historyRecord.records.find(r => r.studentId === student._id);
+                                      const status = record?.status;
+                                      let dotColor = "bg-slate-200";
+                                      if (status === "present") dotColor = "bg-emerald-500";
+                                      else if (status === "late") dotColor = "bg-amber-500";
+                                      else if (status === "absent") dotColor = "bg-rose-500";
+
+                                      const dateStr = new Date(historyRecord.date).toLocaleDateString("vi-VN");
+
+                                      return (
+                                        <div
+                                          key={historyRecord._id}
+                                          className={`w-2 h-2 rounded-full ${dotColor} cursor-help transition-transform hover:scale-125`}
+                                          title={`${dateStr}: ${status === 'present' ? 'Có mặt' : status === 'late' ? 'Muộn' : status === 'absent' ? 'Vắng' : 'Chưa điểm danh'}`}
+                                        />
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </Table.Cell>
-                    <Table.Cell className="py-3 px-4 border-b border-slate-100">
-                      <div className={styles.statusButtons}>
-                        <button
-                          className={`${styles.statusBtn} ${student.status === "present" ? styles.activePresent : ""}`}
-                          onClick={() => handleStatusChange(student._id, "present")}
-                        >
-                          <CheckCircle size={16} weight="bold" />
-                          Có mặt
-                        </button>
-                        <button
-                          className={`${styles.statusBtn} ${student.status === "late" ? styles.activeLate : ""}`}
-                          onClick={() => handleStatusChange(student._id, "late")}
-                        >
-                          <Clock size={16} weight="bold" />
-                          Muộn
-                        </button>
-                        <button
-                          className={`${styles.statusBtn} ${student.status === "absent" ? styles.activeAbsent : ""}`}
-                          onClick={() => handleStatusChange(student._id, "absent")}
-                        >
-                          <XCircle size={16} weight="bold" />
-                          Vắng
-                        </button>
-                        </div>
-                      </Table.Cell>
-                      <Table.Cell className="py-3 px-4 border-b border-slate-100">
-                        {student.editingNote ? (
-                        <input
-                          autoFocus
-                          className={styles.noteInput}
-                          value={student.note}
-                          onChange={(e) => handleNoteChange(student._id, e.target.value)}
-                          onBlur={() => toggleEditNote(student._id)}
-                          onKeyDown={(e) => { if (e.key === "Enter") toggleEditNote(student._id); }}
-                          placeholder="Nhập lý do..."
-                        />
-                      ) : (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button className={styles.noteBtn}>
-                              <NotePencil size={16} weight="duotone" color="#94a3b8" />
-                              <span className={student.note ? styles.noteText : styles.notePlaceholder}>
-                                {student.note || "Thêm ghi chú"}
-                              </span>
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-48 bg-white border border-slate-200 shadow-lg rounded-xl p-1 z-50">
-                            {["Có phép", "Không phép", "Hỏng thiết bị", "Ốm/Mệt", "Muộn do thời tiết"].map(reason => (
-                              <DropdownMenuItem
-                                key={reason}
-                                onClick={() => handleNoteChange(student._id, reason)}
-                                className="px-3 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600 transition-colors rounded-lg cursor-pointer"
+                          </Table.Cell>
+                          <Table.Cell className="py-3 px-4 border-b border-slate-100">
+                            <div className={styles.statusButtons}>
+                              <button
+                                className={`${styles.statusBtn} ${student.status === "present" ? styles.activePresent : ""}`}
+                                onClick={() => handleStatusChange(student._id, "present")}
                               >
-                                {reason}
-                              </DropdownMenuItem>
-                            ))}
-                            <div className="h-px bg-slate-200 my-1"></div>
-                            <DropdownMenuItem
-                              onClick={() => toggleEditNote(student._id)}
-                              className="px-3 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600 transition-colors rounded-lg cursor-pointer"
-                            >
-                              Nhập lý do khác...
-                            </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })
-              )}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
-      </Table>
-    )}
+                                <CheckCircle size={16} weight="bold" />
+                                Có mặt
+                              </button>
+                              <button
+                                className={`${styles.statusBtn} ${student.status === "late" ? styles.activeLate : ""}`}
+                                onClick={() => handleStatusChange(student._id, "late")}
+                              >
+                                <Clock size={16} weight="bold" />
+                                Muộn
+                              </button>
+                              <button
+                                className={`${styles.statusBtn} ${student.status === "absent" ? styles.activeAbsent : ""}`}
+                                onClick={() => handleStatusChange(student._id, "absent")}
+                              >
+                                <XCircle size={16} weight="bold" />
+                                Vắng
+                              </button>
+                            </div>
+                          </Table.Cell>
+                          <Table.Cell className="py-3 px-4 border-b border-slate-100">
+                            {student.editingNote ? (
+                              <input
+                                autoFocus
+                                className={styles.noteInput}
+                                value={student.note}
+                                onChange={(e) => handleNoteChange(student._id, e.target.value)}
+                                onBlur={() => toggleEditNote(student._id)}
+                                onKeyDown={(e) => { if (e.key === "Enter") toggleEditNote(student._id); }}
+                                placeholder="Nhập lý do..."
+                              />
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className={styles.noteBtn}>
+                                    <NotePencil size={16} weight="duotone" color="#94a3b8" />
+                                    <span className={student.note ? styles.noteText : styles.notePlaceholder}>
+                                      {student.note || "Thêm ghi chú"}
+                                    </span>
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent className="w-48 bg-white border border-slate-200 shadow-lg rounded-xl p-1 z-50">
+                                  {["Có phép", "Không phép", "Hỏng thiết bị", "Ốm/Mệt", "Muộn do thời tiết"].map(reason => (
+                                    <DropdownMenuItem
+                                      key={reason}
+                                      onClick={() => handleNoteChange(student._id, reason)}
+                                      className="px-3 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600 transition-colors rounded-lg cursor-pointer"
+                                    >
+                                      {reason}
+                                    </DropdownMenuItem>
+                                  ))}
+                                  <div className="h-px bg-slate-200 my-1"></div>
+                                  <DropdownMenuItem
+                                    onClick={() => toggleEditNote(student._id)}
+                                    className="px-3 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600 transition-colors rounded-lg cursor-pointer"
+                                  >
+                                    Nhập lý do khác...
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </Table.Cell>
+                        </Table.Row>
+                      );
+                    })
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
+        )}
       </section>
 
       {/* FOOTER */}

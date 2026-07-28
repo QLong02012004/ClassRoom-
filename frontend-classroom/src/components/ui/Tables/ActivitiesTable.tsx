@@ -18,6 +18,8 @@ export interface ActivityItem {
   dueDate?: string;
   createdAt: string;
   submissionCount?: number;
+  gradedCount?: number;
+  pendingGradeCount?: number;
 }
 
 export interface ActivitiesTableProps {
@@ -167,8 +169,6 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                   const qCount = isQuiz ? (act.questions?.length || act.bankItemId?.quizQuestions?.length || 0) : 0;
                   const subCount = act.submissionCount || 0;
                   const percent = totalStudents > 0 ? Math.min(100, Math.round((subCount / totalStudents) * 100)) : 0;
-                  const isGenericTitle = act.title?.trim().toLowerCase() === "bài tập về nhà" && act.category === "homework";
-
                   return (
                     <Table.Row key={act._id} id={act._id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100">
                       {readOnly ? (
@@ -203,12 +203,12 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                       </Table.Cell>
 
                       <Table.Cell>
-                        <div className="flex flex-col max-w-[320px]">
-                          <span className="font-semibold text-slate-900 text-[15px] hover:text-orange-600 transition-colors line-clamp-1">
-                            {isGenericTitle ? (act.description || "Bài tập về nhà") : act.title}
+                        <div className="flex flex-col max-w-[180px] overflow-hidden">
+                          <span className="font-semibold text-slate-900 text-sm hover:text-orange-600 transition-colors truncate block" title={act.title}>
+                            {act.title}
                           </span>
-                          {!isGenericTitle && act.description && (
-                            <span className="text-sm font-medium text-slate-500 line-clamp-1 mt-0.5">{act.description}</span>
+                          {act.description && (
+                            <span className="text-xs font-medium text-slate-500 truncate block mt-0.5" title={act.description}>{act.description}</span>
                           )}
                         </div>
                       </Table.Cell>
@@ -242,8 +242,13 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                       </Table.Cell>
 
                       <Table.Cell>
-                        <div className="flex items-center text-xs">
+                        <div className="flex items-center gap-2 text-xs flex-wrap">
                           <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/70">{subCount}/{totalStudents} HS</span>
+                          {act.pendingGradeCount && act.pendingGradeCount > 0 ? (
+                            <span className="px-2 py-0.5 rounded-md text-[11px] font-black bg-rose-500 text-white animate-pulse whitespace-nowrap">
+                              🔥 Cần chấm ({act.pendingGradeCount})
+                            </span>
+                          ) : null}
                         </div>
                       </Table.Cell>
 

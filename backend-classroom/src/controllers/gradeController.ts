@@ -3,6 +3,8 @@ import { GradeModel } from '../models/Grade';
 import { ClassActivityModel } from '../models/ClassActivity';
 import { ClassModel } from '../models/Class';
 import { UserModel } from '../models/User';
+import { SubmissionModel } from '../models/Submission';
+import { QuizResultModel } from '../models/QuizResult';
 
 // Lấy danh sách bảng điểm của một lớp
 export const getClassroomGrades = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -21,17 +23,38 @@ export const getClassroomGrades = async (req: Request, res: Response, next: Next
         }
 
         // Lấy toàn bộ bài tập của lớp
-        const assignments = await ClassActivityModel.find({ classId: classId as string });
+        const assignments = await ClassActivityModel.find({ classId: classId as string }).lean();
         const assignmentIds = assignments.map(a => a._id);
 
         // Lấy toàn bộ điểm số hiện tại của các bài tập trong lớp này
-        const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
+        const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } }).lean();
+
+        const enrichedAssignments = await Promise.all(
+            assignments.map(async (a: any) => {
+                if (a.type === 'quiz') {
+                    const subCount = await QuizResultModel.countDocuments({ quizId: a._id });
+                    return { ...a, submissionCount: subCount, gradedCount: subCount, pendingGradeCount: 0 };
+                } else {
+                    const subCount = await SubmissionModel.countDocuments({
+                        assignmentId: a._id,
+                        status: { $in: ['submitted', 'late', 'graded'] }
+                    });
+                    const gradeCount = grades.filter(g => g.assignmentId.toString() === a._id.toString()).length;
+                    return {
+                        ...a,
+                        submissionCount: subCount,
+                        gradedCount: gradeCount,
+                        pendingGradeCount: Math.max(0, subCount - gradeCount)
+                    };
+                }
+            })
+        );
 
         res.status(200).json({
             message: 'Lấy bảng điểm thành công',
             data: {
                 students: classroom.students,
-                assignments,
+                assignments: enrichedAssignments,
                 grades
             }
         });

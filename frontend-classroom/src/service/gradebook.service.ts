@@ -11,6 +11,9 @@ export interface IAssignment {
   category: string;
   allowMultipleSubmissions?: boolean;
   createdAt: string;
+  submissionCount?: number;
+  gradedCount?: number;
+  pendingGradeCount?: number;
 }
 
 export interface IGrade {

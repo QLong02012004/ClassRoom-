@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Joyride, type EventData, STATUS, type Step } from 'react-joyride';
+import { Joyride, type EventData, type Controls, STATUS, type Step } from 'react-joyride';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 
@@ -10,7 +10,7 @@ const OnboardingTour: React.FC = () => {
   const [steps, setSteps] = useState<Step[]>([]);
 
   useEffect(() => {
-    if (user?.role !== 'student') return;
+    if (!user || user.role !== 'student') return;
     // Determine the base path
     const path = location.pathname;
     let pageKey = 'dashboard';
@@ -19,8 +19,8 @@ const OnboardingTour: React.FC = () => {
     else if (path.startsWith('/grades')) pageKey = 'grades';
     else if (path.startsWith('/materials')) pageKey = 'materials';
     
-    // Check if tour is completed for this specific page
-    const storageKey = `tour_completed_${pageKey}`;
+    // Check if tour is completed for this specific page (per user)
+    const storageKey = `tour_completed_${user.id}_${pageKey}`;
     const isTourCompleted = localStorage.getItem(storageKey);
     
     if (!isTourCompleted) {
@@ -31,7 +31,7 @@ const OnboardingTour: React.FC = () => {
     } else {
       setRun(false);
     }
-  }, [location.pathname]);
+  }, [location.pathname, user]);
 
   const getStepsForPage = (pageKey: string): Step[] => {
     if (pageKey === 'dashboard') {
@@ -199,7 +199,7 @@ const OnboardingTour: React.FC = () => {
     return [];
   };
 
-  const handleJoyrideCallback = (data: EventData) => {
+  const handleJoyrideCallback = (data: EventData, _controls: Controls) => {
     const { status } = data;
     const finishedStatuses: string[] = [STATUS.FINISHED, STATUS.SKIPPED];
 
@@ -213,7 +213,10 @@ const OnboardingTour: React.FC = () => {
       else if (path.startsWith('/grades')) pageKey = 'grades';
       else if (path.startsWith('/materials')) pageKey = 'materials';
       
-      localStorage.setItem(`tour_completed_${pageKey}`, 'true');
+      // Lưu trạng thái đã xem tour theo user
+      if (user?.id) {
+        localStorage.setItem(`tour_completed_${user.id}_${pageKey}`, 'true');
+      }
     }
   };
 

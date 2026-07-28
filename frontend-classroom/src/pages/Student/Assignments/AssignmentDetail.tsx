@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft,
   User,
   CalendarBlank,
   FilePdf,
@@ -18,6 +17,7 @@ import {
   ChatTeardropText,
   PaperPlaneRight
 } from "phosphor-react";
+import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
@@ -175,10 +175,7 @@ export default function AssignmentDetail() {
     <div className={styles.page}>
       {/* TOP HEADER */}
       <div className={styles.topHeader}>
-        <button className={styles.backBtn} onClick={() => navigate(-1)}>
-          <ArrowLeft size={18} weight="bold" />
-        </button>
-        <h2>Chi tiết bài tập</h2>
+        <BackButton onClick={() => navigate(-1)}>QUAY LẠI</BackButton>
       </div>
 
       <div className={styles.layout}>

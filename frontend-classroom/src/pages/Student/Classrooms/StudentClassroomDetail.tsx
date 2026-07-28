@@ -100,7 +100,7 @@ export default function StudentClassroomDetail() {
         }
       });
       setAllActivities(merged);
-    } catch (_) {}
+    } catch (_) { }
   };
 
   useEffect(() => { loadData(); }, [classId]);
@@ -345,7 +345,7 @@ export default function StudentClassroomDetail() {
                     {/* Bình luận */}
                     <div className={styles.customCommentsCard}>
                       <span className={styles.customTitle}>Comments</span>
-                      
+
                       <div className={styles.customComments}>
                         <div className={styles.commentContainer}>
                           {ann.comments?.map((comment: any, idx: number) => {
@@ -375,7 +375,7 @@ export default function StudentClassroomDetail() {
                                     {comment.content}
                                   </p>
                                   <div className={styles.commentActions}>
-                                    <button 
+                                    <button
                                       className={`${styles.likeBtn} ${comment.likes?.includes(user?.id || "") ? styles.liked : ""}`}
                                       onClick={() => handleLikeComment(ann._id, comment._id)}
                                     >
@@ -384,7 +384,7 @@ export default function StudentClassroomDetail() {
                                       </svg>
                                       Thích {comment.likes?.length ? `(${comment.likes.length})` : ""}
                                     </button>
-                                    <button 
+                                    <button
                                       className={styles.replyBtn}
                                       onClick={() => {
                                         setShowReplyBox(prev => ({ ...prev, [ann._id]: true }));
@@ -403,11 +403,11 @@ export default function StudentClassroomDetail() {
                           })}
                         </div>
                       </div>
-                      
+
                       {showReplyBox[ann._id] ? (
                         <div className={styles.textBox}>
                           <div className={styles.boxContainer}>
-                            <button 
+                            <button
                               className={styles.closeReplyBtn}
                               onClick={() => setShowReplyBox(prev => ({ ...prev, [ann._id]: false }))}
                               title="Đóng"
@@ -585,8 +585,8 @@ export default function StudentClassroomDetail() {
                               </span>
                             )}
                           </div>
-                          <h4 className="text-base font-bold text-slate-800">{act.title}</h4>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <h4 className="text-base font-bold text-slate-800 truncate max-w-[220px]" title={act.title}>{act.title}</h4>
+                          <p className="text-xs text-slate-500 mt-0.5 truncate max-w-[220px]" title={act.description || ""}>
                             {isQuiz
                               ? `Thời gian: ${act.durationMinutes || 0} phút • Số câu hỏi: ${qCount} câu`
                               : (act.description || "Bài tập nộp file / viết tự luận")}
@@ -637,8 +637,8 @@ export default function StudentClassroomDetail() {
                 {/* PAGINATION CONTROLS */}
                 {totalPages > 1 && (
                   <div className={styles.paginationControls}>
-                    <button 
-                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))} 
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                       disabled={currentPage === 1}
                       className={styles.pageBtn}
                     >
@@ -647,8 +647,8 @@ export default function StudentClassroomDetail() {
                     <span className={styles.pageInfo}>
                       Trang {currentPage} / {totalPages}
                     </span>
-                    <button 
-                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))} 
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                       disabled={currentPage === totalPages}
                       className={styles.pageBtn}
                     >

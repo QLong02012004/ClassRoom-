@@ -17,8 +17,17 @@ import {
   Crown,
   ChatCircleDots,
   PaperPlaneRight,
-  Warning
+  Warning,
+  CaretDown
 } from "phosphor-react";
+import { CheckIcon } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel
+} from "@/components/ui/dropdown-menu";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
 import { SecondaryButton } from "../../../components/ui/Buttons/SecondaryButton.tsx";
@@ -33,6 +42,29 @@ import styles from "./StudentDashboard.module.scss";
 import { ChartBarStacked } from "./components/ChartBarStacked";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
 import AnimatedProgressBar from "../../../components/ui/AnimatedProgressBar";
+
+const calculateLevelAndProgress = (totalXP: number) => {
+  let level = 1;
+  let currentLevelXP = Math.max(0, Math.round(totalXP));
+  let requiredForCurrentLevel = 100 + (level - 1) * 50;
+
+  while (currentLevelXP >= requiredForCurrentLevel) {
+    currentLevelXP -= requiredForCurrentLevel;
+    level++;
+    requiredForCurrentLevel = 100 + (level - 1) * 50;
+  }
+
+  const xpInLevel = currentLevelXP;
+  const xpRequiredForNext = requiredForCurrentLevel;
+  const progressPercent = Math.min(100, Math.round((xpInLevel / xpRequiredForNext) * 100));
+
+  return {
+    level,
+    xpInLevel,
+    xpRequiredForNext,
+    progressPercent
+  };
+};
 
 export default function StudentDashboard() {
   const toast = useToast();
@@ -62,7 +94,7 @@ export default function StudentDashboard() {
   const [weaknessData, setWeaknessData] = useState<any[]>([]);
 
   // Leaderboard State
-  const [classes, setClasses] = useState<{_id: string, name: string}[]>([]);
+  const [classes, setClasses] = useState<{ _id: string, name: string }[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
@@ -97,7 +129,7 @@ export default function StudentDashboard() {
   const handleSendChat = (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!chatInput.trim()) return;
-    
+
     const newMsg = {
       id: Date.now(),
       sender: username,
@@ -105,7 +137,7 @@ export default function StudentDashboard() {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isMe: true
     };
-    
+
     setChatMessages(prev => [...prev, newMsg]);
     setChatInput("");
 
@@ -221,7 +253,7 @@ export default function StudentDashboard() {
             <span>CHÀO MỪNG TRỞ LẠI</span>
             <div className={styles.streakBadgeBanner}>
               <Fire size={16} weight="fill" className={styles.streakIcon} />
-              <span>{gamification.streak || 1}</span>
+              <span>{gamification.streak ?? 0}</span>
             </div>
           </div>
           <h1>Chào {username} 👋</h1>
@@ -276,270 +308,308 @@ export default function StudentDashboard() {
 
       {/* 2. STAT CARDS WITH PROGRESS */}
       <section className={`${styles.statsGrid} tour-step-stats`}>
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.yellowBg}`}>
-            <Star size={28} weight="fill" />
-          </div>
-          <span className={styles.statLabel}>Điểm kinh nghiệm (XP)</span>
-          <div className={styles.statBottomRow}>
-            <span className={styles.statValue}>
-              {gamification.xp || stats.totalXP || 0}
-            </span>
-            <span className={styles.statSubtext} style={{ color: '#eab308' }}>
-              Level {gamification.level || Math.floor((stats.totalXP || 0) / 100) + 1}
-            </span>
-          </div>
-          <div className={styles.progressBarWrapper}>
-            <AnimatedProgressBar progress={Math.min(100, (gamification.xp || stats.totalXP || 0) % 100)} width="100%" barColor="linear-gradient(90deg, #fde047, #eab308)" />
-          </div>
-        </div>
+        {/* XP Card */}
+        {(() => {
+          const xp = gamification.xp || stats.totalXP || 0;
+          const levelInfo = calculateLevelAndProgress(xp);
+          const level = gamification.level || levelInfo.level;
+          const progressPercent = gamification.progressPercent !== undefined ? gamification.progressPercent : levelInfo.progressPercent;
+          return (
+            <div className={styles.statCard}>
+              <div className={`${styles.statIcon} ${styles.yellowBg}`}>
+                <Star size={28} weight="fill" />
+              </div>
+              <span className={styles.statLabel}>Điểm kinh nghiệm (XP)</span>
+              <div className={styles.statBottomRow}>
+                <span className={styles.statValue}>{xp}</span>
+                <span className={styles.statSubtext} style={{ color: '#eab308' }}>
+                  Level {level}
+                </span>
+              </div>
+              <div className={styles.progressBarWrapper}>
+                <AnimatedProgressBar progress={progressPercent} width="100%" barColor="linear-gradient(90deg, #fde047, #eab308)" />
+              </div>
+            </div>
+          );
+        })()}
 
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.orangeBg}`}>
-            <Fire size={28} weight="fill" />
-          </div>
-          <span className={styles.statLabel}>Chuỗi học tập (Streak)</span>
-          <div className={styles.statBottomRow}>
-            <span className={styles.statValue}>
-              {gamification.streak || 0} <span style={{fontSize: '1.2rem', color: '#f97316'}}>Ngày</span>
-            </span>
-            <span className={`${styles.statSubtext} ${styles.danger}`}>
-              Đang cháy! 🔥
-            </span>
-          </div>
-          <div className={styles.progressBarWrapper}>
-            <AnimatedProgressBar progress={100} width="100%" barColor="linear-gradient(90deg, #fdba74, #f97316)" />
-          </div>
-        </div>
+        {/* Streak Card */}
+        {(() => {
+          const streak = gamification.streak ?? 0;
+          const streakMax = 30; // Mốc tối đa 30 ngày
+          const streakPercent = Math.min(100, Math.round((streak / streakMax) * 100));
+          const streakLabel = streak >= 7 ? 'Đang cháy! 🔥' :
+            streak >= 3 ? 'Tốt lắm! 👍' :
+              streak > 0 ? 'Tiếp tục nhé! 💪' : 'Hãy bắt đầu! 🚀';
+          return (
+            <div className={styles.statCard}>
+              <div className={`${styles.statIcon} ${styles.orangeBg}`}>
+                <Fire size={28} weight="fill" />
+              </div>
+              <span className={styles.statLabel}>Chuỗi học tập (Streak)</span>
+              <div className={styles.statBottomRow}>
+                <span className={styles.statValue}>
+                  {streak} <span style={{ fontSize: '1.2rem', color: '#f97316' }}>Ngày</span>
+                </span>
+                <span className={`${styles.statSubtext} ${streak >= 3 ? styles.danger : styles.warning}`}>
+                  {streakLabel}
+                </span>
+              </div>
+              <div className={styles.progressBarWrapper}>
+                <AnimatedProgressBar progress={streakPercent} width="100%" barColor="linear-gradient(90deg, #fdba74, #f97316)" />
+              </div>
+            </div>
+          );
+        })()}
 
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.greenBg}`}>
-            <Target size={28} weight="fill" />
-          </div>
-          <span className={styles.statLabel}>Nộp bài đúng hạn</span>
-          <div className={styles.statBottomRow}>
-            <span className={styles.statValue}>
-              {stats.onTimeSubmissionRate !== undefined ? stats.onTimeSubmissionRate : 95}%
-            </span>
-            <span className={`${styles.statSubtext} ${
-              (stats.onTimeSubmissionRate || 95) >= 90 ? styles.success :
-              (stats.onTimeSubmissionRate || 95) >= 70 ? styles.warning : styles.danger
-            }`}>
-              {(stats.onTimeSubmissionRate || 95) >= 90 ? 'Xuất sắc 🎯' :
-               (stats.onTimeSubmissionRate || 95) >= 70 ? 'Khá 👍' : 'Cần cố gắng ⚠️'}
-            </span>
-          </div>
-          <div className={styles.progressBarWrapper}>
-            <AnimatedProgressBar progress={stats.onTimeSubmissionRate !== undefined ? stats.onTimeSubmissionRate : 95} width="100%" barColor="linear-gradient(90deg, #86efac, #22c55e)" />
-          </div>
-        </div>
+        {/* Nộp bài đúng hạn Card */}
+        {(() => {
+          const rate = stats.onTimeSubmissionRate !== undefined ? stats.onTimeSubmissionRate : 0;
+          const rateLabel = rate >= 90 ? 'Xuất sắc 🎯' :
+            rate >= 70 ? 'Khá 👍' : 'Cần cố gắng ⚠️';
+          const rateClass = rate >= 90 ? styles.success :
+            rate >= 70 ? styles.warning : styles.danger;
+          return (
+            <div className={styles.statCard}>
+              <div className={`${styles.statIcon} ${styles.greenBg}`}>
+                <Target size={28} weight="fill" />
+              </div>
+              <span className={styles.statLabel}>Nộp bài đúng hạn</span>
+              <div className={styles.statBottomRow}>
+                <span className={styles.statValue}>{rate}%</span>
+                <span className={`${styles.statSubtext} ${rateClass}`}>
+                  {rateLabel}
+                </span>
+              </div>
+              <div className={styles.progressBarWrapper}>
+                <AnimatedProgressBar progress={rate} width="100%" barColor="linear-gradient(90deg, #86efac, #22c55e)" />
+              </div>
+            </div>
+          );
+        })()}
 
-        <div className={styles.statCard}>
-          <div className={`${styles.statIcon} ${styles.blueBg}`}>
-            <Lightning size={28} weight="fill" />
-          </div>
-          <span className={styles.statLabel}>Tỉ lệ chuyên cần</span>
-          <div className={styles.statBottomRow}>
-            <span className={styles.statValue}>
-              {stats.attendanceRate || 0}%
-            </span>
-            <span className={`${styles.statSubtext} ${styles.success}`}>
-              Tốt ⚡
-            </span>
-          </div>
-          <div className={styles.progressBarWrapper}>
-            <AnimatedProgressBar progress={stats.attendanceRate || 0} width="100%" barColor="linear-gradient(90deg, #93c5fd, #3b82f6)" />
-          </div>
-        </div>
+        {/* Chuyên cần Card */}
+        {(() => {
+          const attendance = stats.attendanceRate !== undefined ? stats.attendanceRate : 0;
+          const attLabel = attendance >= 90 ? 'Tốt ⚡' :
+            attendance >= 70 ? 'Khá 👍' : 'Cần cải thiện ⚠️';
+          const attClass = attendance >= 90 ? styles.success :
+            attendance >= 70 ? styles.warning : styles.danger;
+          return (
+            <div className={styles.statCard}>
+              <div className={`${styles.statIcon} ${styles.blueBg}`}>
+                <Lightning size={28} weight="fill" />
+              </div>
+              <span className={styles.statLabel}>Tỉ lệ chuyên cần</span>
+              <div className={styles.statBottomRow}>
+                <span className={styles.statValue}>{attendance}%</span>
+                <span className={`${styles.statSubtext} ${attClass}`}>
+                  {attLabel}
+                </span>
+              </div>
+              <div className={styles.progressBarWrapper}>
+                <AnimatedProgressBar progress={attendance} width="100%" barColor="linear-gradient(90deg, #93c5fd, #3b82f6)" />
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       <div className={styles.mainLayout}>
         {/* CỘT TRÁI - 70% */}
         <div className={styles.leftColumn}>
 
-      {/* 3. ROW 2: TODO LIST & TODAY SCHEDULE */}
-      <section className={styles.middleGrid}>
+          {/* 3. ROW 2: TODO LIST & TODAY SCHEDULE */}
+          <section className={styles.middleGrid}>
 
-        {/* Left Column: Todo List */}
-        <div className={`${styles.todoSection} tour-step-todo`}>
-          <div className={styles.sectionHeader}>
-            <h3>Việc cần làm hôm nay</h3>
-            <button className={styles.btnViewAll} onClick={() => navigate("/assignments")}>
-              Xem tất cả
-            </button>
-          </div>
-          <div className={styles.todoList}>
-            {todoList.length > 0 ? (
-              todoList.map((task, idx) => {
-                const isCompleted = completedTasks.has(task._id);
-                return (
-                  <div key={task._id} className={`${styles.todoItem} ${isCompleted ? styles.completed : ''}`}>
-                    <div
-                      className={`${styles.checkbox} ${isCompleted ? styles.checked : ''}`}
-                      onClick={() => handleTaskComplete(task._id)}
-                    >
-                      {isCompleted && <CheckCircle size={20} weight="fill" color="#10b981" />}
-                      {!isCompleted && <div className={styles.circle}></div>}
-                    </div>
-                    <div className={styles.itemInfo}>
-                      <h4 className={styles.itemTitle}>{task.title}</h4>
-                      <span className={styles.itemMeta}>
-                        {task.className} • Hạn: {formatDate(task.dueDate)}
-                      </span>
-                    </div>
-                    <div className={styles.itemRight}>
-                      {idx === 0 && !isCompleted ? (
-                        <span className={`${styles.urgencyBadge} ${styles.high}`}>Gấp</span>
-                      ) : (
-                        <span className={`${styles.urgencyBadge} ${styles.medium}`}>Bình thường</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className={styles.emptyState}>
-                <img src="/empty_tasks_illustration_1784358523914.png" alt="All done" className={styles.emptyImg} />
-                <p className={styles.emptyTitle}>Tuyệt vời!</p>
-                <p className={styles.emptySub}>Bạn đã hoàn thành tất cả nhiệm vụ hôm nay. Hãy nghỉ ngơi hoặc ôn lại bài cũ nhé!</p>
+            {/* Left Column: Todo List */}
+            <div className={`${styles.todoSection} tour-step-todo`}>
+              <div className={styles.sectionHeader}>
+                <h3>Việc cần làm hôm nay</h3>
+                <button className={styles.btnViewAll} onClick={() => navigate("/assignments")}>
+                  Xem tất cả
+                </button>
               </div>
-            )}
-          </div>
-        </div>
+              <div className={styles.todoList}>
+                {todoList.length > 0 ? (
+                  todoList.map((task, idx) => {
+                    const isCompleted = completedTasks.has(task._id);
+                    return (
+                      <div key={task._id} className={`${styles.todoItem} ${isCompleted ? styles.completed : ''}`}>
+                        <div
+                          className={`${styles.checkbox} ${isCompleted ? styles.checked : ''}`}
+                          onClick={() => handleTaskComplete(task._id)}
+                        >
+                          {isCompleted && <CheckCircle size={20} weight="fill" color="#10b981" />}
+                          {!isCompleted && <div className={styles.circle}></div>}
+                        </div>
+                        <div className={styles.itemInfo}>
+                          <h4 className={styles.itemTitle}>{task.title}</h4>
+                          <span className={styles.itemMeta}>
+                            {task.className} • Hạn: {formatDate(task.dueDate)}
+                          </span>
+                        </div>
+                        <div className={styles.itemRight}>
+                          {idx === 0 && !isCompleted ? (
+                            <span className={`${styles.urgencyBadge} ${styles.high}`}>Gấp</span>
+                          ) : (
+                            <span className={`${styles.urgencyBadge} ${styles.medium}`}>Bình thường</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className={styles.emptyState}>
+                    <img src="/empty_tasks_illustration_1784358523914.png" alt="All done" className={styles.emptyImg} />
+                    <p className={styles.emptyTitle}>Tuyệt vời!</p>
+                    <p className={styles.emptySub}>Bạn đã hoàn thành tất cả nhiệm vụ hôm nay. Hãy nghỉ ngơi hoặc ôn lại bài cũ nhé!</p>
+                  </div>
+                )}
+              </div>
+            </div>
 
-        {/* Right Column: Schedule */}
-        <div className={`${styles.scheduleSection} tour-step-schedule`}>
-          <div className={styles.sectionHeader}>
-            <h3>Lịch học hôm nay</h3>
-          </div>
-          <div className={styles.scheduleList}>
-            {todaySchedule.length > 0 ? (
-              todaySchedule.map((cls, idx) => (
-                <div key={cls._id} className={styles.scheduleItem}>
-                  <div className={styles.timeCol}>
-                    <span className={styles.time}>{cls.startTime}</span>
-                    <span className={styles.timeEnd}>{cls.endTime}</span>
+            {/* Right Column: Schedule */}
+            <div className={`${styles.scheduleSection} tour-step-schedule`}>
+              <div className={styles.sectionHeader}>
+                <h3>Lịch học hôm nay</h3>
+              </div>
+              <div className={styles.scheduleList}>
+                {todaySchedule.length > 0 ? (
+                  todaySchedule.map((cls, idx) => (
+                    <div key={cls._id} className={styles.scheduleItem}>
+                      <div className={styles.timeCol}>
+                        <span className={styles.time}>{cls.startTime}</span>
+                        <span className={styles.timeEnd}>{cls.endTime}</span>
+                      </div>
+                      <div className={styles.divider}></div>
+                      <div className={styles.infoCol}>
+                        <h4>{cls.className}</h4>
+                        <p>{cls.teacherName}</p>
+                      </div>
+                      <div className={styles.actionCol}>
+                        <SecondaryButton style={{ fontSize: '0.8rem', padding: '0.6em 1.2em' }}>Vào lớp</SecondaryButton>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className={styles.emptyState}>
+                    <GraduationCap size={48} weight="duotone" color="#94a3b8" />
+                    <p className={styles.emptyTitle}>Hôm nay bạn được nghỉ!</p>
+                    <p className={styles.emptySub}>Không có lịch học nào được xếp trong ngày hôm nay.</p>
                   </div>
-                  <div className={styles.divider}></div>
-                  <div className={styles.infoCol}>
-                    <h4>{cls.className}</h4>
-                    <p>{cls.teacherName}</p>
-                  </div>
-                  <div className={styles.actionCol}>
-                    <SecondaryButton style={{ fontSize: '0.8rem', padding: '0.6em 1.2em' }}>Vào lớp</SecondaryButton>
-                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ADAPTIVE LEARNING CENTER */}
+          <section className={`${styles.adaptiveLearningSection} tour-step-adaptive`}>
+            <div className={styles.sectionHeader}>
+              <h3>Tiến độ & Phân tích Học tập</h3>
+            </div>
+
+            <div className={styles.adaptiveLearningGrid}>
+              {/* Progress Card */}
+              <div className={styles.adaptiveCard}>
+                <div className={styles.adaptiveCardInfo}>
+                  <h4>Tiến độ môn Toán</h4>
+                  <p>Chương 1: Khảo sát Hàm số</p>
+                  <button className={styles.btnStart} onClick={() => navigate('/materials')}>
+                    Bắt đầu học <ArrowRight size={16} weight="bold" />
+                  </button>
                 </div>
-              ))
-            ) : (
-              <div className={styles.emptyState}>
-                <GraduationCap size={48} weight="duotone" color="#94a3b8" />
-                <p className={styles.emptyTitle}>Hôm nay bạn được nghỉ!</p>
-                <p className={styles.emptySub}>Không có lịch học nào được xếp trong ngày hôm nay.</p>
+
+                {(() => {
+                  const completedLessons = 25;
+                  const totalLessons = 59;
+                  const mathPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+                  const dashOffset = 264 - (264 * mathPercent) / 100;
+                  return (
+                    <div className={styles.radialProgress}>
+                      <svg viewBox="0 0 100 100" className={styles.svgCircle}>
+                        <circle cx="50" cy="50" r="42" className={styles.circleBg} />
+                        <circle cx="50" cy="50" r="42" className={styles.circleProgress} style={{ strokeDashoffset: dashOffset }} />
+                      </svg>
+                      <div className={styles.radialText}>
+                        <span className={styles.percentage}>{mathPercent}%</span>
+                        <span className={styles.fraction}>{completedLessons}/{totalLessons} Bài</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* ADAPTIVE LEARNING CENTER */}
-      <section className={`${styles.adaptiveLearningSection} tour-step-adaptive`}>
-        <div className={styles.sectionHeader}>
-          <h3>Tiến độ & Phân tích Học tập</h3>
-        </div>
-        
-        <div className={styles.adaptiveLearningGrid}>
-          {/* Progress Card */}
-          <div className={styles.adaptiveCard}>
-            <div className={styles.adaptiveCardInfo}>
-              <h4>Tiến độ môn Toán</h4>
-              <p>Chương 1: Khảo sát Hàm số</p>
-              <button className={styles.btnStart} onClick={() => navigate('/materials')}>
-                Bắt đầu học <ArrowRight size={16} weight="bold" />
-              </button>
-            </div>
-            
-            <div className={styles.radialProgress}>
-              <svg viewBox="0 0 100 100" className={styles.svgCircle}>
-                <circle cx="50" cy="50" r="42" className={styles.circleBg} />
-                <circle cx="50" cy="50" r="42" className={styles.circleProgress} style={{ strokeDashoffset: `calc(264 - (264 * 42) / 100)` }} />
-              </svg>
-              <div className={styles.radialText}>
-                <span className={styles.percentage}>42%</span>
-                <span className={styles.fraction}>25/59 Bài</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Weakness Warning Card */}
-          <div className={`${styles.adaptiveCard} ${styles.warningCard}`}>
-            <div className={styles.warningIconWrapper}>
-              <Warning size={40} weight="duotone" />
-            </div>
-            <div className={styles.adaptiveCardInfo}>
-              <h4 className={styles.warningTitle}>Cảnh báo Lỗ hổng!</h4>
-              <p>Bạn đang sai nhiều ở dạng bài: <strong style={{color: '#b91c1c'}}>{weaknessData[0]?.tag || 'Hàm số Mũ'}</strong></p>
-              <div className={styles.errorRateBadge}>Tỷ lệ sai: {weaknessData[0]?.errorRate || 80}%</div>
-              <button 
-                className={styles.btnWarning} 
-                onClick={() => handlePracticeClick(weaknessData[0]?.tag || 'Hàm số Mũ')}
-              >
-                Luyện tập ngay <ArrowRight size={16} weight="bold" />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. ROW 3: LEARNING PROGRESS & WEEKLY GOALS */}
-      <section className={styles.bottomGrid}>
-        <ChartBarStacked data={learningProgress} />
-
-        <div className={styles.bottomRightGrid}>
-          <div className={`${styles.goalsSection} tour-step-weekly-goals`}>
-          <h3>Mục tiêu tuần này</h3>
-          <div className={styles.goalsList}>
-            {weeklyGoals.map(goal => {
-              const percentage = Math.min(100, Math.round((goal.current / goal.target) * 100));
-              return (
-                <div key={goal.id} className={styles.goalItem}>
-                  <div className={styles.goalInfo}>
-                    <h4>{goal.title}</h4>
-                    <span>{goal.current}/{goal.target} {goal.unit}</span>
-                  </div>
-                  <div className={styles.goalProgress}>
-                    <AnimatedProgressBar progress={percentage} width="100%" barColor="linear-gradient(90deg, #f47c20 0%, #faa266 100%)" />
-                  </div>
+              {/* Weakness Warning Card */}
+              <div className={`${styles.adaptiveCard} ${styles.warningCard}`}>
+                <div className={styles.warningIconWrapper}>
+                  <Warning size={40} weight="duotone" />
                 </div>
-              );
-            })}
-          </div>
-        </div>
-
-      {/* 5. ROW 4: ANNOUNCEMENTS */}
-      <section className={`${styles.timelineSection} tour-step-timeline`}>
-        <h3>Thông báo từ giáo viên</h3>
-        <div className={styles.timelineList}>
-          {studentAnnouncements.length > 0 ? (
-            studentAnnouncements.map((ann) => (
-              <div key={ann.id} className={styles.timelineItem}>
-                <div className={`${styles.timelineDot} ${styles.blue}`}></div>
-                <div className={styles.timelineContent}>
-                  <span className={styles.timelineTime}>{ann.time} - {ann.authorName} ({ann.className})</span>
-                  <p className={styles.timelineAction}>{ann.content}</p>
+                <div className={styles.adaptiveCardInfo}>
+                  <h4 className={styles.warningTitle}>Cảnh báo Lỗ hổng!</h4>
+                  <p>Bạn đang sai nhiều ở dạng bài: <strong style={{ color: '#b91c1c' }}>{weaknessData[0]?.tag || 'Hàm số Mũ'}</strong></p>
+                  <div className={styles.errorRateBadge}>Tỷ lệ sai: {weaknessData[0]?.errorRate || 80}%</div>
+                  <button
+                    className={styles.btnWarning}
+                    onClick={() => handlePracticeClick(weaknessData[0]?.tag || 'Hàm số Mũ')}
+                  >
+                    Luyện tập ngay <ArrowRight size={16} weight="bold" />
+                  </button>
                 </div>
               </div>
-            ))
-          ) : (
-            <div className={styles.emptyState}>
-              <img src="/empty_activities_illustration_1784358537578.png" alt="No announcements" className={styles.emptyImgSmall} />
-              <p className={styles.emptySub}>Chưa có thông báo nào từ giáo viên.</p>
             </div>
-          )}
-        </div>
-      </section>
+          </section>
 
-        </div> {/* Hết bottomRightGrid */}
-      </section>
+          {/* 4. ROW 3: LEARNING PROGRESS & WEEKLY GOALS */}
+          <section className={styles.bottomGrid}>
+            <ChartBarStacked data={learningProgress} />
+
+            <div className={styles.bottomRightGrid}>
+              <div className={`${styles.goalsSection} tour-step-weekly-goals`}>
+                <h3>Mục tiêu tuần này</h3>
+                <div className={styles.goalsList}>
+                  {weeklyGoals.map(goal => {
+                    const percentage = Math.min(100, Math.round((goal.current / goal.target) * 100));
+                    return (
+                      <div key={goal.id} className={styles.goalItem}>
+                        <div className={styles.goalInfo}>
+                          <h4>{goal.title}</h4>
+                          <span>{goal.current}/{goal.target} {goal.unit}</span>
+                        </div>
+                        <div className={styles.goalProgress}>
+                          <AnimatedProgressBar progress={percentage} width="100%" barColor="linear-gradient(90deg, #f47c20 0%, #faa266 100%)" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 5. ROW 4: ANNOUNCEMENTS */}
+              <section className={`${styles.timelineSection} tour-step-timeline`}>
+                <h3>Thông báo từ giáo viên</h3>
+                <div className={styles.timelineList}>
+                  {studentAnnouncements.length > 0 ? (
+                    studentAnnouncements.map((ann) => (
+                      <div key={ann.id} className={styles.timelineItem}>
+                        <div className={`${styles.timelineDot} ${styles.blue}`}></div>
+                        <div className={styles.timelineContent}>
+                          <span className={styles.timelineTime}>{ann.time} - {ann.authorName} ({ann.className})</span>
+                          <p className={styles.timelineAction}>{ann.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <img src="/empty_activities_illustration_1784358537578.png" alt="No announcements" className={styles.emptyImgSmall} />
+                      <p className={styles.emptySub}>Chưa có thông báo nào từ giáo viên.</p>
+                    </div>
+                  )}
+                </div>
+              </section>
+
+            </div> {/* Hết bottomRightGrid */}
+          </section>
 
         </div> {/* Hết Cột Trái */}
 
@@ -553,15 +623,32 @@ export default function StudentDashboard() {
                 <h3>Bảng xếp hạng XP</h3>
               </div>
               {classes.length > 0 && (
-                <select 
-                  className="text-xs p-1 rounded border border-slate-200 max-w-[120px] truncate bg-transparent focus:outline-none" 
-                  value={selectedClassId} 
-                  onChange={(e) => setSelectedClassId(e.target.value)}
-                >
-                  {classes.map(c => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 font-semibold text-slate-700 flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer"
+                    >
+                      <span className="max-w-[90px] truncate">
+                        {classes.find(c => c._id === selectedClassId)?.name || "Chọn lớp"}
+                      </span>
+                      <CaretDown size={12} weight="bold" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
+                    <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold px-2 py-1 uppercase">Chọn lớp học</DropdownMenuLabel>
+                    {classes.map(c => (
+                      <DropdownMenuItem
+                        key={c._id}
+                        onClick={() => setSelectedClassId(c._id)}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-between ${selectedClassId === c._id ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                      >
+                        <span className="truncate">{c.name}</span>
+                        {selectedClassId === c._id && <CheckIcon className="w-3.5 h-3.5 text-orange-600" />}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
             <div className={styles.leaderboardList}>
@@ -569,7 +656,7 @@ export default function StudentDashboard() {
                 <div key={student.id} className={`${styles.leaderboardItem} ${student.name === username ? styles.currentUser : ''}`}>
                   <div className={styles.rankBadge}>{idx + 1}</div>
                   <div className={styles.avatarPlaceholder} style={{ overflow: 'hidden' }}>
-                     {student.avatar && student.avatar.length > 2 ? <img src={student.avatar} alt={student.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : student.name.charAt(0)}
+                    {student.avatar && student.avatar.length > 2 ? <img src={student.avatar} alt={student.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : student.name.charAt(0)}
                   </div>
                   <div className={styles.studentInfo}>
                     <span className={styles.name}>{student.name}</span>
@@ -600,9 +687,9 @@ export default function StudentDashboard() {
               ))}
             </div>
             <form className={styles.chatInputContainer} onSubmit={handleSendChat}>
-              <input 
-                type="text" 
-                placeholder="Nhập tin nhắn..." 
+              <input
+                type="text"
+                placeholder="Nhập tin nhắn..."
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 className={styles.chatInput}

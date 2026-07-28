@@ -43,6 +43,7 @@ import { gradebookService } from "../../../service/gradebook.service.ts";
 import type { IAnnouncement } from "../../../service/announcement.service.ts";
 import * as XLSX from "xlsx";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
+import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
 import { Table, Checkbox as HeroCheckbox, Pagination } from "@heroui/react";
 import type { Selection } from "@heroui/react";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
@@ -57,6 +58,7 @@ import { ScrollArea } from "../../../components/ui/scroll-area";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../components/ui/dropdown-menu";
 import { QuizActionMenu } from "../../../components/ui/ActionMenus/QuizActionMenu";
 import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton";
+import { SaveButton } from "../../../components/ui/Buttons/SaveButton";
 import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
 import QuizBuilder from "../../../components/ui/Builders/QuizBuilder/QuizBuilder";
 import QuizPreviewModal from "../../../components/ui/Dialogs/QuizPreviewModal/QuizPreviewModal";
@@ -84,7 +86,7 @@ export default function TeacherClassroomDetail() {
   // State cho trắc nghiệm & hoạt động
   const [allActivities, setAllActivities] = useState<any[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
-  const [filterType, setFilterType] = useState<"all" | "quiz" | "document">("all");
+  const [filterType, setFilterType] = useState<"all" | "quiz" | "document" | "pending">("all");
   const [filterCategory, setFilterCategory] = useState<"all" | "homework" | "periodic">("all");
   const [viewMode, setViewMode] = useState<"grid" | "table">("table");
   const [bankFilterType, setBankFilterType] = useState<"all" | "quiz" | "document">("all");
@@ -103,9 +105,12 @@ export default function TeacherClassroomDetail() {
   const [isDeletingAssignment, setIsDeletingAssignment] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  const totalPendingCount = allActivities.reduce((acc, act) => acc + (act.pendingGradeCount || 0), 0);
+
   const filteredActivities = allActivities.filter((item: any) => {
     if (filterType === "quiz" && item.type !== "quiz") return false;
     if (filterType === "document" && item.type === "quiz") return false;
+    if (filterType === "pending" && (!item.pendingGradeCount || item.pendingGradeCount <= 0)) return false;
     if (filterCategory === "homework" && item.category !== "homework" && item.category) return false;
     if (filterCategory === "periodic" && item.category !== "periodic" && item.category !== "mock_exam") return false;
     return true;
@@ -190,6 +195,16 @@ export default function TeacherClassroomDetail() {
   const [assignDurationMinutes, setAssignDurationMinutes] = useState(15);
   const [assignAllowMultiple, setAssignAllowMultiple] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
+
+  // Form states cho Chỉnh sửa bài tập / hoạt động
+  const [editingActivity, setEditingActivity] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editCategory, setEditCategory] = useState("homework");
+  const [editDueDate, setEditDueDate] = useState("");
+  const [editMaxScore, setEditMaxScore] = useState(10);
+  const [editAllowMultiple, setEditAllowMultiple] = useState(false);
+  const [isSavingEditActivity, setIsSavingEditActivity] = useState(false);
 
   // Form states cho tạo đề trắc nghiệm
   const [quizTitle, setQuizTitle] = useState("");
@@ -821,13 +836,19 @@ export default function TeacherClassroomDetail() {
     try {
       const res = await activityService.updateActivity(quizItem._id, { status: newStatus });
       if (res) {
+        setAllActivities(prev => prev.map(a =>
+          a._id === quizItem._id ? { ...a, status: newStatus } : a
+        ));
         setQuizzes(prevQuizzes => prevQuizzes.map(q =>
           q._id === quizItem._id ? { ...q, status: newStatus } : q
         ));
-        toast.success(`Đã ${newStatus === 'open' ? 'mở' : 'đóng'} đề thi "${quizItem.title}"`);
+        setAssignments(prev => prev.map(a =>
+          a._id === quizItem._id ? { ...a, status: newStatus } : a
+        ));
+        toast.success(`Đã ${newStatus === 'open' ? 'mở' : 'đóng'} bài tập "${quizItem.title}"`);
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Lỗi khi cập nhật trạng thái đề thi");
+      toast.error(error.response?.data?.message || "Lỗi khi cập nhật trạng thái bài tập");
     }
   };
 
@@ -937,9 +958,10 @@ export default function TeacherClassroomDetail() {
     setAssignCategory(item.type === 'quiz' ? 'periodic' : 'homework');
     setAssignAllowMultiple(false);
 
-    // Hạn nộp mặc định là 7 ngày sau
+    // Hạn nộp mặc định là 7 ngày sau (Định dạng local ISO cho datetime-local picker)
     const defaultDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    setAssignDueDate(defaultDate.toISOString().substring(0, 16));
+    defaultDate.setMinutes(defaultDate.getMinutes() - defaultDate.getTimezoneOffset());
+    setAssignDueDate(defaultDate.toISOString().slice(0, 16));
   };
 
   // Giao bài tập
@@ -971,6 +993,56 @@ export default function TeacherClassroomDetail() {
       toast.error(err.message || "Giao bài tập thất bại!");
     } finally {
       setIsAssigning(false);
+    }
+  };
+
+  const handleOpenEditActivity = (act: any) => {
+    if (act.type === "quiz") {
+      handleOpenEditQuiz(act);
+      return;
+    }
+    setEditingActivity(act);
+    setEditTitle(act.title || "");
+    setEditDescription(act.description || "");
+    setEditCategory(act.category || "homework");
+    setEditMaxScore(act.maxScore || 10);
+    setEditAllowMultiple(act.allowMultipleSubmissions ?? false);
+
+    if (act.dueDate) {
+      const d = new Date(act.dueDate);
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      setEditDueDate(d.toISOString().slice(0, 16));
+    } else {
+      const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+      setEditDueDate(d.toISOString().slice(0, 16));
+    }
+  };
+
+  const handleConfirmEditActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingActivity) return;
+    setIsSavingEditActivity(true);
+    try {
+      const updatedData = {
+        title: editTitle,
+        description: editDescription,
+        category: editCategory,
+        dueDate: editDueDate,
+        maxScore: editMaxScore,
+        allowMultipleSubmissions: editAllowMultiple
+      };
+      const res = await activityService.updateActivity(editingActivity._id, updatedData);
+      if (res) {
+        setAllActivities(prev => prev.map(a => a._id === editingActivity._id ? { ...a, ...updatedData } : a));
+        setAssignments(prev => prev.map(a => a._id === editingActivity._id ? { ...a, ...updatedData } : a));
+        toast.success("Cập nhật thông tin bài tập thành công!");
+        setEditingActivity(null);
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || "Lỗi khi cập nhật bài tập!");
+    } finally {
+      setIsSavingEditActivity(false);
     }
   };
 
@@ -1702,14 +1774,15 @@ export default function TeacherClassroomDetail() {
               /* SUBMISSIONS RESULTS TABLE */
               <div className={styles.submissionsView}>
                 <div className={styles.submissionsHeader}>
-                  <button className={styles.backBtn} onClick={() => {
-                    setSelectedQuiz(null);
-                    setQuizResultTab("scores");
-                  }}>
-                    <ArrowLeft size={16} weight="bold" />
-                    Quay lại danh sách đề thi
-                  </button>
-                  <h3>Phân tích: {selectedQuiz.title}</h3>
+                  <div className="flex flex-col gap-3">
+                    <BackButton onClick={() => {
+                      setSelectedQuiz(null);
+                      setQuizResultTab("scores");
+                    }}>
+                      Quay lại danh sách đề thi
+                    </BackButton>
+                    <h3 className="text-xl font-bold text-slate-800">Phân tích: {selectedQuiz.title}</h3>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-4 mb-6 border-b border-slate-200">
@@ -1791,15 +1864,11 @@ export default function TeacherClassroomDetail() {
             ) : selectedAssignment ? (
               <div className={styles.submissionsView}>
                 <div className={styles.submissionsHeader}>
-                  <div>
-                    <button
-                      type="button"
-                      className={styles.backBtn}
-                      onClick={() => setSelectedAssignment(null)}
-                    >
-                      <ArrowLeft size={18} weight="bold" /> Quay lại danh sách bài tập
-                    </button>
-                    <h3 className="mt-2 text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <div className="flex flex-col gap-3">
+                    <BackButton onClick={() => setSelectedAssignment(null)}>
+                      Quay lại danh sách bài tập
+                    </BackButton>
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                       <ClipboardText size={24} className="text-orange-500" weight="duotone" />
                       Chấm bài: {selectedAssignment.title}
                     </h3>
@@ -1808,15 +1877,13 @@ export default function TeacherClassroomDetail() {
                     <span className="text-sm font-semibold text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                       Điểm tối đa: <strong className="text-orange-600 font-bold">{selectedAssignment.maxScore || 10}</strong>
                     </span>
-                    <button
-                      type="button"
+                    <SaveButton
                       onClick={handleSaveGrades}
                       disabled={isSavingGrades || loadingSubmissions}
-                      className={styles.btnPrimary}
                     >
                       <CheckCircle size={18} weight="bold" />
-                      {isSavingGrades ? "Đang lưu..." : "Lưu bảng điểm"}
-                    </button>
+                      <span>{isSavingGrades ? "Đang lưu..." : "Lưu bảng điểm"}</span>
+                    </SaveButton>
                   </div>
                 </div>
 
@@ -1921,23 +1988,20 @@ export default function TeacherClassroomDetail() {
                                 </div>
                               </td>
                               <td>
-                                <input
-                                  type="number"
-                                  min={0}
-                                  max={selectedAssignment.maxScore || 10}
-                                  step="0.25"
-                                  placeholder="---"
+                                <NumberStepper
                                   value={currentScore}
-                                  onChange={(e) => {
+                                  onChange={(val) => {
                                     setGradingData(prev => ({
                                       ...prev,
                                       [studentIdStr]: {
                                         ...prev[studentIdStr],
-                                        score: e.target.value
+                                        score: val
                                       }
                                     }));
                                   }}
-                                  className="w-20 px-2.5 py-1.5 border border-slate-200 rounded-lg text-center font-bold text-slate-800 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none text-sm"
+                                  min={0}
+                                  max={selectedAssignment.maxScore || 10}
+                                  step={0.25}
                                 />
                               </td>
                               <td>
@@ -2006,6 +2070,13 @@ export default function TeacherClassroomDetail() {
                         className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filterType === "document" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                       >
                         <FilePdf size={14} weight="bold" /> Tự luận / File
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFilterType("pending")}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${filterType === "pending" ? "bg-rose-500 text-white shadow-sm font-extrabold" : "bg-rose-50 text-rose-600 hover:bg-rose-100 font-semibold"}`}
+                      >
+                        <Clock size={14} weight="bold" /> Cần chấm {totalPendingCount > 0 ? `(${totalPendingCount})` : ""}
                       </button>
                     </div>
 
@@ -2094,8 +2165,6 @@ export default function TeacherClassroomDetail() {
                           const totalStudents = classroom?.studentCount || 0;
                           const subCount = act.submissionCount || 0;
                           const percent = totalStudents > 0 ? Math.min(100, Math.round((subCount / totalStudents) * 100)) : 0;
-                          const isGenericTitle = act.title?.trim().toLowerCase() === "bài tập về nhà" && act.category === "homework";
-
                           return (
                             <div key={act._id} className={styles.quizCard}>
                               {/* Card Header Top Row: Semantic Badges */}
@@ -2109,6 +2178,11 @@ export default function TeacherClassroomDetail() {
                                       {act.category === "homework" ? "Bài tập về nhà" : "Kiểm tra / Thi thử"}
                                     </span>
                                   )}
+                                  {act.pendingGradeCount && act.pendingGradeCount > 0 ? (
+                                    <span className="px-2.5 py-1 rounded-lg text-[11px] font-black bg-rose-500 text-white animate-pulse flex items-center gap-1 shadow-sm" title="Có bài nộp mới chưa chấm">
+                                      🔥 Cần chấm ({act.pendingGradeCount})
+                                    </span>
+                                  ) : null}
                                 </div>
                                 <div className="flex items-center gap-2 flex-shrink-0">
                                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${statusObj.class}`}>
@@ -2124,12 +2198,12 @@ export default function TeacherClassroomDetail() {
                               </div>
 
                               {/* Title & Description */}
-                              <div className="min-h-[44px]">
-                                <h4 className="text-base font-bold text-slate-800 line-clamp-2 leading-snug">
-                                  {isGenericTitle ? (act.description || "Bài tập về nhà") : act.title}
+                              <div className="min-h-[44px] max-w-[240px]">
+                                <h4 className="text-base font-bold text-slate-800 truncate leading-snug" title={act.title}>
+                                  {act.title}
                                 </h4>
-                                {!isGenericTitle && act.description && (
-                                  <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">{act.description}</p>
+                                {act.description && (
+                                  <p className="text-xs text-slate-500 mt-1 truncate leading-relaxed" title={act.description}>{act.description}</p>
                                 )}
                               </div>
 
@@ -2168,7 +2242,14 @@ export default function TeacherClassroomDetail() {
                               <div className={styles.quizProgress}>
                                 <div className={styles.progressHeader}>
                                   <span className="text-xs text-slate-500 font-semibold">Tiến độ nộp bài:</span>
-                                  <strong className="text-xs text-slate-800 font-bold">{subCount}/{totalStudents} học sinh ({percent}%)</strong>
+                                  <div className="flex items-center gap-1.5">
+                                    <strong className="text-xs text-slate-800 font-bold">{subCount}/{totalStudents} HS ({percent}%)</strong>
+                                    {act.gradedCount !== undefined && !isQuiz && subCount > 0 && (
+                                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        Đã chấm {act.gradedCount}/{subCount}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/60 mt-1.5">
                                   <div
@@ -2198,10 +2279,7 @@ export default function TeacherClassroomDetail() {
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    if (isQuiz) handleOpenEditQuiz(act);
-                                    else toast.info("Tính năng chỉnh sửa bài tự luận đang được cập nhật.");
-                                  }}
+                                  onClick={() => handleOpenEditActivity(act)}
                                   className="inline-flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
                                   title="Chỉnh sửa"
                                 >
@@ -2238,10 +2316,7 @@ export default function TeacherClassroomDetail() {
                             loadAssignmentSubmissions(act._id);
                           }
                         }}
-                        onEdit={(act) => {
-                          if (act.type === "quiz") handleOpenEditQuiz(act);
-                          else toast.info("Tính năng chỉnh sửa bài tự luận đang được cập nhật.");
-                        }}
+                        onEdit={(act) => handleOpenEditActivity(act)}
                         onDelete={(act) => {
                           if (act.type === "quiz") handleDeleteQuizClick(act);
                           else handleDeleteAssignmentClick(act);
@@ -2465,143 +2540,149 @@ export default function TeacherClassroomDetail() {
               </div>
             </div>
           ) : (
-            <form onSubmit={handleConfirmAssign} className="mt-4 flex flex-col gap-4">
-              <div className="flex flex-col gap-4 pb-2">
-                <div className="flex items-center gap-2 pb-3 border-b border-slate-100 justify-between">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedBankItem(null)}
-                      className="text-xs font-semibold text-orange-500 hover:text-orange-600"
-                    >
-                      &larr; Quay lại chọn bài khác
-                    </button>
-                    <span className="text-slate-300">|</span>
-                    <span className="text-xs text-slate-500 font-semibold">Đang giao: {selectedBankItem.title}</span>
-                  </div>
+            <form onSubmit={handleConfirmAssign} className="mt-2 flex flex-col gap-3">
+              {/* Back Button & Assignment title info */}
+              <div className="flex items-center gap-3 pb-2 border-b border-slate-100">
+                <BackButton
+                  type="button"
+                  onClick={() => setSelectedBankItem(null)}
+                >
+                  Quay lại chọn bài khác
+                </BackButton>
+                <span className="text-slate-300">|</span>
+                <span className="text-xs text-slate-500 font-semibold truncate max-w-[350px]">Đang giao: {selectedBankItem.title}</span>
+              </div>
 
-                  <div className="flex items-center gap-2">
-                    <UiCheckbox
-                      id="assignAllowMultiple"
-                      checked={assignAllowMultiple}
-                      onCheckedChange={(checked) => setAssignAllowMultiple(checked as boolean)}
-                    />
-                    <label htmlFor="assignAllowMultiple" className="cursor-pointer m-0 font-medium text-xs text-slate-500">
-                      Cho phép học sinh nộp nhiều lần
-                    </label>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-1.5">
+              {/* Row 1: Title & Description */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-700 uppercase">Tiêu đề bài giao</label>
                   <input
                     type="text"
                     value={assignTitle}
                     onChange={(e) => setAssignTitle(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                     required
                   />
                 </div>
-
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1">
                   <label className="text-xs font-bold text-slate-700 uppercase">Mô tả chi tiết</label>
-                  <textarea
+                  <input
+                    type="text"
+                    placeholder="Nhập ghi chú hoặc dặn dò..."
                     value={assignDescription}
                     onChange={(e) => setAssignDescription(e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                   />
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase">Phân loại điểm</label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none flex items-center justify-between bg-white text-slate-700">
+              {/* Row 2: Category & Due date */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Phân loại điểm</label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none flex items-center justify-between bg-white text-slate-700">
+                      {
                         {
-                          {
-                            homework: "Bài tập về nhà",
-                            periodic: "Kiểm tra định kỳ",
-                            mock_exam: "Thi thử",
-                            attitude: "Chuyên cần / Thái độ"
-                          }[assignCategory] || "Chọn phân loại..."
-                        }
-                        <CaretDown size={14} className="text-slate-500" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width] min-w-[200px] bg-white shadow-lg border border-slate-100 z-50">
-                        <DropdownMenuItem onClick={() => setAssignCategory("homework")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
-                          Bài tập về nhà
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAssignCategory("periodic")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
-                          Kiểm tra định kỳ
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAssignCategory("mock_exam")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
-                          Thi thử
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAssignCategory("attitude")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
-                          Chuyên cần / Thái độ
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                          homework: "Bài tập về nhà",
+                          periodic: "Kiểm tra định kỳ",
+                          mock_exam: "Thi thử",
+                          attitude: "Chuyên cần / Thái độ"
+                        }[assignCategory] || "Chọn phân loại..."
+                      }
+                      <CaretDown size={14} className="text-slate-500" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width] min-w-[200px] bg-white shadow-lg border border-slate-100 z-50">
+                      <DropdownMenuItem onClick={() => setAssignCategory("homework")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                        Bài tập về nhà
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAssignCategory("periodic")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                        Kiểm tra định kỳ
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAssignCategory("mock_exam")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                        Thi thử
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setAssignCategory("attitude")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                        Chuyên cần / Thái độ
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase">Hạn nộp</label>
-                    <input
-                      type="datetime-local"
-                      value={assignDueDate}
-                      onChange={(e) => setAssignDueDate(e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
-                      required
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
+                    <span>Hạn nộp</span>
+                    <span className="text-[10px] text-orange-500 font-normal lowercase">(chọn ngày & giờ)</span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    value={assignDueDate}
+                    onChange={(e) => setAssignDueDate(e.target.value)}
+                    onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none cursor-pointer bg-white text-slate-700 font-medium"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: Max score, Duration, & Allow Multiple Submissions */}
+              <div className={`grid ${selectedBankItem.type === 'quiz' ? 'grid-cols-3' : 'grid-cols-2'} gap-3 items-end`}>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-bold text-slate-700 uppercase">Điểm tối đa</label>
+                  <div style={{ display: 'flex' }}>
+                    <NumberStepper
+                      value={assignMaxScore}
+                      onChange={(val) => setAssignMaxScore(Number(val))}
+                      min={1}
+                      max={100}
+                      step={1}
+                      fullWidth
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-bold text-slate-700 uppercase">Điểm tối đa</label>
+                {selectedBankItem.type === 'quiz' && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase">Thời gian (phút)</label>
                     <div style={{ display: 'flex' }}>
                       <NumberStepper
-                        value={assignMaxScore}
-                        onChange={(val) => setAssignMaxScore(Number(val))}
+                        value={assignDurationMinutes}
+                        onChange={(val) => setAssignDurationMinutes(Number(val))}
                         min={1}
-                        max={100}
+                        max={180}
                         step={1}
                         fullWidth
                       />
                     </div>
                   </div>
+                )}
 
-                  {selectedBankItem.type === 'quiz' && (
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase">Thời gian làm bài (phút)</label>
-                      <div style={{ display: 'flex' }}>
-                        <NumberStepper
-                          value={assignDurationMinutes}
-                          onChange={(val) => setAssignDurationMinutes(Number(val))}
-                          min={1}
-                          max={180}
-                          step={1}
-                          fullWidth
-                        />
-                      </div>
-                    </div>
-                  )}
+                <div className="flex items-center gap-2 h-[38px] px-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                  <UiCheckbox
+                    id="assignAllowMultiple"
+                    checked={assignAllowMultiple}
+                    onCheckedChange={(checked) => setAssignAllowMultiple(checked as boolean)}
+                  />
+                  <label htmlFor="assignAllowMultiple" className="cursor-pointer m-0 font-semibold text-xs text-slate-700 select-none whitespace-nowrap">
+                    Nộp nhiều lần
+                  </label>
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 mt-4 pt-3 border-t border-slate-100 shrink-0">
+              {/* Footer Buttons */}
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-2">
                 <button
                   type="button"
                   onClick={() => { setSelectedBankItem(null); setIsAssignFromBankOpen(false); }}
-                  className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+                  className="px-4 py-1.5 border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
                 >
                   Hủy bỏ
                 </button>
                 <PrimaryButton
                   type="submit"
                   disabled={isAssigning}
-                  className="px-4 py-2 font-semibold"
+                  className="px-4 py-1.5 font-semibold"
                 >
                   {isAssigning ? "Đang giao bài..." : "Giao bài ngay"}
                 </PrimaryButton>
@@ -2620,6 +2701,142 @@ export default function TeacherClassroomDetail() {
           quizQuestions={previewBankItem.quizQuestions || []}
         />
       )}
+
+      {/* EDIT ACTIVITY MODAL */}
+      <Dialog open={!!editingActivity} onOpenChange={(open) => { if (!open) setEditingActivity(null); }}>
+        <DialogContent className="sm:max-w-[700px] w-[95vw] bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xl overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <PencilSimple className="text-orange-500" size={22} weight="bold" />
+              Chỉnh sửa thông tin bài tập
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500">
+              Cập nhật tiêu đề, hạn nộp, mô tả và cài đặt bài giao cho lớp học.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmEditActivity} className="mt-3 flex flex-col gap-3">
+            {/* Row 1: Title & Description */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 uppercase">Tiêu đề bài giao</label>
+                <input
+                  type="text"
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none font-medium text-slate-800"
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 uppercase">Mô tả chi tiết</label>
+                <input
+                  type="text"
+                  placeholder="Nhập ghi chú hoặc dặn dò..."
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Category & Due date */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 uppercase">Phân loại điểm</label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none flex items-center justify-between bg-white text-slate-700">
+                    {
+                      {
+                        homework: "Bài tập về nhà",
+                        periodic: "Kiểm tra định kỳ",
+                        mock_exam: "Thi thử",
+                        attitude: "Chuyên cần / Thái độ"
+                      }[editCategory] || "Chọn phân loại..."
+                    }
+                    <CaretDown size={14} className="text-slate-500" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-[--radix-dropdown-menu-trigger-width] min-w-[200px] bg-white shadow-lg border border-slate-100 z-50">
+                    <DropdownMenuItem onClick={() => setEditCategory("homework")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                      Bài tập về nhà
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditCategory("periodic")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                      Kiểm tra định kỳ
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditCategory("mock_exam")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                      Thi thử
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditCategory("attitude")} className="cursor-pointer font-medium text-slate-700 hover:bg-slate-50 rounded-md px-3 py-2 outline-none">
+                      Chuyên cần / Thái độ
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 uppercase flex items-center justify-between">
+                  <span>Hạn nộp</span>
+                  <span className="text-[10px] text-orange-500 font-normal lowercase">(chọn ngày & giờ)</span>
+                </label>
+                <input
+                  type="datetime-local"
+                  value={editDueDate}
+                  onChange={(e) => setEditDueDate(e.target.value)}
+                  onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none cursor-pointer bg-white text-slate-700 font-medium"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Max score & Allow Multiple Submissions */}
+            <div className="grid grid-cols-2 gap-3 items-end">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-slate-700 uppercase">Điểm tối đa</label>
+                <div style={{ display: 'flex' }}>
+                  <NumberStepper
+                    value={editMaxScore}
+                    onChange={(val) => setEditMaxScore(Number(val))}
+                    min={1}
+                    max={100}
+                    step={1}
+                    fullWidth
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 h-[38px] px-3 bg-slate-50 rounded-xl border border-slate-200/80">
+                <UiCheckbox
+                  id="editAllowMultiple"
+                  checked={editAllowMultiple}
+                  onCheckedChange={(checked) => setEditAllowMultiple(checked as boolean)}
+                />
+                <label htmlFor="editAllowMultiple" className="cursor-pointer m-0 font-semibold text-xs text-slate-700 select-none whitespace-nowrap">
+                  Cho phép nộp nhiều lần
+                </label>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100 mt-2">
+              <button
+                type="button"
+                onClick={() => setEditingActivity(null)}
+                className="px-4 py-1.5 border border-slate-200 text-slate-700 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <PrimaryButton
+                type="submit"
+                disabled={isSavingEditActivity}
+                className="px-4 py-1.5 font-semibold"
+              >
+                {isSavingEditActivity ? "Đang lưu..." : "Cập nhật ngay"}
+              </PrimaryButton>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

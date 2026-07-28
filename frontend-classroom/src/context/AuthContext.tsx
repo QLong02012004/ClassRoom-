@@ -29,8 +29,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Hàm xóa session cục bộ (dùng nội bộ, không gọi API)
   const clearSession = useCallback(() => {
-    // Dùng clear() để dọn sạch hoàn toàn mọi key cũ (USER_TOKEN, userRole, username...)
-    localStorage.clear();
+    // Chỉ xóa các key liên quan đến xác thực, giữ lại tour_completed_* và các key khác
+    localStorage.removeItem('USER_TOKEN');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('username');
+    localStorage.removeItem('user');
     setUser(null);
   }, []);
 

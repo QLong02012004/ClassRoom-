@@ -25,6 +25,7 @@ import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent, ISubmission } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
 import styles from "./TeacherAssignments.module.scss";
 
 const categoryLabels: Record<string, string> = {
@@ -401,15 +402,16 @@ export default function TeacherAssignments() {
             {/* Max Score */}
             <div className={styles.formGroup}>
               <label>Điểm tối đa</label>
-              <input
-                type="number"
-                className={styles.textInput}
-                value={maxScore}
-                onChange={(e) => setMaxScore(Number(e.target.value))}
-                min={1}
-                max={100}
-                required
-              />
+              <div style={{ display: 'flex' }}>
+                <NumberStepper
+                  value={maxScore}
+                  onChange={(val) => setMaxScore(Number(val))}
+                  min={1}
+                  max={100}
+                  step={1}
+                  fullWidth
+                />
+              </div>
             </div>
 
             {/* Description */}
@@ -467,13 +469,20 @@ export default function TeacherAssignments() {
                     <span>📝</span>
                   </div>
                   <div className={styles.assignedInfo}>
-                    <h4>{item.title}</h4>
-                    <div className={styles.assignedMeta}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <h4 style={{ margin: 0 }}>{item.title}</h4>
+                      {item.pendingGradeCount && item.pendingGradeCount > 0 ? (
+                        <span style={{ fontSize: 11, fontWeight: 800, padding: '2px 7px', borderRadius: 6, backgroundColor: '#ef4444', color: '#fff' }}>
+                          🔥 Cần chấm ({item.pendingGradeCount})
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className={styles.assignedMeta} style={{ marginTop: 4 }}>
                       <span>
                         <Clock size={12} /> Hạn: {new Date(item.dueDate).toLocaleDateString('vi-VN')}
                       </span>
                       <span>
-                        <Users size={12} /> {getSubmissionsCount(item._id)}/{students.length} đã chấm
+                        <Users size={12} /> {item.submissionCount !== undefined ? item.submissionCount : getSubmissionsCount(item._id)}/{students.length} đã nộp (Đã chấm: {getSubmissionsCount(item._id)})
                       </span>
                     </div>
                   </div>
@@ -597,15 +606,12 @@ export default function TeacherAssignments() {
                         </div>
 
                         <div className={styles.gradingInputs}>
-                          <input
-                            type="number"
-                            placeholder="Điểm"
-                            className={styles.scoreInput}
+                          <NumberStepper
+                            value={gradingScores[student._id] ?? ""}
+                            onChange={(val) => setGradingScores({ ...gradingScores, [student._id]: String(val) })}
                             min={0}
-                            max={selectedAssignment.maxScore}
-                            step="0.1"
-                            value={gradingScores[student._id] || ""}
-                            onChange={(e) => setGradingScores({ ...gradingScores, [student._id]: e.target.value })}
+                            max={selectedAssignment.maxScore || 10}
+                            step={0.25}
                           />
                           <input
                             type="text"

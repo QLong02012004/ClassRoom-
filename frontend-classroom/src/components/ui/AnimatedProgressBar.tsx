@@ -1,5 +1,5 @@
 import React from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 export interface AnimatedProgressBarProps {
   progress?: number;
@@ -14,10 +14,12 @@ const AnimatedProgressBar = ({
   height = '100%',
   barColor = 'linear-gradient(90deg, #00f260, #0575e6)' 
 }: AnimatedProgressBarProps) => {
+  const safeProgress = Math.min(100, Math.max(0, Number(progress) || 0));
+
   return (
-    <StyledWrapper $progress={progress} $width={width} $height={height} $barColor={barColor}>
+    <StyledWrapper $progress={safeProgress} $width={width} $height={height} $barColor={barColor}>
       <div className="progress-container">
-        <div className="progress-bar" />
+        <div className="progress-bar" style={{ '--target-width': `${safeProgress}%` } as React.CSSProperties} />
         <div className="particles">
           <div className="particle" />
           <div className="particle" />
@@ -29,6 +31,15 @@ const AnimatedProgressBar = ({
     </StyledWrapper>
   );
 }
+
+const growAnimation = keyframes`
+  0% {
+    width: 0%;
+  }
+  100% {
+    width: var(--target-width, 0%);
+  }
+`;
 
 const StyledWrapper = styled.div<{ $progress: number; $width: string; $height: string; $barColor: string }>`
   height: 100%;
@@ -53,7 +64,7 @@ const StyledWrapper = styled.div<{ $progress: number; $width: string; $height: s
     width: ${props => props.$progress}%;
     background: ${props => props.$barColor};
     border-radius: 30px;
-    animation: grow 3s ease-in-out forwards;
+    animation: ${growAnimation} 1.5s ease-out forwards;
   }
 
   .progress-bar::before {
@@ -84,15 +95,6 @@ const StyledWrapper = styled.div<{ $progress: number; $width: string; $height: s
     border-radius: 50%;
     opacity: 0.6;
     animation: float 5s infinite ease-in-out;
-  }
-
-  @keyframes grow {
-    0% {
-      width: 0;
-    }
-    100% {
-      width: ${props => props.$progress}%;
-    }
   }
 
   @keyframes ripple {

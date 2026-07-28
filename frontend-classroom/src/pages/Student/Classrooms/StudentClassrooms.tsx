@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Plus, User } from "phosphor-react";
+import { Plus, User, DotsThreeVertical, Chalkboard, ClipboardText, Users, ChartBar } from "phosphor-react";
 import { useNavigate } from "react-router-dom";
 import { getMockDb } from "../../../utils/mockDb.ts";
-import type { Classroom, Student } from "../../../utils/mockDb.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
 import { classroomService } from "../../../service/classroom.service.ts";
@@ -10,6 +9,13 @@ import styles from "./StudentClassrooms.module.scss";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton.tsx";
 import { SecondaryButton } from "../../../components/ui/Buttons/SecondaryButton.tsx";
 import AnimatedProgressBar from "../../../components/ui/AnimatedProgressBar.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 
 export default function StudentClassrooms() {
   const toast = useToast();
@@ -184,8 +190,54 @@ export default function StudentClassrooms() {
             style={{ cursor: "pointer" }}
           >
             <div className={styles.cardTop}>
-              <h3 className={styles.classTitle} style={{ margin: 0 }}>{cls.className}</h3>
-              <span className={styles.statusTag}>Đang diễn ra</span>
+              <div className="flex items-center justify-between w-full">
+                <h3 className={styles.classTitle} style={{ margin: 0 }}>{cls.className}</h3>
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <span className={styles.statusTag}>Đang diễn ra</span>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors focus:outline-none cursor-pointer"
+                        title="Tùy chọn lớp học"
+                      >
+                        <DotsThreeVertical size={20} weight="bold" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/classrooms/${cls._id}`)}
+                        className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                      >
+                        <Chalkboard size={16} className="text-orange-500" weight="bold" />
+                        <span>Vào lớp học</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/classrooms/${cls._id}?tab=activities`)}
+                        className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                      >
+                        <ClipboardText size={16} className="text-blue-500" weight="bold" />
+                        <span>Bài tập & Bài thi</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/classrooms/${cls._id}?tab=members`)}
+                        className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                      >
+                        <Users size={16} className="text-indigo-500" weight="bold" />
+                        <span>Xem thành viên</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                      <DropdownMenuItem
+                        onClick={() => navigate(`/grades`)}
+                        className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                      >
+                        <ChartBar size={16} className="text-emerald-500" weight="bold" />
+                        <span>Bảng điểm cá nhân</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
             </div>
 
             <div className={styles.cardMiddle}>
