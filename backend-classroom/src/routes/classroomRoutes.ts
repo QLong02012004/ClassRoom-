@@ -13,7 +13,9 @@ import {
     getClassroomDetail,
     getAdminClassroomActivities,
     addStudentToClassroom,
-    joinClassroomByCode
+    joinClassroomByCode,
+    generateClassroomGoogleSheet,
+    linkClassroomGoogleSheet
 } from '../controllers/classroomController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -54,6 +56,12 @@ router.post('/', protect, authorize('teacher'), createClassroom);
 
 // Cập nhật thông tin lớp học
 router.put('/:id', protect, authorize('teacher'), updateClassroom);
+
+// Tạo / cấp Google Sheet cho lớp học
+router.post('/:id/google-sheet', protect, authorize('teacher'), generateClassroomGoogleSheet);
+
+// Liên kết Google Sheet cá nhân cho lớp học
+router.post('/:id/link-google-sheet', protect, authorize('teacher'), linkClassroomGoogleSheet);
 
 // Xóa mềm lớp học (Lưu trữ)
 router.delete('/:id/soft', protect, authorize('teacher'), softDeleteClassroom);

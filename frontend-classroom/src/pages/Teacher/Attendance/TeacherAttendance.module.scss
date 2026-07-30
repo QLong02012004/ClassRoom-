@@ -163,10 +163,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   background: linear-gradient(135deg, rgba(254, 103, 71, 0.06) 0%, rgba(254, 103, 71, 0.02) 100%);
   border: 1.5px solid rgba(254, 103, 71, 0.15);
-  border-radius: 12px;
-  padding: 12px 20px;
+  border-radius: 14px;
+  padding: 10px 16px;
 
   .classInfoLeft {
     display: flex;

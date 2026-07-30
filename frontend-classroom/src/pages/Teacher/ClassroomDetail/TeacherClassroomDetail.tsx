@@ -2035,7 +2035,7 @@ export default function TeacherClassroomDetail() {
                 {/* ROW 1: TITLE & PRIMARY ACTION BUTTON */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                   <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Danh Sách Bài Tập & Đề Thi</h3>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f47c20', margin: 0 }}>Danh Sách Bài Tập & Đề Thi</h3>
                     <p className="text-sm text-slate-500 mt-0.5">
                       Quản lý toàn bộ hoạt động học tập, bài tập về nhà và đề thi trong lớp
                     </p>

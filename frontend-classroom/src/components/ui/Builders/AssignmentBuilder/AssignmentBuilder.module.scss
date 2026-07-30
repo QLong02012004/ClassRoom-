@@ -40,7 +40,7 @@
   input,
   select,
   textarea {
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid vars.$sidebar-border;
     border-radius: 10px;
     padding: 10px 14px;
     font-size: 0.9rem;
@@ -50,7 +50,7 @@
 
     &:focus {
       border-color: vars.$primary;
-      box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.15);
+      box-shadow: 0 0 0 3px rgba(244, 124, 32, 0.15);
     }
   }
 }
@@ -76,7 +76,7 @@
   position: sticky;
   bottom: 20px;
   z-index: 50;
-  border: 1px solid #e2e8f0;
+  border: 1px solid vars.$sidebar-border;
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 
@@ -91,7 +91,7 @@
 
   .btnCancel {
     background: #f1f5f9;
-    border: 1.5px solid #e2e8f0;
+    border: 1.5px solid vars.$sidebar-border;
     color: vars.$dark-text;
 
     &:hover {
@@ -103,11 +103,11 @@
     background: vars.$primary;
     border: none;
     color: white;
-    box-shadow: 0 4px 12px rgba(254, 103, 71, 0.2);
+    box-shadow: 0 4px 12px rgba(244, 124, 32, 0.25);
 
     &:hover {
-      background: #e0583b;
-      box-shadow: 0 6px 16px rgba(254, 103, 71, 0.3);
+      background: #e06b12;
+      box-shadow: 0 6px 16px rgba(244, 124, 32, 0.35);
     }
 
     &:disabled {

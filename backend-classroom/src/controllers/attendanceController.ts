@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AttendanceModel } from '../models/Attendance';
+import { GoogleSheetsService } from '../services/googleSheetsService';
 
 // Lấy bản ghi điểm danh theo lớp + ngày
 export const getAttendance = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -58,6 +59,13 @@ export const saveAttendance = async (req: Request, res: Response, next: NextFunc
             { new: true, upsert: true }
         );
 
+        // Tự động kích hoạt đồng bộ sang Google Sheet bất đồng bộ (Fire & Forget)
+        if (attendance && attendance._id) {
+            GoogleSheetsService.syncAttendanceToSheet(attendance._id.toString()).catch(err => {
+                console.error('[GoogleSheetSync Background Lỗi]:', err);
+            });
+        }
+
         res.status(200).json({
             message: 'Lưu điểm danh thành công',
             data: attendance
@@ -67,7 +75,7 @@ export const saveAttendance = async (req: Request, res: Response, next: NextFunc
     }
 };
 
-// Lấy lịch sử 5 buổi điểm danh gần nhất của lớp
+// Lấy lịch sử 30 buổi điểm danh gần nhất của lớp
 export const getAttendanceHistory = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { classId } = req.params;
@@ -76,10 +84,9 @@ export const getAttendanceHistory = async (req: Request, res: Response, next: Ne
             return res.status(400).json({ message: 'Thiếu classId' });
         }
 
-        // Lấy 5 buổi điểm danh gần nhất (sắp xếp giảm dần theo ngày)
         const history = await AttendanceModel.find({ classId })
             .sort({ date: -1 })
-            .limit(5);
+            .limit(30);
 
         res.status(200).json({
             message: 'Lấy lịch sử điểm danh thành công',

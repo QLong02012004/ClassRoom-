@@ -11,6 +11,9 @@ import {
   NotePencil,
   CaretDown,
   MagnifyingGlass,
+  ClockClockwise,
+  Check,
+  FileText,
 } from "phosphor-react";
 import {
   DropdownMenu,
@@ -18,6 +21,14 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "../../../components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../../../components/ui/dialog";
 import { classroomService } from "../../../service/classroom.service";
 import { attendanceService } from "../../../service/attendance.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
@@ -90,6 +101,52 @@ export default function TeacherAttendance() {
   const [loadingClasses, setLoadingClasses] = useState(true);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [creatingSheet, setCreatingSheet] = useState(false);
+
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [inputSheetUrl, setInputSheetUrl] = useState("");
+  const [linkingSheet, setLinkingSheet] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
+
+  const BOT_EMAIL = "sheet-bot@extreme-cycling-503907-r0.iam.gserviceaccount.com";
+
+  const handleLinkSheet = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedClassId || !inputSheetUrl.trim()) return;
+
+    setLinkingSheet(true);
+    try {
+      const res = await classroomService.linkGoogleSheet(selectedClassId, inputSheetUrl.trim());
+      if (res.data) {
+        toast.success("Liên kết Google Sheet thành công!");
+        setClasses(prev => prev.map(c => c._id === selectedClassId ? { ...c, ...res.data } : c));
+        setShowLinkModal(false);
+        setInputSheetUrl("");
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || "Liên kết Google Sheet thất bại!";
+      toast.error(errMsg);
+    } finally {
+      setLinkingSheet(false);
+    }
+  };
+
+  const handleGenerateSheet = async () => {
+    if (!selectedClassId) return;
+    setCreatingSheet(true);
+    try {
+      const res = await classroomService.generateGoogleSheet(selectedClassId);
+      if (res.data) {
+        toast.success("Khởi tạo Google Sheet cho lớp thành công!");
+        setClasses(prev => prev.map(c => c._id === selectedClassId ? { ...c, ...res.data } : c));
+      }
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || err?.message || "Khởi tạo Google Sheet thất bại!";
+      toast.error(errMsg);
+    } finally {
+      setCreatingSheet(false);
+    }
+  };
 
   const [filterStatus, setFilterStatus] = useState<"all" | "present" | "late" | "absent">("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -178,6 +235,11 @@ export default function TeacherAttendance() {
     );
   };
 
+  const handleMarkAllPresent = () => {
+    setStudents(prev => prev.map(s => ({ ...s, status: "present" as StatusType })));
+    toast.info("Đã đánh dấu tất cả học sinh có mặt!");
+  };
+
   const toggleEditNote = (id: string) => {
     setStudents((prev) =>
       prev.map((s) => (s._id === id ? { ...s, editingNote: !s.editingNote } : s))
@@ -227,20 +289,21 @@ export default function TeacherAttendance() {
     <div className={styles.attendanceContainer}>
 
       {/* CLASS INFO & CONTROLS BAR */}
-      <div className={styles.classInfoBar}>
-        {/* Left Section: Class Dropdown + Date Picker + Search */}
-        <div className="flex items-center gap-3 flex-wrap">
+      <div className={styles.classInfoBar} style={{ flexDirection: 'column', gap: '12px' }}>
+        {/* ROW 1: Header Status & Action (Tên lớp + Thống kê + Nút Lưu) */}
+        <div className="flex items-center justify-between w-full flex-wrap gap-4">
+          {/* Tên Lớp */}
           <div className={styles.classInfoLeft}>
             <div className={styles.classInfoIcon}>
               <Student size={20} weight="duotone" />
             </div>
-            <div>
+            <div className="flex items-center gap-2">
               {loadingClasses ? (
                 <div className="w-32 h-6 bg-slate-100 rounded animate-pulse" />
               ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button style={{ background: 'transparent', border: 'none', padding: 0, fontWeight: 700, fontSize: '0.925rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
+                    <button style={{ background: 'transparent', border: 'none', padding: 0, fontWeight: 700, fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
                       <span>
                         {selectedClass
                           ? selectedClass.name
@@ -273,54 +336,7 @@ export default function TeacherAttendance() {
             </div>
           </div>
 
-          {/* DATE PICKER SELECTOR (Strict DD/MM/YYYY) */}
-          <div className="relative inline-flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:border-orange-400 transition-all shadow-sm cursor-pointer">
-            <CalendarBlank size={18} weight="duotone" className="text-orange-500 flex-shrink-0" />
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase font-bold text-slate-400 leading-none">Ngày điểm danh</span>
-              <span className="text-xs font-extrabold text-slate-800 tracking-wide font-mono mt-0.5">
-                {formatDateVN(selectedDate)}
-              </span>
-            </div>
-            {selectedDate === todayStr() ? (
-              <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full ml-1">Hôm nay</span>
-            ) : (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedDate(todayStr());
-                }}
-                className="text-[10px] bg-slate-100 hover:bg-orange-50 hover:text-orange-600 text-slate-600 font-bold px-2 py-0.5 rounded-full ml-1 transition-colors border border-slate-200 z-20"
-                title="Quay về ngày hôm nay"
-              >
-                Về hôm nay
-              </button>
-            )}
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-              title="Click để chọn ngày khác"
-            />
-          </div>
-
-          {/* Search Input */}
-          <div className="relative w-48 sm:w-52">
-            <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Tìm kiếm học sinh..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 transition-all shadow-sm"
-            />
-          </div>
-        </div>
-
-        {/* Right Section: Stats & Save Button */}
-        <div className="flex items-center gap-3 flex-shrink-0">
+          {/* Cụm 4 chỉ số thống kê */}
           {!loadingStudents && students.length > 0 && selectedClass && (
             <div className={styles.statsGroup}>
               <div className={styles.statItem}>
@@ -345,7 +361,8 @@ export default function TeacherAttendance() {
             </div>
           )}
 
-          <AnimatedAddButton onClick={handleSave} disabled={saving || students.length === 0}>
+          {/* Nút Lưu điểm danh (Primary Action ở góc phải) */}
+          <AnimatedAddButton icon={null} onClick={handleSave} disabled={saving || students.length === 0}>
             {saving ? (
               <span className="flex items-center gap-2 whitespace-nowrap px-1">
                 <Spinner size={16} className="animate-spin" />
@@ -353,11 +370,156 @@ export default function TeacherAttendance() {
               </span>
             ) : (
               <span className="flex items-center gap-2 whitespace-nowrap px-1">
-                <FloppyDisk size={16} weight="bold" />
+                <FloppyDisk size={18} weight="bold" />
                 Lưu điểm danh
               </span>
             )}
           </AnimatedAddButton>
+        </div>
+
+        {/* ROW 2: Filter & Quick Tools (Ngày + Ô tìm kiếm + Nút "Tất cả có mặt") */}
+        <div className="flex items-center justify-between w-full flex-wrap gap-3 pt-2.5 border-t border-orange-100/70">
+          <div className="flex items-center gap-3 flex-1 min-w-0 flex-wrap">
+            {/* Nút chọn Ngày điểm danh */}
+            <div className="relative inline-flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 hover:border-orange-400 transition-all shadow-xs cursor-pointer flex-shrink-0">
+              <CalendarBlank size={18} weight="duotone" className="text-orange-500 flex-shrink-0" />
+              <div className="flex flex-col">
+                <span className="text-[9px] uppercase font-bold text-slate-400 leading-none">Ngày điểm danh</span>
+                <span className="text-xs font-extrabold text-slate-800 tracking-wide font-mono mt-0.5">
+                  {formatDateVN(selectedDate)}
+                </span>
+              </div>
+              {selectedDate === todayStr() ? (
+                <span className="text-[10px] bg-orange-100 text-orange-600 font-bold px-2 py-0.5 rounded-full ml-1">Hôm nay</span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedDate(todayStr());
+                  }}
+                  className="text-[10px] bg-slate-100 hover:bg-orange-50 hover:text-orange-600 text-slate-600 font-bold px-2 py-0.5 rounded-full ml-1 transition-colors border border-slate-200 z-20"
+                  title="Quay về ngày hôm nay"
+                >
+                  Về hôm nay
+                </button>
+              )}
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                title="Click để chọn ngày khác"
+              />
+            </div>
+
+            {/* Menu xem Lịch sử các buổi điểm danh đã lưu */}
+            {attendanceHistory.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-600 border border-slate-200 hover:border-orange-300 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer outline-none flex-shrink-0">
+                    <ClockClockwise size={16} weight="bold" className="text-orange-500" />
+                    <span>Lịch sử ({attendanceHistory.length} buổi)</span>
+                    <CaretDown size={12} weight="bold" className="text-slate-400" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64 bg-white border border-slate-200 shadow-xl rounded-xl p-1 z-50 max-h-72 overflow-y-auto">
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                    Các buổi đã lưu điểm danh
+                  </div>
+                  {attendanceHistory.map((item) => {
+                    const itemDateStr = new Date(item.date).toISOString().split("T")[0];
+                    const isSelected = itemDateStr === selectedDate;
+                    const present = item.records ? item.records.filter((r: any) => r.status === "present").length : 0;
+                    const late = item.records ? item.records.filter((r: any) => r.status === "late").length : 0;
+                    const absent = item.records ? item.records.filter((r: any) => r.status === "absent").length : 0;
+
+                    return (
+                      <DropdownMenuItem
+                        key={item._id}
+                        onClick={() => setSelectedDate(itemDateStr)}
+                        className={`px-3 py-2 text-xs rounded-lg cursor-pointer flex justify-between items-center transition-colors my-0.5 ${isSelected ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono font-bold text-xs">{formatDateVN(itemDateStr)}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">
+                            {present} có mặt • {late} muộn • {absent} vắng
+                          </span>
+                        </div>
+                        {isSelected && <Check size={16} weight="bold" className="text-orange-600" />}
+                      </DropdownMenuItem>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+
+            {/* Thanh tìm kiếm học sinh */}
+            <div className="relative flex-1 min-w-[200px] max-w-md">
+              <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm học sinh theo tên hoặc email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-orange-400 focus:ring-1 focus:ring-orange-400 transition-all shadow-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Nút Google Sheet Lớp */}
+            {selectedClass?.googleSheetUrl || selectedClass?.googleSheetId ? (
+              <div className="flex items-center gap-1">
+                <a
+                  href={selectedClass.googleSheetUrl || `https://docs.google.com/spreadsheets/d/${selectedClass.googleSheetId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs flex-shrink-0 cursor-pointer no-underline"
+                  title="Mở Google Sheet lưu lịch sử điểm danh tự động của lớp này"
+                >
+                  <FileText size={16} weight="bold" className="text-emerald-600" />
+                  <span>Google Sheet Lớp</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInputSheetUrl(selectedClass.googleSheetUrl || "");
+                    setShowLinkModal(true);
+                  }}
+                  className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  title="Thay đổi đường dẫn Google Sheet khác"
+                >
+                  <NotePencil size={14} weight="bold" />
+                </button>
+              </div>
+            ) : selectedClass ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setInputSheetUrl("");
+                  setShowLinkModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-xs flex-shrink-0 cursor-pointer"
+                title="Liên kết file Google Sheet từ Google Drive cá nhân của bạn"
+              >
+                <FileText size={16} weight="bold" className="text-emerald-600" />
+                <span>🔗 Liên kết Google Sheet</span>
+              </button>
+            ) : null}
+
+            {/* Nút phím tắt: Tất cả có mặt */}
+            <button
+              type="button"
+              onClick={handleMarkAllPresent}
+              disabled={students.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 cursor-pointer"
+              title="Đánh dấu tất cả học sinh trong lớp là Có mặt"
+            >
+              <CheckCircle size={16} weight="bold" className="text-emerald-600" />
+              <span>Tất cả có mặt</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -410,7 +572,8 @@ export default function TeacherAttendance() {
                       </Checkbox.Content>
                     </Checkbox>
                   </Table.Column>
-                  <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200" id="student">Học sinh</Table.Column>
+                  <Table.Column isRowHeader className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200" id="student">Học sinh</Table.Column>
+                  <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200" id="date">Ngày điểm danh</Table.Column>
                   <Table.Column className="bg-slate-50 text-slate-600 font-bold uppercase text-[11px] tracking-wider py-4 px-4 border-b border-slate-200" id="status">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -440,6 +603,7 @@ export default function TeacherAttendance() {
                 <Table.Body>
                   {filteredStudents.length === 0 ? (
                     <Table.Row key="empty" id="empty">
+                      <Table.Cell />
                       <Table.Cell />
                       <Table.Cell />
                       <Table.Cell>
@@ -498,6 +662,12 @@ export default function TeacherAttendance() {
                                 )}
                               </div>
                             </div>
+                          </Table.Cell>
+                          <Table.Cell className="py-3 px-4 border-b border-slate-100">
+                            <span className="text-xs font-semibold text-slate-700 font-mono bg-slate-100/90 px-2.5 py-1 rounded-lg border border-slate-200/80 inline-flex items-center gap-1.5 shadow-xs whitespace-nowrap">
+                              <CalendarBlank size={14} weight="duotone" className="text-orange-500 flex-shrink-0" />
+                              {formatDateVN(selectedDate)}
+                            </span>
                           </Table.Cell>
                           <Table.Cell className="py-3 px-4 border-b border-slate-100">
                             <div className={styles.statusButtons}>
@@ -635,6 +805,84 @@ export default function TeacherAttendance() {
           </button>
         </div>
       )}
+
+      {/* MODAL LIÊN KẾT GOOGLE SHEET CÁ NHÂN */}
+      <Dialog open={showLinkModal} onOpenChange={setShowLinkModal}>
+        <DialogContent className="sm:max-w-[540px] bg-white p-6 rounded-2xl shadow-xl border border-slate-200">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900 flex items-center gap-2">
+              <FileText size={22} className="text-emerald-600 font-bold" />
+              <span>Liên kết Google Sheet Lớp</span>
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-500 mt-1">
+              Liên kết file Google Sheet từ Google Drive cá nhân của bạn để tự động đồng bộ điểm danh.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-4 my-2 text-xs text-slate-700">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-col gap-2">
+              <span className="font-bold text-slate-800 text-xs">📋 Hướng dẫn liên kết nhanh:</span>
+              <ol className="list-decimal list-inside space-y-2 text-slate-600 font-medium leading-relaxed">
+                <li>
+                  Tạo 1 file Google Sheet mới trên Google Drive cá nhân của bạn.
+                </li>
+                <li>
+                  Bấm nút <strong>Chia sẻ (Share)</strong> ➔ Thêm email Bot làm <strong>Người chỉnh sửa (Editor)</strong>:
+                  <div className="mt-1.5 flex items-center gap-2 bg-white border border-slate-200 p-2 rounded-lg font-mono text-[11px] text-slate-800">
+                    <span className="truncate flex-1 font-semibold text-orange-700">{BOT_EMAIL}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(BOT_EMAIL);
+                        setCopiedEmail(true);
+                        setTimeout(() => setCopiedEmail(false), 2000);
+                      }}
+                      className="px-2.5 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-md text-[11px] font-bold transition-colors cursor-pointer flex-shrink-0"
+                    >
+                      {copiedEmail ? "✓ Đã Copy!" : "Copy Email Bot"}
+                    </button>
+                  </div>
+                </li>
+                <li>
+                  Copy đường dẫn (URL) của file Google Sheet dán vào ô bên dưới và bấm <strong>Lưu liên kết</strong>.
+                </li>
+              </ol>
+            </div>
+
+            <form onSubmit={handleLinkSheet} className="flex flex-col gap-3 mt-1">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-bold text-slate-800 text-xs">Đường dẫn Google Sheet (URL):</label>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://docs.google.com/spreadsheets/d/1ABC.../edit"
+                  value={inputSheetUrl}
+                  onChange={(e) => setInputSheetUrl(e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 font-mono"
+                />
+              </div>
+
+              <DialogFooter className="mt-3 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLinkModal(false)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={linkingSheet || !inputSheetUrl.trim()}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {linkingSheet ? <Spinner className="animate-spin" size={14} /> : <Check size={16} weight="bold" />}
+                  <span>Lưu & Liên kết Sheet</span>
+                </button>
+              </DialogFooter>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

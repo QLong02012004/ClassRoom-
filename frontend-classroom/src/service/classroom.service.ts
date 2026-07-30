@@ -25,6 +25,8 @@ export interface ITeacherClassroom {
   students: string[];
   status: 'Active' | 'Locked' | 'Archived';
   createdAt: string;
+  googleSheetId?: string;
+  googleSheetUrl?: string;
   pendingGrades?: number;
   latestAssignmentTitle?: string | null;
   latestAssignmentDue?: string | null;
@@ -96,5 +98,13 @@ export const classroomService = {
 
   hardDeleteClassroom: async (id: string): Promise<IBackendRes<null>> => {
     return await api.delete(`/api/v1/classrooms/${id}/hard`);
+  },
+
+  generateGoogleSheet: async (id: string): Promise<IBackendRes<ITeacherClassroom>> => {
+    return await api.post(`/api/v1/classrooms/${id}/google-sheet`);
+  },
+
+  linkGoogleSheet: async (id: string, googleSheetUrl: string): Promise<IBackendRes<ITeacherClassroom>> => {
+    return await api.post(`/api/v1/classrooms/${id}/link-google-sheet`, { googleSheetUrl });
   }
 };

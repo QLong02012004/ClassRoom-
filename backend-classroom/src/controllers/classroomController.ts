@@ -5,6 +5,7 @@ import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { createAdminNotification } from '../services/notificationService';
 import { ClassStatus } from '../constants/enums';
+import { GoogleSheetsService } from '../services/googleSheetsService';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
 export const getAdminClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -237,6 +238,17 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
             code,
             teacherId
         });
+
+        try {
+            const teacherEmail = (req as any).user?.email;
+            const sheetResult = await GoogleSheetsService.createSheetForClassroom(className, teacherEmail);
+            if (sheetResult) {
+                newClass.googleSheetId = sheetResult.sheetId;
+                newClass.googleSheetUrl = sheetResult.sheetUrl;
+            }
+        } catch (sheetErr: any) {
+            console.error('[createClassroom GoogleSheet Non-blocking Error]:', sheetErr?.message || sheetErr);
+        }
 
         await newClass.save();
 
@@ -483,6 +495,87 @@ export const joinClassroomByCode = async (req: Request, res: Response, next: Nex
                 classId: targetClass._id,
                 className: targetClass.name
             }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Cấp / Khởi tạo thủ công Google Sheet cho Lớp học hiện tại
+export const generateClassroomGoogleSheet = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const teacherEmail = (req as any).user?.email;
+
+        const classroom = await ClassModel.findById(id);
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học' });
+        }
+
+        // Nếu đã có Google Sheet từ trước thì trả về luôn
+        if (classroom.googleSheetId && classroom.googleSheetUrl) {
+            return res.status(200).json({
+                message: 'Lớp học đã có Google Sheet',
+                data: classroom
+            });
+        }
+
+        try {
+            const sheetResult = await GoogleSheetsService.createSheetForClassroom(classroom.name, teacherEmail);
+            classroom.googleSheetId = sheetResult.sheetId;
+            classroom.googleSheetUrl = sheetResult.sheetUrl;
+            await classroom.save();
+
+            return res.status(200).json({
+                message: 'Tạo Google Sheet thành công',
+                data: classroom
+            });
+        } catch (sheetErr: any) {
+            console.error('[generateClassroomGoogleSheet Lỗi]:', sheetErr);
+            return res.status(500).json({
+                message: sheetErr?.message || 'Khởi tạo Google Sheet thất bại'
+            });
+        }
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Liên kết Google Sheet cá nhân cho Lớp học
+export const linkClassroomGoogleSheet = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const { googleSheetUrl } = req.body;
+
+        if (!googleSheetUrl) {
+            return res.status(400).json({ message: 'Đường dẫn Google Sheet là bắt buộc' });
+        }
+
+        const classroom = await ClassModel.findById(id);
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học' });
+        }
+
+        // Extract Google Sheet ID từ URL bằng Regex
+        const match = googleSheetUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+        const extractedSheetId = match ? match[1] : (googleSheetUrl.length > 20 ? googleSheetUrl.trim() : null);
+
+        if (!extractedSheetId) {
+            return res.status(400).json({ message: 'Đường dẫn Google Sheet không hợp lệ. Vui lòng dán link định dạng: https://docs.google.com/spreadsheets/d/...' });
+        }
+
+        classroom.googleSheetId = extractedSheetId;
+        classroom.googleSheetUrl = `https://docs.google.com/spreadsheets/d/${extractedSheetId}`;
+        await classroom.save();
+
+        // Khởi tạo Tiêu đề tự động nếu Sheet còn trống
+        GoogleSheetsService.initSheetHeaderIfEmpty(extractedSheetId).catch(err => {
+            console.error('[linkClassroomGoogleSheet initHeader Error]:', err);
+        });
+
+        res.status(200).json({
+            message: 'Liên kết Google Sheet thành công',
+            data: classroom
         });
     } catch (error) {
         next(error);

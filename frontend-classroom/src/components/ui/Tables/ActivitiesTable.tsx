@@ -130,7 +130,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[190px]" id="type">
                 Loại
               </Table.Column>
-              <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="title">
+              <Table.Column isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="title">
                 Tiêu đề
               </Table.Column>
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[160px]" id="meta">

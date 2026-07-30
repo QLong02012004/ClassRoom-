@@ -9,6 +9,9 @@ export interface IAttendance extends Document {
         status: AttendanceStatus;
         note?: string;
     }[];
+    syncedToGoogleSheet?: boolean;
+    lastSyncedAt?: Date;
+    syncError?: string;
     createdAt: Date;
 }
 
@@ -20,10 +23,12 @@ const AttendanceSchema = new Schema<IAttendance>({
         status: { type: String, enum: Object.values(AttendanceStatus), required: true },
         note: { type: String }
     }],
+    syncedToGoogleSheet: { type: Boolean, default: false },
+    lastSyncedAt: { type: Date },
+    syncError: { type: String, default: null },
     createdAt: { type: Date, default: Date.now }
 });
 
-// Compound index to ensure one attendance record per class per day (using date precision trick or just ignoring uniqueness for now)
 AttendanceSchema.index({ classId: 1, date: 1 });
 
 export const AttendanceModel = model<IAttendance>('Attendance', AttendanceSchema);

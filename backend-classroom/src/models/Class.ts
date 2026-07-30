@@ -8,6 +8,9 @@ export interface IClass extends Document {
     teacherId: Types.ObjectId;
     students: Types.ObjectId[];
     status: ClassStatus;
+    googleSheetId?: string;
+    googleSheetUrl?: string;
+    googleSheetSyncEnabled?: boolean;
     createdAt: Date;
 }
 
@@ -18,6 +21,9 @@ const ClassSchema = new Schema<IClass>({
     teacherId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     students: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     status: { type: String, enum: Object.values(ClassStatus), default: ClassStatus.ACTIVE },
+    googleSheetId: { type: String, default: null },
+    googleSheetUrl: { type: String, default: null },
+    googleSheetSyncEnabled: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now }
 });
 

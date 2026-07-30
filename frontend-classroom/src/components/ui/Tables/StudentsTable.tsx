@@ -88,7 +88,7 @@ export const StudentsTable: React.FC<StudentsTableProps> = ({ students, onEdit, 
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">
                 STT
               </Table.Column>
-              <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
+              <Table.Column isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
                 Học sinh
               </Table.Column>
               <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="contact">
