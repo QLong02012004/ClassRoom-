@@ -8,6 +8,7 @@ export interface IClass extends Document {
     teacherId: Types.ObjectId;
     students: Types.ObjectId[];
     status: ClassStatus;
+    requireApproval?: boolean; // Yêu cầu duyệt học sinh khi gia nhập bằng mã lớp
     googleSheetId?: string;
     googleSheetUrl?: string;
     googleSheetSyncEnabled?: boolean;
@@ -21,6 +22,7 @@ const ClassSchema = new Schema<IClass>({
     teacherId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     students: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     status: { type: String, enum: Object.values(ClassStatus), default: ClassStatus.ACTIVE },
+    requireApproval: { type: Boolean, default: true },
     googleSheetId: { type: String, default: null },
     googleSheetUrl: { type: String, default: null },
     googleSheetSyncEnabled: { type: Boolean, default: true },

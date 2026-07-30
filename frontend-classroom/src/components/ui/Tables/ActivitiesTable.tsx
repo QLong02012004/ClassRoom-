@@ -75,9 +75,9 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
 
   const defaultGetQuizStatus = (act: ActivityItem) => {
     const status = act.status || "open";
-    if (status === "draft") return { label: "Bản nháp", class: "bg-slate-100 text-slate-600" };
-    if (status === "closed") return { label: "Đã đóng", class: "bg-rose-100 text-rose-700" };
-    return { label: "Đang mở", class: "bg-emerald-100 text-emerald-700" };
+    if (status === "draft") return { label: "Bản nháp", class: "bg-slate-100 text-slate-600 border border-slate-200" };
+    if (status === "closed") return { label: "Đã đóng", class: "bg-rose-50 text-rose-700 border border-rose-200" };
+    return { label: "Đang mở", class: "bg-[#2f8fa3]/10 text-[#2f8fa3] border border-[#2f8fa3]/30" };
   };
 
   const getStatus = getQuizStatus || defaultGetQuizStatus;
@@ -108,6 +108,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
             className="min-w-[800px]"
             selectedKeys={selectedKeys}
             selectionMode={readOnly ? "none" : "multiple"}
+            selectionBehavior="toggle"
             onSelectionChange={setSelectedKeys}
           >
             <Table.Header>
@@ -117,7 +118,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                 <Table.Column className="after:hidden" id="selection">
                   <Checkbox aria-label="Select all" slot="selection">
                     <Checkbox.Content>
-                      <Checkbox.Control>
+                      <Checkbox.Control className="border-2 border-slate-400 rounded-md bg-white">
                         <Checkbox.Indicator />
                       </Checkbox.Control>
                     </Checkbox.Content>
@@ -177,7 +178,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                         <Table.Cell>
                           <Checkbox aria-label={`Select ${act.title}`} slot="selection">
                             <Checkbox.Content>
-                              <Checkbox.Control>
+                              <Checkbox.Control className="border-2 border-slate-400 rounded-md bg-white">
                                 <Checkbox.Indicator />
                               </Checkbox.Control>
                             </Checkbox.Content>
@@ -185,13 +186,13 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                         </Table.Cell>
                       )}
 
-                      <Table.Cell className="font-medium text-slate-500">
+                      <Table.Cell className="font-medium text-slate-500" onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                         #{actualIdx + 1}
                       </Table.Cell>
 
-                      <Table.Cell>
+                      <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                         <div className="flex flex-col gap-1 items-start">
-                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider ${isQuiz ? "bg-orange-50 text-orange-600 border border-orange-200/80" : "bg-indigo-50 text-indigo-600 border border-indigo-200/80"}`}>
+                          <span className={`px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider ${isQuiz ? "bg-[#f47c20]/10 text-[#f47c20] border border-[#f47c20]/30" : "bg-[#2f8fa3]/10 text-[#2f8fa3] border border-[#2f8fa3]/30"}`}>
                             {isQuiz ? "Trắc nghiệm" : "Tự luận / File"}
                           </span>
                           {act.category && (
@@ -202,7 +203,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                         </div>
                       </Table.Cell>
 
-                      <Table.Cell>
+                      <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                         <div className="flex flex-col max-w-[180px] overflow-hidden">
                           <span className="font-semibold text-slate-900 text-sm hover:text-orange-600 transition-colors truncate block" title={act.title}>
                             {act.title}
@@ -213,7 +214,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                         </div>
                       </Table.Cell>
 
-                      <Table.Cell>
+                      <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                         <div className="flex flex-col gap-1 text-xs text-slate-600">
                           {isQuiz ? (
                             <>
@@ -222,14 +223,14 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                                 <span>{act.durationMinutes || 0} phút</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <CheckCircle size={14} className="text-emerald-500" />
+                                <CheckCircle size={14} className="text-[#2f8fa3]" />
                                 <span>{qCount} câu hỏi</span>
                               </div>
                             </>
                           ) : (
                             <>
                               <div className="flex items-center gap-1">
-                                <Paperclip size={14} className="text-indigo-500" />
+                                <Paperclip size={14} className="text-[#2f8fa3]" />
                                 <span>{act.attachments?.length || 1} file</span>
                               </div>
                               <div className="flex items-center gap-1">
@@ -241,7 +242,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                         </div>
                       </Table.Cell>
 
-                      <Table.Cell>
+                      <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                         <div className="flex items-center gap-2 text-xs flex-wrap">
                           <span className="font-bold text-slate-800 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/70">{subCount}/{totalStudents} HS</span>
                           {act.pendingGradeCount && act.pendingGradeCount > 0 ? (
@@ -252,10 +253,10 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                         </div>
                       </Table.Cell>
 
-                      <Table.Cell className="text-center min-w-[145px]">
+                      <Table.Cell className="text-center min-w-[145px]" onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                         <div className="flex items-center justify-center">
                           <span className={`px-3 py-1 rounded-full text-xs font-extrabold whitespace-nowrap inline-flex items-center gap-1.5 justify-center ${statusObj.class}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${act.status === "closed" ? "bg-rose-500" : act.status === "draft" ? "bg-slate-400" : "bg-emerald-500 animate-pulse"}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${act.status === "closed" ? "bg-rose-500" : act.status === "draft" ? "bg-slate-400" : "bg-[#2f8fa3] animate-pulse"}`} />
                             <span className="whitespace-nowrap">{statusObj.label}</span>
                           </span>
                         </div>
@@ -264,7 +265,7 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                       {readOnly ? (
                         <Table.Cell className="p-0 border-none w-0" />
                       ) : (
-                        <Table.Cell>
+                        <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
                           <div className="flex items-center justify-end gap-1 relative">
                             <ActivityActionMenu
                               isQuiz={isQuiz}

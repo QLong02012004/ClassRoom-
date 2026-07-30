@@ -146,7 +146,7 @@
   flex-direction: column;
   gap: 16px;
   position: sticky;
-  top: 84px;
+  top: 0;
 
   .classMergedCard {
     background: white;
@@ -165,9 +165,10 @@
   }
 
   .classBanner {
-    background: linear-gradient(135deg, #fe6747 0%, #ff8a70 100%);
-    padding: 28px 24px;
-    min-height: 130px;
+    background: linear-gradient(135deg, #0f172a 0%, #2f8fa3 100%);
+    border-bottom: 3px solid vars.$primary;
+    padding: 22px 20px;
+    min-height: 125px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -272,7 +273,7 @@
         opacity: 0;
         transform: translateX(-8px);
         transition: all 0.3s ease;
-        background: rgba(254, 103, 71, 0.1);
+        background: rgba(vars.$primary, 0.1);
         padding: 4px 10px;
         border-radius: 20px;
       }
@@ -304,10 +305,11 @@
         width: 36px;
         height: 36px;
         border-radius: 10px;
-        background: #ecfdf5;
+        background: rgba(vars.$secondary, 0.1);
         display: flex;
         align-items: center;
         justify-content: center;
+        color: vars.$secondary;
       }
 
       h3 {
@@ -348,6 +350,10 @@
           margin-bottom: 2px;
         }
 
+        &:nth-child(3) .statNumMini {
+          color: vars.$secondary;
+        }
+
         .statDescMini {
           font-size: 11px;
           color: #64748b;
@@ -364,18 +370,7 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  height: calc(100vh - 60px);
-  overflow-y: auto;
-  padding-right: 8px;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
+  width: 100%;
 }
 
 /* POST COMPOSER (KHUNG ĐĂNG BÀI) */
@@ -496,7 +491,7 @@
     border-top: 1px solid #f1f5f9;
     padding-top: 16px;
 
-    // Custom type chips (thay thế select)
+    // Custom type chips
     .typeChips {
       display: flex;
       gap: 8px;
@@ -523,30 +518,29 @@
           background: #f1f5f9;
         }
 
-        // Thông báo (Xanh ngọc - Teal/Emerald)
+        // Thông báo (Primary Sunscreen Orange)
         &.typeChipActive {
-          background: rgba(16, 185, 129, 0.08); // #10B981
-          border-color: #10b981;
-          color: #059669;
+          background: rgba(vars.$primary, 0.08);
+          border-color: vars.$primary;
+          color: vars.$primary;
         }
 
-        // Nhắc nhở (Vàng cảnh báo)
+        // Nhắc nhở (Secondary Ocean Blue)
         &.typeChipActiveReminder {
-          background: rgba(245, 158, 11, 0.08); // #F59E0B
-          border-color: #f59e0b;
-          color: #d97706;
+          background: rgba(vars.$secondary, 0.08);
+          border-color: vars.$secondary;
+          color: vars.$secondary;
         }
 
-        // Tài liệu / Bài tập (Cam san hô)
+        // Tài liệu (Accent Sky Blue)
         &.typeChipActiveMaterial {
-          background: rgba(254, 103, 71, 0.08); // #FE6747
-          border-color: #fe6747;
-          color: #fe6747;
+          background: rgba(169, 214, 229, 0.25);
+          border-color: #70b0c4;
+          color: #1e6475;
         }
       }
     }
 
-    // Actions row: tệp đính kèm + nút đăng
     .composerActions {
       display: flex;
       align-items: center;
@@ -555,21 +549,21 @@
 
     .postBtn {
       padding: 8px 24px;
-      background: #fe6747;
+      background: vars.$primary;
       color: white;
       border: none;
       border-radius: 10px;
       font-size: 0.85rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(254, 103, 71, 0.15);
+      box-shadow: 0 4px 12px rgba(vars.$primary, 0.15);
       transition: 0.2s;
       font-family: inherit;
 
       &:hover {
-        background: #e0583b;
+        background: color.adjust(vars.$primary, $lightness: -8%);
         transform: translateY(-1px);
-        box-shadow: 0 6px 16px rgba(254, 103, 71, 0.25);
+        box-shadow: 0 6px 16px rgba(vars.$primary, 0.25);
       }
 
       &:disabled {
@@ -582,7 +576,6 @@
     }
   }
 
-  // Nút xóa file đính kèm
   .removeAttachBtn {
     background: none;
     border: none;
@@ -631,10 +624,10 @@
     }
 
     &.active {
-      background: vars.$primary; // Màu Xanh Lá như ảnh mẫu
+      background: vars.$primary;
       border-color: vars.$primary;
       color: white;
-      box-shadow: 0 4px 10px rgba(16, 185, 129, 0.15);
+      box-shadow: 0 4px 12px rgba(244, 124, 32, 0.25);
     }
   }
 }
@@ -711,13 +704,13 @@
             }
 
             &.tagMaterial {
-              background: rgba(254, 103, 71, 0.1);
-              color: #fe6747;
+              background: rgba(vars.$primary, 0.1);
+              color: vars.$primary;
             }
 
             &.tagAssignment {
-              background: rgba(254, 103, 71, 0.1);
-              color: #fe6747;
+              background: rgba(vars.$primary, 0.1);
+              color: vars.$primary;
             }
           }
         }
@@ -747,8 +740,8 @@
         transition: 0.2s;
 
         &:hover {
-          background: rgba(254, 103, 71, 0.1);
-          color: #fe6747;
+          background: rgba(vars.$primary, 0.1);
+          color: vars.$primary;
         }
 
         &.activePin {

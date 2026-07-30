@@ -1321,11 +1321,21 @@ export default function TeacherClassroomDetail() {
               <div className={styles.classMergedCard}>
                 <div className={styles.classBanner}>
                   <div className={styles.bannerOverlay}></div>
-                  <h2 className="text-xl font-black text-white mb-1 leading-tight relative z-10">{classroom?.className || "Đang tải..."}</h2>
-                  <p className="text-white/90 font-medium text-sm relative z-10 flex items-center gap-1.5">
-                    <BookOpen size={16} />
-                    {classroom?.subject || "Môn học chung"}
-                  </p>
+                  <div className="flex items-center justify-between mb-2 relative z-10">
+                    <span className="bg-white/20 backdrop-blur-md text-white text-[11px] font-mono font-bold px-2.5 py-0.5 rounded-full border border-white/30">
+                      Mã lớp: {classroom?.code || "---"}
+                    </span>
+                    <span className="bg-white/90 text-[#2f8fa3] text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-sm">
+                      {classroom?.subject || "Môn học"}
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-black text-white mb-1.5 leading-tight relative z-10">
+                    {classroom?.className || "Đang tải..."}
+                  </h2>
+                  <div className="text-white/85 text-xs font-medium relative z-10 flex items-center gap-1.5">
+                    <BookOpen size={14} className="text-white/80" />
+                    <span>GV phụ trách: {classroom?.teacherName || "Giáo viên"}</span>
+                  </div>
                 </div>
                 <div className={styles.classInfo}>
                   <button
@@ -1334,7 +1344,7 @@ export default function TeacherClassroomDetail() {
                     title="Quản lý học sinh"
                   >
                     <div className={styles.iconWrapper}>
-                      <Users size={20} weight="fill" className="text-blue-500" />
+                      <Users size={20} weight="fill" className="text-[#2f8fa3]" />
                     </div>
                     <div className="flex flex-col items-start">
                       <span className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Sĩ số lớp</span>
@@ -1349,7 +1359,7 @@ export default function TeacherClassroomDetail() {
               <div className={styles.reportCardMini}>
                 <div className={styles.reportHeader}>
                   <div className={styles.headerIcon}>
-                    <TrendUp size={20} weight="bold" className="text-emerald-500" />
+                    <TrendUp size={20} weight="bold" className="text-[#2f8fa3]" />
                   </div>
                   <h3>Tiến độ trung bình</h3>
                 </div>
@@ -2053,21 +2063,21 @@ export default function TeacherClassroomDetail() {
                       <button
                         type="button"
                         onClick={() => setFilterType("all")}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${filterType === "all" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${filterType === "all" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                       >
                         Tất cả loại
                       </button>
                       <button
                         type="button"
                         onClick={() => setFilterType("quiz")}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filterType === "quiz" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filterType === "quiz" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                       >
                         <CheckCircle size={14} weight="bold" /> Trắc nghiệm
                       </button>
                       <button
                         type="button"
                         onClick={() => setFilterType("document")}
-                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filterType === "document" ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${filterType === "document" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
                       >
                         <FilePdf size={14} weight="bold" /> Tự luận / File
                       </button>
@@ -2101,19 +2111,19 @@ export default function TeacherClassroomDetail() {
                       <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
                         <DropdownMenuItem
                           onClick={() => setFilterCategory("all")}
-                          className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${filterCategory === "all" ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                          className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${filterCategory === "all" ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
                         >
                           Tất cả mục đích
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setFilterCategory("homework")}
-                          className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${filterCategory === "homework" ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                          className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${filterCategory === "homework" ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
                         >
                           Bài tập về nhà
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => setFilterCategory("periodic")}
-                          className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${filterCategory === "periodic" ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                          className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${filterCategory === "periodic" ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
                         >
                           Kiểm tra / Thi thử
                         </DropdownMenuItem>
@@ -2127,7 +2137,7 @@ export default function TeacherClassroomDetail() {
                       type="button"
                       onClick={() => setViewMode("grid")}
                       title="Hiển thị dạng lưới thẻ"
-                      className={`p-1.5 px-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${viewMode === "grid" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                      className={`p-1.5 px-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${viewMode === "grid" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
                     >
                       <GridFour size={15} weight="bold" />
                       <span className="hidden sm:inline">Lưới</span>
@@ -2136,7 +2146,7 @@ export default function TeacherClassroomDetail() {
                       type="button"
                       onClick={() => setViewMode("table")}
                       title="Hiển thị dạng bảng"
-                      className={`p-1.5 px-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${viewMode === "table" ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
+                      className={`p-1.5 px-2.5 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${viewMode === "table" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
                     >
                       <List size={15} weight="bold" />
                       <span className="hidden sm:inline">Bảng</span>

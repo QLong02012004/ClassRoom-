@@ -468,7 +468,19 @@ export default function TeacherAttendance() {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Nút Google Sheet Lớp */}
+            {/* Nút phím tắt: Tất cả có mặt (Màu trang web #2f8fa3) */}
+            <button
+              type="button"
+              onClick={handleMarkAllPresent}
+              disabled={students.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#2f8fa3]/10 hover:bg-[#2f8fa3]/20 text-[#2f8fa3] border border-[#2f8fa3]/30 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 cursor-pointer"
+              title="Đánh dấu tất cả học sinh trong lớp là Có mặt"
+            >
+              <CheckCircle size={16} weight="bold" className="text-[#2f8fa3]" />
+              <span>Tất cả có mặt</span>
+            </button>
+
+            {/* Nút Google Sheet Lớp (Màu xanh lá cây) */}
             {selectedClass?.googleSheetUrl || selectedClass?.googleSheetId ? (
               <div className="flex items-center gap-1">
                 <a
@@ -507,18 +519,6 @@ export default function TeacherAttendance() {
                 <span>🔗 Liên kết Google Sheet</span>
               </button>
             ) : null}
-
-            {/* Nút phím tắt: Tất cả có mặt */}
-            <button
-              type="button"
-              onClick={handleMarkAllPresent}
-              disabled={students.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shadow-xs active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 cursor-pointer"
-              title="Đánh dấu tất cả học sinh trong lớp là Có mặt"
-            >
-              <CheckCircle size={16} weight="bold" className="text-emerald-600" />
-              <span>Tất cả có mặt</span>
-            </button>
           </div>
         </div>
       </div>
@@ -566,7 +566,7 @@ export default function TeacherAttendance() {
                   <Table.Column className="after:hidden" id="selection">
                     <Checkbox aria-label="Select all" slot="selection">
                       <Checkbox.Content>
-                        <Checkbox.Control>
+                        <Checkbox.Control className="border-2 border-slate-400 rounded-md bg-white">
                           <Checkbox.Indicator />
                         </Checkbox.Control>
                       </Checkbox.Content>
@@ -623,7 +623,7 @@ export default function TeacherAttendance() {
                           <Table.Cell className="py-3 px-4 border-b border-slate-100">
                             <Checkbox aria-label={`Select ${student.name}`} slot="selection">
                               <Checkbox.Content>
-                                <Checkbox.Control>
+                                <Checkbox.Control className="border-2 border-slate-400 rounded-md bg-white">
                                   <Checkbox.Indicator />
                                 </Checkbox.Control>
                               </Checkbox.Content>
@@ -637,29 +637,6 @@ export default function TeacherAttendance() {
                               <div className="min-w-0 flex-1">
                                 <span className={`${styles.studentName} truncate max-w-[200px] block`} title={student.name}>{student.name}</span>
                                 <span className={`${styles.studentEmail} truncate max-w-[200px] block`} title={student.email}>{student.email}</span>
-                                {/* Lịch sử 5 buổi */}
-                                {attendanceHistory.length > 0 && (
-                                  <div className="flex gap-1.5 mt-1.5 items-center">
-                                    {[...attendanceHistory].reverse().map(historyRecord => {
-                                      const record = historyRecord.records.find(r => r.studentId === student._id);
-                                      const status = record?.status;
-                                      let dotColor = "bg-slate-200";
-                                      if (status === "present") dotColor = "bg-emerald-500";
-                                      else if (status === "late") dotColor = "bg-amber-500";
-                                      else if (status === "absent") dotColor = "bg-rose-500";
-
-                                      const dateStr = new Date(historyRecord.date).toLocaleDateString("vi-VN");
-
-                                      return (
-                                        <div
-                                          key={historyRecord._id}
-                                          className={`w-2 h-2 rounded-full ${dotColor} cursor-help transition-transform hover:scale-125`}
-                                          title={`${dateStr}: ${status === 'present' ? 'Có mặt' : status === 'late' ? 'Muộn' : status === 'absent' ? 'Vắng' : 'Chưa điểm danh'}`}
-                                        />
-                                      );
-                                    })}
-                                  </div>
-                                )}
                               </div>
                             </div>
                           </Table.Cell>

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { ClassModel } from '../models/Class';
+import { ClassJoinRequestModel } from '../models/ClassJoinRequest';
 import { ClassActivityModel } from '../models/ClassActivity';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
@@ -123,9 +124,13 @@ export const getTeacherClassrooms = async (req: Request, res: Response, next: Ne
                 pendingGrades = Math.max(0, submissionCount - gradeCount);
             }
 
+            // Đếm số học sinh đang chờ duyệt gia nhập lớp
+            const pendingRequestsCount = await ClassJoinRequestModel.countDocuments({ classId: cls._id, status: 'pending' });
+
             return {
                 ...classObj,
                 pendingGrades,
+                pendingRequestsCount,
                 latestAssignmentTitle: latestAssignment?.title || null,
                 latestAssignmentDue: latestAssignment?.dueDate || null,
             };
@@ -214,7 +219,7 @@ const generateClassCode = (): string => {
 export const createClassroom = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const teacherId = (req as any).user?.id;
-        const { className, subject } = req.body;
+        const { className, subject, requireApproval } = req.body;
 
         if (!className) {
             return res.status(400).json({ message: 'Tên lớp học là bắt buộc' });
@@ -236,7 +241,8 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
             name: className,
             subject: subject || '',
             code,
-            teacherId
+            teacherId,
+            requireApproval: requireApproval !== undefined ? Boolean(requireApproval) : true
         });
 
         try {
@@ -275,11 +281,11 @@ export const updateClassroom = async (req: Request, res: Response, next: NextFun
     try {
         const { id } = req.params;
         const teacherId = (req as any).user?.id;
-        const { className, subject } = req.body;
+        const { className, subject, requireApproval } = req.body;
 
         const updatedClass = await ClassModel.findOneAndUpdate(
             { _id: id as any, teacherId: teacherId as any },
-            { name: className, subject },
+            { name: className, subject, requireApproval: Boolean(requireApproval) },
             { new: true }
         );
 
@@ -392,7 +398,7 @@ export const getAdminClassroomActivities = async (req: Request, res: Response, n
         const latestAssignment = await ClassActivityModel.findOne({ classId: id as any })
             .sort({ createdAt: -1 })
             .select('title dueDate');
-        
+
         let currentTopic = latestAssignment ? latestAssignment.title : 'Chưa có bài tập nào';
 
         // 3. Lấy hoạt động mới nhất:
@@ -401,7 +407,7 @@ export const getAdminClassroomActivities = async (req: Request, res: Response, n
             .sort({ createdAt: -1 })
             .limit(3)
             .select('title createdAt');
-            
+
         // - Lịch sử nộp bài
         const assignmentDocs = await ClassActivityModel.find({ classId: id as any }).select('_id');
         const assignmentIds = assignmentDocs.map(doc => doc._id);
@@ -413,7 +419,7 @@ export const getAdminClassroomActivities = async (req: Request, res: Response, n
 
         // Gộp chung 2 mảng này và format lại, sort theo thời gian mới nhất
         const activities: any[] = [];
-        
+
         recentAssignments.forEach(a => {
             activities.push({
                 type: 'assignment_created',
@@ -485,7 +491,47 @@ export const joinClassroomByCode = async (req: Request, res: Response, next: Nex
             return next(new Error('Bạn đã tham gia lớp học này rồi'));
         }
 
-        // Thêm học sinh vào lớp
+        // Nếu lớp học BẬT tùy chọn "Yêu cầu duyệt học sinh" (mặc định là true cho tất cả lớp tham gia bằng mã)
+        if (targetClass.requireApproval !== false) {
+            const existingReq = await ClassJoinRequestModel.findOne({
+                classId: targetClass._id,
+                studentId: studentId as any
+            });
+
+            if (existingReq) {
+                if (existingReq.status === 'pending') {
+                    return res.status(400).json({
+                        message: `Đã gửi yêu cầu tham gia lớp "${targetClass.name}". Vui lòng chờ giáo viên duyệt!`
+                    });
+                } else if (existingReq.status === 'rejected') {
+                    existingReq.status = 'pending';
+                    await existingReq.save();
+                    return res.status(200).json({
+                        message: `Đã gửi lại yêu cầu tham gia lớp "${targetClass.name}". Vui lòng chờ giáo viên duyệt!`,
+                        data: {
+                            status: 'pending_approval',
+                            className: targetClass.name
+                        }
+                    });
+                }
+            } else {
+                await ClassJoinRequestModel.create({
+                    classId: targetClass._id,
+                    studentId,
+                    status: 'pending'
+                });
+            }
+
+            return res.status(200).json({
+                message: `Đã gửi yêu cầu tham gia lớp "${targetClass.name}". Vui lòng chờ giáo viên duyệt!`,
+                data: {
+                    status: 'pending_approval',
+                    className: targetClass.name
+                }
+            });
+        }
+
+        // Nếu lớp không yêu cầu duyệt: Thêm học sinh trực tiếp vào lớp
         targetClass.students.push(studentId);
         await targetClass.save();
 
@@ -576,6 +622,183 @@ export const linkClassroomGoogleSheet = async (req: Request, res: Response, next
         res.status(200).json({
             message: 'Liên kết Google Sheet thành công',
             data: classroom
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// --- JOIN REQUEST APPROVAL METHODS ---
+
+// Lấy danh sách yêu cầu chờ duyệt của 1 lớp
+export const getPendingJoinRequests = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id: classId } = req.params;
+        const teacherId = (req as any).user?.id;
+
+        const classroom = await ClassModel.findOne({ _id: classId as any, teacherId: teacherId as any });
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền' });
+        }
+
+        const requests = await ClassJoinRequestModel.find({ classId: classId as any, status: 'pending' })
+            .populate('studentId', 'name email avatar')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            message: 'Lấy danh sách yêu cầu chờ duyệt thành công',
+            data: requests
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Lấy tổng số lượng yêu cầu chờ duyệt trên tất cả các lớp của giáo viên
+export const getTeacherTotalPendingRequestsCount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const teacherId = (req as any).user?.id;
+        const teacherClasses = await ClassModel.find({ teacherId: teacherId as any, status: { $ne: ClassStatus.ARCHIVED } }).select('_id');
+        const classIds = teacherClasses.map(c => c._id);
+
+        const totalPendingCount = await ClassJoinRequestModel.countDocuments({
+            classId: { $in: classIds },
+            status: 'pending'
+        });
+
+        res.status(200).json({
+            message: 'Lấy tổng số yêu cầu chờ duyệt thành công',
+            data: { totalPendingCount }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Duyệt 1 học sinh vào lớp
+export const approveJoinRequest = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id: classId, requestId } = req.params;
+        const teacherId = (req as any).user?.id;
+
+        const classroom = await ClassModel.findOne({ _id: classId as any, teacherId: teacherId as any });
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền' });
+        }
+
+        const joinReq = await ClassJoinRequestModel.findById(requestId);
+        if (!joinReq || joinReq.classId.toString() !== classId) {
+            return res.status(404).json({ message: 'Không tìm thấy yêu cầu tham gia' });
+        }
+
+        // Thêm học sinh vào mảng students của lớp (nếu chưa có)
+        const isExist = classroom.students.some(sId => sId.toString() === joinReq.studentId.toString());
+        if (!isExist) {
+            classroom.students.push(joinReq.studentId);
+            await classroom.save();
+        }
+
+        joinReq.status = 'approved';
+        await joinReq.save();
+
+        res.status(200).json({
+            message: 'Đã duyệt học sinh vào lớp thành công',
+            data: joinReq
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Từ chối 1 học sinh
+export const rejectJoinRequest = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id: classId, requestId } = req.params;
+        const teacherId = (req as any).user?.id;
+
+        const classroom = await ClassModel.findOne({ _id: classId as any, teacherId: teacherId as any });
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền' });
+        }
+
+        const joinReq = await ClassJoinRequestModel.findById(requestId);
+        if (!joinReq || joinReq.classId.toString() !== classId) {
+            return res.status(404).json({ message: 'Không tìm thấy yêu cầu tham gia' });
+        }
+
+        joinReq.status = 'rejected';
+        await joinReq.save();
+
+        res.status(200).json({
+            message: 'Đã từ chối yêu cầu tham gia của học sinh',
+            data: joinReq
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Duyệt tất cả học sinh đang chờ
+export const approveAllJoinRequests = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id: classId } = req.params;
+        const teacherId = (req as any).user?.id;
+
+        const classroom = await ClassModel.findOne({ _id: classId as any, teacherId: teacherId as any });
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền' });
+        }
+
+        const pendingRequests = await ClassJoinRequestModel.find({ classId: classId as any, status: 'pending' });
+        if (pendingRequests.length === 0) {
+            return res.status(200).json({ message: 'Không có yêu cầu nào cần duyệt', data: { approvedCount: 0 } });
+        }
+
+        const studentIdsToAdd = pendingRequests.map(r => r.studentId);
+        studentIdsToAdd.forEach(sId => {
+            if (!classroom.students.some(existingId => existingId.toString() === sId.toString())) {
+                classroom.students.push(sId);
+            }
+        });
+        await classroom.save();
+
+        await ClassJoinRequestModel.updateMany(
+            { classId: classId as any, status: 'pending' },
+            { status: 'approved' }
+        );
+
+        res.status(200).json({
+            message: `Đã duyệt thành công ${pendingRequests.length} học sinh vào lớp!`,
+            data: { approvedCount: pendingRequests.length }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Lấy danh sách các lớp học sinh đang chờ duyệt
+export const getStudentPendingClasses = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const studentId = (req as any).user?.id;
+        const pendingReqs = await ClassJoinRequestModel.find({ studentId: studentId as any, status: 'pending' })
+            .populate({
+                path: 'classId',
+                select: 'name subject code teacherId createdAt',
+                populate: { path: 'teacherId', select: 'name avatar' }
+            })
+            .sort({ createdAt: -1 });
+
+        const pendingClasses = pendingReqs
+            .filter(r => r.classId)
+            .map(r => ({
+                requestId: r._id,
+                requestedAt: r.createdAt,
+                class: r.classId
+            }));
+
+        res.status(200).json({
+            message: 'Lấy danh sách lớp đang chờ duyệt thành công',
+            data: pendingClasses
         });
     } catch (error) {
         next(error);

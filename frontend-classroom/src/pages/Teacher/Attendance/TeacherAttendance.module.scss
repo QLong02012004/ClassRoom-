@@ -232,7 +232,7 @@
         line-height: 1;
 
         &.present {
-          color: vars.$success;
+          color: vars.$secondary;
         }
 
         &.late {
@@ -330,8 +330,8 @@
 
     &.activePresent {
       background: white;
-      color: vars.$success;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15), 0 1px 3px rgba(16, 185, 129, 0.1);
+      color: vars.$secondary;
+      box-shadow: 0 4px 12px rgba(47, 143, 163, 0.2), 0 1px 3px rgba(47, 143, 163, 0.1);
       font-weight: 700;
     }
 

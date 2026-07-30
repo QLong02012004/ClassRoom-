@@ -15,7 +15,13 @@ import {
     addStudentToClassroom,
     joinClassroomByCode,
     generateClassroomGoogleSheet,
-    linkClassroomGoogleSheet
+    linkClassroomGoogleSheet,
+    getPendingJoinRequests,
+    getTeacherTotalPendingRequestsCount,
+    approveJoinRequest,
+    rejectJoinRequest,
+    approveAllJoinRequests,
+    getStudentPendingClasses
 } from '../controllers/classroomController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -38,12 +44,30 @@ router.delete('/:id', protect, authorize('admin'), deleteClassroom);
 // Học sinh tham gia lớp bằng mã
 router.post('/join', protect, authorize('student'), joinClassroomByCode);
 
+// Lấy danh sách các lớp đang chờ duyệt của học sinh
+router.get('/student/pending', protect, authorize('student'), getStudentPendingClasses);
+
 // Lấy danh sách lớp học của học sinh
 router.get('/student', protect, authorize('student'), getStudentClassrooms);
 
 // --- TEACHER ROUTES ---
 // Lấy danh sách lớp học của giáo viên
 router.get('/teacher', protect, authorize('teacher'), getTeacherClassrooms);
+
+// Lấy tổng số lượng yêu cầu chờ duyệt trên tất cả các lớp của giáo viên
+router.get('/teacher/pending-requests-count', protect, authorize('teacher'), getTeacherTotalPendingRequestsCount);
+
+// Lấy danh sách yêu cầu chờ duyệt của 1 lớp
+router.get('/:id/join-requests', protect, authorize('teacher'), getPendingJoinRequests);
+
+// Duyệt tất cả học sinh đang chờ vào lớp
+router.post('/:id/join-requests/approve-all', protect, authorize('teacher'), approveAllJoinRequests);
+
+// Duyệt 1 học sinh vào lớp
+router.post('/:id/join-requests/:requestId/approve', protect, authorize('teacher'), approveJoinRequest);
+
+// Từ chối 1 học sinh gia nhập lớp
+router.post('/:id/join-requests/:requestId/reject', protect, authorize('teacher'), rejectJoinRequest);
 
 // Lấy danh sách học sinh của một lớp (dùng cho điểm danh)
 router.get('/:id/students', protect, authorize('teacher'), getClassroomStudents);

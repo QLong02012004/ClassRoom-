@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../../../components/Styles/variables.module" as vars;
 
 .page {
@@ -275,12 +276,12 @@
     color: #D97706;
   }
   &.tagMaterial {
-    background: rgba(254, 103, 71, 0.1);
-    color: #FE6747;
+    background: rgba(vars.$primary, 0.1);
+    color: vars.$primary;
   }
   &.tagAssignment {
-    background: rgba(254, 103, 71, 0.1);
-    color: #FE6747;
+    background: rgba(vars.$primary, 0.1);
+    color: vars.$primary;
   }
 }
 
@@ -490,7 +491,7 @@
 .assignIcon {
   width: 44px;
   height: 44px;
-  background: rgba(254, 103, 71, 0.08);
+  background: rgba(vars.$primary, 0.08);
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -552,7 +553,7 @@
   font-family: inherit;
 
   &:hover {
-    background: #e0583b;
+    background: color.adjust(vars.$primary, $lightness: -8%);
     transform: translateY(-1px);
   }
 }
@@ -701,12 +702,12 @@
         transition: all 0.2s ease-in-out;
 
         &.teacherComment {
-          background-color: #fff9f8;
-          border: 1px solid #ffd8d1;
+          background-color: rgba(vars.$primary, 0.04);
+          border: 1px solid rgba(vars.$primary, 0.2);
           border-radius: 8px;
           padding: 10px;
           margin-bottom: 10px;
-          border-bottom: 1px solid #ffd8d1;
+          border-bottom: 1px solid rgba(vars.$primary, 0.2);
         }
 
         &.replyComment {
@@ -776,7 +777,7 @@
             .teacherBadge {
               font-size: 9px;
               font-weight: 700;
-              background-color: #FE6747;
+              background-color: vars.$primary;
               color: white;
               padding: 2px 6px;
               border-radius: 4px;

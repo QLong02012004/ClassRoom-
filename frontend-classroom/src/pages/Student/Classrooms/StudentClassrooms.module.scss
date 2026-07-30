@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../../../components/Styles/variables.module" as vars;
 
 .classroomsPage {
@@ -40,12 +41,12 @@
     font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(254, 103, 71, 0.15);
+    box-shadow: 0 4px 12px rgba(vars.$primary, 0.15);
     transition: vars.$transition-fast;
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(254, 103, 71, 0.25);
+      box-shadow: 0 6px 16px rgba(vars.$primary, 0.25);
     }
   }
 
@@ -112,7 +113,7 @@
       font-size: 0.7rem;
       font-weight: 700;
       color: vars.$success;
-      background: rgba(47, 143, 163, 0.1);
+      background: rgba(vars.$success, 0.1);
       padding: 4px 10px;
       border-radius: 99px;
       text-transform: uppercase;
@@ -263,12 +264,12 @@
 
 /* --- 3. BOTTOM BANNER --- */
 .bottomBanner {
-  background: linear-gradient(135deg, rgba(254, 103, 71, 0.02) 0%, rgba(254, 103, 71, 0.07) 100%),
+  background: linear-gradient(135deg, rgba(vars.$primary, 0.02) 0%, rgba(vars.$primary, 0.07) 100%),
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M0 0h100v100H0z' fill='none'/%3E%3Cpath d='M10 10h80v80H10z' fill='none'/%3E%3C/svg%3E") repeat;
   background-size: cover;
   border-radius: 20px;
   padding: 36px 40px;
-  border: 1px solid rgba(254, 103, 71, 0.08);
+  border: 1px solid rgba(vars.$primary, 0.08);
   text-align: left;
   position: relative;
   overflow: hidden;
@@ -282,7 +283,7 @@
     width: 160px;
     height: 120px;
     opacity: 0.15;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23FE6747'%3E%3Cpath d='M12 3L1 9l11 6 9-4.91V17h2V9L12 3z'/%3E%3Cpath d='M20 12.3L12 16.7l-8-4.4V18l8 4.4 8-4.4v-5.7z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23f47c20'%3E%3Cpath d='M12 3L1 9l11 6 9-4.91V17h2V9L12 3z'/%3E%3Cpath d='M20 12.3L12 16.7l-8-4.4V18l8 4.4 8-4.4v-5.7z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-size: contain;
   }
@@ -373,7 +374,7 @@
 
       &:focus {
         border-color: vars.$primary;
-        box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.12);
+        box-shadow: 0 0 0 3px rgba(vars.$primary, 0.12);
       }
     }
   }
@@ -410,10 +411,14 @@
       padding: 10px 18px;
       font-size: 0.85rem;
       font-weight: 700;
-      box-shadow: 0 4px 10px rgba(254, 103, 71, 0.2);
+      background: vars.$primary;
+      color: white;
+      border: none;
+      box-shadow: 0 4px 10px rgba(vars.$primary, 0.2);
 
       &:hover {
-        box-shadow: 0 6px 14px rgba(254, 103, 71, 0.3);
+        background: color.adjust(vars.$primary, $lightness: -8%);
+        box-shadow: 0 6px 14px rgba(vars.$primary, 0.3);
       }
     }
   }

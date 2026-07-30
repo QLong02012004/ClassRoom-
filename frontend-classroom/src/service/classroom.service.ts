@@ -21,15 +21,36 @@ export interface ITeacherClassroom {
   name: string;
   subject: string;
   code: string;
-  teacherId: string;
+  teacherId: string | { _id: string; name: string; avatar?: string };
   students: string[];
   status: 'Active' | 'Locked' | 'Archived';
+  requireApproval?: boolean;
   createdAt: string;
   googleSheetId?: string;
   googleSheetUrl?: string;
   pendingGrades?: number;
+  pendingRequestsCount?: number;
   latestAssignmentTitle?: string | null;
   latestAssignmentDue?: string | null;
+}
+
+export interface IClassJoinRequestItem {
+  _id: string;
+  classId: string;
+  studentId: {
+    _id: string;
+    name: string;
+    email: string;
+    avatar?: string;
+  };
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
+export interface IPendingStudentClassItem {
+  requestId: string;
+  requestedAt: string;
+  class: ITeacherClassroom;
 }
 
 export interface IClassroomActivities {
@@ -67,9 +88,33 @@ export const classroomService = {
     return await api.get('/api/v1/classrooms/teacher');
   },
 
+  getPendingJoinRequests: async (classId: string): Promise<IBackendRes<IClassJoinRequestItem[]>> => {
+    return await api.get(`/api/v1/classrooms/${classId}/join-requests`);
+  },
+
+  getTeacherPendingCount: async (): Promise<IBackendRes<{ totalPendingCount: number }>> => {
+    return await api.get('/api/v1/classrooms/teacher/pending-requests-count');
+  },
+
+  approveJoinRequest: async (classId: string, requestId: string): Promise<IBackendRes<any>> => {
+    return await api.post(`/api/v1/classrooms/${classId}/join-requests/${requestId}/approve`);
+  },
+
+  rejectJoinRequest: async (classId: string, requestId: string): Promise<IBackendRes<any>> => {
+    return await api.post(`/api/v1/classrooms/${classId}/join-requests/${requestId}/reject`);
+  },
+
+  approveAllJoinRequests: async (classId: string): Promise<IBackendRes<{ approvedCount: number }>> => {
+    return await api.post(`/api/v1/classrooms/${classId}/join-requests/approve-all`);
+  },
+
   // --- STUDENT METHODS ---
   getStudentClassrooms: async (): Promise<IBackendRes<ITeacherClassroom[]>> => {
     return await api.get('/api/v1/classrooms/student');
+  },
+
+  getStudentPendingClasses: async (): Promise<IBackendRes<IPendingStudentClassItem[]>> => {
+    return await api.get('/api/v1/classrooms/student/pending');
   },
 
   joinClassByCode: async (code: string): Promise<IBackendRes<any>> => {
@@ -80,11 +125,11 @@ export const classroomService = {
     return await api.get(`/api/v1/classrooms/${id}`);
   },
 
-  createClassroom: async (data: { className: string; subject: string }): Promise<IBackendRes<ITeacherClassroom>> => {
+  createClassroom: async (data: { className: string; subject: string; requireApproval?: boolean }): Promise<IBackendRes<ITeacherClassroom>> => {
     return await api.post('/api/v1/classrooms', data);
   },
 
-  updateClassroom: async (id: string, data: { className: string; subject: string }): Promise<IBackendRes<ITeacherClassroom>> => {
+  updateClassroom: async (id: string, data: { className: string; subject: string; requireApproval?: boolean }): Promise<IBackendRes<ITeacherClassroom>> => {
     return await api.put(`/api/v1/classrooms/${id}`, data);
   },
 

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Plus, Chalkboard, Users, Key, PencilSimple, CaretDown, Check, ClipboardText, BookOpen, MagnifyingGlass, Funnel, CheckSquare, Clock, SquaresFour, List, PushPin, Archive, DotsThreeVertical } from "phosphor-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Plus, Users, PencilSimple, CaretDown, Check, ClipboardText, BookOpen, MagnifyingGlass, Funnel, CheckSquare, Clock, SquaresFour, List, PushPin, Archive, Trash, UserPlus, XCircle, CheckCircle } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useNavigate, Link } from "react-router-dom";
 import { classroomService } from "../../../service/classroom.service";
@@ -9,21 +9,19 @@ import type { ISchedule } from "../../../service/schedule.service";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { useAuth } from "../../../context/AuthContext";
 import styles from "./TeacherClassrooms.module.scss";
+import { Table, Pagination, Checkbox, Button } from "@heroui/react";
+import type { Selection } from "@heroui/react";
+import { ClassroomActionMenu } from "../../../components/ui/ActionMenus/ClassroomActionMenu";
 import {
-  createColumnHelper,
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-} from "@tanstack/react-table";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../../components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel
-} from "../../../components/ui/dropdown-menu";
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "../../../components/ui/alert-dialog";
 
 const SUBJECT_OPTIONS = [
   { value: "Toán học", emoji: "🔢", color: "#3b82f6" },
@@ -47,10 +45,21 @@ export default function TeacherClassrooms() {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [classToArchive, setClassToArchive] = useState<ITeacherClassroom | null>(null);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  // Pending Join Requests Modal State
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [selectedClassForPending, setSelectedClassForPending] = useState<ITeacherClassroom | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [loadingPendingList, setLoadingPendingList] = useState(false);
+  const [processingActionId, setProcessingActionId] = useState<string | null>(null);
+
+  // Default to list view as requested
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+
+  // Table selection & pagination state
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+  const [page, setPage] = useState(1);
+  const ROWS_PER_PAGE = 8;
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     try {
@@ -61,9 +70,11 @@ export default function TeacherClassrooms() {
     }
   });
 
-  const togglePin = (e: React.MouseEvent, id: string) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const togglePin = (e: React.MouseEvent | null, id: string) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setPinnedIds(prev => {
       const isPinned = prev.includes(id);
       const newPinned = isPinned ? prev.filter(pId => pId !== id) : [...prev, id];
@@ -72,7 +83,7 @@ export default function TeacherClassrooms() {
     });
   };
 
-  const [newClass, setNewClass] = useState({ className: "", subject: (user as any)?.subject || "Toán học" });
+  const [newClass, setNewClass] = useState({ className: "", subject: (user as any)?.subject || "Toán học", requireApproval: true });
 
   useEffect(() => {
     if ((user as any)?.subject) {
@@ -83,27 +94,13 @@ export default function TeacherClassrooms() {
   const selectedSubject = SUBJECT_OPTIONS.find(o => o.value === newClass.subject) || { value: newClass.subject, emoji: "📚", color: "#64748b" };
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [semesterFilter, setSemesterFilter] = useState("all");
-  const [semesterDropdownOpen, setSemesterDropdownOpen] = useState(false);
-  const semesterRef = useRef<HTMLDivElement>(null);
 
-  const SEMESTER_OPTIONS = [
-    { value: "all", label: "Tất cả học kỳ" },
-    { value: "hk1-2024", label: "HK1 - 2024-2025" },
-    { value: "hk2-2024", label: "HK2 - 2024-2025" },
-    { value: "hk1-2025", label: "HK1 - 2025-2026" },
-    { value: "hk2-2025", label: "HK2 - 2025-2026" },
-  ];
-
-  const selectedSemesterLabel = SEMESTER_OPTIONS.find(o => o.value === semesterFilter)?.label || "Tất cả học kỳ";
-
-  const filteredClassrooms = React.useMemo(() => {
+  const filteredClassrooms = useMemo(() => {
     const filtered = classrooms.filter((cls) => {
       const q = searchQuery.toLowerCase().trim();
       const matchSearch = !q ||
         cls.name.toLowerCase().includes(q) ||
         (cls.code || "").toLowerCase().includes(q);
-      // Semester filter is UI-level only (no date metadata yet), so just show all when "all"
       return matchSearch;
     });
 
@@ -115,6 +112,39 @@ export default function TeacherClassrooms() {
       return 0;
     });
   }, [classrooms, searchQuery, pinnedIds]);
+
+  // Reset pagination on search
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const totalPages = Math.ceil(filteredClassrooms.length / ROWS_PER_PAGE) || 1;
+  const startIdx = filteredClassrooms.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
+  const endIdx = Math.min(page * ROWS_PER_PAGE, filteredClassrooms.length);
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+
+  const paginatedClassrooms = useMemo(() => {
+    return filteredClassrooms.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE);
+  }, [filteredClassrooms, page, ROWS_PER_PAGE]);
+
+  const selectedIds = useMemo(() => {
+    if (selectedKeys === "all") {
+      return filteredClassrooms.map(c => c._id);
+    }
+    return Array.from(selectedKeys) as string[];
+  }, [selectedKeys, filteredClassrooms]);
+
+  const handleBulkArchiveClick = async () => {
+    if (selectedIds.length === 0) return;
+    try {
+      await Promise.all(selectedIds.map(id => classroomService.softDeleteClassroom(id)));
+      toast.success(`Đã đưa ${selectedIds.length} lớp học vào lưu trữ.`);
+      setSelectedKeys(new Set());
+      loadData();
+    } catch (error) {
+      toast.error("Không thể lưu trữ các lớp học này!");
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -156,14 +186,6 @@ export default function TeacherClassrooms() {
     return `${next.startTime} - ${dayText}`;
   };
 
-  const getClassProgress = (classId: string) => {
-    const classSchedules = schedules.filter(s => (s.classId?._id || s.classId) === classId);
-    if (!classSchedules.length) return 0;
-    const totalProgress = classSchedules.reduce((acc, curr) => acc + (curr.progress || 0), 0);
-    return Math.round(totalProgress / classSchedules.length);
-  };
-
-
   useEffect(() => {
     loadData();
     const handleOpenModal = () => setShowModal(true);
@@ -173,19 +195,68 @@ export default function TeacherClassrooms() {
     };
   }, []);
 
-  // Close both dropdowns on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
+
+
+  const openPendingRequestsModal = async (cls: ITeacherClassroom) => {
+    setSelectedClassForPending(cls);
+    setShowPendingModal(true);
+    setLoadingPendingList(true);
+    try {
+      const res = await classroomService.getPendingJoinRequests(cls._id);
+      if (res.data) {
+        setPendingRequests(res.data);
       }
-      if (semesterRef.current && !semesterRef.current.contains(e.target as Node)) {
-        setSemesterDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    } catch {
+      toast.error("Không thể tải danh sách yêu cầu chờ duyệt");
+    } finally {
+      setLoadingPendingList(false);
+    }
+  };
+
+  const handleApproveStudent = async (requestId: string) => {
+    if (!selectedClassForPending) return;
+    setProcessingActionId(requestId);
+    try {
+      await classroomService.approveJoinRequest(selectedClassForPending._id, requestId);
+      toast.success("Đã duyệt học sinh vào lớp!");
+      setPendingRequests(prev => prev.filter(r => r._id !== requestId));
+      loadData();
+    } catch {
+      toast.error("Duyệt học sinh thất bại!");
+    } finally {
+      setProcessingActionId(null);
+    }
+  };
+
+  const handleRejectStudent = async (requestId: string) => {
+    if (!selectedClassForPending) return;
+    setProcessingActionId(requestId);
+    try {
+      await classroomService.rejectJoinRequest(selectedClassForPending._id, requestId);
+      toast.info("Đã từ chối yêu cầu tham gia.");
+      setPendingRequests(prev => prev.filter(r => r._id !== requestId));
+      loadData();
+    } catch {
+      toast.error("Từ chối thất bại!");
+    } finally {
+      setProcessingActionId(null);
+    }
+  };
+
+  const handleApproveAllStudents = async () => {
+    if (!selectedClassForPending) return;
+    setProcessingActionId('all');
+    try {
+      const res = await classroomService.approveAllJoinRequests(selectedClassForPending._id);
+      toast.success(res.message || "Đã duyệt tất cả học sinh vào lớp!");
+      setPendingRequests([]);
+      loadData();
+    } catch {
+      toast.error("Duyệt tất cả thất bại!");
+    } finally {
+      setProcessingActionId(null);
+    }
+  };
 
   const handleCreateOrUpdateClass = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -202,7 +273,7 @@ export default function TeacherClassrooms() {
         await classroomService.createClassroom(newClass);
         toast.success(`Tạo lớp học "${newClass.className}" thành công!`);
       }
-      setNewClass({ className: "", subject: (user as any)?.subject || "Toán học" });
+      setNewClass({ className: "", subject: (user as any)?.subject || "Toán học", requireApproval: false });
       setEditingId(null);
       setShowModal(false);
       loadData();
@@ -211,15 +282,15 @@ export default function TeacherClassrooms() {
     }
   };
 
-  const handleEditClick = (e: React.MouseEvent, cls: ITeacherClassroom) => {
-    e.stopPropagation();
+  const handleEditClick = (e: React.MouseEvent | null, cls: ITeacherClassroom) => {
+    if (e) e.stopPropagation();
     setEditingId(cls._id);
-    setNewClass({ className: cls.name, subject: cls.subject || (user as any)?.subject || "Toán học" });
+    setNewClass({ className: cls.name, subject: cls.subject || (user as any)?.subject || "Toán học", requireApproval: cls.requireApproval ?? false });
     setShowModal(true);
   };
 
-  const handleArchiveClick = (e: React.MouseEvent, cls: ITeacherClassroom) => {
-    e.stopPropagation();
+  const handleArchiveClick = (e: React.MouseEvent | null, cls: ITeacherClassroom) => {
+    if (e) e.stopPropagation();
     setClassToArchive(cls);
     setShowArchiveModal(true);
   };
@@ -236,130 +307,6 @@ export default function TeacherClassrooms() {
       toast.error("Không thể lưu trữ lớp học này!");
     }
   };
-
-  const columnHelper = createColumnHelper<ITeacherClassroom>();
-  const columns = React.useMemo(() => [
-    columnHelper.accessor('name', {
-      header: 'Tên lớp',
-      cell: info => {
-        const cls = info.row.original;
-        const isPinned = pinnedIds.includes(cls._id);
-        return (
-          <div className="flex items-center gap-2">
-            <button 
-              className={`p-1 rounded-md transition-colors ${isPinned ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-50'}`}
-              onClick={(e) => togglePin(e, cls._id)}
-              title={isPinned ? "Bỏ ghim" : "Ghim lớp học"}
-            >
-              <PushPin size={16} weight={isPinned ? "fill" : "regular"} />
-            </button>
-            <div className="font-bold text-slate-800 text-[14px]">{info.getValue()}</div>
-          </div>
-        );
-      },
-    }),
-    columnHelper.accessor('subject', {
-      header: 'Môn học',
-      cell: info => (
-        <span className="text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-800 rounded-lg whitespace-nowrap">
-          {info.getValue() || 'Khác'}
-        </span>
-      ),
-    }),
-    columnHelper.accessor('students', {
-      header: 'Sĩ số',
-      cell: info => (
-        <div className="flex items-center gap-1.5 text-slate-600 font-semibold">
-          <Users size={14} weight="bold" className="text-slate-400" />
-          <span>{info.getValue()?.length || 0}</span>
-        </div>
-      ),
-    }),
-    columnHelper.display({
-      id: 'assignments',
-      header: 'Bài tập',
-      cell: info => {
-        const cls = info.row.original;
-        if (cls.pendingGrades !== undefined && cls.pendingGrades > 0) {
-          return (
-            <div className="flex items-center gap-1.5 text-[12px] font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md w-max border border-rose-100">
-              <ClipboardText size={14} weight="bold" />
-              <span>{cls.pendingGrades} bài cần chấm</span>
-            </div>
-          );
-        }
-        if (cls.latestAssignmentTitle) {
-          return (
-            <div className="flex items-center gap-1.5 text-[12px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md w-max border border-blue-100">
-              <BookOpen size={14} weight="duotone" />
-              <span className="max-w-[120px] truncate" title={cls.latestAssignmentTitle}>
-                {cls.latestAssignmentTitle}
-              </span>
-            </div>
-          );
-        }
-        return (
-          <div className="text-[12px] text-slate-400 font-medium italic">
-            Chưa có bài tập
-          </div>
-        );
-      }
-    }),
-    columnHelper.display({
-      id: 'nextSchedule',
-      header: 'Lịch học tiếp theo',
-      cell: info => (
-        <div className="flex items-center gap-1.5 text-[13px] text-slate-600 font-medium whitespace-nowrap">
-          <Clock size={14} weight="duotone" className="text-orange-500" />
-          {getNextScheduleText(info.row.original._id)}
-        </div>
-      )
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'Hành động',
-      cell: info => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-1.5 text-slate-500 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-800 rounded-md transition-colors" title="Thêm thao tác">
-              <DotsThreeVertical size={16} weight="bold" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 z-50">
-            <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => navigate(`/classrooms/${info.row.original._id}`)} className="cursor-pointer">
-              <MagnifyingGlass size={16} weight="bold" className="mr-2 text-slate-500" />
-              Chi tiết lớp học
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={(e) => handleEditClick(e as any, info.row.original)} className="cursor-pointer">
-              <PencilSimple size={16} weight="bold" className="mr-2 text-blue-500" />
-              Sửa thông tin
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate(`/attendance?classId=${info.row.original._id}`)} className="cursor-pointer">
-              <CheckSquare size={16} weight="bold" className="mr-2 text-emerald-500" />
-              Điểm danh
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate(`/gradebook?classId=${info.row.original._id}`)} className="cursor-pointer">
-              <ClipboardText size={16} weight="bold" className="mr-2 text-purple-500" />
-              Sổ điểm
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={(e) => handleArchiveClick(e as any, info.row.original)} className="cursor-pointer text-orange-600 focus:text-orange-700 focus:bg-orange-50">
-              <Archive size={16} weight="bold" className="mr-2" />
-              Lưu trữ
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )
-    }),
-  ], [schedules]);
-
-  const table = useReactTable({
-    data: filteredClassrooms,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
 
   return (
     <div className={styles.classroomsPage}>
@@ -385,37 +332,9 @@ export default function TeacherClassrooms() {
             )}
           </div>
 
-          {/* SEMESTER FILTER DROPDOWN */}
-          <div className={styles.semesterDropdown} ref={semesterRef}>
-            <button
-              className={`${styles.semesterTrigger} ${semesterDropdownOpen ? styles.semesterOpen : ""}`}
-              onClick={() => setSemesterDropdownOpen(p => !p)}
-            >
-              <Funnel size={15} weight="bold" />
-              <span>{selectedSemesterLabel}</span>
-              <CaretDown size={13} weight="bold" className={semesterDropdownOpen ? styles.caretFlip : ""} />
-            </button>
-            {semesterDropdownOpen && (
-              <div className={styles.semesterPanel}>
-                {SEMESTER_OPTIONS.map(opt => (
-                  <button
-                    key={opt.value}
-                    className={`${styles.semesterOption} ${semesterFilter === opt.value ? styles.semesterActive : ""}`}
-                    onClick={() => { setSemesterFilter(opt.value); setSemesterDropdownOpen(false); }}
-                  >
-                    {opt.label}
-                    {semesterFilter === opt.value && <Check size={14} weight="bold" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-
-
           <AnimatedAddButton onClick={() => {
             setEditingId(null);
-            setNewClass({ className: "", subject: (user as any)?.subject || "Toán học" });
+            setNewClass({ className: "", subject: (user as any)?.subject || "Toán học", requireApproval: true });
             setShowModal(true);
           }}>
             Tạo lớp học mới
@@ -424,7 +343,7 @@ export default function TeacherClassrooms() {
       </div>
 
       {/* VIEW CONTROLS & STATS */}
-      <div className="flex justify-between items-center mb-4 px-1">
+      <div className="flex justify-between items-center mb-1 px-1">
         <h3 className="text-slate-500 font-medium text-sm">
           Hiển thị <span className="text-slate-800 font-bold">{filteredClassrooms.length}</span> lớp học
         </h3>
@@ -448,6 +367,23 @@ export default function TeacherClassrooms() {
         </div>
       </div>
 
+      {/* BULK ACTION TOOLBAR (Synchronized with ActivitiesTable design) */}
+      {selectedIds.length > 0 && viewMode === 'list' && (
+        <div className="flex items-center justify-between bg-slate-50 border border-slate-200 px-4 py-3 rounded-lg shadow-sm">
+          <span className="text-sm font-medium text-slate-700">
+            Đã chọn <strong className="text-primary">{selectedIds.length}</strong> lớp học
+          </span>
+          <Button
+            className="bg-orange-100 text-orange-700 hover:bg-orange-200 font-medium flex items-center gap-2"
+            size="sm"
+            onPress={handleBulkArchiveClick}
+          >
+            <Archive weight="bold" size={16} />
+            Lưu trữ các lớp đã chọn
+          </Button>
+        </div>
+      )}
+
       {viewMode === 'grid' ? (
         <div className={styles.classesGrid}>
           {filteredClassrooms.length === 0 ? (
@@ -462,10 +398,10 @@ export default function TeacherClassrooms() {
             >
               <div className={styles.cardTop}>
                 <div className="flex items-center gap-3">
-                  <span className={styles.subjectTag} style={{ color: '#0f172a', fontWeight: '700' }}>{cls.subject || 'Môn học chung'}</span>
+                  <span className={styles.subjectTag}>{cls.subject || 'Môn học chung'}</span>
                 </div>
                 <div className="flex gap-2 items-center">
-                  <button 
+                  <button
                     className={`p-1.5 rounded-md transition-colors ${pinnedIds.includes(cls._id) ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 hover:bg-slate-100'}`}
                     onClick={(e) => togglePin(e, cls._id)}
                     title={pinnedIds.includes(cls._id) ? "Bỏ ghim" : "Ghim lớp học"}
@@ -547,46 +483,218 @@ export default function TeacherClassrooms() {
           ))}
         </div>
       ) : (
-        <div className="rounded-xl border border-slate-200 bg-white shadow-sm flex flex-col flex-1 overflow-hidden mt-4">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader className="bg-slate-50 text-slate-500 uppercase tracking-wider border-b border-slate-200">
-                {table.getHeaderGroups().map(headerGroup => (
-                  <TableRow key={headerGroup.id} className="hover:bg-transparent border-b-slate-200">
-                    {headerGroup.headers.map(header => (
-                      <TableHead key={header.id} className="text-[11px] font-extrabold px-5 py-4 whitespace-nowrap text-slate-500">
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                      </TableHead>
+        /* TABLE VIEW - SYNCHRONIZED WITH ActivitiesTable & HeroUI Table */
+        <div className="mt-2 flex flex-col gap-4">
+          <Table>
+            <Table.ScrollContainer className="min-h-[350px]">
+              <Table.Content
+                aria-label="Danh sách lớp học phụ trách"
+                className="min-w-[800px]"
+                selectedKeys={selectedKeys}
+                selectionMode="multiple"
+                selectionBehavior="toggle"
+                onSelectionChange={setSelectedKeys}
+              >
+                <Table.Header>
+                  <Table.Column className="after:hidden w-[45px]" id="selection">
+                    <Checkbox aria-label="Select all" slot="selection">
+                      <Checkbox.Content>
+                        <Checkbox.Control className="border-2 border-slate-400 bg-white rounded-md">
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                      </Checkbox.Content>
+                    </Checkbox>
+                  </Table.Column>
+                  <Table.Column isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[220px] max-w-[220px]" id="name">
+                    Tên lớp
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px]" id="code">
+                    Mã lớp
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px]" id="subject">
+                    Môn học
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[180px]" id="students">
+                    Sĩ số
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[180px]" id="assignments">
+                    Bài tập
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[170px]" id="nextSchedule">
+                    Lịch học tiếp theo
+                  </Table.Column>
+                  <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[130px] whitespace-nowrap" id="actions">
+                    Hành động
+                  </Table.Column>
+                </Table.Header>
+                <Table.Body>
+                  {filteredClassrooms.length === 0 ? (
+                    <Table.Row key="empty" id="empty">
+                      <Table.Cell className="pr-0" />
+                      <Table.Cell colSpan={7}>
+                        <div className="py-12 text-center text-slate-500 font-medium">
+                          <div className="flex flex-col items-center gap-3">
+                            <MagnifyingGlass size={36} weight="duotone" className="text-slate-300" />
+                            <p className="font-semibold">Không tìm thấy lớp học nào khớp với "{searchQuery}"</p>
+                          </div>
+                        </div>
+                      </Table.Cell>
+                    </Table.Row>
+                  ) : (
+                    paginatedClassrooms.map((cls, idx) => {
+                      const isPinned = pinnedIds.includes(cls._id);
+                      return (
+                        <Table.Row key={cls._id} id={cls._id} className="hover:bg-slate-50/70 transition-colors border-b border-slate-100 cursor-pointer">
+                          <Table.Cell>
+                            <Checkbox aria-label={`Select ${cls.name}`} slot="selection">
+                              <Checkbox.Content>
+                                <Checkbox.Control className="border-2 border-slate-400 bg-white rounded-md">
+                                  <Checkbox.Indicator />
+                                </Checkbox.Control>
+                              </Checkbox.Content>
+                            </Checkbox>
+                          </Table.Cell>
+
+                          <Table.Cell className="max-w-[220px]" onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2 max-w-full overflow-hidden">
+                              {isPinned && (
+                                <span title="Lớp đã được ghim" className="shrink-0">
+                                  <PushPin size={14} weight="fill" className="text-amber-500" />
+                                </span>
+                              )}
+                              <Link
+                                to={`/classrooms/${cls._id}`}
+                                className="font-bold text-primary text-sm hover:opacity-80 transition-opacity no-underline truncate block"
+                                title={cls.name}
+                              >
+                                {cls.name}
+                              </Link>
+                            </div>
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            <span className="font-mono font-bold text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded border border-slate-200 inline-block">
+                              {cls.code || `CLASS-${cls._id.substring(0, 4).toUpperCase()}`}
+                            </span>
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            <span className="text-xs font-bold px-2.5 py-1 bg-[#2f8fa3]/10 text-[#2f8fa3] rounded-lg whitespace-nowrap border border-[#2f8fa3]/20">
+                              {cls.subject || 'Khác'}
+                            </span>
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            <div className="flex items-center gap-2 whitespace-nowrap">
+                              <div className="flex items-center gap-1.5 text-slate-600 font-semibold text-xs shrink-0">
+                                <Users size={14} weight="bold" className="text-slate-400" />
+                                <span>{cls.students?.length || 0} HS</span>
+                              </div>
+                              {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openPendingRequestsModal(cls);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-white bg-[#2f8fa3] hover:bg-[#257385] rounded-lg shadow-sm whitespace-nowrap cursor-pointer border-none transition-all hover:scale-105 active:scale-95 shrink-0"
+                                  title="Nhấn để duyệt học sinh đang chờ gia nhập lớp"
+                                >
+                                  <UserPlus size={13} weight="bold" />
+                                  <span>Duyệt ({cls.pendingRequestsCount})</span>
+                                </button>
+                              )}
+                            </div>
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            {cls.pendingGrades !== undefined && cls.pendingGrades > 0 ? (
+                              <div className="flex items-center gap-1.5 text-[12px] font-semibold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-md w-max border border-rose-100">
+                                <ClipboardText size={14} weight="bold" />
+                                <span>{cls.pendingGrades} bài cần chấm</span>
+                              </div>
+                            ) : cls.latestAssignmentTitle ? (
+                              <div className="flex items-center gap-1.5 text-[12px] font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md w-max border border-blue-100">
+                                <BookOpen size={14} weight="duotone" />
+                                <span className="max-w-[140px] truncate" title={cls.latestAssignmentTitle}>
+                                  {cls.latestAssignmentTitle}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-[12px] text-slate-400 font-medium italic">
+                                Chưa có bài tập
+                              </div>
+                            )}
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            <div className="flex items-center gap-1.5 text-[13px] text-slate-600 font-medium whitespace-nowrap">
+                              <Clock size={14} weight="duotone" className="text-orange-500" />
+                              <span>{getNextScheduleText(cls._id)}</span>
+                            </div>
+                          </Table.Cell>
+
+                          <Table.Cell onClick={(e: any) => e.stopPropagation()} onPointerDown={(e: any) => e.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1 relative">
+                              <ClassroomActionMenu
+                                isPinned={isPinned}
+                                onTogglePin={() => togglePin(null, cls._id)}
+                                onViewDetail={() => navigate(`/classrooms/${cls._id}`)}
+                                onEdit={() => handleEditClick(null, cls)}
+                                onAttendance={() => navigate(`/attendance?classId=${cls._id}`)}
+                                onGradebook={() => navigate(`/gradebook?classId=${cls._id}`)}
+                                onArchive={() => handleArchiveClick(null, cls)}
+                              />
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      );
+                    })
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
+            <Table.Footer>
+              {totalPages > 0 && (
+                <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
+                  <Pagination.Summary className="text-sm text-slate-500 font-medium">
+                    Hiển thị {startIdx} đến {endIdx} trong số {filteredClassrooms.length} kết quả
+                  </Pagination.Summary>
+                  <Pagination.Content>
+                    <Pagination.Item>
+                      <Pagination.Previous
+                        isDisabled={page === 1}
+                        onPress={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        <Pagination.PreviousIcon />
+                        Trang trước
+                      </Pagination.Previous>
+                    </Pagination.Item>
+                    {pages.map((p) => (
+                      <Pagination.Item key={p}>
+                        <Pagination.Link
+                          isActive={p === page}
+                          onPress={() => setPage(p)}
+                          className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
+                        >
+                          {p}
+                        </Pagination.Link>
+                      </Pagination.Item>
                     ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="divide-y divide-slate-100">
-                {table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id} className="hover:bg-slate-50/50 transition-colors cursor-pointer border-b-slate-100">
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id} className="px-5 py-4">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-                {filteredClassrooms.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={columns.length} className="px-5 py-12 text-center text-slate-500 h-32">
-                      <div className="flex flex-col items-center gap-3">
-                        <MagnifyingGlass size={40} weight="duotone" className="text-slate-300" />
-                        <p className="font-semibold">Không tìm thấy lớp học nào khớp với "{searchQuery}"</p>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                    <Pagination.Item>
+                      <Pagination.Next
+                        isDisabled={page === totalPages}
+                        onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      >
+                        Trang sau
+                        <Pagination.NextIcon />
+                      </Pagination.Next>
+                    </Pagination.Item>
+                  </Pagination.Content>
+                </Pagination>
+              )}
+            </Table.Footer>
+          </Table>
         </div>
       )}
 
@@ -620,7 +728,6 @@ export default function TeacherClassrooms() {
                 <div className={styles.formGroup}>
                   <label>Môn học phụ trách</label>
                   <div className={styles.customDropdown}>
-                    {/* Read-only Button for Subject */}
                     <button
                       type="button"
                       className={`${styles.dropdownTrigger} opacity-75 cursor-not-allowed bg-slate-50 border-slate-200`}
@@ -640,6 +747,24 @@ export default function TeacherClassrooms() {
                   </div>
                 </div>
 
+                <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl my-4">
+                  <div className="flex flex-col gap-0.5 pr-2">
+                    <label htmlFor="modalRequireApproval" className="text-xs font-bold text-slate-800 cursor-pointer">
+                      Yêu cầu duyệt học sinh khi tham gia bằng mã lớp
+                    </label>
+                    <span className="text-[11px] text-slate-500 leading-tight">
+                      Học sinh nhập đúng mã sẽ phải chờ bạn phê duyệt trước khi vào lớp để tránh tài khoản lạ/spam.
+                    </span>
+                  </div>
+                  <input
+                    id="modalRequireApproval"
+                    type="checkbox"
+                    checked={newClass.requireApproval}
+                    onChange={(e) => setNewClass({ ...newClass, requireApproval: e.target.checked })}
+                    className="w-5 h-5 accent-orange-500 rounded cursor-pointer shrink-0"
+                  />
+                </div>
+
                 <div className={styles.modalActions}>
                   <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
                     Hủy bỏ
@@ -654,34 +779,170 @@ export default function TeacherClassrooms() {
         </div>
       )}
 
-      {/* MODAL ARCHIVE */}
-      {showArchiveModal && classToArchive && (
-        <div className={styles.modalOverlay} onClick={() => setShowArchiveModal(false)}>
-          <div className={styles.modalContent} style={{ maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <div className={styles.headerText}>
-                <h3 className="text-orange-600">Lưu trữ lớp học</h3>
-                <p>Bạn muốn lưu trữ lớp "{classToArchive.name}"?</p>
+      {/* MODAL DUYỆT HỌC SINH THAM GIA LỚP */}
+      {showPendingModal && selectedClassForPending && (
+        <div className={styles.modalOverlay} onClick={() => setShowPendingModal(false)}>
+          <div className={`${styles.modalContent} !max-w-3xl !w-full !p-0 overflow-hidden shadow-2xl bg-white`} style={{ maxWidth: '720px' }} onClick={(e) => e.stopPropagation()}>
+            {/* HEADER */}
+            <div className="bg-white border-b border-slate-200 p-5 flex items-start justify-between shrink-0">
+              <div className="flex flex-col gap-1">
+                <h3 className="flex items-center gap-2 text-xl font-extrabold m-0 text-[#2f8fa3]">
+                  <UserPlus size={26} weight="duotone" />
+                  Yêu cầu tham gia: {selectedClassForPending.name}
+                </h3>
+                <p className="text-slate-500 text-sm m-0">Danh sách học sinh đang chờ phê duyệt vào lớp</p>
               </div>
-              <button className={styles.btnClose} onClick={() => setShowArchiveModal(false)}>✕</button>
+              <button className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 border border-slate-200 cursor-pointer p-2 rounded-full hover:bg-rose-50 shrink-0" onClick={() => setShowPendingModal(false)}>
+                <XCircle size={20} weight="bold" />
+              </button>
             </div>
-            <div className={styles.modalBody}>
-              <div className="flex flex-col gap-4 mb-6">
-                <div className="bg-orange-50 text-orange-700 p-4 rounded-lg text-sm border border-orange-100 flex gap-3">
-                  <Archive size={24} weight="duotone" className="shrink-0 text-orange-500" />
-                  <p>
-                    Lớp học sẽ được ẩn khỏi màn hình chính nhưng <strong>toàn bộ dữ liệu điểm số, bài tập, và danh sách học sinh vẫn được bảo lưu an toàn.</strong>
-                  </p>
+
+            <div className="flex flex-col max-h-[75vh] bg-slate-50/50">
+              {loadingPendingList ? (
+                <div className="text-center py-16 text-slate-500 font-medium flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-4 border-[#2f8fa3] border-t-transparent rounded-full animate-spin"></div>
+                  Đang tải danh sách chờ...
                 </div>
-              </div>
-              <div className={styles.modalActions}>
-                <button type="button" className={styles.btnCancel} onClick={() => setShowArchiveModal(false)}>Hủy</button>
-                <button type="button" className={`${styles.btnConfirm} !bg-orange-500 hover:!bg-orange-600`} onClick={confirmArchive}>Xác nhận Lưu trữ</button>
-              </div>
+              ) : pendingRequests.length === 0 ? (
+                <div className="text-center py-16 text-slate-500 flex flex-col items-center justify-center gap-3 bg-white m-6 rounded-2xl shadow-sm border border-slate-200">
+                  <div className="w-16 h-16 bg-[#2f8fa3]/10 rounded-full flex items-center justify-center text-[#2f8fa3] mb-2">
+                    <CheckCircle size={32} weight="duotone" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800 text-lg m-0">Không có yêu cầu nào</p>
+                    <p className="text-sm text-slate-500 mt-1">Tất cả học sinh xin vào đã được xử lý xong.</p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* TOOLBAR */}
+                  <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0 z-10 relative">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-800">
+                        Có <strong className="text-[#f47c20] text-lg px-1">{pendingRequests.length}</strong> học sinh đang chờ
+                      </span>
+                      <span className="text-xs text-slate-500 mt-0.5">Vui lòng duyệt để học sinh có thể vào lớp</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleApproveAllStudents}
+                      disabled={processingActionId === 'all'}
+                      className="px-5 py-2.5 bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold text-sm rounded-xl shadow-md transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:transform-none border-none shrink-0"
+                    >
+                      <CheckSquare size={18} weight="bold" />
+                      <span>{processingActionId === 'all' ? "Đang xử lý..." : "Duyệt tất cả"}</span>
+                    </button>
+                  </div>
+
+                  {/* LIST */}
+                  <div className="flex flex-col gap-3 p-4 sm:p-6 overflow-y-auto">
+                    {pendingRequests.map((req) => {
+                      const student = req.studentId || {};
+                      const isProcessing = processingActionId === req._id;
+                      return (
+                        <div key={req._id} className="group flex flex-wrap items-center justify-between bg-white border border-slate-200 p-4 sm:p-5 rounded-2xl shadow-sm hover:shadow-md hover:border-[#2f8fa3]/50 transition-all gap-4">
+                          <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-[200px]">
+                            <div className="relative shrink-0">
+                                <img
+                                  src={student.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || "HS")}&background=f47c20&color=fff&bold=true`}
+                                  alt={student.name}
+                                  className="w-12 h-12 rounded-full border-2 border-slate-100 shadow-xs object-cover"
+                                />
+                                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#f47c20] border-2 border-white rounded-full" title="Đang chờ"></div>
+                            </div>
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="font-extrabold text-slate-800 text-[15px] truncate group-hover:text-[#2f8fa3] transition-colors" title={student.name || "Học sinh"}>{student.name || "Học sinh"}</span>
+                              <span className="text-[13px] text-slate-500 font-medium truncate mt-0.5" title={student.email}>
+                                 {student.email}
+                              </span>
+                              <div className="text-[11px] text-slate-400 font-medium mt-1.5 flex items-center gap-1.5 whitespace-nowrap">
+                                <Clock size={14} weight="bold" className="shrink-0 text-[#2f8fa3]" />
+                                <span>{new Date(req.createdAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => handleRejectStudent(req._id)}
+                              disabled={isProcessing}
+                              className="flex-1 sm:flex-none justify-center px-4 py-2 bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 border-none"
+                            >
+                              <XCircle size={16} weight="bold" />
+                              <span>Từ chối</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleApproveStudent(req._id)}
+                              disabled={isProcessing}
+                              className="flex-1 sm:flex-none justify-center px-5 py-2 bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold text-xs rounded-xl shadow-sm transition-all hover:-translate-y-0.5 active:translate-y-0 flex items-center gap-1.5 cursor-pointer disabled:opacity-50 border-none"
+                            >
+                              <CheckCircle size={16} weight="bold" />
+                              <span>Duyệt</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* MODAL ARCHIVE USING ALERTDIALOG */}
+      <AlertDialog
+        open={showArchiveModal && !!classToArchive}
+        onOpenChange={(open) => {
+          if (!open) setShowArchiveModal(false);
+        }}
+      >
+        <AlertDialogContent className="bg-white max-w-md p-6 rounded-2xl shadow-xl border border-slate-100 overflow-hidden relative">
+          {/* Top Gradient Bar combining Ocean Blue ($secondary) & Sunscreen Orange ($primary) */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2f8fa3] via-[#f47c20] to-[#2f8fa3]" />
+
+          <AlertDialogHeader className="text-left pt-1">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#2f8fa3]/10 text-[#2f8fa3] flex items-center justify-center shrink-0 border border-[#2f8fa3]/20">
+                <Archive size={22} weight="duotone" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-slate-900 text-lg font-extrabold">Lưu trữ lớp học</AlertDialogTitle>
+                <AlertDialogDescription className="text-slate-500 text-xs mt-0.5">
+                  Bạn có chắc chắn muốn lưu trữ lớp <span className="font-semibold text-slate-800">"{classToArchive?.name}"</span> không?
+                </AlertDialogDescription>
+              </div>
+            </div>
+          </AlertDialogHeader>
+
+          <div className="bg-gradient-to-r from-[#2f8fa3]/10 via-slate-50 to-[#2f8fa3]/5 text-slate-700 p-4 rounded-xl text-sm border border-[#2f8fa3]/25 flex gap-3 items-start my-3">
+            <Archive size={22} weight="duotone" className="shrink-0 text-[#2f8fa3] mt-0.5" />
+            <p className="leading-relaxed text-xs font-medium text-slate-600">
+              Lớp học sẽ được ẩn khỏi màn hình chính nhưng <strong className="text-[#2f8fa3] font-bold">toàn bộ dữ liệu điểm số, bài tập, và danh sách học sinh vẫn được bảo lưu an toàn.</strong>
+            </p>
+          </div>
+
+          <AlertDialogFooter className="flex gap-2.5 justify-end sm:justify-end mt-2 pt-3 border-t border-slate-100">
+            <AlertDialogCancel
+              onClick={() => setShowArchiveModal(false)}
+              variant="outline"
+              size="default"
+              className="border-slate-300 text-slate-700 hover:bg-slate-100"
+            >
+              Hủy
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmArchive}
+              className="bg-[#2f8fa3] hover:bg-[#247485] text-white border-none shadow-md shadow-[#2f8fa3]/20 font-semibold"
+            >
+              Xác nhận Lưu trữ
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
