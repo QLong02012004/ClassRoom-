@@ -15,8 +15,6 @@ import {
   Books,
   ChatTeardropText,
   Crown,
-  ChatCircleDots,
-  PaperPlaneRight,
   Warning,
   CaretDown
 } from "phosphor-react";
@@ -39,8 +37,8 @@ import { announcementService } from "../../../service/announcement.service.ts";
 import type { IComment } from "../../../service/announcement.service.ts";
 import styles from "./StudentDashboard.module.scss";
 
-import { ChartBarStacked } from "./components/ChartBarStacked";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
+import { ComicButton } from "../../../components/ui/Buttons/ComicButton";
 import AnimatedProgressBar from "../../../components/ui/AnimatedProgressBar";
 
 const calculateLevelAndProgress = (totalXP: number) => {
@@ -88,10 +86,10 @@ export default function StudentDashboard() {
   const [todoList, setTodoList] = useState<any[]>([]);
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
   const [learningProgress, setLearningProgress] = useState<any[]>([]);
-  const [weeklyGoals, setWeeklyGoals] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [studentAnnouncements, setStudentAnnouncements] = useState<any[]>([]);
   const [weaknessData, setWeaknessData] = useState<any[]>([]);
+  const [learningStats, setLearningStats] = useState<any[]>([]);
 
   // Leaderboard State
   const [classes, setClasses] = useState<{ _id: string, name: string }[]>([]);
@@ -109,49 +107,6 @@ export default function StudentDashboard() {
   const [sendingComment, setSendingComment] = useState<string | null>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
-  const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
-
-  // Chat Widget State
-  const [chatMessages, setChatMessages] = useState([
-    { id: 1, sender: "GV", text: "Các em nhớ nộp bài tập về nhà trước 12h đêm nay nhé!", time: "10:05 AM", isMe: false },
-    { id: 2, sender: "Me", text: "Dạ vâng ạ.", time: "10:07 AM", isMe: true }
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll chat
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [chatMessages]);
-
-  const handleSendChat = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!chatInput.trim()) return;
-
-    const newMsg = {
-      id: Date.now(),
-      sender: username,
-      text: chatInput,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isMe: true
-    };
-
-    setChatMessages(prev => [...prev, newMsg]);
-    setChatInput("");
-
-    // Simulate auto reply
-    setTimeout(() => {
-      setChatMessages(prev => [...prev, {
-        id: Date.now() + 1,
-        sender: "GV",
-        text: "Cảm ơn em đã phản hồi! Thầy đã ghi nhận.",
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isMe: false
-      }]);
-    }, 1500);
-  };
 
   const loadData = async () => {
     const currentUsername = user?.name || localStorage.getItem("username") || "Học sinh A";
@@ -166,7 +121,7 @@ export default function StudentDashboard() {
         setTodaySchedule(res.data.todaySchedule || []);
         setLearningProgress(res.data.learningProgress || []);
         setStudentAnnouncements(res.data.announcements || []);
-        setWeeklyGoals(res.data.weeklyGoals || []);
+        setLearningStats(res.data.learningStats || []);
         const cls = res.data.classes || [];
         setClasses(cls);
         if (cls.length > 0 && !selectedClassId) {
@@ -210,19 +165,6 @@ export default function StudentDashboard() {
     }
   }, [selectedClassId]);
 
-  const handleTaskComplete = (taskId: string) => {
-    setCompletedTasks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(taskId)) {
-        newSet.delete(taskId);
-      } else {
-        newSet.add(taskId);
-        toast.success("Tuyệt vời! Bạn đã hoàn thành một công việc.");
-      }
-      return newSet;
-    });
-  };
-
   const formatDate = (isoString: string) => {
     try {
       const date = new Date(isoString);
@@ -230,6 +172,17 @@ export default function StudentDashboard() {
     } catch (e) {
       return isoString;
     }
+  };
+
+  const getUrgency = (dueDate: string): { label: string; styleClass: string } => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffMs = due.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    if (diffHours < 0) return { label: 'Quá hạn', styleClass: styles.high };
+    if (diffHours <= 24) return { label: 'Gấp', styleClass: styles.high };
+    if (diffHours <= 72) return { label: 'Sắp đến', styleClass: styles.medium };
+    return { label: 'Bình thường', styleClass: styles.medium };
   };
 
   const handlePracticeClick = (tag: string) => {
@@ -432,16 +385,18 @@ export default function StudentDashboard() {
               </div>
               <div className={styles.todoList}>
                 {todoList.length > 0 ? (
-                  todoList.map((task, idx) => {
-                    const isCompleted = completedTasks.has(task._id);
+                  todoList.map((task) => {
+                    const urgency = getUrgency(task.dueDate);
                     return (
-                      <div key={task._id} className={`${styles.todoItem} ${isCompleted ? styles.completed : ''}`}>
-                        <div
-                          className={`${styles.checkbox} ${isCompleted ? styles.checked : ''}`}
-                          onClick={() => handleTaskComplete(task._id)}
-                        >
-                          {isCompleted && <CheckCircle size={20} weight="fill" color="#10b981" />}
-                          {!isCompleted && <div className={styles.circle}></div>}
+                      <div
+                        key={task._id}
+                        className={styles.todoItem}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => navigate(`/assignments/${task._id}`)}
+                        title="Nhấn để xem và làm bài tập"
+                      >
+                        <div className={styles.checkbox}>
+                          <div className={styles.circle}></div>
                         </div>
                         <div className={styles.itemInfo}>
                           <h4 className={styles.itemTitle}>{task.title}</h4>
@@ -450,11 +405,9 @@ export default function StudentDashboard() {
                           </span>
                         </div>
                         <div className={styles.itemRight}>
-                          {idx === 0 && !isCompleted ? (
-                            <span className={`${styles.urgencyBadge} ${styles.high}`}>Gấp</span>
-                          ) : (
-                            <span className={`${styles.urgencyBadge} ${styles.medium}`}>Bình thường</span>
-                          )}
+                          <span className={`${styles.urgencyBadge} ${urgency.styleClass}`}>
+                            {urgency.label}
+                          </span>
                         </div>
                       </div>
                     );
@@ -510,32 +463,60 @@ export default function StudentDashboard() {
             </div>
 
             <div className={styles.adaptiveLearningGrid}>
-              {/* Progress Card */}
+              {/* Progress Card - Tổng hợp tiến độ nộp bài của lớp có nhiều bài nhất */}
               <div className={styles.adaptiveCard}>
-                <div className={styles.adaptiveCardInfo}>
-                  <h4>Tiến độ môn Toán</h4>
-                  <p>Chương 1: Khảo sát Hàm số</p>
-                  <button className={styles.btnStart} onClick={() => navigate('/materials')}>
-                    Bắt đầu học <ArrowRight size={16} weight="bold" />
-                  </button>
-                </div>
-
                 {(() => {
-                  const completedLessons = 25;
-                  const totalLessons = 59;
-                  const mathPercent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
-                  const dashOffset = 264 - (264 * mathPercent) / 100;
+                  const topClass = learningStats[0];
+                  const progressPercent = topClass?.progressPercent ?? 0;
+                  const submittedCount = topClass?.submittedCount ?? 0;
+                  const totalAssignments = topClass?.totalAssignments ?? 0;
+                  const className = topClass?.className ?? 'Chưa có dữ liệu';
+                  const subject = topClass?.subject ?? '';
+                  const dashOffset = 264 - (264 * progressPercent) / 100;
                   return (
-                    <div className={styles.radialProgress}>
-                      <svg viewBox="0 0 100 100" className={styles.svgCircle}>
-                        <circle cx="50" cy="50" r="42" className={styles.circleBg} />
-                        <circle cx="50" cy="50" r="42" className={styles.circleProgress} style={{ strokeDashoffset: dashOffset }} />
-                      </svg>
-                      <div className={styles.radialText}>
-                        <span className={styles.percentage}>{mathPercent}%</span>
-                        <span className={styles.fraction}>{completedLessons}/{totalLessons} Bài</span>
+                    <>
+                      <div className={styles.adaptiveCardInfo}>
+                        <h4>Tiến độ: {className}</h4>
+                        <p>{subject ? subject : 'Hoàn thành bài tập'}</p>
+
+                        {/* Mini stats row */}
+                        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                          <span className={styles.submittedBadge}>
+                            ✓ {submittedCount} đã nộp
+                          </span>
+                          {(totalAssignments - submittedCount) > 0 && (
+                            <span className={styles.remainingBadge}>
+                              ⏳ {totalAssignments - submittedCount} còn lại
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Encouragement message */}
+                        <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '14px' }}>
+                          {progressPercent === 100
+                            ? '🎉 Xuất sắc! Bạn đã hoàn thành tất cả bài tập!'
+                            : progressPercent >= 50
+                            ? '💪 Tiếp tục cố gắng, bạn đang tiến bộ!'
+                            : totalAssignments === 0
+                            ? '📚 Chưa có bài tập nào được giao.'
+                            : '🚀 Hãy bắt đầu làm bài để tăng tiến độ!'}
+                        </p>
+
+                        <ComicButton size="sm" onClick={() => navigate('/assignments')}>
+                          Xem bài tập <ArrowRight size={14} weight="bold" />
+                        </ComicButton>
                       </div>
-                    </div>
+                      <div className={styles.radialProgress}>
+                        <svg viewBox="0 0 100 100" className={styles.svgCircle}>
+                          <circle cx="50" cy="50" r="42" className={styles.circleBg} />
+                          <circle cx="50" cy="50" r="42" className={styles.circleProgress} style={{ strokeDashoffset: dashOffset }} />
+                        </svg>
+                        <div className={styles.radialText}>
+                          <span className={styles.percentage}>{progressPercent}%</span>
+                          <span className={styles.fraction}>{submittedCount}/{totalAssignments} Bài</span>
+                        </div>
+                      </div>
+                    </>
                   );
                 })()}
               </div>
@@ -549,66 +530,16 @@ export default function StudentDashboard() {
                   <h4 className={styles.warningTitle}>Cảnh báo Lỗ hổng!</h4>
                   <p>Bạn đang sai nhiều ở dạng bài: <strong style={{ color: '#b91c1c' }}>{weaknessData[0]?.tag || 'Hàm số Mũ'}</strong></p>
                   <div className={styles.errorRateBadge}>Tỷ lệ sai: {weaknessData[0]?.errorRate || 80}%</div>
-                  <button
-                    className={styles.btnWarning}
+                  <ComicButton
+                    variant="warning"
+                    size="sm"
                     onClick={() => handlePracticeClick(weaknessData[0]?.tag || 'Hàm số Mũ')}
                   >
-                    Luyện tập ngay <ArrowRight size={16} weight="bold" />
-                  </button>
+                    Luyện tập ngay <ArrowRight size={14} weight="bold" />
+                  </ComicButton>
                 </div>
               </div>
             </div>
-          </section>
-
-          {/* 4. ROW 3: LEARNING PROGRESS & WEEKLY GOALS */}
-          <section className={styles.bottomGrid}>
-            <ChartBarStacked data={learningProgress} />
-
-            <div className={styles.bottomRightGrid}>
-              <div className={`${styles.goalsSection} tour-step-weekly-goals`}>
-                <h3>Mục tiêu tuần này</h3>
-                <div className={styles.goalsList}>
-                  {weeklyGoals.map(goal => {
-                    const percentage = Math.min(100, Math.round((goal.current / goal.target) * 100));
-                    return (
-                      <div key={goal.id} className={styles.goalItem}>
-                        <div className={styles.goalInfo}>
-                          <h4>{goal.title}</h4>
-                          <span>{goal.current}/{goal.target} {goal.unit}</span>
-                        </div>
-                        <div className={styles.goalProgress}>
-                          <AnimatedProgressBar progress={percentage} width="100%" barColor="linear-gradient(90deg, #f47c20 0%, #faa266 100%)" />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 5. ROW 4: ANNOUNCEMENTS */}
-              <section className={`${styles.timelineSection} tour-step-timeline`}>
-                <h3>Thông báo từ giáo viên</h3>
-                <div className={styles.timelineList}>
-                  {studentAnnouncements.length > 0 ? (
-                    studentAnnouncements.map((ann) => (
-                      <div key={ann.id} className={styles.timelineItem}>
-                        <div className={`${styles.timelineDot} ${styles.blue}`}></div>
-                        <div className={styles.timelineContent}>
-                          <span className={styles.timelineTime}>{ann.time} - {ann.authorName} ({ann.className})</span>
-                          <p className={styles.timelineAction}>{ann.content}</p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className={styles.emptyState}>
-                      <img src="/empty_activities_illustration_1784358537578.png" alt="No announcements" className={styles.emptyImgSmall} />
-                      <p className={styles.emptySub}>Chưa có thông báo nào từ giáo viên.</p>
-                    </div>
-                  )}
-                </div>
-              </section>
-
-            </div> {/* Hết bottomRightGrid */}
           </section>
 
         </div> {/* Hết Cột Trái */}
@@ -641,7 +572,7 @@ export default function StudentDashboard() {
                       <DropdownMenuItem
                         key={c._id}
                         onClick={() => setSelectedClassId(c._id)}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-between ${selectedClassId === c._id ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-between ${selectedClassId === c._id ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"}`}
                       >
                         <span className="truncate">{c.name}</span>
                         {selectedClassId === c._id && <CheckIcon className="w-3.5 h-3.5 text-orange-600" />}
@@ -667,37 +598,6 @@ export default function StudentDashboard() {
                 <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>Chưa có dữ liệu.</div>
               )}
             </div>
-          </div>
-
-          {/* CHAT WIDGET */}
-          <div className={`${styles.widgetCard} ${styles.chatWidget}`}>
-            <div className={styles.widgetHeader}>
-              <ChatCircleDots size={24} weight="duotone" color="#3b82f6" />
-              <h3>Trao đổi lớp học</h3>
-            </div>
-            <div className={styles.chatContainer} ref={chatContainerRef}>
-              {chatMessages.map(msg => (
-                <div key={msg.id} className={`${styles.chatMessage} ${msg.isMe ? styles.myMessage : ''}`}>
-                  {!msg.isMe && <div className={styles.chatAvatar}>{msg.sender}</div>}
-                  <div className={styles.chatBubble}>
-                    <p>{msg.text}</p>
-                    <span className={styles.chatTime}>{msg.time}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <form className={styles.chatInputContainer} onSubmit={handleSendChat}>
-              <input
-                type="text"
-                placeholder="Nhập tin nhắn..."
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                className={styles.chatInput}
-              />
-              <button type="submit" className={styles.btnSendChat} disabled={!chatInput.trim()}>
-                <PaperPlaneRight size={20} weight="fill" />
-              </button>
-            </form>
           </div>
         </div>
       </div>

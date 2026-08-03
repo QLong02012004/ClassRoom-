@@ -87,6 +87,13 @@ const Sidebar: React.FC = () => {
           );
         })}
       </div>
+
+      {/* Bottom Educational Image Only */}
+      <div className={styles.bottomCardContainer}>
+        <div className={styles.eduImgWrapper}>
+          <img src="/sidebar-edu-bg.png" alt="Edu illustration" className={styles.eduBannerImg} />
+        </div>
+      </div>
     </aside>
   );
 };

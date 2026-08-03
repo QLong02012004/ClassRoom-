@@ -5,6 +5,9 @@ import { ClassModel } from '../models/Class';
 import { UserModel } from '../models/User';
 import { SubmissionModel } from '../models/Submission';
 import { QuizResultModel } from '../models/QuizResult';
+import { SubmissionStatus } from '../constants/enums';
+
+import { notifyAdminStatsUpdate } from '../socket';
 
 // Lấy danh sách bảng điểm của một lớp
 export const getClassroomGrades = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -37,7 +40,7 @@ export const getClassroomGrades = async (req: Request, res: Response, next: Next
                 } else {
                     const subCount = await SubmissionModel.countDocuments({
                         assignmentId: a._id,
-                        status: { $in: ['submitted', 'late', 'graded'] }
+                        status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.LATE, 'submitted', 'late', 'graded'] as any[] }
                     });
                     const gradeCount = grades.filter(g => g.assignmentId.toString() === a._id.toString()).length;
                     return {
@@ -100,6 +103,9 @@ export const saveGrades = async (req: Request, res: Response, next: NextFunction
         }));
 
         await GradeModel.bulkWrite(bulkOperations);
+
+        // Phát tín hiệu Real-time cho Admin Dashboard cập nhật lại biểu đồ Cột & Điểm trung bình
+        notifyAdminStatsUpdate();
 
         res.status(200).json({
             message: 'Cập nhật điểm số thành công'

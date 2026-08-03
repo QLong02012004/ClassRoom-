@@ -3,6 +3,7 @@ import { AnnouncementModel } from '../models/Announcement';
 import { UserModel } from '../models/User';
 import { ClassModel } from '../models/Class';
 import { createAdminNotification } from '../services/notificationService';
+import { NotificationType } from '../constants/enums';
 
 // [GET] /api/v1/announcements
 // Lấy danh sách thông báo của một lớp học
@@ -55,7 +56,7 @@ export const createAnnouncement = async (req: Request, res: Response, next: Next
             authorId,
             'Đăng thông báo mới',
             `Giáo viên ${teacherName} đã đăng một thông báo mới trong lớp "${classroomName}".`,
-            'announcement'
+            NotificationType.ANNOUNCEMENT
         );
 
         res.status(201).json({

@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { NotificationModel } from '../models/Notification';
 import mongoose from 'mongoose';
+import { UserRole, NotificationType } from '../constants/enums';
 
 // 1. Lấy danh sách thông báo (lọc theo role HOẶC recipientId trực tiếp)
 export const getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -105,12 +106,12 @@ export const sendWarningToStudent = async (req: Request, res: Response, next: Ne
         }
 
         const notification = await NotificationModel.create({
-            recipientRole: 'student',
+            recipientRole: UserRole.STUDENT,
             recipientId: new mongoose.Types.ObjectId(studentId),
             sender: new mongoose.Types.ObjectId(senderId),
             title: title.trim(),
             message: message.trim(),
-            type: 'warning',
+            type: NotificationType.WARNING,
             readBy: []
         });
 

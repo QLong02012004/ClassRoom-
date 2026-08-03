@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { UserModel } from '../models/User';
 import bcrypt from 'bcrypt';
 import { AuthRequest } from './authController';
+import { notifyAdminStatsUpdate } from '../socket';
 
 // [GET] /api/v1/users
 // Lấy danh sách user (có lọc theo role, status, search)

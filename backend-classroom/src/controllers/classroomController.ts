@@ -5,8 +5,9 @@ import { ClassActivityModel } from '../models/ClassActivity';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { createAdminNotification } from '../services/notificationService';
-import { ClassStatus } from '../constants/enums';
+import { ClassStatus, NotificationType } from '../constants/enums';
 import { GoogleSheetsService } from '../services/googleSheetsService';
+import { notifyAdminStatsUpdate } from '../socket';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
 export const getAdminClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -195,6 +196,17 @@ export const addStudentToClassroom = async (req: Request, res: Response, next: N
         classroom.students.push(studentId as any);
         await classroom.save();
 
+        // Gửi thông báo cho Admin
+        const teacherName = (req as any).user?.name || 'Giáo viên';
+        await createAdminNotification(
+            teacherId,
+            'Thêm học sinh mới vào lớp',
+            `Giáo viên ${teacherName} vừa thêm học sinh vào lớp học "${classroom.name}".`,
+            NotificationType.CLASSROOM
+        );
+
+        notifyAdminStatsUpdate();
+
         res.status(200).json({
             message: 'Đã thêm học sinh vào lớp thành công',
             data: classroom
@@ -264,8 +276,10 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
             teacherId,
             'Tạo lớp học mới',
             `Giáo viên ${teacherName} đã tạo lớp học mới: "${className}" - Môn học: ${subject || 'Chưa phân loại'}.`,
-            'classroom'
+            NotificationType.CLASSROOM
         );
+
+        notifyAdminStatsUpdate();
 
         res.status(201).json({
             message: 'Tạo lớp học thành công',

@@ -17,7 +17,7 @@ import AdminSettings from "../pages/Admin/Settings/AdminSettings";
 import AdminClassrooms from "../pages/Admin/Classrooms/AdminClassrooms";
 import AdminDashboard from "../pages/Admin/Dashboard/AdminDashboard";
 import MainLayout from "../components/Layout/MainLayout.tsx";
-import ProtectedRoute from "../components/Layout/ProtectedRoute.tsx";
+import ProtectedRoute, { AdminRoute, TeacherOrAdminRoute } from "../components/Layout/ProtectedRoute.tsx";
 import Gradebook from "../pages/Gradebook";
 import Attendance from "../pages/Attendance";
 import Schedule from "../pages/Schedule";
@@ -38,7 +38,7 @@ function MaterialsRouter() {
 function RoleRedirect() {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role === 'admin') return <Navigate to="/admin/users" replace />;
+  if (user.role === 'admin') return <Navigate to="/admin/dashboard" replace />;
   if (user.role === 'teacher') return <Navigate to="/classrooms" replace />;
   if (user.role === 'student') return <Navigate to="/classrooms" replace />;
   return <Navigate to="/dashboard" replace />;
@@ -86,8 +86,13 @@ export const router = createBrowserRouter([
             element: <ClassroomDetailRouter />,
           },
           {
-            path: "bank",
-            element: <BankList />,
+            element: <TeacherOrAdminRoute />,
+            children: [
+              {
+                path: "bank",
+                element: <BankList />,
+              },
+            ],
           },
           {
             path: "assignments",
@@ -114,20 +119,25 @@ export const router = createBrowserRouter([
             element: <StudentGrades />,
           },
           {
-            path: "admin/dashboard",
-            element: <AdminDashboard />,
-          },
-          {
-            path: "admin/users",
-            element: <AdminUsers />,
-          },
-          {
-            path: "admin/classrooms",
-            element: <AdminClassrooms />,
-          },
-          {
-            path: "admin/settings",
-            element: <AdminSettings />,
+            element: <AdminRoute />,
+            children: [
+              {
+                path: "admin/dashboard",
+                element: <AdminDashboard />,
+              },
+              {
+                path: "admin/users",
+                element: <AdminUsers />,
+              },
+              {
+                path: "admin/classrooms",
+                element: <AdminClassrooms />,
+              },
+              {
+                path: "admin/settings",
+                element: <AdminSettings />,
+              },
+            ],
           },
           {
             path: "classrooms/:id/students",

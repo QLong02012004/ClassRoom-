@@ -6,10 +6,16 @@ export interface IDashboardStats {
   totalTeachers: number;
   activeClasses: number;
   engagementRate: number;
-  teacherPerformanceData: { name: string; assignments: number; averageScore: number }[];
+  attendanceRate?: number;
+  userGrowthData?: { month: string; teachers: number; students: number }[];
+  teacherPerformanceData?: { name: string; assignments: number; averageScore: number }[];
   recentActions: {
     id: string;
     user: string;
+    teacherName?: string;
+    className?: string;
+    actionText?: string;
+    actionType?: string;
     action: string;
     time: string;
     avatar: string;

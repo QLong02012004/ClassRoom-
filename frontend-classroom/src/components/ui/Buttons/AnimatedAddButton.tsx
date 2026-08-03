@@ -16,15 +16,15 @@ export const AnimatedAddButton = React.forwardRef<HTMLButtonElement, AnimatedAdd
           "group relative isolate overflow-hidden inline-flex items-center justify-center gap-2",
           "px-6 py-2.5",
           "text-base tracking-[1px] no-underline font-semibold",
-          "text-[#FE6747] bg-transparent",
-          "cursor-pointer border-2 border-[#FE6747] rounded-[10px]",
+          "text-[#f47c20] bg-transparent",
+          "cursor-pointer border-2 border-[#f47c20] rounded-[10px]",
           "transition-colors duration-[800ms] ease-out",
           "active:scale-90",
           "hover:text-white",
           // Hiệu ứng lan tỏa từ góc trái trên
           "before:absolute before:left-0 before:top-0 before:-z-10",
           "before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full",
-          "before:bg-[#FE6747] before:scale-0",
+          "before:bg-[#f47c20] before:scale-0",
           "before:transition-transform before:duration-[800ms] before:ease-out",
           "hover:before:scale-100",
           className

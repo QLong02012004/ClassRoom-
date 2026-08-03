@@ -3,9 +3,10 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  max-width: 1300px;
+  gap: 20px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding-bottom: 48px;
   font-family: vars.$font-main;
 }
 
@@ -20,25 +21,6 @@
     font-weight: 800;
     color: vars.$dark-text;
     margin: 0;
-  }
-}
-
-.backBtn {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #EF4444;
-  transition: vars.$transition-fast;
-  flex-shrink: 0;
-
-  &:hover {
-    background: #fee2e2;
   }
 }
 
@@ -65,55 +47,61 @@
   background: white;
   border-radius: 20px;
   padding: 32px 36px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid vars.$sidebar-border;
+  box-shadow: vars.$shadow-sm;
 }
 
 .cardTopRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .subjectTag {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #F47C20;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: vars.$secondary;
+  background: mix(white, vars.$secondary, 92%);
+  border: 1px solid mix(white, vars.$secondary, 80%);
+  padding: 4px 10px;
+  border-radius: 8px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .statusBadge {
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 6px 14px;
-  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap;
 
   &.pending {
-    background: #fff7ed;
-    color: #F47C20;
-    border: 1px solid #ffedd5;
+    background: mix(white, vars.$primary, 90%);
+    color: vars.$primary;
+    border: 1px solid mix(white, vars.$primary, 75%);
   }
 
   &.submitted {
-    background: #d1fae5;
-    color: #10B981;
-    border: 1px solid #a7f3d0;
+    background: mix(white, vars.$secondary, 90%);
+    color: vars.$secondary;
+    border: 1px solid mix(white, vars.$secondary, 75%);
   }
 
   &.graded {
-    background: #e0f2fe;
-    color: #0284c7;
-    border: 1px solid #bae6fd;
+    background: mix(white, #10b981, 90%);
+    color: #059669;
+    border: 1px solid mix(white, #10b981, 75%);
   }
 
   &.late {
-    background: #fee2e2;
-    color: #EF4444;
-    border: 1px solid #fecaca;
+    background: mix(white, vars.$danger, 90%);
+    color: vars.$danger;
+    border: 1px solid mix(white, vars.$danger, 75%);
   }
 }
 
@@ -122,8 +110,8 @@
 }
 
 .assignmentTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 1.6rem;
+  font-weight: 800;
   color: vars.$dark-text;
   margin: 0 0 20px 0;
   line-height: 1.3;
@@ -143,49 +131,56 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #f8fafc;
-  border-radius: 12px;
+  background: vars.$bg-main;
+  border: 1px solid vars.$sidebar-border;
+  border-radius: 14px;
   padding: 16px 20px;
   color: vars.$text-sub;
 
   div {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
   }
 }
 
 .iconWrapper {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
   &.redIcon {
-    background: #fff7ed;
-    color: #F47C20;
-    border: 1px solid #ffedd5;
+    background: mix(white, vars.$primary, 90%);
+    color: vars.$primary;
+    border: 1px solid mix(white, vars.$primary, 75%);
+  }
+
+  &.blueIcon {
+    background: mix(white, vars.$secondary, 90%);
+    color: vars.$secondary;
+    border: 1px solid mix(white, vars.$secondary, 75%);
   }
 }
 
 .metaLabel {
   font-size: 0.8rem;
-  font-weight: 500;
-  color: #64748b;
+  font-weight: 600;
+  color: vars.$text-sub;
 }
 
 .metaValue {
   font-size: 0.95rem;
-  font-weight: 600;
+  font-weight: 800;
   color: vars.$dark-text;
 }
 
 .divider {
   border: none;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid vars.$sidebar-border;
   margin: 24px 0;
 }
 
@@ -194,14 +189,18 @@
   align-items: center;
   gap: 8px;
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 800;
   color: vars.$dark-text;
-  margin: 0 0 16px 0;
+  margin: 0 0 14px 0;
+
+  svg {
+    color: vars.$primary;
+  }
 }
 
 .description {
   font-size: 0.95rem;
-  color: #475569;
+  color: vars.$dark-text;
   line-height: 1.6;
   margin: 0 0 16px 0;
 }
@@ -214,7 +213,7 @@
 
   li {
     font-size: 0.95rem;
-    color: #475569;
+    color: vars.$text-sub;
     line-height: 1.6;
   }
 }
@@ -228,19 +227,20 @@
 .attachFile {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 12px 16px;
+  border: 1px solid vars.$sidebar-border;
+  border-radius: 14px;
+  padding: 14px 18px;
   cursor: pointer;
   transition: vars.$transition-fast;
-  min-width: 240px;
+  min-width: 260px;
 
   &:hover {
-    background: #f8fafc;
-    border-color: #cbd5e1;
-    transform: translateY(-1px);
+    background: vars.$bg-main;
+    border-color: vars.$secondary;
+    transform: translateY(-2px);
+    box-shadow: vars.$shadow-sm;
   }
 
   div {
@@ -251,34 +251,34 @@
 }
 
 .fileIconWrapper {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
   &.pdfBg {
-    background: #fee2e2;
+    background: mix(white, vars.$danger, 90%);
   }
 
   &.docBg {
-    background: #e0f2fe;
+    background: mix(white, vars.$secondary, 90%);
   }
 }
 
 .pdfIcon {
-  color: #EF4444;
+  color: vars.$danger;
 }
 
 .docIcon {
-  color: #3B82F6;
+  color: vars.$secondary;
 }
 
 .fileName {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: 700;
   color: vars.$dark-text;
 }
 
@@ -291,7 +291,7 @@
 .rightCol {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   position: sticky;
   top: 24px;
 }
@@ -301,8 +301,8 @@
   background: white;
   border-radius: 20px;
   padding: 24px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  border: 1px solid vars.$sidebar-border;
+  box-shadow: vars.$shadow-sm;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -313,19 +313,19 @@
   align-items: center;
   gap: 10px;
   font-size: 1.1rem;
-  font-weight: 700;
+  font-weight: 800;
   color: vars.$dark-text;
   margin: 0;
 
   svg {
-    color: #F47C20;
+    color: vars.$secondary;
   }
 }
 
 /* Drop Zone */
 .dropZone {
-  border: 2px dashed #fed7aa;
-  border-radius: 12px;
+  border: 2px dashed mix(white, vars.$secondary, 60%);
+  border-radius: 14px;
   padding: 32px 20px;
   display: flex;
   flex-direction: column;
@@ -338,15 +338,15 @@
 
   &:hover,
   &.dragging {
-    border-color: #F47C20;
-    background: #fff7ed;
+    border-color: vars.$secondary;
+    background: mix(white, vars.$secondary, 95%);
   }
 }
 
 .uploadIconContainer {
-  width: 44px;
-  height: 44px;
-  background: #fff7ed;
+  width: 48px;
+  height: 48px;
+  background: mix(white, vars.$secondary, 90%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -355,19 +355,19 @@
 }
 
 .uploadIcon {
-  color: #F47C20;
+  color: vars.$secondary;
 }
 
 .dropText {
   font-size: 0.9rem;
-  font-weight: 500;
-  color: #475569;
+  font-weight: 700;
+  color: vars.$dark-text;
   margin: 0;
 }
 
 .dropSubText {
   font-size: 0.8rem;
-  color: #94a3b8;
+  color: vars.$text-sub;
   margin: 0;
 }
 
@@ -380,7 +380,7 @@
 
   span {
     font-size: 0.85rem;
-    font-weight: 600;
+    font-weight: 700;
     color: vars.$dark-text;
     max-width: 180px;
     overflow: hidden;
@@ -390,35 +390,37 @@
 }
 
 .removeFile {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
-  background: #f1f5f9;
-  border: none;
+  background: vars.$bg-main;
+  border: 1px solid vars.$sidebar-border;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #64748b;
+  color: vars.$text-sub;
   flex-shrink: 0;
+  transition: vars.$transition-fast;
 
   &:hover {
-    background: #fee2e2;
-    color: #EF4444;
+    background: mix(white, vars.$danger, 88%);
+    color: vars.$danger;
+    border-color: transparent;
   }
 }
 
 /* Note Textarea */
 .noteLabel {
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.85rem;
+  font-weight: 700;
   color: vars.$dark-text;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .noteArea {
   width: 100%;
-  border: 1px solid #e2e8f0;
+  border: 1px solid vars.$sidebar-border;
   border-radius: 12px;
   padding: 14px;
   font-size: 0.9rem;
@@ -428,60 +430,16 @@
   outline: none;
   transition: vars.$transition-fast;
   box-sizing: border-box;
-  background: #f8fafc;
+  background: vars.$bg-main;
 
   &::placeholder {
-    color: #94a3b8;
+    color: vars.$text-sub;
   }
 
   &:focus {
-    border-color: #fca5a5;
+    border-color: vars.$secondary;
     background: white;
-  }
-}
-
-/* Submit Button */
-.submitBtn {
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #F47C20 0%, #FE6747 100%);
-  color: white;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.25s;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #e0690d 0%, #e85535 100%);
-    box-shadow: 0 4px 14px rgba(244, 124, 32, 0.35);
-  }
-
-  &:disabled {
-    opacity: 0.75;
-    cursor: not-allowed;
-  }
-}
-
-.loadingDots {
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
+    box-shadow: 0 0 0 3px rgba(47, 143, 163, 0.15);
   }
 }
 
@@ -489,35 +447,71 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  padding-top: 8px;
+  padding-top: 4px;
 }
 
 .infoIcon {
-  color: #64748b;
+  color: vars.$text-sub;
   flex-shrink: 0;
   margin-top: 2px;
 }
 
 .editNote {
-  font-size: 0.85rem;
-  color: #64748b;
+  font-size: 0.82rem;
+  color: vars.$text-sub;
   font-style: italic;
   margin: 0;
   line-height: 1.4;
 }
 
+.cancelResubmitBtn {
+  background: transparent;
+  border: 1px solid vars.$sidebar-border;
+  color: vars.$text-sub;
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: vars.$transition-fast;
+
+  &:hover {
+    background: vars.$bg-main;
+    color: vars.$dark-text;
+  }
+}
+
+.resubmitBtn {
+  background: mix(white, vars.$secondary, 90%);
+  color: vars.$secondary;
+  border: 1px solid mix(white, vars.$secondary, 75%);
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: vars.$transition-fast;
+  margin-top: 8px;
+
+  &:hover {
+    background: vars.$secondary;
+    color: white;
+  }
+}
+
 /* --- ACTIVITY LOG CARD --- */
 .activityCard {
-  background: #f8fafc;
+  background: white;
   border-radius: 20px;
   padding: 24px;
-  border: none;
+  border: 1px solid vars.$sidebar-border;
+  box-shadow: vars.$shadow-sm;
 }
 
 .activityTitle {
   font-size: 0.8rem;
-  font-weight: 700;
-  color: #64748b;
+  font-weight: 800;
+  color: vars.$text-sub;
   letter-spacing: 0.5px;
   margin: 0 0 20px 0;
   text-transform: uppercase;
@@ -537,7 +531,7 @@
     top: 24px;
     bottom: 24px;
     width: 2px;
-    background: #e2e8f0;
+    background: vars.$sidebar-border;
     z-index: 0;
   }
 }
@@ -561,7 +555,7 @@
   background: white;
 
   &.orangeBg {
-    background: #d97706;
+    background: vars.$primary;
   }
 
   &.greenBg {
@@ -569,25 +563,25 @@
   }
 
   &.blueBg {
-    background: #3B82F6;
+    background: vars.$secondary;
   }
 
   &.grayBg {
     background: white;
-    border: 2px solid #cbd5e1;
+    border: 2px solid vars.$sidebar-border;
   }
 }
 
 .actText {
   font-size: 0.9rem;
-  font-weight: 500;
+  font-weight: 700;
   color: vars.$dark-text;
   margin: 0 0 4px 0;
 }
 
 .actTime {
   font-size: 0.8rem;
-  color: #64748b;
+  color: vars.$text-sub;
   display: flex;
   align-items: center;
 }
@@ -599,9 +593,9 @@
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: rgba(59, 130, 246, 0.04);
+  background: mix(white, vars.$secondary, 93%);
   border-radius: 14px;
-  border: 1px solid rgba(59, 130, 246, 0.12);
+  border: 1px solid mix(white, vars.$secondary, 80%);
   text-align: center;
 }
 
@@ -615,14 +609,15 @@
   margin: 0;
 
   strong {
-    color: #10B981;
-    font-size: 1.4rem;
+    color: vars.$primary;
+    font-size: 1.5rem;
+    font-weight: 900;
   }
 }
 
 .feedback {
   font-size: 0.85rem;
-  color: #475569;
+  color: vars.$dark-text;
   font-style: italic;
   line-height: 1.5;
   margin: 0;
@@ -634,15 +629,15 @@
   align-items: center;
   gap: 8px;
   padding: 20px;
-  background: rgba(16, 185, 129, 0.04);
+  background: mix(white, #10b981, 93%);
   border-radius: 14px;
-  border: 1px solid rgba(16, 185, 129, 0.12);
+  border: 1px solid mix(white, #10b981, 80%);
   text-align: center;
 
   p {
     font-size: 0.875rem;
     color: vars.$dark-text;
-    font-weight: 600;
+    font-weight: 700;
     margin: 0;
   }
 }
@@ -650,7 +645,7 @@
 .subNote {
   font-size: 0.78rem !important;
   color: vars.$text-sub !important;
-  font-weight: 400 !important;
+  font-weight: 500 !important;
 }
 
 /* --- LOADING STATE --- */
@@ -671,7 +666,7 @@
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #f1f5f9;
+  border: 3px solid vars.$sidebar-border;
   border-top-color: vars.$primary;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
@@ -701,7 +696,8 @@
     flex-direction: row-reverse;
 
     .commentContent {
-      background: #f1f5f9;
+      background: vars.$bg-main;
+      border: 1px solid vars.$sidebar-border;
       border-radius: 16px 16px 4px 16px;
     }
   }
@@ -710,12 +706,13 @@
     align-self: flex-start;
 
     .commentContent {
-      background: rgba(254, 103, 71, 0.08);
+      background: mix(white, vars.$primary, 92%);
+      border: 1px solid mix(white, vars.$primary, 80%);
       border-radius: 16px 16px 16px 4px;
     }
 
     .commentAvatar {
-      background: #FE6747;
+      background: vars.$primary;
       color: white;
     }
   }
@@ -725,8 +722,9 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e2e8f0;
-  color: #64748b;
+  background: vars.$bg-main;
+  border: 1px solid vars.$sidebar-border;
+  color: vars.$text-sub;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -752,12 +750,12 @@
 
 .commentTime {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: vars.$text-sub;
 }
 
 .commentText {
   font-size: 0.95rem;
-  color: #334155;
+  color: vars.$dark-text;
   margin: 0;
   line-height: 1.5;
 }
@@ -768,14 +766,14 @@
   gap: 12px;
   margin-top: 20px;
   background: white;
-  border: 1px solid #e2e8f0;
+  border: 1px solid vars.$sidebar-border;
   border-radius: 24px;
   padding: 6px 6px 6px 16px;
-  transition: all 0.2s;
+  transition: vars.$transition-fast;
 
   &:focus-within {
-    border-color: #fca5a5;
-    box-shadow: 0 0 0 3px rgba(254, 103, 71, 0.1);
+    border-color: vars.$primary;
+    box-shadow: 0 0 0 3px rgba(244, 124, 32, 0.1);
   }
 }
 
@@ -783,12 +781,12 @@
   flex: 1;
   border: none;
   outline: none;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   background: transparent;
   color: vars.$dark-text;
 
   &::placeholder {
-    color: #94a3b8;
+    color: vars.$text-sub;
   }
 }
 
@@ -796,121 +794,18 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #FE6747;
+  background: vars.$primary;
   color: white;
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: vars.$transition-fast;
+  flex-shrink: 0;
 
-  &:hover {
-    background: #e55a30;
+  &:hover:not(:disabled) {
+    background: darken(vars.$primary, 6%);
     transform: scale(1.05);
   }
-}
-
-/* --- HISTORY & RESUBMISSION --- */
-.resubmitBtn {
-  margin-top: 12px;
-  padding: 8px 16px;
-  border-radius: 6px;
-  background: white;
-  border: 1px solid #10B981;
-  color: #10B981;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #10B981;
-    color: white;
-  }
-}
-
-.cancelResubmitBtn {
-  width: 100%;
-  margin-top: 12px;
-  padding: 10px;
-  background: transparent;
-  border: 1px solid #cbd5e1;
-  color: #64748b;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f1f5f9;
-  }
-}
-
-.historyCard {
-  background: #f8fafc;
-  border-radius: 20px;
-  padding: 24px;
-  border: none;
-  margin-bottom: 16px;
-}
-
-.historyTimeline {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  padding-left: 14px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 18px;
-    top: 6px;
-    bottom: 16px;
-    width: 2px;
-    border-left: 2px dashed #cbd5e1;
-  }
-}
-
-.historyItem {
-  display: flex;
-  gap: 16px;
-  position: relative;
-  z-index: 1;
-  margin-bottom: 16px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.historyDot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #cbd5e1;
-  margin-top: 5px;
-  position: relative;
-  left: 0;
-}
-
-.historyDotActive {
-  background: #10B981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-}
-
-.historyContent {
-  display: flex;
-  flex-direction: column;
-}
-
-.historyLabel {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: vars.$dark-text;
-}
-
-.historyDate {
-  font-size: 0.8rem;
-  color: #64748b;
 }

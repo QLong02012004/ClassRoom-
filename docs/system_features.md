@@ -24,6 +24,35 @@ Vai trò có nhiều tính năng tương tác nhất để phục vụ quá trì
 - **Thời khóa biểu (`/schedule`)**: Xem lịch học các môn trong tuần.
 - **Chuyên cần (`/attendance`)**: Theo dõi số buổi đi học, đi muộn, nghỉ phép.
 
+### 2.1 Widget "Tiến độ & Phân tích Học tập" (Dashboard Analytics Section)
+
+**Mục đích:** Cung cấp cho học sinh cái nhìn tổng quan về tiến độ học tập và phân tích điểm yếu kiến thức ngay trên trang chủ, giúp định hướng ôn tập thông minh hơn.
+
+Section này gồm 4 sub-widget với tình trạng kết nối API như sau:
+
+#### ✅ Card "Tiến độ hoàn thành bài tập" (Đã kết nối API thật)
+- **API:** `GET /api/v1/dashboard/student` → trường `learningStats`
+- **Logic:** Tính tỷ lệ bài tập đã nộp / tổng bài tập được giao theo từng lớp → hiển thị lớp có nhiều bài tập nhất lên đầu.
+- **Công thức:** `progressPercent = submittedCount / totalAssignments × 100%`
+- **Hiển thị:** Tên lớp thật, môn học thật, vòng tròn % thật (`X/Y bài`). Nút "Xem bài tập" dẫn đến `/assignments`.
+- **Ghi chú:** Nếu học sinh chưa có lớp/bài tập nào, card hiển thị 0% và "Chưa có dữ liệu".
+
+#### ✅ Card "Cảnh báo Lỗ hổng kiến thức" (Đã kết nối API thật)
+- **API:** `GET /api/v1/analytics/student/weakness`
+- **Logic:** Phân tích toàn bộ lịch sử làm bài trắc nghiệm (`QuizResult`) của học sinh → nhóm theo `tags` của từng câu hỏi → tính tỷ lệ sai cho mỗi tag → lọc những tag có tỷ lệ sai ≥ 40% → trả về **Top 5 lỗ hổng nghiêm trọng nhất**.
+- **Hành động:** Nút "Luyện tập ngay" mở Dialog chọn số câu → chuyển hướng đến `/practice?tag=...` để học sinh luyện tập tập trung vào đúng điểm yếu.
+- **Fallback:** Nếu học sinh chưa làm bài nào, hiển thị dữ liệu demo mặc định.
+
+#### ✅ Biểu đồ cột "Tiến độ nộp bài 6 tháng" (Đã kết nối API thật)
+- **Nguồn dữ liệu:** Trường `learningProgress` từ API `GET /api/v1/dashboard/student`.
+- **Logic:** Tổng hợp số bài đã nộp (cột xanh `desktop`) và số bài chưa nộp (cột cam `mobile`) theo từng tháng trong 6 tháng gần nhất, qua tất cả các lớp học sinh đang tham gia.
+
+#### ✅ "Mục tiêu tuần này" (Đã kết nối API thật)
+- **Nguồn dữ liệu:** Trường `weeklyGoals` từ API `GET /api/v1/dashboard/student`.
+- **Các mục tiêu được tính toán thật:**
+  - *Đi học đầy đủ 100%*: So sánh với `attendanceRate` thực tế.
+  - *Hoàn thành bài tập*: Đếm số bài đã nộp (`submissions.length`), mục tiêu là 5 bài/tuần.
+
 ---
 
 ## 3. VAI TRÒ GIÁO VIÊN (Teacher)

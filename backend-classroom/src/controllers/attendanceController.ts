@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AttendanceModel } from '../models/Attendance';
 import { GoogleSheetsService } from '../services/googleSheetsService';
+import { notifyAdminStatsUpdate } from '../socket';
 
 // Lấy bản ghi điểm danh theo lớp + ngày
 export const getAttendance = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -65,6 +66,9 @@ export const saveAttendance = async (req: Request, res: Response, next: NextFunc
                 console.error('[GoogleSheetSync Background Lỗi]:', err);
             });
         }
+
+        // Kích hoạt Real-time Socket.IO gửi thông báo tới Admin Dashboard
+        notifyAdminStatsUpdate();
 
         res.status(200).json({
             message: 'Lưu điểm danh thành công',

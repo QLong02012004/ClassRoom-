@@ -1,0 +1,80 @@
+.comicButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  color: #fff;
+  background-color: #f47c20;
+  border: 2.5px solid #1a1a1a;
+  border-radius: 10px;
+  box-shadow: 4px 4px 0px #1a1a1a;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  line-height: 1;
+
+  &:hover {
+    background-color: #fff;
+    color: #f47c20;
+    border-color: #f47c20;
+    box-shadow: 4px 4px 0px #f47c20;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    background-color: #fef08a;
+    color: #1a1a1a;
+    border-color: #1a1a1a;
+    box-shadow: none;
+    transform: translateY(3px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  // Variant: warning (đỏ - dùng cho nút "Luyện tập ngay")
+  &.warning {
+    background-color: #dc2626;
+    border-color: #1a1a1a;
+    box-shadow: 4px 4px 0px #1a1a1a;
+
+    &:hover {
+      background-color: #fff;
+      color: #dc2626;
+      border-color: #dc2626;
+      box-shadow: 4px 4px 0px #dc2626;
+    }
+
+    &:active {
+      background-color: #fef08a;
+      color: #1a1a1a;
+      border-color: #1a1a1a;
+      box-shadow: none;
+      transform: translateY(3px);
+    }
+  }
+
+  // Size: small
+  &.sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 8px;
+    box-shadow: 3px 3px 0px #1a1a1a;
+
+    &:hover {
+      box-shadow: 3px 3px 0px #f47c20;
+    }
+
+    &.warning:hover {
+      box-shadow: 3px 3px 0px #dc2626;
+    }
+  }
+}

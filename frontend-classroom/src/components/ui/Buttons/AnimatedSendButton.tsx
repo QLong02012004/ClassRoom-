@@ -29,19 +29,20 @@ const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabl
 const StyledWrapper = styled.div`
   button {
     font-family: inherit;
-    font-size: 14px;
-    background: #FE6747;
+    font-size: 15px;
+    background: #f47c20;
     color: white;
-    padding: 0.5em 0.8em;
-    padding-left: 0.9em;
+    padding: 0.7em 1.2em;
     display: flex;
     align-items: center;
+    justify-content: center;
     border: none;
     border-radius: 12px;
     overflow: hidden;
     transition: all 0.2s;
     cursor: pointer;
-    margin-left: 8px;
+    width: 100%;
+    box-shadow: 0 4px 14px rgba(244, 124, 32, 0.25);
   }
 
   button:disabled {

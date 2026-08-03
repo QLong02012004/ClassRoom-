@@ -87,13 +87,16 @@ export default function StudentMaterials() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.titleBox}>
-          <h1>Kho Tài Liệu Chung</h1>
+      <div className={styles.pageHeader}>
+        <div>
+          <h2>Kho Tài Liệu Chung</h2>
           <p>Truy cập ngân hàng đề thi và tài liệu được chia sẻ từ nhà trường</p>
         </div>
+      </div>
+
+      <div className={styles.filtersRow}>
         <div className={styles.searchBox}>
-          <MagnifyingGlass size={20} className={styles.searchIcon} />
+          <MagnifyingGlass size={20} className="text-slate-400" />
           <input
             type="text"
             placeholder="Tìm kiếm tài liệu, đề thi..."
@@ -101,45 +104,41 @@ export default function StudentMaterials() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </div>
 
-      <div className={styles.filterBar}>
-        <div className={styles.filterGroup}>
-          <div className={styles.filterIcon}><Funnel size={18} /> Lọc theo:</div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={styles.filterSelect}>
+              <Funnel size={16} className="text-slate-500" />
+              <span>{filterType === "all" ? "Tất cả định dạng" : filterType === "quiz" ? "Trắc nghiệm" : "Tài liệu"}</span>
+              <CaretDown size={14} className="text-slate-400" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-white border border-slate-200 rounded-xl shadow-lg z-50 p-1 min-w-[160px]">
+            <DropdownMenuRadioGroup value={filterType} onValueChange={setFilterType}>
+              <DropdownMenuRadioItem value="all" className="px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer text-sm font-medium">Tất cả định dạng</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="quiz" className="px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer text-sm font-medium">Trắc nghiệm</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="document" className="px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer text-sm font-medium">Tài liệu</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={styles.filterBtn}>
-                {filterType === "all" ? "Tất cả định dạng" : filterType === "quiz" ? "Trắc nghiệm" : "Tài liệu"}
-                <CaretDown size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuRadioGroup value={filterType} onValueChange={setFilterType}>
-                <DropdownMenuRadioItem value="all">Tất cả định dạng</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="quiz">Trắc nghiệm</DropdownMenuRadioItem>
-                <DropdownMenuRadioItem value="document">Tài liệu</DropdownMenuRadioItem>
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className={styles.filterBtn}>
-                {filterSubject === "all" ? "Tất cả môn học" : filterSubject}
-                <CaretDown size={14} />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuRadioGroup value={filterSubject} onValueChange={setFilterSubject}>
-                <DropdownMenuRadioItem value="all">Tất cả môn học</DropdownMenuRadioItem>
-                {uniqueSubjects.map((sub: any) => (
-                  <DropdownMenuRadioItem key={sub} value={sub}>{sub}</DropdownMenuRadioItem>
-                ))}
-              </DropdownMenuRadioGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className={styles.filterSelect}>
+              <BookOpen size={16} className="text-slate-500" />
+              <span>{filterSubject === "all" ? "Tất cả môn học" : filterSubject}</span>
+              <CaretDown size={14} className="text-slate-400" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="bg-white border border-slate-200 rounded-xl shadow-lg z-50 p-1 min-w-[160px]">
+            <DropdownMenuRadioGroup value={filterSubject} onValueChange={setFilterSubject}>
+              <DropdownMenuRadioItem value="all" className="px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer text-sm font-medium">Tất cả môn học</DropdownMenuRadioItem>
+              {uniqueSubjects.map((sub: any) => (
+                <DropdownMenuRadioItem key={sub} value={sub} className="px-3 py-2 hover:bg-slate-50 rounded-lg cursor-pointer text-sm font-medium">{sub}</DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* DANH SÁCH TÀI LIỆU */}

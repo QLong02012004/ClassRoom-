@@ -6,18 +6,17 @@ import {
   FilePdf,
   FileDoc,
   CloudArrowUp,
-  PaperPlaneTilt,
   Clock,
   CheckCircle,
   UploadSimple,
   X,
   Bell,
-  Eye,
   Info,
   ChatTeardropText,
   PaperPlaneRight
 } from "phosphor-react";
 import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
+import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton.tsx";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
@@ -107,8 +106,6 @@ export default function AssignmentDetail() {
       }, ${d.getDate()} Tháng ${d.getMonth() + 1}`;
   };
 
-
-
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -184,9 +181,9 @@ export default function AssignmentDetail() {
           <div className={styles.assignmentCard}>
             {/* Class + Status */}
             <div className={styles.cardTopRow}>
-              <span className={styles.subjectTag}>{className.toUpperCase()} - CHUYÊN ĐỀ THƠ VIỆT NAM</span>
+              <span className={styles.subjectTag}>{className.toUpperCase()}</span>
               <span className={`${styles.statusBadge} ${isGraded ? styles.graded : isSubmitted ? styles.submitted : isPastDeadline ? styles.late : styles.pending}`}>
-                {isGraded ? "✅ Đã chấm điểm" : isSubmitted ? "📤 Đã nộp bài" : isPastDeadline ? "❌ Quá hạn" : <><Clock size={14} weight="bold" className={styles.statusIcon} /> Đang chờ nộp</>}
+                {isGraded ? "Đã chấm điểm" : isSubmitted ? "Đã nộp bài" : isPastDeadline ? "Quá hạn" : <><Clock size={14} weight="bold" className={styles.statusIcon} /> Đang chờ nộp</>}
               </span>
             </div>
 
@@ -196,7 +193,7 @@ export default function AssignmentDetail() {
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
                 <div className={`${styles.iconWrapper} ${styles.redIcon}`}>
-                  <User size={18} weight="fill" />
+                  <User size={18} weight="bold" />
                 </div>
                 <div>
                   <span className={styles.metaLabel}>Giáo viên hướng dẫn</span>
@@ -204,8 +201,8 @@ export default function AssignmentDetail() {
                 </div>
               </div>
               <div className={styles.metaItem}>
-                <div className={`${styles.iconWrapper} ${styles.redIcon}`}>
-                  <CalendarBlank size={18} weight="fill" />
+                <div className={`${styles.iconWrapper} ${styles.blueIcon}`}>
+                  <CalendarBlank size={18} weight="bold" />
                 </div>
                 <div>
                   <span className={styles.metaLabel}>Hạn chót nộp bài</span>
@@ -239,7 +236,7 @@ export default function AssignmentDetail() {
             {assignment.bankItemId?.fileUrl && (
               <>
                 <h4 className={styles.sectionLabel} style={{ marginTop: 24 }}>
-                  <FilePdf size={20} weight="fill" style={{ color: "#EF4444" }} />
+                  <FilePdf size={20} weight="fill" className="text-[#2f8fa3]" />
                   Tài liệu đính kèm
                 </h4>
                 <div className={styles.attachmentsRow}>
@@ -265,14 +262,14 @@ export default function AssignmentDetail() {
             {/* Comments Section */}
             <hr className={styles.divider} style={{ marginTop: 32 }} />
             <h4 className={styles.sectionLabel}>
-              <ChatTeardropText size={22} weight="fill" style={{ color: "#FE6747" }} />
+              <ChatTeardropText size={22} weight="fill" className="text-[#f47c20]" />
               Thảo luận với Giáo viên
             </h4>
             <div className={styles.commentsContainer}>
               {(mySubmission?.comments || []).map((c: any, i: number) => (
                 <div key={i} className={`${styles.commentBubble} ${c.isTeacher ? styles.teacherBubble : styles.studentBubble}`}>
                   <div className={styles.commentAvatar}>
-                    <User size={16} weight="fill" />
+                    <User size={16} weight="bold" />
                   </div>
                   <div className={styles.commentContent}>
                     <div className={styles.commentHeader}>
@@ -302,7 +299,7 @@ export default function AssignmentDetail() {
                 disabled={isSendingComment || !newComment.trim()}
                 style={{ opacity: (!newComment.trim() || isSendingComment) ? 0.5 : 1 }}
               >
-                <PaperPlaneRight size={18} weight="fill" />
+                <PaperPlaneRight size={18} weight="bold" />
               </button>
             </div>
           </div>
@@ -322,13 +319,11 @@ export default function AssignmentDetail() {
                 <CheckCircle size={40} weight="fill" className={styles.checkIcon} />
                 <p className={styles.gradedScore}>Điểm: <strong>{mySubmission.grade}/10</strong></p>
                 {assignment.type === 'quiz' && (
-                  <button
-                    className={styles.submitBtn}
-                    style={{ marginTop: 12, width: '100%' }}
+                  <AnimatedSendButton
                     onClick={() => navigate(`/exams/${assignment._id}`)}
-                  >
-                    Xem chi tiết bài làm
-                  </button>
+                    text="Xem chi tiết bài làm"
+                    className="w-full"
+                  />
                 )}
                 {mySubmission.feedback && (
                   <p className={styles.feedback}>💬 &ldquo;{mySubmission.feedback}&rdquo;</p>
@@ -348,13 +343,11 @@ export default function AssignmentDetail() {
                 <p style={{ fontSize: '0.95rem', color: '#475569', lineHeight: 1.5 }}>
                   Đây là bài tập trắc nghiệm tính giờ. Hãy đảm bảo bạn có kết nối mạng ổn định trước khi bắt đầu.
                 </p>
-                <button
-                  className={styles.submitBtn}
+                <AnimatedSendButton
                   onClick={() => navigate(`/exams/${assignment._id}`)}
-                >
-                  <PaperPlaneTilt size={18} weight="bold" />
-                  Bắt đầu làm bài
-                </button>
+                  text="Bắt đầu làm bài"
+                  className="w-full"
+                />
               </div>
             ) : (
               <>
@@ -375,7 +368,7 @@ export default function AssignmentDetail() {
                   />
                   {selectedFile ? (
                     <div className={styles.selectedFile}>
-                      <FilePdf size={28} weight="fill" style={{ color: "#EF4444" }} />
+                      <FilePdf size={28} weight="fill" className="text-[#EF4444]" />
                       <span>{selectedFile.name}</span>
                       <button
                         className={styles.removeFile}
@@ -405,21 +398,13 @@ export default function AssignmentDetail() {
                   rows={3}
                 />
 
-                {/* Submit button */}
-                <button
-                  className={styles.submitBtn}
+                {/* Submit button using AnimatedSendButton */}
+                <AnimatedSendButton
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <span className={styles.loadingDots}>Đang nộp bài...</span>
-                  ) : (
-                    <>
-                      <PaperPlaneTilt size={18} weight="bold" />
-                      Nộp bài tập ngay
-                    </>
-                  )}
-                </button>
+                  text={isSubmitting ? "Đang nộp bài..." : "Nộp bài tập ngay"}
+                  className="w-full"
+                />
                 <div className={styles.editNoteContainer}>
                   <Info size={16} className={styles.infoIcon} />
                   <p className={styles.editNote}>

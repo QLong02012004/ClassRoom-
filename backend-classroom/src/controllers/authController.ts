@@ -3,6 +3,7 @@ import { createAccountService, loginService, verifyRefreshToken, generateTokens 
 import { UserModel } from '../models/User';
 import { IUser } from '../models/User';
 import { ClassModel } from '../models/Class';
+import { notifyAdminStatsUpdate } from '../socket';
 
 export interface AuthRequest extends Request {
     user?: any;
@@ -24,6 +25,7 @@ export const createTeacherAccount = async (req: Request, res: Response, next: Ne
         const { name, email, password, subject } = req.body;
 
         const result = await createAccountService(name, email, password, 'teacher', undefined, subject);
+        notifyAdminStatsUpdate();
 
         res.status(201).json({
             message: 'Tạo tài khoản Giáo viên thành công!',
@@ -50,6 +52,7 @@ export const createStudentAccount = async (req: Request, res: Response, next: Ne
         await ClassModel.findByIdAndUpdate(classId, {
             $addToSet: { students: result.id }
         });
+        notifyAdminStatsUpdate();
 
         res.status(201).json({
             message: 'Tạo tài khoản Học sinh thành công!',
@@ -67,6 +70,7 @@ export const registerStudentAccount = async (req: Request, res: Response, next: 
         const { name, email, password, parentPhone } = req.body;
 
         const result = await createAccountService(name, email, password, 'student', parentPhone);
+        notifyAdminStatsUpdate();
 
         res.status(201).json({
             message: 'Đăng ký tài khoản thành công!',

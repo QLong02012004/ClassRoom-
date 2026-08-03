@@ -50,9 +50,9 @@ const StyledWrapper = styled.div`
     font-family: inherit;
     font-weight: 750;
     font-size: 0.9rem;
-    color: #FE6747;
+    color: #f47c20;
     background-color: #ffffff;
-    border: 1.5px solid #FE6747;
+    border: 1.5px solid #f47c20;
     padding: 0.65em 1.6em;
     border-radius: 0.75rem;
     position: relative;
@@ -61,7 +61,7 @@ const StyledWrapper = styled.div`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 2px 8px rgba(254, 103, 71, 0.15);
+    box-shadow: 0 2px 8px rgba(244, 124, 32, 0.15);
     transition: background-color 1.2s ease, border-color 0.4s ease, box-shadow 0.4s ease, transform 0.3s ease;
 
     &:disabled {
@@ -89,7 +89,7 @@ const StyledWrapper = styled.div`
     transform: translate(-50%, -50%);
     height: 32px;
     width: 32px;
-    background-color: #FE6747;
+    background-color: #f47c20;
     border-radius: 50%;
     transition: transform 1.2s cubic-bezier(0.25, 1, 0.5, 1);
     pointer-events: none;
@@ -101,7 +101,7 @@ const StyledWrapper = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #FE6747;
+    color: #f47c20;
     font-weight: 750;
     transition: color 0.6s cubic-bezier(0.25, 1, 0.5, 1);
   }
@@ -136,8 +136,8 @@ const StyledWrapper = styled.div`
   }
 
   button:hover:not(:disabled) {
-    background-color: #FE6747;
-    box-shadow: 0 6px 20px rgba(254, 103, 71, 0.45);
+    background-color: #f47c20;
+    box-shadow: 0 6px 20px rgba(244, 124, 32, 0.45);
     transform: translateY(-1px);
   }
 

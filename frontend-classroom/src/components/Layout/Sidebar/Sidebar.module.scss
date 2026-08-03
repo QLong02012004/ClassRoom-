@@ -5,9 +5,9 @@
   top: 0;
   left: 0;
   height: 100vh;
-  width: 72px;
+  width: 76px;
   background-color: #ffffff;
-  border-right: 1px solid $sidebar-border;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,15 +15,16 @@
   z-index: 50;
   overflow-y: auto;
   overflow-x: hidden;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.02);
 
-  /* Custom Scrollbar for webkit */
+  /* Custom Scrollbar */
   &::-webkit-scrollbar {
     width: 0px;
     background: transparent;
   }
 
   &.expanded {
-    width: 280px;
+    width: 270px;
     align-items: flex-start;
 
     .logoContainer {
@@ -36,33 +37,42 @@
       padding-left: 12px;
     }
 
-    .navLabel, .logoText {
+    .navLabel,
+    .logoText {
       opacity: 1;
       width: auto;
       margin-left: 12px;
+    }
+
+    .bottomCardContainer {
+      opacity: 1;
+      visibility: visible;
     }
   }
 }
 
 .logoContainer {
   width: 100%;
-  height: 64px;
+  height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition: all 0.3s ease;
-  border-bottom: 1px solid transparent;
   overflow: hidden;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .logoIcon {
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
 }
 
 .logoText {
@@ -70,8 +80,9 @@
   opacity: 0;
   width: 0;
   font-weight: 800;
-  font-size: 18px;
+  font-size: 19px;
   color: $primary;
+  letter-spacing: -0.3px;
   transition: opacity 0.3s ease, margin 0.3s ease;
 }
 
@@ -79,45 +90,74 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 12px 8px;
-  gap: 8px;
+  padding: 16px 12px;
+  gap: 10px;
+  flex: 1;
 }
 
+/* Kích thước dạng Card Thẻ Khối hiển thị viền rõ ràng từ trước */
 .navItem {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 48px;
-  border-radius: 12px;
-  color: $text-sub;
+  min-height: 50px;
+  border-radius: 14px;
+  background-color: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  color: #475569;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
 
-  &:hover {
-    background-color: $bg-main;
-    color: $dark-text;
-  }
-
-  &.active {
-    background-color: rgba(47, 143, 163, 0.1); // Ocean Blue with opacity
-    color: $secondary; // Ocean Blue
+  /* Trạng thái Rê chuột (Hover) */
+  &:hover:not(.active) {
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transform: translateY(-1px);
 
     .iconWrapper {
-      color: $secondary;
+      color: $primary;
+      transform: scale(1.06);
+    }
+
+    .navLabel {
+      color: #0f172a;
+      font-weight: 600;
+    }
+  }
+
+  /* Trạng thái Active (Thẻ được chọn) */
+  &.active {
+    background-color: #fff7ed;
+    border: 1.5px solid $primary;
+    box-shadow: 0 4px 14px rgba(244, 124, 32, 0.15);
+    color: $primary;
+
+    .iconWrapper {
+      color: $primary;
+    }
+
+    .navLabel {
+      color: $primary;
+      font-weight: 700;
     }
   }
 }
 
 .iconWrapper {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #64748b; // slate-500
+  color: #64748b;
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .navLabel {
@@ -125,6 +165,38 @@
   opacity: 0;
   width: 0;
   font-weight: 500;
-  font-size: 15px;
-  transition: opacity 0.3s ease, margin 0.3s ease;
+  font-size: 14.5px;
+  color: #475569;
+  transition: opacity 0.3s ease, margin 0.3s ease, color 0.2s ease;
+}
+
+/* Bottom Educational Image - Hiển thị tự nhiên trên nền trắng */
+.bottomCardContainer {
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s;
+  box-sizing: border-box;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.eduImgWrapper {
+  width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  display: block;
+  line-height: 0;
+}
+
+.eduBannerImg {
+  width: 100%;
+  height: auto;
+  display: block;
+  mix-blend-mode: multiply;
 }

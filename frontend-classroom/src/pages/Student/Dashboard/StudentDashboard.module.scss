@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  max-width: 1300px;
+  max-width: 1400px;
   margin: 0 auto;
   font-family: vars.$font-main;
   padding-bottom: 40px;
@@ -346,23 +346,23 @@
 }
 
 .todoItem {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: vars.$light-bg;
+  border: 1px solid vars.$sidebar-border;
   border-radius: 16px;
   padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  transition: all 0.2s;
+  transition: vars.$transition-fast;
 
   &:hover {
-    border-color: #cbd5e1;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+    border-color: mix(vars.$primary, vars.$sidebar-border, 50%);
+    box-shadow: vars.$shadow-sm;
   }
 
   &.completed {
     opacity: 0.6;
-    background: #f8fafc;
+    background: vars.$bg-main;
 
     .itemTitle {
       text-decoration: line-through;
@@ -380,13 +380,13 @@
     .circle {
       width: 20px;
       height: 20px;
-      border: 2px solid #cbd5e1;
+      border: 2px solid mix(vars.$secondary, vars.$sidebar-border, 50%);
       border-radius: 50%;
-      transition: all 0.2s;
+      transition: vars.$transition-fast;
     }
 
     &:hover .circle {
-      border-color: #10b981;
+      border-color: vars.$primary;
     }
   }
 
@@ -398,7 +398,7 @@
       font-weight: 700;
       color: vars.$dark-text;
       margin: 0 0 4px 0;
-      transition: all 0.2s;
+      transition: vars.$transition-fast;
     }
 
     .itemMeta {
@@ -414,13 +414,13 @@
     border-radius: 20px;
 
     &.high {
-      background: #fee2e2;
-      color: #ef4444;
+      background: mix(white, vars.$danger, 88%);
+      color: vars.$danger;
     }
 
     &.medium {
-      background: #f1f5f9;
-      color: #64748b;
+      background: mix(white, vars.$secondary, 88%);
+      color: vars.$secondary;
     }
   }
 }
@@ -432,13 +432,19 @@
 }
 
 .scheduleItem {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: vars.$light-bg;
+  border: 1px solid vars.$sidebar-border;
   border-radius: 16px;
   padding: 16px;
   display: flex;
   align-items: center;
   gap: 16px;
+  transition: vars.$transition-fast;
+
+  &:hover {
+    border-color: mix(vars.$secondary, vars.$sidebar-border, 50%);
+    box-shadow: vars.$shadow-sm;
+  }
 
   .timeCol {
     display: flex;
@@ -448,7 +454,7 @@
 
     .time {
       font-weight: 800;
-      color: vars.$dark-text;
+      color: vars.$secondary;
       font-size: 1rem;
     }
 
@@ -463,7 +469,7 @@
     width: 4px;
     height: 40px;
     border-radius: 4px;
-    background: vars.$secondary;
+    background: linear-gradient(180deg, vars.$secondary, vars.$primary);
   }
 
   .infoCol {
@@ -520,64 +526,6 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-}
-
-.goalsSection {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
-  padding: 24px;
-
-  h3 {
-    margin: 0 0 20px 0;
-    font-size: 1.1rem;
-    font-weight: 800;
-    color: vars.$dark-text;
-  }
-}
-
-.goalsList {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.goalItem {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  .goalInfo {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-
-    h4 {
-      margin: 0;
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: vars.$dark-text;
-    }
-
-    span {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: vars.$primary;
-    }
-  }
-
-  .goalProgress {
-    height: 8px;
-    background: #f1f5f9;
-    border-radius: 10px;
-    overflow: hidden;
-
-    .goalProgressBar {
-      height: 100%;
-      background: linear-gradient(90deg, vars.$primary 0%, lighten(vars.$primary, 15%) 100%);
-      border-radius: 10px;
-    }
-  }
 }
 
 /* --- 5. TIMELINE SECTION --- */
@@ -758,10 +706,10 @@
   }
 }
 
-/* --- MAIN LAYOUT (70-30) --- */
+/* --- MAIN LAYOUT --- */
 .mainLayout {
   display: grid;
-  grid-template-columns: 7fr 3fr;
+  grid-template-columns: 6fr 4fr;
   gap: 24px;
   align-items: start;
 
@@ -1018,6 +966,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
+  align-items: stretch;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -1034,6 +983,8 @@
   justify-content: space-between;
   gap: 20px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  height: 100%;
+  box-sizing: border-box;
 
   &.warningCard {
     background: linear-gradient(135deg, #fff1f2, #ffe4e6);
@@ -1067,13 +1018,31 @@
 }
 
 .errorRateBadge {
-  background: #fecdd3;
-  color: #be123c;
+  background: mix(white, vars.$danger, 85%);
+  color: vars.$danger;
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.8rem;
   font-weight: 800;
   margin-bottom: 16px;
+}
+
+.submittedBadge {
+  background: mix(white, vars.$secondary, 85%);
+  color: vars.$secondary;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.remainingBadge {
+  background: mix(white, vars.$primary, 85%);
+  color: vars.$primary;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 20px;
 }
 
 .btnStart {

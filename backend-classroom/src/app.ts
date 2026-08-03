@@ -33,7 +33,13 @@ app.get('/', (req: Request, res: Response) => {
 // 4. Middleware xử lý lỗi BẮT BUỘC PHẢI NẰM DƯỚI CÙNG
 app.use(errorHandler);
 
+import http from 'http';
+import { initSocket } from './socket';
+
+const server = http.createServer(app);
+initSocket(server);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);
-});
+});

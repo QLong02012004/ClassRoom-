@@ -6,6 +6,7 @@ import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { ClassModel } from '../models/Class';
 import { SubmissionStatus } from '../constants/enums';
+import { notifyAdminStatsUpdate } from '../socket';
 
 // Lấy toàn bộ bài tập của học sinh
 export const getStudentActivities = async (req: Request, res: Response): Promise<any> => {
@@ -84,6 +85,7 @@ export const assignActivity = async (req: Request, res: Response) => {
         });
 
         await newActivity.save();
+        notifyAdminStatsUpdate();
         res.status(201).json(newActivity);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi giao hoạt động', error });
@@ -112,7 +114,7 @@ export const getClassActivities = async (req: Request, res: Response) => {
                 } else {
                     const submissions = await SubmissionModel.find({
                         assignmentId: act._id,
-                        status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.LATE, 'submitted', 'late', 'graded'] }
+                        status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.LATE, 'submitted', 'late', 'graded'] as any[] }
                     }).select('studentId status').lean();
 
                     submissionCount = submissions.length;
@@ -216,6 +218,8 @@ export const submitActivityQuiz = async (req: Request, res: Response): Promise<a
             { upsert: true, new: true }
         );
 
+        notifyAdminStatsUpdate();
+
         res.status(200).json({ message: 'Nộp bài thành công', data: quizResult });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi nộp bài', error });
@@ -304,6 +308,8 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
             },
             { upsert: true, new: true }
         );
+
+        notifyAdminStatsUpdate();
 
         res.status(200).json({ message: 'Nộp bài tập thành công', data: submission });
     } catch (error) {

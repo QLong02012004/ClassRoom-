@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
+import { notificationService, type INotificationItem } from "../../../service/notification.service";
+import { gradebookService } from "../../../service/gradebook.service";
 import {
   Bell,
   Globe,
@@ -22,7 +24,12 @@ const TopHeader: React.FC = () => {
   const { user, logout } = useAuth();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<INotificationItem[]>([]);
   const profileRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  const userRole = user?.role || "student";
 
   // Trích xuất classId hiện tại từ URL
   const parts = location.pathname.split("/");
@@ -54,6 +61,7 @@ const TopHeader: React.FC = () => {
     if (path.startsWith("/attendance")) return "Chuyên cần";
     if (path.startsWith("/profile")) return "Hồ sơ cá nhân";
     if (path.startsWith("/chat")) return "Trợ lý học tập";
+    if (path.startsWith("/admin/dashboard")) return "Tổng quan";
     if (path.startsWith("/admin/users")) return "Quản lý người dùng";
     if (path.startsWith("/admin/classrooms")) return "Quản lý lớp học";
     if (path.startsWith("/admin/settings")) return "Cài đặt";
@@ -62,15 +70,103 @@ const TopHeader: React.FC = () => {
 
   const currentPathName = getPageTitle(location.pathname);
 
+  const fetchNotifications = async () => {
+    try {
+      let serverNotifs: INotificationItem[] = [];
+      const res = await notificationService.getNotifications();
+      if (res.data) serverNotifs = res.data;
+
+      if (userRole === "student") {
+        const assignRes = await gradebookService.getStudentAssignments();
+        const assignments = assignRes.data || [];
+        const now = Date.now();
+        const localReminders: INotificationItem[] = [];
+
+        assignments.forEach((assign: any) => {
+          if (assign.submission?.status === "graded" || assign.submission) return;
+          const deadline = new Date(assign.dueDate || assign.deadline).getTime();
+          const diff = deadline - now;
+          if (diff > 0 && diff < 3 * 24 * 60 * 60 * 1000) {
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            
+            let timeText = "";
+            let colorCls = "";
+            
+            if (days >= 1) {
+                timeText = `Còn ${days} ngày nữa đến hạn.`;
+                colorCls = days === 1 ? "text-orange-500" : "text-amber-500";
+            } else {
+                timeText = `Còn ${hours} giờ nữa đến hạn!`;
+                colorCls = "text-red-500";
+            }
+
+            const isRead = localStorage.getItem(`read_reminder_${assign._id}`) === 'true';
+
+            localReminders.push({
+              _id: `reminder_${assign._id}`,
+              recipientRole: 'student',
+              sender: { _id: 'system', name: 'Hệ thống', email: '' },
+              title: `🔔 Nhắc hạn: ${assign.title}`,
+              message: `<span class="${colorCls} font-medium">${timeText}</span>`,
+              type: 'assignment',
+              readBy: [],
+              isRead: isRead,
+              createdAt: new Date().toISOString()
+            } as any);
+          }
+        });
+        
+        serverNotifs = [...localReminders, ...serverNotifs];
+      }
+
+      setNotifications(serverNotifs);
+    } catch (error) {
+      console.error("Lỗi lấy thông báo:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 15000);
+    return () => clearInterval(interval);
+  }, [userRole]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
         setIsProfileOpen(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setIsNotifOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const handleNotificationClick = async (notif: INotificationItem) => {
+    if (!notif.isRead) {
+      try {
+        if (notif._id.startsWith("reminder_")) {
+          localStorage.setItem(`read_${notif._id}`, "true");
+          setNotifications((prev) =>
+            prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+          );
+          return;
+        }
+
+        await notificationService.markAsRead(notif._id);
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+        );
+      } catch (error) {
+        console.error("Lỗi khi đánh dấu đã đọc:", error);
+      }
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const handleLogOut = async (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
@@ -138,10 +234,60 @@ const TopHeader: React.FC = () => {
         )}
 
         {/* Notifications */}
-        <button className={`${styles.iconBtn} tour-step-notifications`}>
-          <Bell size={20} />
-          <span className={styles.notifDot}></span>
-        </button>
+        <div className="relative" ref={notifRef}>
+          <button
+            type="button"
+            className={`${styles.iconBtn} tour-step-notifications`}
+            onClick={() => setIsNotifOpen(!isNotifOpen)}
+          >
+            <Bell size={20} />
+            {unreadCount > 0 ? (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-[10px] font-bold text-white px-1 leading-none">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            ) : (
+              <span className={styles.notifDot}></span>
+            )}
+          </button>
+
+          {isNotifOpen && (
+            <div className="absolute right-0 mt-2 w-[320px] bg-white rounded-xl shadow-xl border border-slate-200 pb-2 z-50 overflow-hidden">
+              <div className="px-4 py-3 font-bold text-white bg-primary mb-2 shadow-sm flex items-center justify-between">
+                <span>Thông báo</span>
+                {unreadCount > 0 && (
+                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-normal">
+                    {unreadCount} chưa đọc
+                  </span>
+                )}
+              </div>
+              {notifications.length === 0 ? (
+                <div className="px-4 py-6 text-center text-sm text-slate-500">
+                  Không có thông báo mới
+                </div>
+              ) : (
+                <div className="flex flex-col max-h-[320px] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f]">
+                  {notifications.map((notif) => (
+                    <div
+                      key={notif._id}
+                      className={`px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-100 last:border-none ${notif.isRead ? "bg-white" : "bg-orange-50/50"}`}
+                      onClick={() => handleNotificationClick(notif)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={`text-sm block mb-1 whitespace-normal ${notif.isRead ? "font-medium text-slate-700" : "font-bold text-slate-900"}`}>
+                          {notif.title}
+                        </span>
+                        {!notif.isRead && (
+                          <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1"></span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-600 block whitespace-normal" dangerouslySetInnerHTML={{ __html: notif.message }} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Language */}
         <div className={`${styles.languageSelect} tour-step-language`}>
