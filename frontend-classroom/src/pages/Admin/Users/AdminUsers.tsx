@@ -1,3 +1,4 @@
+import { useSearchParams } from "react-router-dom";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus,
@@ -11,11 +12,13 @@ import {
   ShieldStar,
   Trash,
   CaretDown,
+  Eye,
+  EyeSlash,
 } from "phosphor-react";
 import { ClimbingBoxLoader } from "react-spinners";
 
 import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
-import { AnimatedAddButton } from "@/components/ui/Buttons/AnimatedAddButton";
+import { SecondaryButton } from "@/components/ui/Buttons/SecondaryButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input as HeroInput, Select, ListBox, ListBoxItem, Table, Chip, Checkbox, Avatar as HeroAvatar, Pagination } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@heroui/react";
@@ -44,6 +47,7 @@ import { useToast } from "../../../components/Styles/ToastContext";
 import styles from "./AdminUsers.module.scss";
 import { authService } from "../../../service/auth.service";
 import { userService, type IUserItem } from "../../../service/user.service";
+import { io } from "socket.io-client";
 
 // Chuyển đổi role từ DB sang tiếng Việt để hiển thị
 const roleToVi = (role: string): "Admin" | "Giáo viên" | "Học sinh" => {
@@ -65,8 +69,16 @@ export type User = {
   name: string;
   email: string;
   role: "Admin" | "Giáo viên" | "Học sinh";
-  status: "Active" | "Locked";
+  status: "Active" | "Locked" | "Pending";
   subject?: string;
+  phone?: string;
+  parentPhone?: string;
+  createdAt?: string;
+  avatar?: string;
+  gender?: string;
+  dob?: string;
+  bio?: string;
+  degree?: string;
 };
 
 // Chuyển từ IUserItem (API) sang User (table)
@@ -77,11 +89,28 @@ const mapApiToUser = (item: IUserItem): User => ({
   role: roleToVi(item.role),
   status: item.status,
   subject: item.subject,
+  phone: item.phone || item.parentPhone || "",
+  parentPhone: item.parentPhone,
+  createdAt: item.createdAt ? new Date(item.createdAt).toLocaleDateString('vi-VN') : "---",
+  avatar: item.avatar,
+  gender: item.gender,
+  dob: item.dob,
+  bio: item.bio,
+  degree: item.degree,
 });
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State cho Modal Xem Chi tiết Hồ sơ Người dùng
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [detailUser, setDetailUser] = useState<User | null>(null);
+
+  const handleOpenDetail = (user: User) => {
+    setDetailUser(user);
+    setShowDetailDialog(true);
+  };
 
   // Table States
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
@@ -90,9 +119,21 @@ export default function AdminUsers() {
     direction: "ascending",
   });
 
+  const [searchParams] = useSearchParams();
+  const initialStatusParam = searchParams.get("status") || "all";
+
   const [globalFilter, setGlobalFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatusParam);
+
+  useEffect(() => {
+    const statusParam = searchParams.get("status");
+    if (statusParam) {
+      setStatusFilter(statusParam);
+    }
+  }, [searchParams]);
+
+  const pendingCount = useMemo(() => users.filter(u => u.status === "Pending").length, [users]);
 
   const filteredAndSortedUsers = useMemo(() => {
     let filtered = [...users];
@@ -109,10 +150,14 @@ export default function AdminUsers() {
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter(u => u.status === (statusFilter === "Active" ? "Active" : "Locked"));
+      filtered = filtered.filter(u => u.status === statusFilter);
     }
 
     return filtered.sort((a, b) => {
+      // 🌟 ƯU TIÊN XẾP TÀI KHOẢN PENDING LÊN TRÊN CÙNG TRANG 1
+      if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+      if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+
       const col = sortDescriptor.column as keyof User;
       const first = String(a[col] || "");
       const second = String(b[col] || "");
@@ -147,6 +192,7 @@ export default function AdminUsers() {
 
   // State cho dialog tạo giáo viên mới
   const [showDialog, setShowDialog] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -219,6 +265,54 @@ export default function AdminUsers() {
     fetchUsers();
   }, [fetchUsers]);
 
+  // Kết nối Socket.IO để tự động tải lại danh sách khi có người mới đăng ký
+  useEffect(() => {
+    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(backendUrl, {
+      withCredentials: true,
+    });
+
+    socket.on('connect', () => {
+      console.log('⚡ [AdminUsers] Đã kết nối Socket.IO Real-time!');
+    });
+
+    socket.on('admin_stats_update', () => {
+      console.log('🔄 [AdminUsers] Có thay đổi dữ liệu, đang tải lại danh sách người dùng...');
+      fetchUsers();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [fetchUsers]);
+
+  // Handler: Phê duyệt tài khoản Giáo viên (Pending -> Active)
+  const handleApproveUser = (user: User) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Phê duyệt tài khoản Giáo viên",
+      description: (
+        <span>
+          Bạn có chắc chắn muốn phê duyệt kích hoạt tài khoản Giáo viên{" "}
+          <strong className="font-black text-slate-900 uppercase">{user.name}</strong> ({user.email})?
+        </span>
+      ),
+      actionType: 'success',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await userService.updateUserStatus(user._id, "Active");
+          setUsers((prev) =>
+            prev.map((u) => (u._id === user._id ? { ...u, status: "Active" } : u))
+          );
+          toast.success(`Đã phê duyệt kích hoạt tài khoản ${user.name.toUpperCase()} thành công!`, 3000);
+        } catch (error: any) {
+          toast.error(error.message || "Phê duyệt tài khoản thất bại", 3000);
+        }
+      }
+    });
+  };
+
   // Handler: Khóa / Mở khóa tài khoản
   const handleToggleStatus = (user: User) => {
     const newStatus = user.status === "Active" ? "Locked" : "Active";
@@ -227,7 +321,12 @@ export default function AdminUsers() {
     setConfirmDialog({
       isOpen: true,
       title: `${actionName} tài khoản`,
-      description: `Bạn có chắc chắn muốn ${actionName.toLowerCase()} tài khoản ${user.name}?`,
+      description: (
+        <span>
+          Bạn có chắc chắn muốn {actionName.toLowerCase()} tài khoản{" "}
+          <strong className="font-black text-slate-900 uppercase">{user.name}</strong>?
+        </span>
+      ),
       actionType: newStatus === "Locked" ? 'warning' : 'success',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
@@ -237,7 +336,7 @@ export default function AdminUsers() {
             prev.map((u) => (u._id === user._id ? { ...u, status: newStatus } : u))
           );
           toast.success(
-            `${newStatus === "Locked" ? "Đã khóa" : "Đã mở khóa"} tài khoản ${user.name}`,
+            `${newStatus === "Locked" ? "Đã khóa" : "Đã mở khóa"} tài khoản ${user.name.toUpperCase()}`,
             3000
           );
         } catch (error: any) {
@@ -252,14 +351,19 @@ export default function AdminUsers() {
     setConfirmDialog({
       isOpen: true,
       title: "Xóa tài khoản",
-      description: `Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản ${user.name}? Hành động này không thể hoàn tác.`,
+      description: (
+        <span>
+          Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản{" "}
+          <strong className="font-black text-slate-900 uppercase">{user.name}</strong>? Hành động này không thể hoàn tác.
+        </span>
+      ),
       actionType: 'danger',
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isOpen: false }));
         try {
           await userService.deleteUser(user._id);
           setUsers((prev) => prev.filter((u) => u._id !== user._id));
-          toast.success(`Đã xóa tài khoản ${user.name}`, 3000);
+          toast.success(`Đã xóa tài khoản ${user.name.toUpperCase()}`, 3000);
         } catch (error: any) {
           toast.error(error.message || "Xóa tài khoản thất bại", 3000);
         }
@@ -383,12 +487,12 @@ export default function AdminUsers() {
         prev.map((u) =>
           u._id === editFormData.id
             ? {
-                ...u,
-                name: editFormData.name,
-                email: editFormData.email,
-                role: roleToVi(editFormData.role),
-                subject: editFormData.role === "teacher" ? editFormData.subject : "",
-              }
+              ...u,
+              name: editFormData.name,
+              email: editFormData.email,
+              role: roleToVi(editFormData.role),
+              subject: editFormData.role === "teacher" ? editFormData.subject : "",
+            }
             : u
         )
       );
@@ -421,6 +525,24 @@ export default function AdminUsers() {
   // Handler: Tạo tài khoản mới (Giáo viên hoặc Học sinh)
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    const strictEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    const email = formData.email.trim().toLowerCase();
+
+    if (!email || !strictEmailRegex.test(email)) {
+      toast.error("Địa chỉ Email không đúng định dạng cú pháp chuẩn (ví dụ: name@school.edu.vn hoặc user@gmail.com)!", 4000);
+      return;
+    }
+
+    const domain = email.split('@')[1] || '';
+    const allowedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'edu.vn', 'school.edu.vn', 'classroom.com'];
+    const isStandardDomain = allowedDomains.some(d => domain === d || domain.endsWith('.' + d));
+
+    // Nếu không phải domain phổ biến và chứa dãy số linh tinh rác dài hơn 3 số (ví dụ @g123213mail.com, @g123ail.com)
+    if (!isStandardDomain && (/[0-9]{3,}/.test(domain) || domain.length > 20)) {
+      toast.error("Tên miền Email nghi vấn rác (ví dụ: chứa dãy số ngẫu nhiên)! Vui lòng sử dụng email thật.", 4000);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       let response;
@@ -530,7 +652,7 @@ export default function AdminUsers() {
                 <span>
                   Trạng thái{" "}
                   {statusFilter !== "all"
-                    ? `: ${statusFilter === "Active" ? "Hoạt động" : "Đang khóa"}`
+                    ? `: ${statusFilter === "Active" ? "Hoạt động" : statusFilter === "Pending" ? "Chờ phê duyệt" : "Đang khóa"}`
                     : ""}
                 </span>
               </div>
@@ -541,6 +663,12 @@ export default function AdminUsers() {
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500" />
                     Hoạt động
+                  </div>
+                </ListBoxItem>
+                <ListBoxItem id="Pending" textValue="Chờ phê duyệt" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-500" />
+                    Chờ phê duyệt
                   </div>
                 </ListBoxItem>
                 <ListBoxItem id="Locked" textValue="Đang khóa" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
@@ -555,6 +683,25 @@ export default function AdminUsers() {
               </ListBox>
             </Select.Popover>
           </Select>
+
+          {pendingCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setStatusFilter(statusFilter === "Pending" ? "all" : "Pending")}
+              className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer border shrink-0 ${statusFilter === "Pending"
+                ? "bg-[#2f8fa3] text-white border-[#2f8fa3] shadow-sm"
+                : "bg-cyan-50/70 text-[#2f8fa3] border-cyan-200 hover:bg-cyan-100/80"
+                }`}
+            >
+              <span>⏳ Chờ duyệt</span>
+              <span
+                className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${statusFilter === "Pending" ? "bg-white text-[#2f8fa3]" : "bg-[#2f8fa3] text-white"
+                  }`}
+              >
+                {pendingCount}
+              </span>
+            </button>
+          )}
 
           {selectedCount > 0 && (
             <PrimaryButton
@@ -571,14 +718,14 @@ export default function AdminUsers() {
         {/* Dialog Thêm người dùng */}
         <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
           <DialogTrigger asChild>
-            <AnimatedAddButton className="w-full md:w-auto shadow-sm">
-              Thêm giáo viên
-            </AnimatedAddButton>
+            <SecondaryButton size="lg" className="w-full md:w-auto shadow-md font-extrabold">
+              + Thêm giáo viên
+            </SecondaryButton>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleCreateUser}>
               <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900">Thêm người dùng mới</DialogTitle>
+                <DialogTitle className="text-xl font-extrabold text-[#f47c20]">Thêm người dùng mới</DialogTitle>
                 <DialogDescription className="text-slate-500">
                   Nhập thông tin để tạo và cấp tài khoản.
                 </DialogDescription>
@@ -596,7 +743,7 @@ export default function AdminUsers() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -613,26 +760,36 @@ export default function AdminUsers() {
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password" className="font-semibold text-slate-700">
                     Mật khẩu khởi tạo
                   </Label>
-                  <HeroInput
-                    id="password"
-                    type="password"
-                    placeholder="Tối thiểu 6 ký tự"
-                    required
-                    autoComplete="new-password"
-                    minLength={6}
-                    value={formData.password}
-                    onChange={(e) =>
-                      setFormData({ ...formData, password: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
+                  <div className="relative">
+                    <HeroInput
+                      id="password"
+                      type={showCreatePassword ? "text" : "password"}
+                      placeholder="Tối thiểu 6 ký tự"
+                      required
+                      autoComplete="new-password"
+                      minLength={6}
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 flex items-center justify-center z-10"
+                      title={showCreatePassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    >
+                      {showCreatePassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
+                    </button>
+                  </div>
                 </div>
                 {formData.role === "teacher" && (
                   <div className="space-y-2 flex flex-col">
@@ -643,7 +800,7 @@ export default function AdminUsers() {
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
+                          className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
                         >
                           <span>Môn {formData.subject || "Toán"}</span>
                           <CaretDown size={16} className="text-slate-400" />
@@ -664,19 +821,17 @@ export default function AdminUsers() {
                   </div>
                 )}
               </div>
-              <DialogFooter>
-                <PrimaryButton
+              <DialogFooter className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 mt-4">
+                <button
                   type="button"
-                  variant="outline"
                   onClick={() => handleCloseDialog(false)}
-                  className="font-semibold"
+                  className="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 border-none cursor-pointer"
                   disabled={isSubmitting}
                 >
                   Hủy
-                </PrimaryButton>
-                <PrimaryButton
+                </button>
+                <SecondaryButton
                   type="submit"
-                  className="bg-primary text-white font-semibold"
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? (
@@ -687,7 +842,7 @@ export default function AdminUsers() {
                   ) : (
                     "Tạo tài khoản"
                   )}
-                </PrimaryButton>
+                </SecondaryButton>
               </DialogFooter>
             </form>
           </DialogContent>
@@ -874,17 +1029,32 @@ export default function AdminUsers() {
                 </div>
                 <div className="space-y-2">
                   <Label className="font-semibold text-slate-700">Vai trò</Label>
-                  <select
-                    value={editFormData.role}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, role: e.target.value as any })
-                    }
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none font-semibold bg-slate-50 focus:border-orange-500"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="teacher">Giáo viên</option>
-                    <option value="student">Học sinh</option>
-                  </select>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
+                      >
+                        <span>{roleToVi(editFormData.role)}</span>
+                        <CaretDown size={16} className="text-slate-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                      {[
+                        { value: "admin", label: "Admin" },
+                        { value: "teacher", label: "Giáo viên" },
+                        { value: "student", label: "Học sinh" },
+                      ].map((opt) => (
+                        <DropdownMenuItem
+                          key={opt.value}
+                          onClick={() => setEditFormData({ ...editFormData, role: opt.value as any })}
+                          className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
+                        >
+                          {opt.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 {editFormData.role === "teacher" && (
                   <div className="space-y-2 flex flex-col">
@@ -938,6 +1108,130 @@ export default function AdminUsers() {
           </DialogContent>
         </Dialog>
 
+        {/* Dialog Xem Chi tiết Hồ sơ Người dùng */}
+        <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+          <DialogContent className="sm:max-w-[740px] max-h-[90vh] p-5 rounded-3xl overflow-y-auto">
+            <DialogHeader className="pb-1">
+              <DialogTitle className="text-lg font-bold text-[#f47c20] flex items-center gap-2">
+                <Eye size={22} weight="bold" />
+                <span>Thông tin chi tiết tài khoản</span>
+              </DialogTitle>
+              <DialogDescription className="text-xs text-slate-500">
+                Hồ sơ thông tin cá nhân, bằng cấp trình độ và quyền hạn trên hệ thống ClassRoom.
+              </DialogDescription>
+            </DialogHeader>
+            {detailUser && (
+              <div className="py-2 space-y-3 font-sans text-slate-800">
+                {/* Header Card với Avatar */}
+                <div className="flex items-center gap-4 p-3 bg-slate-50/90 rounded-2xl border border-slate-200/80 shadow-2xs">
+                  <Avatar className="w-14 h-14 border-2 border-[#f47c20] shadow-sm shrink-0">
+                    <AvatarImage src={detailUser.avatar || ""} />
+                    <AvatarFallback className="bg-[#f47c20] text-white font-black text-lg">
+                      {detailUser.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <h3 className="font-black text-slate-900 text-base uppercase tracking-wide truncate">
+                      {detailUser.name}
+                    </h3>
+                    <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{detailUser.email}</p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <Chip size="sm" variant="soft" className={detailUser.role === "Giáo viên" ? "bg-blue-50 text-blue-700 border-blue-200 font-bold" : "bg-slate-100 text-slate-700 font-medium"}>
+                        {detailUser.role} {detailUser.subject ? `(${detailUser.subject})` : ""}
+                      </Chip>
+                      <Chip
+                        size="sm"
+                        variant="soft"
+                        className={
+                          detailUser.status === "Active"
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
+                            : detailUser.status === "Pending"
+                              ? "bg-amber-50 text-amber-700 border-amber-200 font-bold"
+                              : "bg-rose-50 text-rose-700 border-rose-200 font-bold"
+                        }
+                      >
+                        {detailUser.status === "Active" ? "Hoạt động" : detailUser.status === "Pending" ? "Chờ phê duyệt" : "Đang khóa"}
+                      </Chip>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid 6 trường Chi tiết (3 cột giúp giảm chiều cao) */}
+                <div className="grid grid-cols-3 gap-2.5 text-xs">
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Giới tính</span>
+                    <span className="font-bold text-slate-800 text-xs block truncate">
+                      {detailUser.gender || "Chưa cập nhật"}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Ngày sinh (DOB)</span>
+                    <span className="font-bold text-slate-800 text-xs block truncate">
+                      {detailUser.dob || "Chưa cập nhật"}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Số điện thoại / Zalo</span>
+                    <span className="font-bold text-slate-800 text-xs block truncate">
+                      {detailUser.phone || "Chưa cập nhật"}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Bằng cấp / Trình độ</span>
+                    <span className="font-bold text-slate-800 text-xs block truncate">
+                      {detailUser.degree || (detailUser.role === "Giáo viên" ? "Đại học Sư phạm" : "Chưa cập nhật")}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Môn học chuyên môn</span>
+                    <span className="font-bold text-slate-800 text-xs block truncate">
+                      {detailUser.subject || "Chưa chọn môn"}
+                    </span>
+                  </div>
+                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Ngày đăng ký tham gia</span>
+                    <span className="font-bold text-slate-800 text-xs block truncate">
+                      {detailUser.createdAt || "---"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bio Card */}
+                <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-200/80 text-xs">
+                  <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Giới thiệu bản thân (Bio)</span>
+                  <p className="font-semibold text-slate-700 text-xs leading-relaxed italic">
+                    {detailUser.bio || "Chưa có thông tin giới thiệu bản thân."}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* DialogFooter */}
+            <DialogFooter className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 mt-1">
+              {detailUser?.status === "Pending" && (
+                <PrimaryButton
+                  type="button"
+                  onClick={() => {
+                    setShowDetailDialog(false);
+                    handleApproveUser(detailUser);
+                  }}
+                  className="bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold text-xs px-4 py-2 rounded-xl border-none shadow-xs cursor-pointer transition-colors"
+                >
+                  Phê duyệt ngay
+                </PrimaryButton>
+              )}
+              <PrimaryButton
+                type="button"
+                variant="outline"
+                onClick={() => setShowDetailDialog(false)}
+                className="font-semibold text-xs px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+              >
+                Đóng
+              </PrimaryButton>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Cookie-style Confirm Dialog */}
         <CustomConfirmDialog
           isOpen={confirmDialog.isOpen}
@@ -955,9 +1249,10 @@ export default function AdminUsers() {
           <Table.ScrollContainer className="min-h-[400px]">
             <Table.Content
               aria-label="Danh sách người dùng"
-              className="min-w-[800px]"
+              className="min-w-[950px]"
               selectedKeys={selectedKeys}
               selectionMode="multiple"
+              selectionBehavior="toggle"
               sortDescriptor={sortDescriptor}
               onSelectionChange={setSelectedKeys}
               onSortChange={setSortDescriptor}
@@ -986,10 +1281,24 @@ export default function AdminUsers() {
                     </Table.SortableColumnHeader>
                   )}
                 </Table.Column>
+                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="phone">
+                  {({ sortDirection }) => (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      Số điện thoại
+                    </Table.SortableColumnHeader>
+                  )}
+                </Table.Column>
                 <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="role">
                   {({ sortDirection }) => (
                     <Table.SortableColumnHeader sortDirection={sortDirection}>
                       Vai trò
+                    </Table.SortableColumnHeader>
+                  )}
+                </Table.Column>
+                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="createdAt">
+                  {({ sortDirection }) => (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      Ngày đăng ký
                     </Table.SortableColumnHeader>
                   )}
                 </Table.Column>
@@ -1024,7 +1333,13 @@ export default function AdminUsers() {
                         </div>
                       </Table.Cell>
                       <Table.Cell>
+                        <Skeleton className="h-4 w-24" />
+                      </Table.Cell>
+                      <Table.Cell>
                         <Skeleton className="h-6 w-20 rounded-full" />
+                      </Table.Cell>
+                      <Table.Cell>
+                        <Skeleton className="h-4 w-20" />
                       </Table.Cell>
                       <Table.Cell>
                         <Skeleton className="h-6 w-24 rounded-full" />
@@ -1041,10 +1356,13 @@ export default function AdminUsers() {
                     <Table.Cell className="pr-0" />
                     <Table.Cell />
                     <Table.Cell>
-                      <div className="py-10 text-slate-500 font-medium">
-                        Không tìm thấy kết quả nào.
+                      <div className="py-10 opacity-0 pointer-events-none w-[200px]">.</div>
+                      <div className="absolute inset-x-0 flex justify-center items-center text-slate-500 font-medium pointer-events-none" style={{ top: 0, bottom: 0 }}>
+                        Không tìm thấy người dùng phù hợp
                       </div>
                     </Table.Cell>
+                    <Table.Cell />
+                    <Table.Cell />
                     <Table.Cell />
                     <Table.Cell />
                     <Table.Cell />
@@ -1053,9 +1371,11 @@ export default function AdminUsers() {
                   paginatedItems.map((user, idx) => {
                     const index = (page - 1) * ROWS_PER_PAGE + idx;
                     const isLocked = user.status === "Locked";
+                    const isPending = user.status === "Pending";
                     const statusColorMap: Record<string, "success" | "danger" | "warning"> = {
                       Active: "success",
                       Locked: "danger",
+                      Pending: "warning",
                     };
                     const initials = user.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase();
 
@@ -1070,21 +1390,61 @@ export default function AdminUsers() {
                             </Checkbox.Content>
                           </Checkbox>
                         </Table.Cell>
-                        <Table.Cell className="font-medium text-slate-500">
+                        <Table.Cell
+                          className="font-medium text-slate-500 cursor-pointer"
+                          onClick={(e: any) => {
+                            e.stopPropagation();
+                            handleOpenDetail(user);
+                          }}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
                           #{index + 1}
                         </Table.Cell>
-                        <Table.Cell>
+                        <Table.Cell
+                          className="cursor-pointer"
+                          onClick={(e: any) => {
+                            e.stopPropagation();
+                            handleOpenDetail(user);
+                          }}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
                           <div className="flex items-center gap-3">
-                            <HeroAvatar size="sm" className="bg-primary text-white border border-slate-100 shadow-sm">
-                              <HeroAvatar.Fallback className="text-xs font-semibold">{initials}</HeroAvatar.Fallback>
-                            </HeroAvatar>
+                            <Avatar className="w-8 h-8 shrink-0 bg-primary text-white border border-slate-100 shadow-sm">
+                              <AvatarImage src={user.avatar || ""} />
+                              <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
+                            </Avatar>
                             <div className="flex flex-col">
-                              <span className="font-semibold text-slate-900 text-[15px]">{user.name}</span>
+                              <span className="font-semibold text-slate-900 text-[15px] hover:text-[#f47c20] transition-colors">
+                                {user.name}
+                              </span>
                               <span className="text-sm font-medium text-slate-500 mt-0.5">{user.email}</span>
                             </div>
                           </div>
                         </Table.Cell>
-                        <Table.Cell>
+                        <Table.Cell
+                          className="cursor-pointer"
+                          onClick={(e: any) => {
+                            e.stopPropagation();
+                            handleOpenDetail(user);
+                          }}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
+                          {user.phone ? (
+                            <span className="text-xs font-semibold text-slate-700">
+                              {user.phone}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-normal italic">Chưa cập nhật</span>
+                          )}
+                        </Table.Cell>
+                        <Table.Cell
+                          className="cursor-pointer"
+                          onClick={(e: any) => {
+                            e.stopPropagation();
+                            handleOpenDetail(user);
+                          }}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
                           {user.role === "Admin" ? (
                             <Chip size="sm" variant="soft" className="bg-red-50 text-red-600 font-semibold border border-red-200">
                               Admin
@@ -1099,15 +1459,48 @@ export default function AdminUsers() {
                             </Chip>
                           )}
                         </Table.Cell>
-                        <Table.Cell>
+                        <Table.Cell
+                          className="text-xs font-medium text-slate-500 whitespace-nowrap cursor-pointer"
+                          onClick={(e: any) => {
+                            e.stopPropagation();
+                            handleOpenDetail(user);
+                          }}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
+                          {user.createdAt || "---"}
+                        </Table.Cell>
+                        <Table.Cell
+                          className="cursor-pointer"
+                          onClick={(e: any) => {
+                            e.stopPropagation();
+                            handleOpenDetail(user);
+                          }}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
                           <Chip color={statusColorMap[user.status]} size="sm" variant="soft" className="font-medium">
-                            {user.status === "Active" ? "Hoạt động" : "Đang khóa"}
+                            {user.status === "Active" ? "Hoạt động" : isPending ? "Chờ phê duyệt" : "Đang khóa"}
                           </Chip>
                         </Table.Cell>
-                        <Table.Cell>
-                          <div className="flex items-center justify-end gap-1 relative">
+                        <Table.Cell
+                          onClick={(e: any) => e.stopPropagation()}
+                          onPointerDown={(e: any) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-end gap-1.5 relative">
+                            {isPending && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleApproveUser(user);
+                                }}
+                                className="px-3 py-1 bg-[#f47c20] text-white font-bold text-xs rounded-lg hover:bg-[#e06d15] border-none cursor-pointer transition-colors shadow-xs"
+                              >
+                                Phê duyệt
+                              </button>
+                            )}
                             <ActionMenu
                               isLocked={isLocked}
+                              isAdmin={user.role === "Admin"}
                               onEdit={() => handleOpenEdit(user)}
                               onRoleChange={() => handleOpenChangeRole(user)}
                               onResetPassword={() => handleOpenResetPassword(user)}

@@ -4,6 +4,7 @@ import type { IBackendRes } from '../types/backend';
 export interface IDashboardStats {
   totalStudents: number;
   totalTeachers: number;
+  pendingTeachers?: number;
   activeClasses: number;
   engagementRate: number;
   attendanceRate?: number;

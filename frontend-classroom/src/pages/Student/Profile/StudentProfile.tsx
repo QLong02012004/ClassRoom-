@@ -28,6 +28,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
+import { SaveButton } from "@/components/ui/Buttons/SaveButton";
 import styles from './StudentProfile.module.scss';
 
 const StudentProfile: React.FC = () => {
@@ -53,7 +54,10 @@ const StudentProfile: React.FC = () => {
     gender: user?.gender || '',
     phone: user?.phone || '',
     address: user?.address || '',
-    avatar: user?.avatar || ''
+    avatar: user?.avatar || '',
+    degree: (user as any)?.degree || '',
+    subject: (user as any)?.subject || '',
+    bio: (user as any)?.bio || ''
   });
 
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -170,13 +174,36 @@ const StudentProfile: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Khối Vai trò & Trạng thái nằm gọn gàng bên phải Header */}
+        <div className={styles.headerRight}>
+          <div className={styles.headerBadgeCard}>
+            <div className={`${styles.badgeIcon} ${styles.blue}`}>
+              {user?.role === 'admin' ? <ShieldCheck size={20} weight="bold" /> : <User size={20} weight="bold" />}
+            </div>
+            <div className={styles.badgeMeta}>
+              <span className={styles.bLabel}>VAI TRÒ</span>
+              <span className={styles.bVal}>
+                {user?.role === 'admin' ? 'Quản trị viên' : user?.role === 'teacher' ? 'Giáo viên' : 'Học sinh'}
+              </span>
+            </div>
+          </div>
+          <div className={styles.headerBadgeCard}>
+            <div className={`${styles.badgeIcon} ${styles.green}`}>
+              <CalendarCheck size={20} weight="bold" />
+            </div>
+            <div className={styles.badgeMeta}>
+              <span className={styles.bLabel}>TRẠNG THÁI</span>
+              <span className={styles.bValActive}>Hoạt động</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className={styles.mainGrid}>
         {/* Left Column */}
         <div className={styles.leftCol}>
-          {/* Stat Cards */}
-          {/* Stat Cards */}
+          {/* Stat Cards cho Học sinh */}
           {user?.role === 'student' && (
             <div className={styles.statCards}>
               <div className={styles.statCard}>
@@ -210,44 +237,6 @@ const StudentProfile: React.FC = () => {
             </div>
           )}
 
-          {user?.role === 'admin' && (
-            <div className={styles.statCards}>
-              <div className={styles.statCard}>
-                <div className={`${styles.iconWrapper} ${styles.blue}`}>
-                  <ShieldCheck size={24} weight="bold" />
-                </div>
-                <div className={styles.statLabel}>Quyền hạn</div>
-                <div className={styles.statValue}>Tối cao</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={`${styles.iconWrapper} ${styles.green}`}>
-                  <CalendarCheck size={24} weight="bold" />
-                </div>
-                <div className={styles.statLabel}>Trạng thái</div>
-                <div className={styles.statValue}>Hoạt động</div>
-              </div>
-            </div>
-          )}
-
-          {user?.role === 'teacher' && (
-            <div className={styles.statCards}>
-              <div className={styles.statCard}>
-                <div className={`${styles.iconWrapper} ${styles.blue}`}>
-                  <User size={24} weight="bold" />
-                </div>
-                <div className={styles.statLabel}>Vai trò</div>
-                <div className={styles.statValue}>Giáo viên</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={`${styles.iconWrapper} ${styles.green}`}>
-                  <CalendarCheck size={24} weight="bold" />
-                </div>
-                <div className={styles.statLabel}>Trạng thái</div>
-                <div className={styles.statValue}>Hoạt động</div>
-              </div>
-            </div>
-          )}
-
           {/* Thông tin hồ sơ */}
           <div className={styles.sectionBox}>
             <div className={styles.sectionHeader}>
@@ -277,6 +266,29 @@ const StudentProfile: React.FC = () => {
                   <span className={styles.label}>Dân tộc</span>
                   <span className={styles.value}>Kinh</span>
                 </div>
+              </div>
+            </div>
+
+            <div className={styles.infoGroup}>
+              <div className={styles.groupTitle}>Chuyên môn & Trình độ</div>
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>Bằng cấp / Trình độ</span>
+                  <span className={styles.value}>{(user as any)?.degree || (user?.role === 'teacher' ? 'Đại học Sư phạm' : 'Chưa cập nhật')}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>Môn học chuyên môn</span>
+                  <span className={styles.value}>{(user as any)?.subject || 'Chưa chọn môn'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.infoGroup}>
+              <div className={styles.groupTitle}>Giới thiệu bản thân (Bio)</div>
+              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+                <p className="font-medium text-slate-700 text-sm leading-relaxed italic">
+                  {(user as any)?.bio || 'Chưa có thông tin giới thiệu bản thân.'}
+                </p>
               </div>
             </div>
 
@@ -478,74 +490,208 @@ const StudentProfile: React.FC = () => {
           )}
         </div>
       </div>
-      {/* Dialog Chỉnh sửa hồ sơ */}
+      {/* ================================ */}
+      {/* Dialog Chỉnh sửa hồ sơ cá nhân  */}
+      {/* ================================ */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Chỉnh sửa hồ sơ cá nhân</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Họ và tên</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="dob">Ngày sinh</Label>
-                <Input
-                  id="dob"
-                  type="date"
-                  value={formData.dob}
-                  onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                />
+        <DialogContent className="sm:max-w-[860px] p-0 overflow-hidden rounded-2xl gap-0">
+
+          <form onSubmit={handleUpdateProfile}>
+
+            {/* Body 2 cột */}
+            <div className="p-6 grid grid-cols-2 gap-x-7 gap-y-5">
+
+              {/* ── CỘT TRÁI ── */}
+              <div className="space-y-5">
+
+                {/* Thông tin cơ bản */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-1 h-3.5 bg-[#f47c20] rounded-full" />
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Thông tin cơ bản</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid gap-1">
+                      <Label htmlFor="name" className="text-xs font-bold text-slate-600">Họ và tên <span className="text-red-500">*</span></Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        required
+                        className="h-9 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-[#f47c20]/20 text-sm font-medium"
+                        placeholder="Nhập họ và tên đầy đủ..."
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="grid gap-1">
+                        <Label htmlFor="dob" className="text-xs font-bold text-slate-600">Ngày sinh</Label>
+                        <Input
+                          id="dob"
+                          type="date"
+                          value={formData.dob}
+                          onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                          className="h-9 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-[#f47c20]/20 text-sm"
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label htmlFor="gender" className="text-xs font-bold text-slate-600">Giới tính</Label>
+                        <select
+                          id="gender"
+                          className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#f47c20]/30 focus:border-[#f47c20] transition-colors"
+                          value={formData.gender}
+                          onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                        >
+                          <option value="">Chọn giới tính</option>
+                          <option value="Nam">Nam</option>
+                          <option value="Nữ">Nữ</option>
+                          <option value="Khác">Khác</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Liên lạc & Địa chỉ */}
+                <div>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-1 h-3.5 bg-emerald-500 rounded-full" />
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Liên lạc & Địa chỉ</span>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="grid gap-1">
+                      <Label htmlFor="phone" className="text-xs font-bold text-slate-600">Số điện thoại / Zalo</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="VD: 0901 234 567"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="h-9 rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 text-sm"
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label htmlFor="address" className="text-xs font-bold text-slate-600">Địa chỉ thường trú</Label>
+                      <Input
+                        id="address"
+                        placeholder="VD: Quận 1, TP. Hồ Chí Minh"
+                        value={formData.address}
+                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                        className="h-9 rounded-xl border-slate-200 focus:border-emerald-500 focus:ring-emerald-500/20 text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="gender">Giới tính</Label>
-                <select
-                  id="gender"
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-950 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={formData.gender}
-                  onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+
+              {/* ── CỘT PHẢI ── */}
+              <div className="space-y-5">
+
+                {/* Chuyên môn (teacher) hoặc placeholder cho student */}
+                {user?.role === 'teacher' ? (
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <div className="w-1 h-3.5 bg-[#2f8fa3] rounded-full" />
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Chuyên môn & Trình độ</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="grid gap-1">
+                        <Label htmlFor="degree" className="text-xs font-bold text-slate-600">Bằng cấp / Trình độ chuyên môn</Label>
+                        <Input
+                          id="degree"
+                          placeholder="VD: Cử nhân Sư phạm, Thạc sĩ Giáo dục..."
+                          value={formData.degree}
+                          onChange={(e) => setFormData({ ...formData, degree: e.target.value })}
+                          className="h-9 rounded-xl border-slate-200 focus:border-[#2f8fa3] focus:ring-[#2f8fa3]/20 text-sm"
+                        />
+                      </div>
+                      <div className="grid gap-1">
+                        <Label htmlFor="subject" className="text-xs font-bold text-slate-600">Môn học chuyên môn</Label>
+                        <select
+                          id="subject"
+                          className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2f8fa3]/30 focus:border-[#2f8fa3] transition-colors"
+                          value={formData.subject}
+                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                        >
+                          <option value="">Chọn môn học</option>
+                          <option value="Toán">Toán học</option>
+                          <option value="Ngữ văn">Ngữ văn</option>
+                          <option value="Tiếng Anh">Tiếng Anh</option>
+                          <option value="Vật lý">Vật lý</option>
+                          <option value="Hóa học">Hóa học</option>
+                          <option value="Sinh học">Sinh học</option>
+                          <option value="Lịch sử">Lịch sử</option>
+                          <option value="Địa lý">Địa lý</option>
+                          <option value="Tin học">Tin học</option>
+                          <option value="Thể dục">Thể dục</option>
+                          <option value="Âm nhạc">Âm nhạc</option>
+                          <option value="Mỹ thuật">Mỹ thuật</option>
+                          <option value="GDCD">GDCD</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  /* Placeholder cho Student: không có section chuyên môn */
+                  <div className="h-[102px]" />
+                )}
+
+                {/* Bio */}
+                <div className="flex flex-col flex-1">
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="w-1 h-3.5 bg-violet-500 rounded-full" />
+                    <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Giới thiệu bản thân (Bio)</span>
+                  </div>
+                  <div className="grid gap-1 flex-1">
+                    <textarea
+                      id="bio"
+                      rows={user?.role === 'teacher' ? 4 : 7}
+                      placeholder="Nhập lời giới thiệu ngắn gọn về bản thân, kinh nghiệm, sở thích..."
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-colors resize-none"
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                    />
+                    <p className="text-right text-[10px] text-slate-400 font-medium">{formData.bio?.length || 0} ký tự</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-3">
+              <p className="text-[11px] text-slate-400 font-medium">
+                <span className="text-red-500">*</span> Trường thông tin bắt buộc
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEdit(false)}
+                  disabled={isSubmitting}
+                  className="h-9 px-5 rounded-xl border border-slate-200 text-slate-600 font-semibold text-sm hover:bg-slate-100 transition-colors disabled:opacity-60"
                 >
-                  <option value="">Chọn giới tính</option>
-                  <option value="Nam">Nam</option>
-                  <option value="Nữ">Nữ</option>
-                  <option value="Khác">Khác</option>
-                </select>
+                  Hủy bỏ
+                </button>
+                <SaveButton
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Đang lưu...
+                    </span>
+                  ) : (
+                    <span>Lưu thay đổi</span>
+                  )}
+                </SaveButton>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="phone">Số điện thoại</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="address">Địa chỉ</Label>
-              <Input
-                id="address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-            <DialogFooter className="mt-6">
-              <PrimaryButton type="button" variant="outline" onClick={() => setShowEdit(false)} disabled={isSubmitting}>
-                Hủy
-              </PrimaryButton>
-              <PrimaryButton type="submit" className="bg-primary hover:bg-primary-hover" disabled={isSubmitting}>
-                {isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}
-              </PrimaryButton>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
       {/* Dialog Đổi mật khẩu */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
         <DialogContent className="sm:max-w-[425px]">

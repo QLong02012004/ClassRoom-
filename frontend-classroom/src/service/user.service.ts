@@ -6,7 +6,7 @@ export interface IUserItem {
   name: string;
   email: string;
   role: 'admin' | 'teacher' | 'student';
-  status: 'Active' | 'Locked';
+  status: 'Active' | 'Locked' | 'Pending';
   parentPhone?: string;
   avatar?: string;
   dob?: string;
@@ -14,6 +14,8 @@ export interface IUserItem {
   phone?: string;
   address?: string;
   subject?: string;
+  bio?: string;
+  degree?: string;
   createdAt: string;
 }
 

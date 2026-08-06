@@ -16,7 +16,17 @@ Hệ thống Quản lý Học tập (LMS ClassRoom) phân chia thành 3 vai trò
 
 ---
 
-## II. MA TRẬN PHÂN QUYỀN HỆ THỐNG (RBAC MATRIX)
+## II. MA TRẬN PHÂN QUYỀN HỆ THỐNG & LUỒNG ĐĂNG KÝ (RBAC & APPROVAL WORKFLOW)
+
+> **Quy trình Xác thực Email (OTP) & Phê duyệt (Approval Workflow):**
+> 1. **Đăng ký bằng Google OAuth 2.0:** Tự động xác thực email 100%, Học sinh kích hoạt `Active` ngay lập tức; Giáo viên chuyển trạng thái `Pending` chờ Admin duyệt.
+> 2. **Đăng ký Thủ công (Manual Register):** 
+>    - **Xác thực Email qua OTP:** Cả Học sinh và Giáo viên khi đăng ký thủ công đều phải nhập mã OTP 6 số gửi về Email. Giao diện xác thực gồm 6 ô nhập số độc lập (`[1][2][3]-[4][5][6]`), tự động nhảy con trỏ, tự động bôi đen ghi đè số cũ khi gõ lại, dán nhanh Ctrl+V, nút đóng X và bộ đếm ngược 30 giây để gửi lại mã.
+>    - **Hỗ trợ Đăng ký lại mượt mà (Re-registration):** Nếu người dùng đăng ký dở dang nhưng tắt Modal OTP (chưa xác thực), khi thực hiện Đăng ký lại bằng Email đó, hệ thống sẽ tự động xóa bản ghi chưa xác thực cũ và phát hành mã OTP mới mà không báo lỗi trùng Email.
+>    - **Tự động kích hoạt Modal OTP khi Đăng nhập:** Khi người dùng cố gắng đăng nhập tại `/login` với tài khoản chưa xác thực Email, hệ thống tự động bật Modal OTP 6 số ngay trên màn hình Đăng nhập để người dùng nhập OTP kích hoạt tại chỗ.
+>    - **Ẩn tài khoản chưa xác thực khỏi Admin:** Tài khoản chưa xác thực OTP (`isEmailVerified = false`) hoàn toàn bị ẩn khỏi danh sách Quản lý người dùng và Widgets đếm của Admin cho đến khi xác thực thành công.
+>    - **Luồng Học sinh:** Đăng ký -> Nhập OTP xác thực Email -> Tài khoản kích hoạt `Active` ngay lập tức (không cần Admin duyệt, có thể đăng nhập ngay). Khi nhập mã `classCode` xin vào lớp -> Trạng thái trong Lớp là `Pending` chờ Giáo viên duyệt vào lớp.
+>    - **Luồng Giáo viên:** Đăng ký -> Nhập OTP xác thực Email -> Chuyển sang trạng thái `Pending` -> Hệ thống phát thông báo Real-time đẩy lên Top 1 danh sách Admin -> Admin duyệt -> Giáo viên chính thức `Active` và có quyền tạo lớp.
 
 > **Ký hiệu:**  
 > - `C` (Create): Tạo mới | `R` (Read): Xem / Tải về  
@@ -24,16 +34,21 @@ Hệ thống Quản lý Học tập (LMS ClassRoom) phân chia thành 3 vai trò
 
 | Nhóm Chức Năng | Chi Tiết Nghiệp Vụ | Admin | Teacher | Student |
 | :--- | :--- | :---: | :---: | :---: |
-| **Xác thực & Tài khoản** | Đăng nhập / Đăng ký hệ thống | **R** | **C U R** | **C R** |
-| | Cấp mới / Khóa / Mở khóa / Xóa tài khoản Giáo viên | **C U D** | - | - |
+| **Xác thực & Tài khoản** | Đăng nhập / Đăng ký nhanh bằng Google OAuth 2.0 (Tự động xác thực email 100%) | **C R** | **C R** | **C R** |
+| | Đăng ký thủ công + Xác thực OTP 6 số qua Email (Học sinh `Active` ngay / Giáo viên `Pending` chờ duyệt) | **C R** | **C R** | **C R** |
+| | **Thông báo Real-time**: Báo Giáo viên mới chờ duyệt trên **Quả Chuông Header** & **Hoạt động gần đây** | **R U** | - | - |
+| | **Tự động Ưu tiên**: Đẩy tài khoản `Pending` lên **TOP ĐẦU TRANG 1** & Nút Lọc Nhanh `⏳ Chờ duyệt (X)` | **U** | - | - |
+| | **Hồ sơ Chi tiết**: Bổ sung đầy đủ 7 trường thông tin người dùng (`Avatar`, `Giới tính`, `Ngày sinh - DOB`, `SĐT/Zalo`, `Bằng cấp/Trình độ`, `Giới thiệu bản thân - Bio`, `Ngày đăng ký`) và **Modal Xem Hồ Sơ Chi Tiết** chuẩn UI spacing | **R U** | - | - |
+| | Phê duyệt (Approve) tài khoản Giáo viên đăng ký mới (`Pending` -> `Active`) | **U** | - | - |
+| | Cấp mới trực tiếp / Khóa / Mở khóa / Xóa tài khoản Giáo viên | **C U D** | - | - |
 | | Cấp mới / Khóa / Mở khóa / Xóa tài khoản Học sinh | **C U D** | **C U D** | - |
 | | Khôi phục (Reset) mật khẩu cho người dùng | **U** | **U** (Học sinh) | - |
 | | Phân quyền Admin cho tài khoản khác | **U** | - | - |
-| **Quản lý Lớp học** | Tạo lớp học mới (Tự động sinh mã `classCode` duy nhất) | - | **C** | - |
+| **Quản lý Lớp học** | Tạo lớp học mới (Tự động sinh mã `classCode` duy nhất; **Ràng buộc**: Yêu cầu Giáo viên hoàn thiện đầy đủ thông tin hồ sơ trước khi tạo) | - | **C** (Chỉ sau khi được duyệt & đủ hồ sơ) | - |
 | | Xem danh sách lớp, sĩ số, giáo viên phụ trách | **R** | **R** | **R** (Chỉ lớp đã vào) |
 | | Chỉnh sửa thông tin lớp / Xóa lớp học do mình phụ trách | - | **U D** | - |
 | | Can thiệp quản trị: Khóa / Xóa lớp vi phạm quy định | **U D** | - | - |
-| | Tham gia lớp học mới bằng mã `classCode` | - | - | **C** |
+| | Tham gia lớp học mới bằng mã `classCode` & Duyệt học sinh vào lớp | - | **U** (Phê duyệt học sinh) | **C** (Gửi yêu cầu vào lớp) |
 | **Tương tác & Bài học** | Đăng thông báo, chia sẻ tài liệu (PDF, Word, Video) | - | **C U D** | **R** |
 | | Bình luận công khai (Comment) hỏi đáp trong lớp | - | **C R D** | **C R** |
 | **Bài tập & Chấm điểm** | Giao bài tập về nhà, thiết lập Deadline & thang điểm | - | **C U D** | **R** |
@@ -71,16 +86,20 @@ Hệ thống Quản lý Học tập (LMS ClassRoom) phân chia thành 3 vai trò
   - Tooltip tương tác hiển thị Tên lớp & Sĩ số khi di chuột; chân thẻ hiển thị nút tương tác "Đang quản lý X lớp học".
 
 #### 1.2 Quản lý Người dùng (`/admin/users`)
-- [ ] **Tạo tài khoản Giáo viên mới:**
+- [ ] **Phê duyệt Giáo viên tự đăng ký mới (Luồng Phê duyệt mới):**
+  - Hỗ trợ bộ lọc Trạng thái `Chờ phê duyệt` (`Pending`).
+  - Nút **[ Phê duyệt ]** 1-Click trực tiếp tại hàng tài khoản Giáo viên `Pending`.
+  - Khi Admin bấm **[ Phê duyệt ]**, tài khoản chuyển sang `Active` và Giáo viên đăng nhập bình thường.
+- [ ] **Tạo tài khoản Giáo viên trực tiếp bởi Admin:**
   - Nút "Thêm giáo viên" mở Dialog điền Họ tên, Email, Mật khẩu khởi tạo.
-  - Gọi API `POST /api/v1/auth/create-teacher` thành công.
+  - Gọi API `POST /api/v1/auth/create-teacher` khởi tạo ngay trạng thái `Active`.
 - [ ] **Tìm kiếm & Lọc nâng cao:**
   - Ô tìm kiếm lọc chính xác theo Tên hoặc Email.
   - Lọc theo Vai trò (`Admin`, `Teacher`, `Student`).
-  - Lọc theo Trạng thái (`Active` - Đang hoạt động, `Locked` - Đã khóa).
+  - Lọc theo Trạng thái (`Active` - Đang hoạt động, `Pending` - Chờ phê duyệt, `Locked` - Đã khóa).
 - [ ] **Khóa / Mở khóa tài khoản:**
   - Chuyển đổi trạng thái bằng API `PUT /api/v1/users/:id/status`.
-  - **Kiểm thử bảo mật:** Khi tài khoản bị `Locked`, tài khoản đó lập tức bị chặn đăng nhập và xuất hiện thông báo lỗi phù hợp.
+  - **Kiểm thử bảo mật:** Khi tài khoản ở trạng thái `Pending` hoặc `Locked`, tài khoản đó lập tức bị chặn đăng nhập và xuất hiện thông báo lỗi phù hợp.
 - [ ] **Phân quyền (Đổi quyền):**
   - Đổi quyền user bằng API `PUT /api/v1/users/:id/role`.
 - [ ] **Reset Mật khẩu:**

@@ -17,6 +17,9 @@ import type { ITeacherDashboardStats } from "../../../service/dashboard.service"
 import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
 import { notificationService } from "../../../service/notification.service";
+import { useAuth } from "../../../context/AuthContext";
+import { checkTeacherProfileComplete } from "../../../utils/profileChecker";
+import { ProfileWarningModal } from "../../../components/ui/Dialogs/ProfileWarningModal";
 
 import {
   AreaChart,
@@ -102,12 +105,15 @@ interface ScoreStats {
 
 
 export default function TeacherDashboard() {
+  const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [totalStudents, setTotalStudents] = useState<number>(320);
   const [showModal, setShowModal] = useState(false);
+  const [showProfileWarningModal, setShowProfileWarningModal] = useState(false);
+  const [missingProfileFields, setMissingProfileFields] = useState<string[]>([]);
   const [newClass, setNewClass] = useState({ className: "", subject: "" });
 
   const [selectedClassFilter, setSelectedClassFilter] = useState("all");
@@ -173,13 +179,21 @@ export default function TeacherDashboard() {
     loadData();
     loadSchedules();
 
-    const handleOpenModal = () => setShowModal(true);
+    const handleOpenModal = () => {
+      const { isComplete, missingFields } = checkTeacherProfileComplete(user);
+      if (!isComplete) {
+        setMissingProfileFields(missingFields);
+        setShowProfileWarningModal(true);
+        return;
+      }
+      setShowModal(true);
+    };
     window.addEventListener("open-new-class-modal", handleOpenModal);
 
     return () => {
       window.removeEventListener("open-new-class-modal", handleOpenModal);
     };
-  }, []);
+  }, [user]);
 
   // Optional: filtering logic can be implemented if the backend supports passing classId
   // For now, it shows overall stats since we don't have a specific class filter endpoint yet.
@@ -644,6 +658,13 @@ export default function TeacherDashboard() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* MODAL CẢNH BÁO HOÀN THIỆN HỒ SƠ */}
+      <ProfileWarningModal
+        isOpen={showProfileWarningModal}
+        onClose={() => setShowProfileWarningModal(false)}
+        missingFields={missingProfileFields}
+      />
     </div>
   );
 }

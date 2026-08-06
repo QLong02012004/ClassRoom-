@@ -9,7 +9,7 @@ import { notifyAdminStatsUpdate } from '../socket';
 export const getUsers = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { role, status, search } = req.query;
-        let query: any = {};
+        let query: any = { isEmailVerified: { $ne: false } };
 
         if (role) {
             query.role = role;

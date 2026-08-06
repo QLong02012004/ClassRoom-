@@ -29,6 +29,22 @@ export const authService = {
 
   registerStudent: async (data: { name: string, email: string, password: string, parentPhone?: string }): Promise<any> => {
     return await api.post('/api/v1/auth/register-student', data);
+  },
+
+  registerTeacher: async (data: { name: string, email: string, password: string, subject?: string, phone?: string }): Promise<any> => {
+    return await api.post('/api/v1/auth/register-teacher', data);
+  },
+
+  loginWithGoogle: async (data: { credential: string; role?: string; subject?: string }): Promise<any> => {
+    return await api.post('/api/v1/auth/google-login', data);
+  },
+
+  verifyEmail: async (data: { email: string; otp: string }): Promise<any> => {
+    return await api.post('/api/v1/auth/verify-email', data);
+  },
+
+  resendOTP: async (data: { email: string }): Promise<any> => {
+    return await api.post('/api/v1/auth/resend-otp', data);
   }
 };
 

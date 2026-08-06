@@ -43,7 +43,7 @@ const TopHeader: React.FC = () => {
   const isAttendancePage = location.pathname.includes("/attendance");
   const isGradebookPage = location.pathname.includes("/gradebook");
   const isClassroomRoute = location.pathname.startsWith("/classrooms/") || isAttendancePage || isGradebookPage;
-  
+
   const isOverview = isClassroomRoute && !isStudentsPage && !isAttendancePage && !isGradebookPage && (activeTab === "overview" || !activeTab);
   const isActivities = isClassroomRoute && !isStudentsPage && !isAttendancePage && !isGradebookPage && (activeTab === "activities" || activeTab === "assignments" || activeTab === "quizzes");
 
@@ -89,16 +89,16 @@ const TopHeader: React.FC = () => {
           if (diff > 0 && diff < 3 * 24 * 60 * 60 * 1000) {
             const days = Math.floor(diff / (1000 * 60 * 60 * 24));
             const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            
+
             let timeText = "";
             let colorCls = "";
-            
+
             if (days >= 1) {
-                timeText = `Còn ${days} ngày nữa đến hạn.`;
-                colorCls = days === 1 ? "text-orange-500" : "text-amber-500";
+              timeText = `Còn ${days} ngày nữa đến hạn.`;
+              colorCls = days === 1 ? "text-orange-500" : "text-amber-500";
             } else {
-                timeText = `Còn ${hours} giờ nữa đến hạn!`;
-                colorCls = "text-red-500";
+              timeText = `Còn ${hours} giờ nữa đến hạn!`;
+              colorCls = "text-red-500";
             }
 
             const isRead = localStorage.getItem(`read_reminder_${assign._id}`) === 'true';
@@ -116,7 +116,7 @@ const TopHeader: React.FC = () => {
             } as any);
           }
         });
-        
+
         serverNotifs = [...localReminders, ...serverNotifs];
       }
 
@@ -153,16 +153,22 @@ const TopHeader: React.FC = () => {
           setNotifications((prev) =>
             prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
           );
-          return;
+        } else {
+          await notificationService.markAsRead(notif._id);
+          setNotifications((prev) =>
+            prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+          );
         }
-
-        await notificationService.markAsRead(notif._id);
-        setNotifications((prev) =>
-          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
-        );
       } catch (error) {
         console.error("Lỗi khi đánh dấu đã đọc:", error);
       }
+    }
+
+    // Điều hướng nếu là thông báo Yêu cầu Duyệt Giáo viên cho Admin
+    const text = (notif.title + " " + (notif.message || "")).toLowerCase();
+    if (userRole === "admin" && (text.includes("duyệt") || text.includes("phê duyệt") || text.includes("pending"))) {
+      setIsNotifOpen(false);
+      navigate("/admin/users?status=Pending");
     }
   };
 

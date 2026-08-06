@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { createAccountService, loginService, verifyRefreshToken, generateTokens } from '../services/authService';
+import { createAccountService, registerTeacherService, loginService, verifyRefreshToken, generateTokens, googleAuthService } from '../services/authService';
+import { generateOTP, sendVerificationEmail } from '../services/emailService';
 import { UserModel } from '../models/User';
 import { IUser } from '../models/User';
 import { ClassModel } from '../models/Class';
@@ -18,8 +19,26 @@ const REFRESH_COOKIE_OPTIONS = {
     path: '/',
 };
 
+// [POST] /api/v1/auth/register-teacher
+// (Giáo viên tự đăng ký -> Trạng thái Pending)
+export const registerTeacherAccount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { name, email, password, subject, phone } = req.body;
+
+        const result = await registerTeacherService(name, email, password, subject, phone);
+        notifyAdminStatsUpdate();
+
+        res.status(201).json({
+            message: 'Đăng ký tài khoản Giáo viên thành công! Vui lòng chờ BGH phê duyệt trước khi đăng nhập.',
+            user: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // [POST] /api/v1/auth/create-teacher
-// (Admin dùng)
+// (Admin dùng -> Trực tiếp Active)
 export const createTeacherAccount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { name, email, password, subject } = req.body;
@@ -69,13 +88,132 @@ export const registerStudentAccount = async (req: Request, res: Response, next: 
     try {
         const { name, email, password, parentPhone } = req.body;
 
-        const result = await createAccountService(name, email, password, 'student', parentPhone);
-        notifyAdminStatsUpdate();
+        // Chờ xác thực email -> Pending
+        const result = await createAccountService(name, email, password, 'student', parentPhone, undefined, 'Pending', false);
+
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+        result.emailVerificationOTP = otp;
+        result.emailVerificationExpires = otpExpires;
+        await result.save();
+
+        sendVerificationEmail(result.email, otp).catch(e => console.error("Lỗi gửi email:", e));
 
         res.status(201).json({
-            message: 'Đăng ký tài khoản thành công!',
-            user: result
+            message: 'Đăng ký tài khoản thành công! Vui lòng kiểm tra email để nhận mã OTP xác thực.',
+            user: {
+                id: result._id,
+                email: result.email
+            }
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// [POST] /api/v1/auth/verify-email
+export const verifyEmail = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            res.status(400);
+            return next(new Error('Vui lòng cung cấp email và mã OTP!'));
+        }
+
+        const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            res.status(404);
+            return next(new Error('Tài khoản không tồn tại!'));
+        }
+
+        if (user.isEmailVerified) {
+            res.status(400);
+            return next(new Error('Tài khoản đã được xác thực email từ trước!'));
+        }
+
+        if (user.emailVerificationOTP !== otp) {
+            res.status(400);
+            return next(new Error('Mã OTP không chính xác!'));
+        }
+
+        if (user.emailVerificationExpires && user.emailVerificationExpires < new Date()) {
+            res.status(400);
+            return next(new Error('Mã OTP đã hết hạn, vui lòng yêu cầu gửi lại mã mới!'));
+        }
+
+        user.isEmailVerified = true;
+        user.emailVerificationOTP = undefined as any;
+        user.emailVerificationExpires = undefined as any;
+
+        if (user.role === 'teacher') {
+            user.status = 'Pending' as any;
+            try {
+                const NotificationModel = require('../models/Notification').NotificationModel;
+                const { UserRole, NotificationType } = require('../constants/enums');
+                await NotificationModel.create({
+                    recipientRole: UserRole.ADMIN,
+                    sender: user._id,
+                    title: 'Yêu cầu Duyệt Giáo viên mới ⏳',
+                    message: `Giáo viên ${user.name} (${user.email}) vừa xác thực Email thành công và đang chờ duyệt!`,
+                    type: NotificationType.CLASSROOM
+                });
+                notifyAdminStatsUpdate();
+            } catch (e) {
+                console.error("Lỗi tạo thông báo Admin cho Giáo viên mới:", e);
+            }
+        } else if (user.role === 'student') {
+            user.status = 'Active' as any;
+            notifyAdminStatsUpdate();
+        }
+
+        await user.save();
+
+        res.status(200).json({
+            message: 'Xác thực email thành công! ' + (user.role === 'teacher' ? 'Vui lòng chờ Ban giám hiệu phê duyệt.' : 'Bạn có thể đăng nhập ngay bây giờ.')
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+// [POST] /api/v1/auth/resend-otp
+export const resendOTP = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            res.status(400);
+            return next(new Error('Vui lòng cung cấp email!'));
+        }
+
+        const user = await UserModel.findOne({ email: email.toLowerCase().trim() });
+        if (!user) {
+            res.status(404);
+            return next(new Error('Tài khoản không tồn tại!'));
+        }
+
+        if (user.isEmailVerified) {
+            res.status(400);
+            return next(new Error('Tài khoản đã được xác thực từ trước!'));
+        }
+
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+        user.emailVerificationOTP = otp;
+        user.emailVerificationExpires = otpExpires;
+        await user.save();
+
+        console.log(`[RESEND OTP] Sending new OTP ${otp} to ${user.email}`);
+        await sendVerificationEmail(user.email, otp);
+
+        res.status(200).json({
+            message: 'Mã OTP mới đã được gửi tới email của bạn!'
+        });
+
     } catch (error) {
         next(error);
     }
@@ -193,6 +331,41 @@ export const logout = async (req: AuthRequest, res: Response, next: NextFunction
 
         res.status(200).json({
             message: 'Đăng xuất thành công!'
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// [POST] /api/v1/auth/google-login
+export const googleLogin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { credential, role, subject } = req.body;
+
+        const result = await googleAuthService(credential, role, subject);
+
+        // Nếu là Giáo viên đăng ký mới -> Trạng thái Pending
+        if ((result as any).isPending) {
+            notifyAdminStatsUpdate();
+            return res.status(201).json({
+                message: (result as any).message,
+                isPending: true
+            });
+        }
+
+        // Lưu refresh token vào HTTP-only cookie nếu thành công
+        if ((result as any).refreshToken) {
+            res.cookie('refresh_token', (result as any).refreshToken, REFRESH_COOKIE_OPTIONS);
+        }
+
+        notifyAdminStatsUpdate();
+
+        res.status(200).json({
+            message: 'Đăng nhập bằng Google thành công!',
+            data: {
+                accessToken: (result as any).accessToken,
+                user: (result as any).user
+            }
         });
     } catch (error) {
         next(error);

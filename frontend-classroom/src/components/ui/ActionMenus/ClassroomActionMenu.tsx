@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Eye, PencilSimple, CheckSquare, ClipboardText, Archive, PushPin } from "phosphor-react";
+import { Eye, PencilSimple, CheckSquare, ClipboardText, Archive, PushPin, UserPlus } from "phosphor-react";
 
 interface ClassroomActionMenuProps {
   isPinned?: boolean;
@@ -8,7 +8,8 @@ interface ClassroomActionMenuProps {
   onViewDetail: () => void;
   onEdit: () => void;
   onAttendance: () => void;
-  onGradebook: () => void;
+  onGradebook?: () => void;
+  onAddStudent?: () => void;
   onArchive: () => void;
 }
 
@@ -19,6 +20,7 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
   onEdit,
   onAttendance,
   onGradebook,
+  onAddStudent,
   onArchive,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
@@ -83,12 +85,6 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
         <nav className={`popup-window ${placement}`} style={fixedStyle}>
           <legend>Tùy chọn thao tác</legend>
           <ul>
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onViewDetail); }}>
-                <Eye size={16} weight="bold" className="text-slate-600" />
-                <span>Chi tiết lớp học</span>
-              </button>
-            </li>
             {onTogglePin && (
               <li>
                 <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onTogglePin); }}>
@@ -120,9 +116,9 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
               </button>
             </li>
             <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onGradebook); }}>
-                <ClipboardText size={16} weight="bold" className="text-purple-500" />
-                <span>Sổ điểm</span>
+              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onGradebook || onAddStudent); }}>
+                <UserPlus size={16} weight="bold" className="text-[#2f8fa3]" />
+                <span>Thêm học sinh</span>
               </button>
             </li>
             <hr />

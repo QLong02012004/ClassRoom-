@@ -3,11 +3,12 @@ import styled from 'styled-components';
 
 interface SecondaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children?: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-export const SecondaryButton: React.FC<SecondaryButtonProps> = ({ children, className, onClick, ...props }) => {
+export const SecondaryButton: React.FC<SecondaryButtonProps> = ({ children, className, size = 'md', onClick, ...props }) => {
   return (
-    <StyledWrapper>
+    <StyledWrapper $size={size}>
       <button className={`btn ${className || ''}`} onClick={onClick} {...props}>
         {children || "Button"}
       </button>
@@ -15,24 +16,29 @@ export const SecondaryButton: React.FC<SecondaryButtonProps> = ({ children, clas
   );
 }
 
-const StyledWrapper = styled.div`
+const StyledWrapper = styled.div<{ $size?: 'sm' | 'md' | 'lg' }>`
+  display: inline-block;
+
   .btn {
    --color: #f47c20;
    --color2: #ffffff;
-   padding: 0.8em 1.75em;
+   padding: ${props => props.$size === 'lg' ? '0.7em 1.8em' : props.$size === 'sm' ? '0.4em 1em' : '0.55em 1.4em'};
    background-color: transparent;
-   border-radius: 6px;
-   border: .3px solid var(--color);
+   border-radius: 8px;
+   border: 1.5px solid var(--color);
    transition: .5s;
    position: relative;
    overflow: hidden;
    cursor: pointer;
    z-index: 1;
-   font-weight: 300;
-   font-size: 17px;
-   font-family: 'Roboto', 'Segoe UI', sans-serif;
-   text-transform: uppercase;
+   font-weight: 700;
+   font-size: ${props => props.$size === 'lg' ? '15px' : props.$size === 'sm' ? '13px' : '14px'};
+   font-family: inherit;
    color: var(--color);
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   gap: 6px;
   }
 
   .btn::after, .btn::before {

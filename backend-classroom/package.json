@@ -23,11 +23,13 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "google-auth-library": "^11.0.0",
     "googleapis": "^173.0.0",
     "jsonwebtoken": "^9.0.3",
     "mammoth": "^1.12.0",
     "mongoose": "^9.6.3",
     "multer": "^2.2.0",
+    "nodemailer": "^9.0.4",
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
@@ -36,6 +38,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.2.0",
     "@types/node": "^25.9.1",
+    "@types/nodemailer": "^8.0.1",
     "@types/socket.io": "^3.0.1",
     "bcrypt": "^6.0.0",
     "ts-node-dev": "^2.0.0",

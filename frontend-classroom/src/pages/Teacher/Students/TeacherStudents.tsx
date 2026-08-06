@@ -20,6 +20,8 @@ import { attendanceService } from "../../../service/attendance.service.ts";
 import { userService } from "../../../service/user.service.ts";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { StudentsTable } from "../../../components/ui/Tables/StudentsTable";
+import { ManageStudentsModal } from "../../../components/ui/Dialogs/ManageStudentsModal";
+import type { ITeacherClassroom } from "../../../service/classroom.service";
 import styles from "./TeacherStudents.module.scss";
 
 export default function TeacherStudents() {
@@ -103,83 +105,6 @@ export default function TeacherStudents() {
   useEffect(() => {
     loadData();
   }, [id]);
-
-  const handleCreateStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-    if (!newStudent.name || !newStudent.email || !newStudent.password) {
-      toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
-      return;
-    }
-
-    try {
-      // Gọi API thực tế
-      const response = await authService.createStudent({
-        name: newStudent.name,
-        email: newStudent.email,
-        password: newStudent.password,
-        parentPhone: newStudent.parentPhone || undefined,
-        classId: id,
-      });
-
-      const apiUser = response?.user;
-
-      // Đồng bộ vào Mock DB ở LocalStorage để hiển thị lên UI
-      addMockStudent(
-        id, 
-        apiUser?.name || newStudent.name, 
-        newStudent.parentPhone || "Không có", 
-        apiUser?.email || newStudent.email, 
-        newStudent.password
-      );
-
-      toast.success(response?.message || `Tạo tài khoản học sinh "${newStudent.name}" thành công!`, 3000);
-      setNewStudent({ name: "", email: "", password: "", parentPhone: "" });
-      setShowModal(false);
-      loadData();
-    } catch (err: any) {
-      toast.error(err.message || "Đã xảy ra lỗi khi tạo tài khoản!");
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === "existing" && searchQuery.trim().length >= 2) {
-      setIsSearching(true);
-      const timer = setTimeout(() => {
-        userService.getUsers({ role: 'student', search: searchQuery })
-          .then(res => {
-             setSearchResults(res.data || []);
-             setIsSearching(false);
-          })
-          .catch(() => {
-             setSearchResults([]);
-             setIsSearching(false);
-          });
-      }, 500);
-      return () => clearTimeout(timer);
-    } else {
-      setSearchResults([]);
-    }
-  }, [searchQuery, activeTab]);
-
-  const handleAddExistingStudent = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id || !selectedStudentId) {
-      toast.error("Vui lòng chọn một học sinh!");
-      return;
-    }
-    try {
-      await classroomService.addExistingStudent(id, selectedStudentId);
-      toast.success("Đã thêm học sinh vào lớp thành công!");
-      setShowModal(false);
-      setSearchQuery("");
-      setSearchResults([]);
-      setSelectedStudentId(null);
-      loadData();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.message || "Lỗi khi thêm học sinh.");
-    }
-  };
 
   const handleDeleteStudent = (studentId: string, studentName: string) => {
     setDeleteConfirm({
@@ -298,141 +223,19 @@ export default function TeacherStudents() {
         onBulkDelete={handleBulkDelete}
       />
 
-      {/* MODAL */}
-      {showModal && (
-        <div className={styles.modalOverlay} onClick={() => setShowModal(false)}>
-          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h3>Thêm Học Sinh Vào Lớp</h3>
-            
-            <div className={styles.tabHeader}>
-              <button 
-                type="button"
-                className={`${styles.tabBtn} ${activeTab === 'new' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('new')}
-              >
-                Tạo mới
-              </button>
-              <button 
-                type="button"
-                className={`${styles.tabBtn} ${activeTab === 'existing' ? styles.activeTab : ''}`}
-                onClick={() => setActiveTab('existing')}
-              >
-                Thêm từ hệ thống
-              </button>
-            </div>
-
-            {activeTab === 'new' && (
-              <form onSubmit={handleCreateStudent}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="studentName">Họ và tên</label>
-                  <input
-                    id="studentName"
-                    type="text"
-                    required
-                    placeholder="Ví dụ: Nguyễn Văn A"
-                    value={newStudent.name}
-                    onChange={(e) => setNewStudent({ ...newStudent, name: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="studentEmail">Tên đăng nhập / Email</label>
-                  <input
-                    id="studentEmail"
-                    type="text"
-                    required
-                    placeholder="Ví dụ: nva.class6@classroom.com"
-                    value={newStudent.email}
-                    onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="studentPassword">Mật khẩu khởi tạo</label>
-                  <input
-                    id="studentPassword"
-                    type="text"
-                    required
-                    placeholder="Ví dụ: password123"
-                    value={newStudent.password}
-                    onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.formGroup}>
-                  <label htmlFor="parentPhone">SĐT Phụ huynh (tùy chọn)</label>
-                  <input
-                    id="parentPhone"
-                    type="text"
-                    placeholder="Ví dụ: 09xx"
-                    value={newStudent.parentPhone}
-                    onChange={(e) => setNewStudent({ ...newStudent, parentPhone: e.target.value })}
-                  />
-                </div>
-
-                <div className={styles.modalActions}>
-                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
-                    Hủy bỏ
-                  </button>
-                  <button type="submit" className={styles.btnConfirm}>
-                    Tạo tài khoản
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {activeTab === 'existing' && (
-              <form onSubmit={handleAddExistingStudent}>
-                <div className={styles.formGroup}>
-                  <label htmlFor="searchQuery">Tìm kiếm học sinh</label>
-                  <input
-                    id="searchQuery"
-                    type="text"
-                    placeholder="Nhập tên, email hoặc SĐT để tìm..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                
-                {searchQuery.trim().length > 0 && (
-                  <div className={styles.searchResults}>
-                    {isSearching ? (
-                      <div className={styles.noResults}>Đang tìm kiếm...</div>
-                    ) : searchResults.length > 0 ? (
-                      searchResults.map((user: any) => (
-                        <div 
-                          key={user._id} 
-                          className={`${styles.searchItem} ${selectedStudentId === user._id ? styles.selectedItem : ''}`}
-                          onClick={() => setSelectedStudentId(user._id)}
-                        >
-                          <div className={styles.itemName}>{user.name}</div>
-                          <div className={styles.itemEmail}>{user.email} - {user.parentPhone || 'Chưa có SĐT'}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className={styles.noResults}>Không tìm thấy học sinh nào.</div>
-                    )}
-                  </div>
-                )}
-
-                <div className={styles.modalActions}>
-                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
-                    Hủy bỏ
-                  </button>
-                  <button 
-                    type="submit" 
-                    className={styles.btnConfirm} 
-                    disabled={!selectedStudentId}
-                    style={{ opacity: !selectedStudentId ? 0.5 : 1, cursor: !selectedStudentId ? 'not-allowed' : 'pointer' }}
-                  >
-                    Thêm vào lớp
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
+      {/* MANAGE STUDENTS MODAL */}
+      <ManageStudentsModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        classroom={classroom ? {
+          _id: classroom._id,
+          name: (classroom as any).name || classroom.className || "Lớp học",
+          code: classroom.classCode || (classroom as any).code,
+          subject: classroom.subject
+        } as ITeacherClassroom : null}
+        defaultTab="add_existing"
+        onSuccess={loadData}
+      />
 
       {/* EDIT MODAL */}
       {showEditModal && (

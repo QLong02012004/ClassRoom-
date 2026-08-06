@@ -9,6 +9,7 @@ interface ActionMenuProps {
   onToggleStatus: () => void;
   onDelete: () => void;
   isLocked: boolean;
+  isAdmin?: boolean;
 }
 
 export const ActionMenu: React.FC<ActionMenuProps> = ({
@@ -18,6 +19,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   onToggleStatus,
   onDelete,
   isLocked,
+  isAdmin = false,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
   const popupRef = useRef<HTMLLabelElement>(null);
@@ -69,7 +71,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   }, []);
 
   return (
-    <StyledWrapper 
+    <StyledWrapper
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -91,41 +93,47 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
               </button>
             </li>
             <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onRoleChange); }}>
-                <ShieldStar size={16} weight="bold" className="text-blue-500" />
-                <span>Đổi quyền</span>
-              </button>
-            </li>
+            {!isAdmin && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onRoleChange); }}>
+                  <ShieldStar size={16} weight="bold" className="text-blue-500" />
+                  <span>Đổi quyền</span>
+                </button>
+              </li>
+            )}
             <li>
               <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onResetPassword); }}>
                 <Key size={16} weight="bold" className="text-amber-500" />
                 <span>Reset mật khẩu</span>
               </button>
             </li>
-            <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onToggleStatus); }}>
-                {isLocked ? (
-                  <>
-                    <LockKeyOpen size={16} weight="bold" className="text-emerald-500" />
-                    <span>Mở khóa tài khoản</span>
-                  </>
-                ) : (
-                  <>
-                    <LockKey size={16} weight="bold" className="text-orange-500" />
-                    <span>Khóa tài khoản</span>
-                  </>
-                )}
-              </button>
-            </li>
-            <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onDelete); }}>
-                <Trash size={16} weight="bold" className="text-red-500" />
-                <span>Xóa tài khoản</span>
-              </button>
-            </li>
+            {!isAdmin && (
+              <>
+                <hr />
+                <li>
+                  <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onToggleStatus); }}>
+                    {isLocked ? (
+                      <>
+                        <LockKeyOpen size={16} weight="bold" className="text-emerald-500" />
+                        <span>Mở khóa tài khoản</span>
+                      </>
+                    ) : (
+                      <>
+                        <LockKey size={16} weight="bold" className="text-orange-500" />
+                        <span>Khóa tài khoản</span>
+                      </>
+                    )}
+                  </button>
+                </li>
+                <hr />
+                <li>
+                  <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onDelete); }}>
+                    <Trash size={16} weight="bold" className="text-red-500" />
+                    <span>Xóa tài khoản</span>
+                  </button>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
       </label>

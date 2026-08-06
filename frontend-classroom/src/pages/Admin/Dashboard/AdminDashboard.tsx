@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   DownloadSimple,
   Users,
@@ -131,6 +132,7 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
     };
     return {
       classKey: key,
+      className: cls.className,
       students: cls.students,
       fill: color,
     };
@@ -202,11 +204,25 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
           <ChartContainer
             config={chartConfig}
             className="h-[250px] w-full max-w-[250px] mx-auto"
+            onMouseLeave={() => setActiveIndex(-1)}
           >
-            <PieChart>
+            <PieChart onMouseLeave={() => setActiveIndex(-1)}>
               <ChartTooltip
                 cursor={false}
-                content={<ChartTooltipContent hideLabel />}
+                content={
+                  <ChartTooltipContent
+                    hideLabel
+                    className="bg-white/95 backdrop-blur-md border border-slate-200/80 shadow-xl rounded-2xl px-3.5 py-2 font-semibold min-w-0"
+                    formatter={(value, name, item) => (
+                      <div className="flex items-center justify-between gap-3 w-full">
+                        <span className="text-slate-700 font-bold text-xs">{item.payload?.className || name}</span>
+                        <span className="text-[#f47c20] font-extrabold text-xs ml-2 whitespace-nowrap">
+                          {value} HS
+                        </span>
+                      </div>
+                    )}
+                  />
+                }
               />
               <Pie
                 data={chartData}
@@ -214,6 +230,7 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
                 nameKey="classKey"
                 innerRadius={60}
                 outerRadius={85}
+                paddingAngle={0}
                 strokeWidth={0}
                 shape={(props: any) => {
                   const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill, index } = props;
@@ -221,17 +238,17 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
                   const isHoveringAny = activeIndex !== -1;
                   const RADIAN = Math.PI / 180;
                   const midAngle = (startAngle + endAngle) / 2;
-                  const tx = isActive ? Math.cos(-RADIAN * midAngle) * 16 : 0;
-                  const ty = isActive ? Math.sin(-RADIAN * midAngle) * 16 : 0;
+                  const tx = isActive ? Math.cos(-RADIAN * midAngle) * 12 : 0;
+                  const ty = isActive ? Math.sin(-RADIAN * midAngle) * 12 : 0;
 
                   return (
                     <g
                       className={isLoading ? "animate-pulse" : ""}
                       style={{
                         transform: `translate(${tx}px, ${ty}px)`,
-                        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                        opacity: isHoveringAny && !isActive ? 0.4 : 1,
-                        filter: isActive && !isLoading ? 'drop-shadow(0px 8px 15px rgba(0,0,0,0.15))' : 'none',
+                        transition: 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        opacity: isHoveringAny && !isActive ? 0.45 : 1,
+                        filter: isActive && !isLoading ? 'drop-shadow(0px 6px 12px rgba(0,0,0,0.15))' : 'none',
                         cursor: isLoading ? 'default' : 'pointer'
                       }}
                     >
@@ -243,7 +260,6 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
                         startAngle={startAngle}
                         endAngle={endAngle}
                         fill={fill}
-                        cornerRadius={6}
                       />
                     </g>
                   );
@@ -305,9 +321,11 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const toast = useToast();
   const [stats, setStats] = useState<IDashboardStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAllActions, setShowAllActions] = useState(false);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -471,22 +489,22 @@ export default function AdminDashboard() {
 
 
       {/* Main Charts & Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-6 xl:grid-cols-12">
         {/* User Growth Stacked Bar Chart Component */}
         <ChartBarStacked
           data={stats?.userGrowthData}
           isLoading={isLoading}
-          className="lg:col-span-3"
+          className="xl:col-span-7"
         />
 
         {/* Recent Activity List */}
-        <Card className="lg:col-span-2 border-none ring-0 shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)] transition-all duration-300 rounded-3xl bg-white p-2 flex flex-col justify-between">
+        <Card className="xl:col-span-5 border-none ring-0 shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)] transition-all duration-300 rounded-3xl bg-white p-2 flex flex-col justify-between">
           <CardHeader className="flex flex-row items-center pb-2 pt-4 px-6">
             <div className="grid gap-1">
               <CardTitle className="text-lg font-bold text-slate-800">Hoạt động gần đây</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 max-h-[350px] overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#f47c20] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e0690d] px-4 pt-2 flex-1">
+          <CardContent className={`grid gap-3 transition-all duration-300 ${showAllActions ? 'max-h-[520px]' : 'max-h-[350px]'} overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[#f47c20] [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e0690d] px-4 pt-2 flex-1`}>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonAvatar key={`skeleton-avatar-${i}`} />
@@ -495,6 +513,19 @@ export default function AdminDashboard() {
               (stats?.recentActions || []).map((item) => {
                 const renderActivityIcon = (type?: string) => {
                   switch (type) {
+                    case 'pending_teacher':
+                      return (
+                        <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 shadow-xs flex-shrink-0 animate-pulse">
+                          <Users size={20} weight="duotone" />
+                        </div>
+                      );
+                    case 'add_student':
+                    case 'student':
+                      return (
+                        <div className="p-2.5 rounded-2xl bg-cyan-50 text-cyan-600 border border-cyan-100 shadow-xs flex-shrink-0">
+                          <Users size={20} weight="duotone" />
+                        </div>
+                      );
                     case 'create_class':
                     case 'classroom':
                       return (
@@ -539,24 +570,32 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-start gap-3 p-3 rounded-2xl hover:bg-slate-50/80 transition-all border border-transparent hover:border-slate-100 group"
+                    onClick={() => {
+                      if (item.actionType === 'pending_teacher' || (item.action || '').toLowerCase().includes('duyệt')) {
+                        navigate('/admin/users?status=Pending');
+                      }
+                    }}
+                    className={`flex items-start gap-3 p-3 rounded-2xl transition-all border group ${item.actionType === 'pending_teacher'
+                        ? 'bg-amber-50/60 border-amber-200 hover:bg-amber-100/80 cursor-pointer shadow-2xs'
+                        : 'hover:bg-slate-50/80 border-transparent hover:border-slate-100'
+                      }`}
                   >
                     {renderActivityIcon(item.actionType)}
-                    <div className="flex-1 min-w-0 grid gap-0.5">
+                    <div className="flex-1 min-w-0 grid gap-1">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-bold text-xs text-slate-900 group-hover:text-[#f47c20] transition-colors truncate">
                           {item.teacherName || item.user}
                         </span>
-                        <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
+                        <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap shrink-0">
                           {item.time}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-600 leading-normal flex items-center gap-1 flex-wrap mt-0.5">
-                        <span>{item.actionText || item.action}</span>
+                      <div className="text-xs text-slate-600 leading-relaxed">
+                        <span className="mr-1">{item.actionText || item.action}</span>
                         {item.className && item.className !== 'Hệ thống' && (
-                          <span className="inline-flex items-center gap-1">
+                          <span className="inline-flex items-center gap-1 align-baseline">
                             <span className="text-slate-500 text-[11px]">cho lớp</span>
-                            <span className="font-bold text-slate-800 bg-slate-100/90 border border-slate-200/60 px-1.5 py-0.5 rounded-md text-[11px] shadow-2xs">
+                            <span className="font-bold text-[#2f8fa3] bg-[#2f8fa3]/10 border border-[#2f8fa3]/20 px-2 py-0.5 rounded-md text-[11px] shadow-2xs whitespace-nowrap">
                               {item.className}
                             </span>
                           </span>
@@ -569,12 +608,14 @@ export default function AdminDashboard() {
             )}
           </CardContent>
           <CardFooter className="pt-3 pb-2 px-4 border-t border-slate-100/80 bg-white rounded-b-3xl">
-            <AnimatedAddButton
-              icon={<ArrowUpRight size={18} weight="bold" className="shrink-0" />}
-              className="w-full text-xs py-2 rounded-2xl shadow-xs justify-center font-bold tracking-wide"
+            <PrimaryButton
+              variant="default"
+              className="w-full text-xs py-2.5 rounded-2xl shadow-xs justify-center font-bold tracking-wide flex items-center gap-2"
+              onClick={() => setShowAllActions(!showAllActions)}
             >
-              Xem tất cả
-            </AnimatedAddButton>
+              <ArrowUpRight size={18} weight="bold" className={`shrink-0 transition-transform duration-300 ${showAllActions ? 'rotate-90' : ''}`} />
+              <span>{showAllActions ? "Thu gọn bớt" : "Xem tất cả"}</span>
+            </PrimaryButton>
           </CardFooter>
         </Card>
       </div>
