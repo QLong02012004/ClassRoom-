@@ -1,9 +1,39 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { settingsService } from '../../service/settings.service';
+import MaintenancePage from '../../pages/MaintenancePage';
+import { io } from 'socket.io-client';
 
 const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const [isMaintenance, setIsMaintenance] = useState(false);
+
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        const res = await settingsService.getSettings();
+        if (res.data) {
+          setIsMaintenance(Boolean(res.data.maintenanceMode));
+        }
+      } catch (error) {
+        console.error("Lỗi kiểm tra bảo trì:", error);
+      }
+    };
+
+    checkMaintenance();
+
+    const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const socket = io(socketUrl, { withCredentials: true });
+
+    socket.on('settings_update', () => {
+      checkMaintenance();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -15,6 +45,10 @@ const ProtectedRoute: React.FC = () => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (isMaintenance && user?.role !== 'admin') {
+    return <MaintenancePage />;
   }
 
   return <Outlet />;

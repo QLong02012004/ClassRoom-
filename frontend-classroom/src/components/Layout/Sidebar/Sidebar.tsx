@@ -12,6 +12,7 @@ import {
   Sparkle,
   ChartLineUp,
   Users,
+  Gear,
 } from "phosphor-react";
 import styles from "./Sidebar.module.scss";
 
@@ -49,6 +50,7 @@ const Sidebar: React.FC = () => {
         { name: "Quản lý Người dùng", path: "/admin/users", icon: Users },
         { name: "Quản lý Lớp học", path: "/admin/classrooms", icon: Notebook },
         { name: "Ngân hàng Đề & Bài tập", path: "/bank", icon: BookOpen },
+        { name: "Cài đặt hệ thống", path: "/admin/settings", icon: Gear },
       ];
     }
     return baseLinks;

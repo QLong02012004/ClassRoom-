@@ -163,7 +163,7 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
         }
 
         // Lấy dữ liệu từ body (chỉ cho phép cập nhật các trường được chỉ định)
-        const { name, avatar, dob, gender, phone, address } = req.body;
+        const { name, avatar, dob, gender, phone, address, bio, degree, subject } = req.body;
 
         const updateData: any = {};
         if (name !== undefined) updateData.name = name;
@@ -172,6 +172,9 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
         if (gender !== undefined) updateData.gender = gender;
         if (phone !== undefined) updateData.phone = phone;
         if (address !== undefined) updateData.address = address;
+        if (bio !== undefined) updateData.bio = bio;
+        if (degree !== undefined) updateData.degree = degree;
+        if (subject !== undefined) updateData.subject = subject;
 
         const updatedUser = await UserModel.findByIdAndUpdate(
             userId,

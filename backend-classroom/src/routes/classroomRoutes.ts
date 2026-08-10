@@ -21,7 +21,8 @@ import {
     approveJoinRequest,
     rejectJoinRequest,
     approveAllJoinRequests,
-    getStudentPendingClasses
+    getStudentPendingClasses,
+    toggleCloseClassroom
 } from '../controllers/classroomController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -86,6 +87,9 @@ router.post('/:id/google-sheet', protect, authorize('teacher'), generateClassroo
 
 // Liên kết Google Sheet cá nhân cho lớp học
 router.post('/:id/link-google-sheet', protect, authorize('teacher'), linkClassroomGoogleSheet);
+
+// Đóng / Mở lại lớp học
+router.put('/:id/close', protect, authorize('teacher'), toggleCloseClassroom);
 
 // Xóa mềm lớp học (Lưu trữ)
 router.delete('/:id/soft', protect, authorize('teacher'), softDeleteClassroom);

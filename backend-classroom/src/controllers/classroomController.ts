@@ -4,10 +4,10 @@ import { ClassJoinRequestModel } from '../models/ClassJoinRequest';
 import { ClassActivityModel } from '../models/ClassActivity';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
-import { createAdminNotification } from '../services/notificationService';
-import { ClassStatus, NotificationType } from '../constants/enums';
+import { createAdminNotification, createUserNotification } from '../services/notificationService';
+import { ClassStatus, NotificationType, UserRole } from '../constants/enums';
 import { GoogleSheetsService } from '../services/googleSheetsService';
-import { notifyAdminStatsUpdate } from '../socket';
+import { notifyAdminStatsUpdate, notifyTeacherClassroomsUpdate, notifyNotificationUpdate } from '../socket';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
 export const getAdminClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -50,21 +50,64 @@ export const updateClassroomStatus = async (req: Request, res: Response, next: N
     try {
         const { id } = req.params; // Đây là ObjectId của lớp học trong DB (_id)
         const { status } = req.body;
+        const adminId = (req as any).user?.id || 'admin';
 
         if (!['Active', 'Locked'].includes(status)) {
             res.status(400);
             return next(new Error('Trạng thái không hợp lệ'));
         }
 
-        const updatedClass = await ClassModel.findByIdAndUpdate(
-            id,
-            { status },
-            { new: true }
-        );
-
-        if (!updatedClass) {
+        const existingClass = await ClassModel.findById(id);
+        if (!existingClass) {
             res.status(404);
             return next(new Error('Không tìm thấy lớp học'));
+        }
+
+        const wasPending = existingClass.status === ClassStatus.PENDING;
+        existingClass.status = status as ClassStatus;
+        const updatedClass = await existingClass.save();
+
+        // Nếu lớp học được duyệt từ trạng thái Pending -> Active
+        if (wasPending && status === 'Active') {
+            await createUserNotification(
+                existingClass.teacherId as any,
+                UserRole.TEACHER,
+                adminId,
+                'Lớp học đã được duyệt',
+                `Lớp học "${existingClass.name}" của bạn đã được quản trị viên duyệt và đang hoạt động.`,
+                NotificationType.CLASSROOM
+            );
+            notifyTeacherClassroomsUpdate(existingClass.teacherId.toString());
+            notifyAdminStatsUpdate();
+            notifyNotificationUpdate();
+        } 
+        // Khi Admin Khóa lớp học
+        else if (status === 'Locked') {
+            await createUserNotification(
+                existingClass.teacherId as any,
+                UserRole.TEACHER,
+                adminId,
+                'Lớp học đã bị khóa',
+                `Lớp học "${existingClass.name}" của bạn đã bị Quản trị viên hệ thống khóa.`,
+                NotificationType.CLASSROOM
+            );
+            notifyTeacherClassroomsUpdate(existingClass.teacherId.toString());
+            notifyAdminStatsUpdate();
+            notifyNotificationUpdate();
+        }
+        // Khi Admin Mở khóa lớp học (Locked -> Active)
+        else if (!wasPending && status === 'Active') {
+            await createUserNotification(
+                existingClass.teacherId as any,
+                UserRole.TEACHER,
+                adminId,
+                'Lớp học đã được mở khóa',
+                `Lớp học "${existingClass.name}" của bạn đã được Quản trị viên hệ thống mở khóa.`,
+                NotificationType.CLASSROOM
+            );
+            notifyTeacherClassroomsUpdate(existingClass.teacherId.toString());
+            notifyAdminStatsUpdate();
+            notifyNotificationUpdate();
         }
 
         res.status(200).json({
@@ -80,12 +123,28 @@ export const updateClassroomStatus = async (req: Request, res: Response, next: N
 export const deleteClassroom = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { id } = req.params;
+        const adminId = (req as any).user?.id || 'admin';
 
-        const deletedClass = await ClassModel.findByIdAndDelete(id);
-
-        if (!deletedClass) {
+        const classToDelete = await ClassModel.findById(id);
+        if (!classToDelete) {
             res.status(404);
             return next(new Error('Không tìm thấy lớp học để xóa'));
+        }
+
+        const isPending = classToDelete.status === ClassStatus.PENDING;
+
+        await ClassModel.findByIdAndDelete(id);
+
+        if (isPending) {
+            await createUserNotification(
+                classToDelete.teacherId as any,
+                UserRole.TEACHER,
+                adminId,
+                'Lớp học bị từ chối',
+                `Yêu cầu tạo lớp học "${classToDelete.name}" của bạn đã bị quản trị viên từ chối và bị xóa khỏi hệ thống.`,
+                NotificationType.WARNING
+            );
+            notifyTeacherClassroomsUpdate(classToDelete.teacherId.toString());
         }
 
         res.status(200).json({
@@ -254,6 +313,7 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
             subject: subject || '',
             code,
             teacherId,
+            status: ClassStatus.PENDING,
             requireApproval: requireApproval !== undefined ? Boolean(requireApproval) : true
         });
 
@@ -388,6 +448,12 @@ export const getClassroomDetail = async (req: Request, res: Response, next: Next
         if (!classroom) {
             return res.status(404).json({ message: 'Lớp học không tồn tại hoặc đã bị xóa!' });
         }
+
+        const userRole = (req as any).user?.role;
+        if (classroom.status === ClassStatus.LOCKED && userRole !== UserRole.ADMIN) {
+            return res.status(403).json({ message: 'Lớp học này đã bị Quản trị viên hệ thống khóa và không thể truy cập.' });
+        }
+
         res.status(200).json({
             message: 'Lấy chi tiết lớp học thành công',
             data: classroom
@@ -813,6 +879,34 @@ export const getStudentPendingClasses = async (req: Request, res: Response, next
         res.status(200).json({
             message: 'Lấy danh sách lớp đang chờ duyệt thành công',
             data: pendingClasses
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Chuyển đổi trạng thái Đóng/Mở lớp học (Chỉ dành cho Giáo viên)
+export const toggleCloseClassroom = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id } = req.params;
+        const teacherId = (req as any).user?.id;
+
+        const classroom = await ClassModel.findOne({ _id: id as string, teacherId });
+
+        if (!classroom) {
+            return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền thao tác' });
+        }
+
+        if (classroom.status === ClassStatus.LOCKED || classroom.status === ClassStatus.PENDING || classroom.status === ClassStatus.ARCHIVED) {
+            return res.status(400).json({ message: 'Không thể đóng/mở lớp học ở trạng thái này' });
+        }
+
+        classroom.status = classroom.status === ClassStatus.ACTIVE ? ClassStatus.CLOSED : ClassStatus.ACTIVE;
+        await classroom.save();
+
+        res.status(200).json({
+            message: classroom.status === ClassStatus.CLOSED ? 'Đã đóng lớp học thành công' : 'Đã mở lại lớp học thành công',
+            data: classroom
         });
     } catch (error) {
         next(error);

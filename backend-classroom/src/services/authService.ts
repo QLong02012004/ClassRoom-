@@ -191,7 +191,9 @@ export const loginService = async (email: string, password: string) => {
             gender: user.gender,
             phone: user.phone,
             address: user.address,
-            subject: user.subject
+            subject: user.subject,
+            bio: user.bio,
+            degree: user.degree
         },
         accessToken,
         refreshToken
@@ -257,7 +259,9 @@ export const googleAuthService = async (
                 role: user.role,
                 status: user.status,
                 avatar: user.avatar,
-                subject: user.subject
+                subject: user.subject,
+                bio: user.bio,
+                degree: user.degree
             },
             accessToken,
             refreshToken
@@ -311,7 +315,9 @@ export const googleAuthService = async (
             role: newUser.role,
             status: newUser.status,
             avatar: newUser.avatar,
-            subject: newUser.subject
+            subject: newUser.subject,
+            bio: newUser.bio,
+            degree: newUser.degree
         },
         accessToken,
         refreshToken

@@ -23,3 +23,26 @@ export const createAdminNotification = async (
         console.error('❌ Lỗi tạo thông báo Admin:', error);
     }
 };
+
+export const createUserNotification = async (
+    recipientId: string | mongoose.Types.ObjectId,
+    recipientRole: UserRole,
+    senderId: string | mongoose.Types.ObjectId,
+    title: string,
+    message: string,
+    type: NotificationType
+) => {
+    try {
+        await NotificationModel.create({
+            recipientRole,
+            recipientId: new mongoose.Types.ObjectId(recipientId),
+            sender: new mongoose.Types.ObjectId(senderId),
+            title,
+            message,
+            type,
+            readBy: []
+        });
+    } catch (error) {
+        console.error('❌ Lỗi tạo thông báo User:', error);
+    }
+};

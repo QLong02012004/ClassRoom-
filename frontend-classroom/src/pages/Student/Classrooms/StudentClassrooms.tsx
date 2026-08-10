@@ -229,57 +229,72 @@ export default function StudentClassrooms() {
           {classrooms.map((cls) => (
             <div
               key={cls._id}
-              className={styles.classCard}
-              onClick={() => navigate(`/classrooms/${cls._id}`)}
-              style={{ cursor: "pointer" }}
+              className={cls.status === 'Locked' || cls.status === 'Closed' ? `${styles.classCard} opacity-60 border-slate-300` : styles.classCard}
+              onClick={(e) => {
+                if (cls.status === 'Locked') {
+                  e.preventDefault();
+                  toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                } else if (cls.status === 'Closed') {
+                  e.preventDefault();
+                  toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                } else {
+                  navigate(`/classrooms/${cls._id}`);
+                }
+              }}
+              style={{ cursor: (cls.status === 'Locked' || cls.status === 'Closed') ? "not-allowed" : "pointer" }}
             >
               <div className={styles.cardTop}>
                 <div className="flex items-center justify-between w-full">
                   <h3 className={styles.classTitle} style={{ margin: 0 }}>{cls.className}</h3>
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <span className={styles.statusTag}>Đang diễn ra</span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors focus:outline-none cursor-pointer"
-                          title="Tùy chọn lớp học"
-                        >
-                          <DotsThreeVertical size={20} weight="bold" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
-                        <DropdownMenuItem
-                          onClick={() => navigate(`/classrooms/${cls._id}`)}
-                          className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
-                        >
-                          <Chalkboard size={16} className="text-orange-500" weight="bold" />
-                          <span>Vào lớp học</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => navigate(`/classrooms/${cls._id}?tab=activities`)}
-                          className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
-                        >
-                          <ClipboardText size={16} className="text-blue-500" weight="bold" />
-                          <span>Bài tập & Bài thi</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => navigate(`/classrooms/${cls._id}?tab=members`)}
-                          className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
-                        >
-                          <Users size={16} className="text-indigo-500" weight="bold" />
-                          <span>Xem thành viên</span>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="my-1 bg-slate-100" />
-                        <DropdownMenuItem
-                          onClick={() => navigate(`/grades`)}
-                          className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
-                        >
-                          <ChartBar size={16} className="text-emerald-500" weight="bold" />
-                          <span>Bảng điểm cá nhân</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <span className={cls.status === 'Locked' ? "px-2.5 py-1 text-[11px] font-bold text-rose-800 bg-rose-100 rounded-lg flex items-center gap-1 border border-rose-300" : styles.statusTag}>
+                      {cls.status === 'Locked' ? <LockKey size={14} weight="bold" /> : null}
+                      {cls.status === 'Locked' ? 'Bị khóa' : cls.status === 'Closed' ? 'Đã đóng' : 'Đang diễn ra'}
+                    </span>
+                    {cls.status !== 'Locked' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="p-1 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-700 transition-colors focus:outline-none cursor-pointer"
+                            title="Tùy chọn lớp học"
+                          >
+                            <DotsThreeVertical size={20} weight="bold" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/classrooms/${cls._id}`)}
+                            className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                          >
+                            <Chalkboard size={16} className="text-orange-500" weight="bold" />
+                            <span>Vào lớp học</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/classrooms/${cls._id}?tab=activities`)}
+                            className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                          >
+                            <ClipboardText size={16} className="text-blue-500" weight="bold" />
+                            <span>Bài tập & Bài thi</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/classrooms/${cls._id}?tab=members`)}
+                            className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                          >
+                            <Users size={16} className="text-indigo-500" weight="bold" />
+                            <span>Xem thành viên</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                          <DropdownMenuItem
+                            onClick={() => navigate(`/grades`)}
+                            className="px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 rounded-lg cursor-pointer flex items-center gap-2"
+                          >
+                            <ChartBar size={16} className="text-emerald-500" weight="bold" />
+                            <span>Bảng điểm cá nhân</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
                 </div>
               </div>

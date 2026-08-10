@@ -239,6 +239,20 @@ export default function StudentClassroomDetail() {
         {/* ===== TAB: BẢNG TIN ===== */}
         {activeTab === "feed" && (
           <div className={styles.feedLayout}>
+            {/* THÔNG BÁO LỚP ĐÓNG */}
+            {classroom?.status === 'Closed' && (
+              <div className="col-span-full mb-4 w-full bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4 shadow-sm items-start">
+                <div className="p-2 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                  <BookOpen size={20} weight="fill" />
+                </div>
+                <div>
+                  <h4 className="text-amber-800 font-bold text-sm mb-1">Lớp học đang bị đóng</h4>
+                  <p className="text-amber-700/90 text-[13px] leading-relaxed">
+                    Lớp học này đã bị đóng. Bạn chỉ có thể xem lại dữ liệu cũ, không thể nộp bài tập mới hay bình luận.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Sidebar trái: thông tin lớp */}
             <aside className={styles.sidebar}>
               <div className={styles.sideCard}>
@@ -404,7 +418,7 @@ export default function StudentClassroomDetail() {
                         </div>
                       </div>
 
-                      {showReplyBox[ann._id] ? (
+                      {classroom?.status !== 'Closed' && (showReplyBox[ann._id] ? (
                         <div className={styles.textBox}>
                           <div className={styles.boxContainer}>
                             <button
@@ -484,6 +498,7 @@ export default function StudentClassroomDetail() {
                             Viết bình luận...
                           </button>
                         </div>
+                      )
                       )}
                     </div>
                   </div>
@@ -617,6 +632,8 @@ export default function StudentClassroomDetail() {
                             <button
                               className={styles.submitBtn}
                               onClick={() => navigate(`/exams/${act._id}`)}
+                              disabled={classroom?.status === 'Closed'}
+                              style={{ opacity: classroom?.status === 'Closed' ? 0.5 : 1, cursor: classroom?.status === 'Closed' ? 'not-allowed' : 'pointer' }}
                             >
                               Làm bài thi
                             </button>
@@ -626,7 +643,7 @@ export default function StudentClassroomDetail() {
                             className={styles.submitBtn}
                             onClick={() => navigate(`/assignments/${act._id}`)}
                           >
-                            Làm bài
+                            {classroom?.status === 'Closed' ? 'Xem bài' : 'Làm bài'}
                           </button>
                         )}
                       </div>

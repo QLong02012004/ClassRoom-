@@ -7,6 +7,7 @@ import {
   Funnel,
   DotsThree,
   Trash,
+  Archive,
   X,
   Megaphone,
   Bell,
@@ -1091,7 +1092,8 @@ export default function TeacherClassroomDetail() {
           subject: res.data.subject || "",
           code: res.data.code,
           teacherName: (res.data as any).teacherId?.name || "Giáo viên",
-          studentCount: res.data.students?.length || 0
+          studentCount: res.data.students?.length || 0,
+          status: res.data.status
         });
       }
     } catch (err: any) {
@@ -1316,6 +1318,20 @@ export default function TeacherClassroomDetail() {
         {/* TABS 1: OVERVIEW (FEED VIEW - GIỐNG ẢNH MẪU) */}
         {activeTab === "overview" && (
           <div className={styles.feedLayout}>
+            {/* THÔNG BÁO LỚP ĐÓNG */}
+            {classroom?.status === 'Closed' && (
+              <div className="col-span-full mb-4 w-full bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4 shadow-sm items-start">
+                <div className="p-2 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                  <Archive size={20} weight="fill" />
+                </div>
+                <div>
+                  <h4 className="text-amber-800 font-bold text-sm mb-1">Lớp học đang bị đóng</h4>
+                  <p className="text-amber-700/90 text-[13px] leading-relaxed">
+                    Lớp học này đã bị đóng. Học sinh chỉ có thể xem lại dữ liệu cũ, không thể nộp bài mới hay bình luận.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* LEFT SIDEBAR: CLASS INFO */}
             <div className={styles.classSidebar}>
               <div className={styles.classMergedCard}>
@@ -2047,12 +2063,14 @@ export default function TeacherClassroomDetail() {
                   <div>
                     <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f47c20', margin: 0 }}>Danh Sách Bài Tập & Đề Thi</h3>
                     <p className="text-sm text-slate-500 mt-0.5">
-                      Quản lý toàn bộ hoạt động học tập, bài tập về nhà và đề thi trong lớp
+                      {userRole === "TEACHER" ? "Quản lý toàn bộ hoạt động học tập, bài tập về nhà và đề thi trong lớp" : "Theo dõi tiến độ và hoạt động của lớp học"}
                     </p>
                   </div>
-                  <AnimatedAddButton onClick={handleOpenAssignFromBank}>
-                    Giao bài từ Ngân hàng
-                  </AnimatedAddButton>
+                  {userRole === "TEACHER" && (
+                    <AnimatedAddButton onClick={handleOpenAssignFromBank}>
+                      Giao bài từ Ngân hàng
+                    </AnimatedAddButton>
+                  )}
                 </div>
 
                 {/* ROW 2: FILTERS & VIEW MODE TOOLBAR */}
@@ -2198,7 +2216,7 @@ export default function TeacherClassroomDetail() {
                                   <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${statusObj.class}`}>
                                     {statusObj.label}
                                   </span>
-                                  {act.status !== 'draft' && (
+                                  {userRole === "TEACHER" && act.status !== 'draft' && (
                                     <Switch3D
                                       checked={act.status === 'open'}
                                       onChange={() => handleToggleQuizStatus(act)}
@@ -2285,29 +2303,33 @@ export default function TeacherClassroomDetail() {
                                   className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-bold text-xs rounded-xl shadow-sm transition-all hover:-translate-y-0.5 cursor-pointer"
                                 >
                                   <Eye size={15} weight="bold" />
-                                  <span>{isQuiz ? "Bảng điểm" : "Chấm bài"}</span>
+                                  <span>{userRole === "TEACHER" ? (isQuiz ? "Bảng điểm" : "Chấm bài") : "Xem chi tiết"}</span>
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenEditActivity(act)}
-                                  className="inline-flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
-                                  title="Chỉnh sửa"
-                                >
-                                  <PencilSimple size={15} weight="bold" />
-                                  <span>Sửa</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (isQuiz) handleDeleteQuizClick(act);
-                                    else handleDeleteAssignmentClick(act);
-                                  }}
-                                  className="inline-flex items-center justify-center gap-1 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 font-bold text-xs rounded-xl transition-all cursor-pointer"
-                                  title="Xóa bài"
-                                >
-                                  <Trash size={15} weight="bold" />
-                                  <span>Xóa</span>
-                                </button>
+                                {userRole === "TEACHER" && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenEditActivity(act)}
+                                      className="inline-flex items-center justify-center gap-1 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                                      title="Chỉnh sửa"
+                                    >
+                                      <PencilSimple size={15} weight="bold" />
+                                      <span>Sửa</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        if (isQuiz) handleDeleteQuizClick(act);
+                                        else handleDeleteAssignmentClick(act);
+                                      }}
+                                      className="inline-flex items-center justify-center gap-1 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                                      title="Xóa bài"
+                                    >
+                                      <Trash size={15} weight="bold" />
+                                      <span>Xóa</span>
+                                    </button>
+                                  </>
+                                )}
                               </div>
                             </div>
                           );
@@ -2337,6 +2359,7 @@ export default function TeacherClassroomDetail() {
                         onToggleStatus={(act) => handleToggleQuizStatus(act)}
                         getQuizStatus={getQuizStatus}
                         rowsPerPage={itemsPerPage}
+                        readOnly={userRole !== "TEACHER"}
                       />
                     )}
                   </>

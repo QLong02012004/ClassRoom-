@@ -54,6 +54,7 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
 
         // Đếm số lớp học đang hoạt động từ DB
         const activeClasses = await ClassModel.countDocuments({ status: ClassStatus.ACTIVE });
+        const pendingClasses = await ClassModel.countDocuments({ status: ClassStatus.PENDING });
 
         // Tính tỷ lệ tương tác và trafficData trong 7 ngày qua
         const sevenDaysAgo = new Date();
@@ -290,6 +291,7 @@ export const getAdminStats = async (req: Request, res: Response, next: NextFunct
                 totalTeachers: totalTeachers,
                 pendingTeachers: pendingTeachers,
                 activeClasses: activeClasses,
+                pendingClasses: pendingClasses,
                 engagementRate: engagementRate,
                 attendanceRate: attendanceRate,
                 userGrowthData: userGrowthData,

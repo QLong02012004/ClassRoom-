@@ -14,6 +14,9 @@ import {
   CaretDown,
   Eye,
   EyeSlash,
+  CheckCircle,
+  XCircle,
+  Clock
 } from "phosphor-react";
 import { ClimbingBoxLoader } from "react-spinners";
 
@@ -63,6 +66,16 @@ const viToRole = (vi: string): "admin" | "teacher" | "student" => {
   return "student";
 };
 
+const normalizeString = (str: string) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 // Định nghĩa User type dùng trong table (có thêm _id để gọi API)
 export type User = {
   _id: string;
@@ -99,6 +112,130 @@ const mapApiToUser = (item: IUserItem): User => ({
   degree: item.degree,
 });
 
+const PendingUserApprovalModal = ({
+  user,
+  onClose,
+  onApprove,
+  onReject
+}: {
+  user: User;
+  onClose: () => void;
+  onApprove: (user: User) => void;
+  onReject: (user: User) => void;
+}) => {
+  const initials = user.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase();
+
+  return (
+    <DialogContent className="!max-w-[550px] sm:max-w-[550px] w-[95vw] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-2xl [&>button]:hover:bg-[#f47c20] [&>button]:hover:text-white [&>button]:transition-colors [&>button]:cursor-pointer">
+      <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-r from-[#f47c20]/10 via-[#f47c20]/5 to-transparent border-b border-amber-100">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#f47c20]/15 flex items-center justify-center text-[#f47c20] shadow-sm">
+            <Clock size={28} weight="duotone" />
+          </div>
+          <div className="flex flex-col items-start text-left">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-[#f47c20] px-2 py-0.5 rounded-md text-white shadow-sm">
+                Yêu cầu duyệt tài khoản
+              </span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">{user.role}</span>
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 tracking-tight leading-tight">
+              {user.name}
+            </DialogTitle>
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div className="p-6 space-y-4 bg-white">
+        <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-xl text-amber-900 text-xs leading-relaxed font-medium flex items-start gap-2.5 shadow-sm">
+          <div className="p-1 rounded-md bg-amber-200/60 text-amber-800 shrink-0 mt-0.5">
+            <Clock size={16} weight="bold" />
+          </div>
+          <div>
+            <span className="font-bold text-amber-950 text-sm block mb-0.5">Tài khoản vừa đăng ký đang chờ xét duyệt</span>
+            <p className="text-amber-800/90 leading-relaxed">
+              Tài khoản này vừa xác thực OTP và đang chờ Ban giám hiệu phê duyệt. Bạn có thể chọn <strong className="text-emerald-700">Phê duyệt kích hoạt</strong> để cấp quyền sử dụng hệ thống hoặc <strong className="text-rose-700">Từ chối tài khoản</strong>.
+            </p>
+          </div>
+        </div>
+
+        {/* Profile Card */}
+        <div className="flex items-center gap-4 p-3.5 bg-slate-50 rounded-xl border border-slate-100">
+          <Avatar className="w-12 h-12 border-2 border-[#f47c20] shadow-sm shrink-0">
+            <AvatarImage src={user.avatar || ""} />
+            <AvatarFallback className="bg-[#f47c20] text-white font-black text-sm">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col min-w-0 flex-1">
+            <h4 className="font-extrabold text-slate-900 text-sm uppercase tracking-wide truncate">
+              {user.name}
+            </h4>
+            <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{user.email}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[11px] font-bold text-[#f47c20] bg-[#f47c20]/10 px-2 py-0.5 rounded-md">
+                {user.role} {user.subject ? `(${user.subject})` : ""}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Detail Grid */}
+        <div className="grid grid-cols-2 gap-3 pt-1 text-xs">
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Số điện thoại / Zalo</span>
+            <p className="font-bold text-slate-800 text-xs truncate">{user.phone || "Chưa cập nhật"}</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Bằng cấp / Trình độ</span>
+            <p className="font-bold text-slate-800 text-xs truncate">{user.degree || (user.role === "Giáo viên" ? "Đại học Sư phạm" : "Chưa cập nhật")}</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Môn học chuyên môn</span>
+            <p className="font-bold text-slate-800 text-xs truncate">{user.subject || "Chưa phân loại"}</p>
+          </div>
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Ngày đăng ký</span>
+            <p className="font-bold text-slate-800 text-xs truncate">{user.createdAt || "Vừa xong"}</p>
+          </div>
+        </div>
+
+        {user.bio && (
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Giới thiệu bản thân</span>
+            <p className="font-medium text-slate-700 text-xs italic">{user.bio}</p>
+          </div>
+        )}
+
+        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors text-sm shadow-sm cursor-pointer"
+          >
+            Đóng
+          </button>
+
+          <button
+            onClick={() => onReject(user)}
+            className="px-4 py-2.5 rounded-xl font-bold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all text-sm shadow-sm cursor-pointer flex items-center gap-1.5"
+          >
+            <XCircle size={18} weight="bold" />
+            Từ chối tài khoản
+          </button>
+
+          <button
+            onClick={() => onApprove(user)}
+            className="px-4 py-2.5 rounded-xl font-bold text-white bg-emerald-600 border border-emerald-600 hover:bg-emerald-700 transition-all text-sm shadow-sm cursor-pointer flex items-center gap-1.5"
+          >
+            <CheckCircle size={18} weight="bold" />
+            Phê duyệt kích hoạt
+          </button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+};
+
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,6 +243,7 @@ export default function AdminUsers() {
   // State cho Modal Xem Chi tiết Hồ sơ Người dùng
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailUser, setDetailUser] = useState<User | null>(null);
+  const [pendingApprovalUser, setPendingApprovalUser] = useState<User | null>(null);
 
   const handleOpenDetail = (user: User) => {
     setDetailUser(user);
@@ -139,9 +277,11 @@ export default function AdminUsers() {
     let filtered = [...users];
 
     if (globalFilter) {
+      const normalizedFilter = normalizeString(globalFilter);
       filtered = filtered.filter(u =>
-        u.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-        u.email.toLowerCase().includes(globalFilter.toLowerCase())
+        normalizeString(u.name).includes(normalizedFilter) ||
+        normalizeString(u.email).includes(normalizedFilter) ||
+        (u.phone && normalizeString(u.phone).includes(normalizedFilter))
       );
     }
 
@@ -172,7 +312,7 @@ export default function AdminUsers() {
   const toast = useToast();
 
   // Pagination State
-  const ROWS_PER_PAGE = 8;
+  const ROWS_PER_PAGE = 10;
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(filteredAndSortedUsers.length / ROWS_PER_PAGE);
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -200,6 +340,7 @@ export default function AdminUsers() {
     password: "",
     role: "teacher" as "teacher" | "student",
     subject: "Toán",
+    customSubject: "",
   });
 
   // State cho dialog Chỉnh sửa thành viên
@@ -209,6 +350,7 @@ export default function AdminUsers() {
     name: "",
     email: "",
     subject: "Toán",
+    customSubject: "",
     role: "teacher" as "admin" | "teacher" | "student",
   });
 
@@ -288,6 +430,7 @@ export default function AdminUsers() {
 
   // Handler: Phê duyệt tài khoản Giáo viên (Pending -> Active)
   const handleApproveUser = (user: User) => {
+    setPendingApprovalUser(null);
     setConfirmDialog({
       isOpen: true,
       title: "Phê duyệt tài khoản Giáo viên",
@@ -308,6 +451,32 @@ export default function AdminUsers() {
           toast.success(`Đã phê duyệt kích hoạt tài khoản ${user.name.toUpperCase()} thành công!`, 3000);
         } catch (error: any) {
           toast.error(error.message || "Phê duyệt tài khoản thất bại", 3000);
+        }
+      }
+    });
+  };
+
+  // Handler: Từ chối tài khoản Giáo viên Pending
+  const handleRejectUser = (user: User) => {
+    setPendingApprovalUser(null);
+    setConfirmDialog({
+      isOpen: true,
+      title: "Từ chối tài khoản này?",
+      description: (
+        <span>
+          Bạn có chắc chắn muốn từ chối kích hoạt tài khoản Giáo viên{" "}
+          <strong className="font-black text-slate-900 uppercase">{user.name}</strong> ({user.email})? Yêu cầu đăng ký sẽ bị từ chối và hủy khỏi hệ thống.
+        </span>
+      ),
+      actionType: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await userService.deleteUser(user._id);
+          setUsers((prev) => prev.filter((u) => u._id !== user._id));
+          toast.success(`Đã từ chối tài khoản ${user.name.toUpperCase()}!`, 3000);
+        } catch (error: any) {
+          toast.error(error.message || "Từ chối tài khoản thất bại", 3000);
         }
       }
     });
@@ -463,7 +632,8 @@ export default function AdminUsers() {
       id: user._id,
       name: user.name,
       email: user.email,
-      subject: user.subject || "Toán",
+      subject: ["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].includes(user.subject || "") ? user.subject! : "Khác",
+      customSubject: !["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].includes(user.subject || "") ? (user.subject || "") : "",
       role: viToRole(user.role),
     });
     setShowEditDialog(true);
@@ -477,7 +647,7 @@ export default function AdminUsers() {
       const response = await userService.updateUser(editFormData.id, {
         name: editFormData.name,
         email: editFormData.email,
-        subject: editFormData.role === "teacher" ? editFormData.subject : "",
+        subject: editFormData.role === "teacher" ? (editFormData.subject === "Khác" ? editFormData.customSubject : editFormData.subject) : "",
         role: editFormData.role,
       });
 
@@ -511,11 +681,11 @@ export default function AdminUsers() {
       if (formData.name.trim() || formData.email.trim() || formData.password.trim()) {
         if (window.confirm("Bạn có dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng hộp thoại và hủy bỏ?")) {
           setShowDialog(false);
-          setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán" });
+          setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán", customSubject: "" });
         }
       } else {
         setShowDialog(false);
-        setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán" });
+        setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán", customSubject: "" });
       }
     } else {
       setShowDialog(true);
@@ -551,7 +721,7 @@ export default function AdminUsers() {
           name: formData.name,
           email: formData.email,
           password: formData.password,
-          subject: formData.subject,
+          subject: formData.subject === "Khác" ? formData.customSubject : formData.subject,
         });
       } else {
         response = await authService.createStudent({
@@ -567,7 +737,7 @@ export default function AdminUsers() {
       await fetchUsers();
 
       setShowDialog(false);
-      setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán" });
+      setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán", customSubject: "" });
     } catch (error: any) {
       toast.error(error.message || "Có lỗi xảy ra khi tạo tài khoản!", 3000);
     } finally {
@@ -802,22 +972,33 @@ export default function AdminUsers() {
                           type="button"
                           className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
                         >
-                          <span>Môn {formData.subject || "Toán"}</span>
+                          <span>{formData.subject === "Khác" ? "Khác..." : `Môn ${formData.subject || "Toán"}`}</span>
                           <CaretDown size={16} className="text-slate-400" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
-                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                      <DropdownMenuContent className="w-[377px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
                           <DropdownMenuItem
                             key={subj}
-                            onClick={() => setFormData({ ...formData, subject: subj })}
+                            onClick={() => setFormData({ ...formData, subject: subj, customSubject: subj === "Khác" ? "" : formData.customSubject })}
                             className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
                           >
-                            Môn {subj}
+                            {subj === "Khác" ? "Khác..." : `Môn ${subj}`}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {formData.subject === "Khác" && (
+                      <HeroInput
+                        type="text"
+                        placeholder="Nhập tên môn học..."
+                        required
+                        value={formData.customSubject}
+                        onChange={(e) => setFormData({ ...formData, customSubject: e.target.value })}
+                        className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -1065,24 +1246,35 @@ export default function AdminUsers() {
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
+                          className="w-full text-left px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
                         >
-                          <span>Môn {editFormData.subject || "Toán"}</span>
+                          <span>{editFormData.subject === "Khác" ? "Khác..." : `Môn ${editFormData.subject || "Toán"}`}</span>
                           <CaretDown size={16} className="text-slate-400" />
                         </button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
-                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                      <DropdownMenuContent className="w-[377px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
                           <DropdownMenuItem
                             key={subj}
-                            onClick={() => setEditFormData({ ...editFormData, subject: subj })}
+                            onClick={() => setEditFormData({ ...editFormData, subject: subj, customSubject: subj === "Khác" ? "" : editFormData.customSubject })}
                             className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
                           >
-                            Môn {subj}
+                            {subj === "Khác" ? "Khác..." : `Môn ${subj}`}
                           </DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+
+                    {editFormData.subject === "Khác" && (
+                      <HeroInput
+                        type="text"
+                        placeholder="Nhập tên môn học..."
+                        required
+                        value={editFormData.customSubject}
+                        onChange={(e) => setEditFormData({ ...editFormData, customSubject: e.target.value })}
+                        className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -1209,16 +1401,30 @@ export default function AdminUsers() {
             {/* DialogFooter */}
             <DialogFooter className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 mt-1">
               {detailUser?.status === "Pending" && (
-                <PrimaryButton
-                  type="button"
-                  onClick={() => {
-                    setShowDetailDialog(false);
-                    handleApproveUser(detailUser);
-                  }}
-                  className="bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold text-xs px-4 py-2 rounded-xl border-none shadow-xs cursor-pointer transition-colors"
-                >
-                  Phê duyệt ngay
-                </PrimaryButton>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDetailDialog(false);
+                      handleRejectUser(detailUser);
+                    }}
+                    className="px-4 py-2 rounded-xl font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all text-xs shadow-xs cursor-pointer flex items-center gap-1.5"
+                  >
+                    <XCircle size={16} weight="bold" />
+                    Từ chối
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDetailDialog(false);
+                      handleApproveUser(detailUser);
+                    }}
+                    className="px-4 py-2 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all text-xs shadow-xs cursor-pointer border-none flex items-center gap-1.5"
+                  >
+                    <CheckCircle size={16} weight="bold" />
+                    Phê duyệt kích hoạt
+                  </button>
+                </>
               )}
               <PrimaryButton
                 type="button"
@@ -1473,40 +1679,79 @@ export default function AdminUsers() {
                           className="cursor-pointer"
                           onClick={(e: any) => {
                             e.stopPropagation();
-                            handleOpenDetail(user);
+                            if (isPending) {
+                              setPendingApprovalUser(user);
+                            } else {
+                              handleOpenDetail(user);
+                            }
                           }}
                           onPointerDown={(e: any) => e.stopPropagation()}
                         >
-                          <Chip color={statusColorMap[user.status]} size="sm" variant="soft" className="font-medium">
-                            {user.status === "Active" ? "Hoạt động" : isPending ? "Chờ phê duyệt" : "Đang khóa"}
-                          </Chip>
+                          {isPending ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPendingApprovalUser(user);
+                              }}
+                              title="Nhấp để Phê duyệt hoặc Từ chối tài khoản"
+                              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 font-bold text-xs shadow-[0_0_10px_rgba(244,124,32,0.15)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                            >
+                              <span className="flex h-2.5 w-2.5 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                              </span>
+                              <span className="uppercase tracking-wide">Chờ phê duyệt</span>
+                            </button>
+                          ) : (
+                            <Chip color={statusColorMap[user.status]} size="sm" variant="soft" className="font-medium">
+                              {user.status === "Active" ? "Hoạt động" : "Đang khóa"}
+                            </Chip>
+                          )}
                         </Table.Cell>
                         <Table.Cell
                           onClick={(e: any) => e.stopPropagation()}
                           onPointerDown={(e: any) => e.stopPropagation()}
                         >
                           <div className="flex items-center justify-end gap-1.5 relative">
-                            {isPending && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleApproveUser(user);
-                                }}
-                                className="px-3 py-1 bg-[#f47c20] text-white font-bold text-xs rounded-lg hover:bg-[#e06d15] border-none cursor-pointer transition-colors shadow-xs"
-                              >
-                                Phê duyệt
-                              </button>
+                            {isPending ? (
+                              <>
+                                <PrimaryButton
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                                  title="Phê duyệt tài khoản"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleApproveUser(user);
+                                  }}
+                                >
+                                  <CheckCircle size={16} weight="bold" />
+                                </PrimaryButton>
+                                <PrimaryButton
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-8 w-8 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                  title="Từ chối tài khoản"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRejectUser(user);
+                                  }}
+                                >
+                                  <XCircle size={16} weight="bold" />
+                                </PrimaryButton>
+                              </>
+                            ) : (
+                              <ActionMenu
+                                isLocked={isLocked}
+                                isAdmin={user.role === "Admin"}
+                                onEdit={() => handleOpenEdit(user)}
+                                onRoleChange={() => handleOpenChangeRole(user)}
+                                onResetPassword={() => handleOpenResetPassword(user)}
+                                onToggleStatus={() => handleToggleStatus(user)}
+                                onDelete={() => handleDeleteUser(user)}
+                              />
                             )}
-                            <ActionMenu
-                              isLocked={isLocked}
-                              isAdmin={user.role === "Admin"}
-                              onEdit={() => handleOpenEdit(user)}
-                              onRoleChange={() => handleOpenChangeRole(user)}
-                              onResetPassword={() => handleOpenResetPassword(user)}
-                              onToggleStatus={() => handleToggleStatus(user)}
-                              onDelete={() => handleDeleteUser(user)}
-                            />
                           </div>
                         </Table.Cell>
                       </Table.Row>
@@ -1558,6 +1803,18 @@ export default function AdminUsers() {
           </Table.Footer>
         </Table>
       </div>
+
+      {/* Dialog Phê duyệt Người dùng Pending */}
+      {pendingApprovalUser && (
+        <Dialog open={!!pendingApprovalUser} onOpenChange={(open) => !open && setPendingApprovalUser(null)}>
+          <PendingUserApprovalModal
+            user={pendingApprovalUser}
+            onClose={() => setPendingApprovalUser(null)}
+            onApprove={handleApproveUser}
+            onReject={handleRejectUser}
+          />
+        </Dialog>
+      )}
     </div>
   );
 }

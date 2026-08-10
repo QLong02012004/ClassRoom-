@@ -12,8 +12,10 @@ export enum UserStatus {
 
 export enum ClassStatus {
     ACTIVE = 'Active',
+    PENDING = 'Pending',
     LOCKED = 'Locked',
-    ARCHIVED = 'Archived'
+    ARCHIVED = 'Archived',
+    CLOSED = 'Closed'
 }
 
 export enum AttendanceStatus {

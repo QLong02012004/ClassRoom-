@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X } from "phosphor-react";
+import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X, Question } from "phosphor-react";
 import { useToast } from "../../../Styles/ToastContext";
 import NumberStepper from "../../FormControls/NumberStepper";
 import Checkbox from "../../FormControls/Checkbox/Checkbox";
@@ -8,6 +8,7 @@ import CustomRadio from "../../FormControls/CustomRadio/CustomRadio";
 import AiGenerateButton from "../../Buttons/AiGenerateButton/AiGenerateButton";
 import FolderImportButton from "../../Buttons/FolderImportButton/FolderImportButton";
 import QuizPreviewModal from "../../Dialogs/QuizPreviewModal/QuizPreviewModal";
+import TemplateGuideModal from "../../Dialogs/TemplateGuideModal/TemplateGuideModal";
 import * as XLSX from "xlsx";
 import styles from "./QuizBuilder.module.scss";
 import { SecondaryButton } from "../../Buttons/SecondaryButton";
@@ -31,7 +32,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
 
   const [quizTitle, setQuizTitle] = useState("");
   const [quizDuration, setQuizDuration] = useState(15);
-  const [defaultPoints, setDefaultPoints] = useState<number>(1);
+  const [totalMaxScore, setTotalMaxScore] = useState<number>(10);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [allowMultipleSubmissions, setAllowMultipleSubmissions] = useState(false);
@@ -48,8 +49,9 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
   const [errorQuestionIndex, setErrorQuestionIndex] = useState<number | null>(null);
   const [showImageUpload, setShowImageUpload] = useState<Record<number, boolean>>({});
 
-  // State cho phần Xem trước (Preview)
+  // State cho phần Xem trước (Preview) & Hướng dẫn file mẫu
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isTemplateGuideOpen, setIsTemplateGuideOpen] = useState(false);
   const [currentPreviewIndex, setCurrentPreviewIndex] = useState(0);
 
   const fileImportRef = useRef<HTMLInputElement>(null);
@@ -147,8 +149,10 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
         });
       }
       if (parsedQuestions.length > 0) {
-        setQuizQuestions(parsedQuestions);
-        toast.success(`Đã import ${parsedQuestions.length} câu hỏi thành công!`);
+        const pointsPerQ = Number((totalMaxScore / parsedQuestions.length).toFixed(2));
+        const distributed = parsedQuestions.map(q => ({ ...q, points: pointsPerQ }));
+        setQuizQuestions(distributed);
+        toast.success(`Đã import ${parsedQuestions.length} câu hỏi & tự động chia đều ${totalMaxScore} điểm (${pointsPerQ} điểm/câu)!`);
       } else {
         toast.warning("Không tìm thấy câu hỏi nào đúng định dạng.");
       }
@@ -178,15 +182,16 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
 
       const questions = data.data;
       if (questions && questions.length > 0) {
+        const pointsPerQ = Number((totalMaxScore / questions.length).toFixed(2));
         const parsedQuestions = questions.map((q: any) => ({
           questionText: q.questionText || "",
           options: Array.isArray(q.options) ? q.options.slice(0, 6) : [],
           correctOptionIndex: q.correctOptionIndex || 0,
-          points: q.points || 1,
+          points: pointsPerQ,
           imageUrl: ""
         }));
         setQuizQuestions(parsedQuestions);
-        toast.success(`AI đã tạo thành công ${parsedQuestions.length} câu hỏi!`);
+        toast.success(`AI đã tạo ${parsedQuestions.length} câu hỏi & tự động chia đều ${totalMaxScore} điểm (${pointsPerQ} điểm/câu)!`);
       } else {
         toast.warning("AI không thể tạo được câu hỏi nào từ nội dung này.");
       }
@@ -233,8 +238,10 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
           });
         }
         if (parsedQuestions.length > 0) {
-          setQuizQuestions(parsedQuestions);
-          toast.success(`Đã nhập thành công ${parsedQuestions.length} câu hỏi!`);
+          const pointsPerQ = Number((totalMaxScore / parsedQuestions.length).toFixed(2));
+          const distributed = parsedQuestions.map(q => ({ ...q, points: pointsPerQ }));
+          setQuizQuestions(distributed);
+          toast.success(`Đã nhập thành công ${parsedQuestions.length} câu hỏi & tự động chia đều ${totalMaxScore} điểm (${pointsPerQ} điểm/câu)!`);
         } else {
           toast.warning("Không tìm thấy câu hỏi hợp lệ trong file Excel!");
         }
@@ -258,11 +265,13 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     if (fileCombinedImportRef.current) fileCombinedImportRef.current.value = "";
   };
 
-  const handleApplyDefaultPoints = () => {
-    if (quizQuestions.length === 0) return;
-    const updated = quizQuestions.map(q => ({ ...q, points: defaultPoints }));
+  const handleDistributePoints = (targetQuestions = quizQuestions, targetScore = totalMaxScore) => {
+    if (targetQuestions.length === 0) return;
+    const count = targetQuestions.length;
+    const pointsPerQ = Number((targetScore / count).toFixed(2));
+    const updated = targetQuestions.map(q => ({ ...q, points: pointsPerQ }));
     setQuizQuestions(updated);
-    toast.success(`Đã áp dụng ${defaultPoints} điểm cho tất cả ${quizQuestions.length} câu hỏi!`);
+    toast.success(`Đã tự động chia đều ${targetScore} điểm cho ${count} câu hỏi (${pointsPerQ} điểm/câu)!`, 3000);
   };
 
   const scrollToQuestion = (index: number) => {
@@ -398,7 +407,16 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     <div className={styles.createQuizView}>
       <div className={styles.formHeader}>
         <h3>Tạo đề thi trắc nghiệm mới</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            type="button"
+            onClick={() => setIsTemplateGuideOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer border border-slate-200"
+            title="Xem định dạng file Word & Excel chuẩn"
+          >
+            <Question size={16} weight="bold" className="text-orange-500" />
+            <span>File mẫu & Hướng dẫn</span>
+          </button>
           <FolderImportButton onClick={() => fileCombinedImportRef.current?.click()} title="Nhập dữ liệu (Word/Excel)" />
           <AiGenerateButton onClick={() => !isGeneratingAI && fileDocxAIImportRef.current?.click()} disabled={isGeneratingAI} isGeneratingAI={isGeneratingAI} />
         </div>
@@ -444,10 +462,10 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
             <div className={styles.questionsSection} style={{ marginTop: 0, borderTop: "none", paddingTop: 0 }}>
               <h4 style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
                 <span>Danh sách câu hỏi ({quizQuestions.length})</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>
-                  <label htmlFor="default-points" style={{ color: '#64748b' }}>Cài điểm đồng loạt:</label>
-                  <NumberStepper value={defaultPoints} onChange={(val) => setDefaultPoints(Number(val))} min={1} max={100} step={1} />
-                  <button type="button" onClick={handleApplyDefaultPoints} style={{ padding: '4px 12px', borderRadius: '6px', backgroundColor: '#f1f5f9', border: '1px solid #cbd5e1', cursor: 'pointer', color: '#475569', fontWeight: 600, transition: 'all 0.2s' }}>Áp dụng</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>
+                  <label htmlFor="total-max-score" style={{ color: '#475569', fontWeight: 600 }}>Điểm tối đa đề thi:</label>
+                  <NumberStepper value={totalMaxScore} onChange={(val) => setTotalMaxScore(Number(val))} min={1} max={100} step={1} />
+                  <button type="button" onClick={() => handleDistributePoints()} style={{ padding: '5px 12px', borderRadius: '8px', backgroundColor: '#fff7ed', border: '1px solid #ffedd5', cursor: 'pointer', color: '#c2410c', fontWeight: 700, fontSize: '0.82rem', transition: 'all 0.2s' }} title="Tự động chia đều điểm cho tất cả câu hỏi"></button>
                 </div>
               </h4>
 
@@ -629,6 +647,12 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
         onClose={() => setIsPreviewOpen(false)}
         quizTitle={quizTitle}
         quizQuestions={quizQuestions}
+      />
+
+      {/* MODAL HƯỚNG DẪN FILE MẪU (WORD & EXCEL) */}
+      <TemplateGuideModal
+        isOpen={isTemplateGuideOpen}
+        onClose={() => setIsTemplateGuideOpen(false)}
       />
     </div>
   );

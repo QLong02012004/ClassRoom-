@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Eye, EyeSlash } from 'phosphor-react';
+import { Eye, EyeSlash, CaretDown } from 'phosphor-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export interface AuthFormProps {
   onLogin: (data: any) => void;
@@ -23,6 +29,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [registerRole, setRegisterRole] = useState<'student' | 'teacher'>('student');
   const [registerSubject, setRegisterSubject] = useState('Toán');
+  const [registerCustomSubject, setRegisterCustomSubject] = useState('');
 
   const [isFlipped, setIsFlipped] = useState(initialMode === 'register');
 
@@ -33,12 +40,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onRegister({ 
-      name: registerName, 
-      email: registerEmail, 
+    onRegister({
+      name: registerName,
+      email: registerEmail,
       password: registerPassword,
       role: registerRole,
-      subject: registerRole === 'teacher' ? registerSubject : undefined
+      subject: registerRole === 'teacher' ? (registerSubject === 'Khác' ? registerCustomSubject : registerSubject) : undefined
     });
   };
 
@@ -52,7 +59,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
               onGoogleLogin({
                 credential: response.credential,
                 role: isFlipped ? registerRole : undefined,
-                subject: registerRole === 'teacher' ? registerSubject : undefined
+                subject: registerRole === 'teacher' ? (registerSubject === 'Khác' ? registerCustomSubject : registerSubject) : undefined
               });
             }
           }
@@ -67,7 +74,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
 
   const triggerFallbackGoogleSelect = () => {
     const promptEmail = window.prompt(
-      "🔑 Google Sign-In (Xác thực Gmail chính chủ trên máy):\nNhập địa chỉ Gmail của bạn:", 
+      "🔑 Google Sign-In (Xác thực Gmail chính chủ trên máy):\nNhập địa chỉ Gmail của bạn:",
       "nguyenvana@gmail.com"
     );
     if (!promptEmail) return;
@@ -86,7 +93,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
       onGoogleLogin({
         credential: mockGoogleCredential,
         role: isFlipped ? registerRole : undefined,
-        subject: registerRole === 'teacher' ? registerSubject : undefined
+        subject: registerRole === 'teacher' ? (registerSubject === 'Khác' ? registerCustomSubject : registerSubject) : undefined
       });
     }
   };
@@ -102,7 +109,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
             onGoogleLogin({
               credential: response.credential,
               role: isFlipped ? registerRole : undefined,
-              subject: registerRole === 'teacher' ? registerSubject : undefined
+              subject: registerRole === 'teacher' ? (registerSubject === 'Khác' ? registerCustomSubject : registerSubject) : undefined
             });
           }
         }
@@ -122,13 +129,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
   return (
     <StyledWrapper $isTeacher={registerRole === 'teacher'}>
       <div className="doodle-wrapper">
-        <input 
-          type="checkbox" 
-          id="doodle-flip" 
-          className="doodle-toggle" 
+        <input
+          type="checkbox"
+          id="doodle-flip"
+          className="doodle-toggle"
           checked={isFlipped}
           onChange={() => setIsFlipped(!isFlipped)}
-          aria-label="Toggle Login and Sign up" 
+          aria-label="Toggle Login and Sign up"
         />
         <div className="doodle-header">
           <span className="doodle-mode-text login-text">Đăng nhập</span>
@@ -147,35 +154,35 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
           <svg className="doodle-svg doodle-swirl" viewBox="0 0 24 24" fill="none" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round">
             <path d="M3 12 C 3 5 10 5 16 5 C 20 5 21 9 18 12 C 15 15 10 13 12 9 C 14 5 22 9 21 16" />
           </svg>
-          
+
           <div className="doodle-card-inner">
-            
+
             {/* Đăng nhập */}
             <div className="doodle-card-front">
               <div className="doodle-title">Chào mừng!</div>
               <form className="doodle-form" onSubmit={handleLoginSubmit}>
                 <div className="doodle-input-wrapper">
-                  <input 
-                    className="doodle-input" 
-                    name="email" 
-                    placeholder="Email" 
-                    type="email" 
+                  <input
+                    className="doodle-input"
+                    name="email"
+                    placeholder="Email"
+                    type="email"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
                     disabled={isLoading}
-                    required 
+                    required
                   />
                 </div>
                 <div className="doodle-input-wrapper">
-                  <input 
-                    className="doodle-input" 
-                    name="password" 
-                    placeholder="Mật khẩu" 
+                  <input
+                    className="doodle-input"
+                    name="password"
+                    placeholder="Mật khẩu"
                     type={showLoginPassword ? "text" : "password"}
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
                     disabled={isLoading}
-                    required 
+                    required
                     style={{ paddingRight: '40px' }}
                   />
                   <button
@@ -196,10 +203,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
                     <div className="doodle-divider"><span>hoặc</span></div>
                     <button type="button" className="doodle-google-btn" onClick={handleGoogleClick} disabled={isLoading}>
                       <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                       </svg>
                       Đăng nhập bằng Google
                     </button>
@@ -215,15 +222,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
 
                 {/* Switch chọn Học sinh / Giáo viên */}
                 <div className="doodle-role-group">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={`doodle-role-btn ${registerRole === 'student' ? 'active' : ''}`}
                     onClick={() => setRegisterRole('student')}
                   >
                     🎓 Học sinh
                   </button>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className={`doodle-role-btn ${registerRole === 'teacher' ? 'active' : ''}`}
                     onClick={() => setRegisterRole('teacher')}
                   >
@@ -232,39 +239,39 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
                 </div>
 
                 <div className="doodle-input-wrapper">
-                  <input 
-                    className="doodle-input" 
-                    name="username" 
-                    placeholder="Họ và Tên" 
-                    type="text" 
+                  <input
+                    className="doodle-input"
+                    name="username"
+                    placeholder="Họ và Tên"
+                    type="text"
                     value={registerName}
                     onChange={(e) => setRegisterName(e.target.value)}
                     disabled={isLoading}
-                    required 
+                    required
                   />
                 </div>
                 <div className="doodle-input-wrapper">
-                  <input 
-                    className="doodle-input" 
-                    name="email" 
-                    placeholder="Email" 
-                    type="email" 
+                  <input
+                    className="doodle-input"
+                    name="email"
+                    placeholder="Email"
+                    type="email"
                     value={registerEmail}
                     onChange={(e) => setRegisterEmail(e.target.value)}
                     disabled={isLoading}
-                    required 
+                    required
                   />
                 </div>
                 <div className="doodle-input-wrapper">
-                  <input 
-                    className="doodle-input" 
-                    name="password" 
-                    placeholder="Mật khẩu" 
+                  <input
+                    className="doodle-input"
+                    name="password"
+                    placeholder="Mật khẩu"
                     type={showRegisterPassword ? "text" : "password"}
                     value={registerPassword}
                     onChange={(e) => setRegisterPassword(e.target.value)}
                     disabled={isLoading}
-                    required 
+                    required
                     style={{ paddingRight: '40px' }}
                   />
                   <button
@@ -279,22 +286,51 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
 
                 {/* Chọn Môn học nếu là Giáo viên */}
                 {registerRole === 'teacher' && (
-                  <div className="doodle-input-wrapper">
-                    <select 
-                      className="doodle-input doodle-select"
-                      value={registerSubject}
-                      onChange={(e) => setRegisterSubject(e.target.value)}
-                      disabled={isLoading}
-                    >
-                      <option value="Toán">Môn Toán</option>
-                      <option value="Ngữ văn">Môn Ngữ văn</option>
-                      <option value="Tiếng Anh">Môn Tiếng Anh</option>
-                      <option value="Vật lý">Môn Vật lý</option>
-                      <option value="Hóa học">Môn Hóa học</option>
-                      <option value="Sinh học">Môn Sinh học</option>
-                      <option value="Tin học">Môn Tin học</option>
-                    </select>
-                  </div>
+                  <>
+                    <div className="doodle-input-wrapper">
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="doodle-input"
+                            disabled={isLoading}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', backgroundImage: 'none' }}
+                          >
+                            <span>{registerSubject === 'Khác' ? 'Khác...' : `Môn ${registerSubject}`}</span>
+                            <CaretDown size={18} />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-[250px] max-h-[220px] overflow-y-auto bg-white border-2 border-[#0F172A] rounded-xl shadow-[4px_4px_0px_#0F172A] z-[99999] p-1 font-['Comic_Sans_MS',sans-serif]">
+                          {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
+                            <DropdownMenuItem
+                              key={subj}
+                              onClick={() => {
+                                setRegisterSubject(subj);
+                                if (subj === 'Khác') setRegisterCustomSubject('');
+                              }}
+                              className="px-4 py-2 hover:bg-[#ffe66d] rounded-lg cursor-pointer font-bold transition-colors text-slate-800"
+                            >
+                              {subj === 'Khác' ? 'Khác...' : `Môn ${subj}`}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    {registerSubject === 'Khác' && (
+                      <div className="doodle-input-wrapper">
+                        <input
+                          className="doodle-input"
+                          name="customSubject"
+                          placeholder="Nhập tên môn học..."
+                          type="text"
+                          value={registerCustomSubject}
+                          onChange={(e) => setRegisterCustomSubject(e.target.value)}
+                          disabled={isLoading}
+                          required
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
 
                 <button className="doodle-btn doodle-btn-alt" disabled={isLoading}>
@@ -304,10 +340,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
                 {onGoogleLogin && (
                   <button type="button" className="doodle-google-btn" onClick={handleGoogleClick} disabled={isLoading}>
                     <svg viewBox="0 0 24 24" width="16" height="16">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
                     </svg>
                     Đăng ký bằng Google
                   </button>
@@ -347,7 +383,7 @@ const StyledWrapper = styled.div<{ $isTeacher?: boolean }>`
 
     /* Sizing */
     --card-width: 330px;
-    --card-height: ${props => props.$isTeacher ? '490px' : '450px'};
+    --card-height: ${props => props.$isTeacher ? '540px' : '450px'};
     --input-width: 250px;
     --input-height: 40px;
     --btn-width: 170px;

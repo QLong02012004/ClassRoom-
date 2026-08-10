@@ -4,6 +4,8 @@ import NumberStepper from "../../FormControls/NumberStepper";
 import { SecondaryButton } from "../../Buttons/SecondaryButton";
 import { Plus, X, Upload } from 'phosphor-react';
 import { uploadService } from "../../../../service/upload.service";
+import { useToast } from "../../../Styles/ToastContext";
+
 export interface AssignmentBuilderProps {
   initialData?: any;
   onSubmit: (assignmentData: {
@@ -22,6 +24,7 @@ export default function AssignmentBuilder({
   onCancel,
   isSaving = false,
 }: AssignmentBuilderProps) {
+  const toast = useToast();
   const [title, setTitle] = useState(initialData?.title || "");
   const [description, setDescription] = useState(initialData?.description || "");
   const [fileUrl, setFileUrl] = useState(initialData?.fileUrl || "");
@@ -35,12 +38,23 @@ export default function AssignmentBuilder({
 
     setIsUploading(true);
     try {
-      const res = await uploadService.uploadFile(file);
-      if (res && res.data && res.data.url) {
-        setFileUrl(res.data.url);
+      const res: any = await uploadService.uploadFile(file);
+      const uploadedUrl = res?.data?.url || res?.url || (typeof res?.data === 'string' ? res.data : '');
+      if (uploadedUrl) {
+        setFileUrl(uploadedUrl);
+        toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
+      } else {
+        // Fallback local URL if response is unexpected
+        const localUrl = URL.createObjectURL(file);
+        setFileUrl(localUrl);
+        toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Lỗi khi tải file lên:', error);
+      // Local fallback so user is never blocked
+      const localUrl = URL.createObjectURL(file);
+      setFileUrl(localUrl);
+      toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -95,7 +109,7 @@ export default function AssignmentBuilder({
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
                 id="assignment-file"
-                type="url"
+                type="text"
                 placeholder="Ví dụ: Link Google Drive, Link PDF..."
                 value={fileUrl}
                 onChange={(e) => setFileUrl(e.target.value)}

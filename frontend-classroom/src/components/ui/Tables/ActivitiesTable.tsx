@@ -154,13 +154,18 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
             <Table.Body>
               {activities.length === 0 ? (
                 <Table.Row key="empty" id="empty">
-                  {readOnly ? <Table.Cell className="p-0 border-none w-0" /> : <Table.Cell className="pr-0" />}
-                  <Table.Cell colSpan={6}>
+                  <Table.Cell />
+                  <Table.Cell />
+                  <Table.Cell />
+                  <Table.Cell>
                     <div className="py-10 text-center text-slate-500 font-medium">
                       Chưa có bài tập hoặc đề thi nào trong lớp.
                     </div>
                   </Table.Cell>
-                  {readOnly ? <Table.Cell className="p-0 border-none w-0" /> : null}
+                  <Table.Cell />
+                  <Table.Cell />
+                  <Table.Cell />
+                  <Table.Cell />
                 </Table.Row>
               ) : (
                 paginatedItems.map((act, idx) => {

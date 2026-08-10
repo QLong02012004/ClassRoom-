@@ -7,6 +7,12 @@ const router = Router();
 // Lấy danh sách người dùng (Chỉ admin hoặc teacher mới được xem)
 router.get('/', protect, authorize('admin', 'teacher'), getUsers);
 
+// Cập nhật hồ sơ cá nhân
+router.put('/profile', protect, updateProfile);
+
+// Tự đổi mật khẩu
+router.put('/change-password', protect, changePassword);
+
 // Chỉnh sửa thông tin thành viên (Admin hoặc Teacher)
 router.put('/:id', protect, authorize('admin', 'teacher'), updateUser);
 
@@ -15,12 +21,6 @@ router.put('/:id/status', protect, authorize('admin', 'teacher'), updateUserStat
 
 // Đổi vai trò (Chỉ Admin)
 router.put('/:id/role', protect, authorize('admin'), updateUserRole);
-
-// Cập nhật hồ sơ cá nhân
-router.put('/profile', protect, updateProfile);
-
-// Tự đổi mật khẩu
-router.put('/change-password', protect, changePassword);
 
 // Reset mật khẩu (Admin hoặc Teacher)
 router.put('/:id/reset-password', protect, authorize('admin', 'teacher'), resetUserPassword);

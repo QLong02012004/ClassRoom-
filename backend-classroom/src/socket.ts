@@ -35,3 +35,24 @@ export const notifyAdminStatsUpdate = () => {
     io.emit('admin_stats_update');
   }
 };
+
+export const notifyTeacherClassroomsUpdate = (teacherId: string) => {
+  if (io) {
+    console.log(`📡 [Socket.io] Phát tín hiệu teacher_classrooms_update cho teacher: ${teacherId}`);
+    io.emit('teacher_classrooms_update', teacherId);
+  }
+};
+
+export const notifyNotificationUpdate = (recipientId?: string) => {
+  if (io) {
+    console.log(`📡 [Socket.io] Phát tín hiệu notification_update...`);
+    io.emit('notification_update', recipientId);
+  }
+};
+
+export const notifySettingsUpdate = () => {
+  if (io) {
+    console.log('📡 [Socket.io] Phát tín hiệu settings_update...');
+    io.emit('settings_update');
+  }
+};

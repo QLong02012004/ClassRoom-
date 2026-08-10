@@ -14,12 +14,14 @@ import activityRoutes from './activityRoutes';
 import analyticsRoutes from './analyticsRoutes';
 import chatRoutes from './chatRoutes';
 import materialRoutes from './materialRoutes';
+import settingsRoutes from './settingsRoutes';
 
 const apiRouter = Router();
 
 // Toàn bộ các route bên trong authRoutes sẽ có tiền tố là /v1/auth
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/users', userRoutes);
+apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/dashboard', dashboardRoutes);
 apiRouter.use('/chat', chatRoutes);
 apiRouter.use('/classrooms', classroomRoutes);

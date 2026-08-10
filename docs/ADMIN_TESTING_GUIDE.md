@@ -123,10 +123,30 @@
 
 ---
 
+### MODULE 7: NGÂN HÀNG ĐỀ & BÀI TẬP (QUESTION BANK - `/bank`)
+
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub-Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-ADM-32** | **Xem Danh sách Ngân hàng Đề** | **32.1 (View List)**: Admin truy cập danh sách học liệu hệ thống | 1. Đăng nhập Admin<br>2. Truy cập đường dẫn `/bank` | Danh sách học liệu | Hiển thị bảng/lưới câu hỏi & đề thi trắc nghiệm dùng chung toàn trung tâm (`CENTER_SHARED`) và cá nhân. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **32.2 (Filter Types)**: Lọc học liệu theo loại (Quiz / Assignment) | 1. Chọn Tab/Lọc "Trắc nghiệm" hoặc "Tự luận" | Filter Type | Danh sách tự động lọc đúng loại tài nguyên học liệu tương ứng. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-ADM-33** | **Lọc Môn học Mở rộng & Môn khác** | **33.1 (Standard Subjects)**: Lọc môn học tiêu chuẩn hệ thống | 1. Click bộ lọc Môn học<br>2. Chọn một môn chuẩn (*Toán, Ngữ văn, Tiếng Anh, Vật lý, Hóa học...*) | Môn chọn sẵn | Danh sách hiển thị chính xác các đề thi thuộc môn học đã chọn. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **33.2 (Custom Subject)**: Chọn tùy chọn `+ Môn khác...` và nhập môn mới | 1. Click bộ lọc Môn học<br>2. Chọn `+ Môn khác...`<br>3. Nhập môn học tùy chỉnh (VD: *Tiếng Pháp*) | Môn khác: `Tiếng Pháp` | Ô nhập tên môn xuất hiện, hệ thống tự động lọc đề thi theo môn học vừa nhập. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-ADM-34** | **Xem Hướng dẫn & Tải File Mẫu** | **34.1 (Guide Modal)**: Mở Modal Hướng dẫn định dạng tệp | 1. Tại trang tạo đề thi trắc nghiệm, click nút "File mẫu & Hướng dẫn" | User Click | Modal Hướng dẫn mở ra, hiển thị bảng cấu trúc 6 cột Excel và văn bản Word mẫu rõ ràng. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **34.2 (Download Samples)**: Tải tệp mẫu Word `.docx` và Excel `.xlsx` | 1. Click nút "Tải file Excel mẫu"<br>2. Click nút "Tải file Word mẫu" | Action Click | Trình duyệt tự động tải xuống tệp mẫu `Mau_De_Thi_Trac_Nghiem.csv` và `Mau_De_Thi_Word.txt`. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-ADM-35** | **Import Đề thi (Word / Excel / AI Gemini)** | **35.1 (Excel Import)**: Nhập đề thi từ tệp Excel chuẩn | 1. Click "Nhập dữ liệu (Word/Excel)"<br>2. Chọn tệp `.xlsx` mẫu chuẩn | File Excel 6 cột | Hệ thống đọc tệp và import toàn bộ câu hỏi, 4 phương án A/B/C/D và chỉ định đúng đáp án đúng. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **35.2 (Word Regex Import)**: Nhập đề thi từ tệp Word chuẩn cấu trúc | 1. Chọn tệp Word `.docx` theo cấu trúc `Câu 1: ...` | File `.docx` chuẩn | Hệ thống tự động bóc tách đúng tên câu hỏi, lựa chọn A, B, C, D và vị trí đáp án đúng. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **35.3 (AI Gemini Import)**: Nhập tệp Word bất kỳ dùng AI bóc tách tự động | 1. Click "Tạo đề bằng AI"<br>2. Chọn tệp Word bài giảng lý thuyết bất kỳ | File Word lý thuyết | AI Gemini (`gemini-2.5-flash`) tự đọc hiểu và sinh bộ câu hỏi trắc nghiệm chuẩn 100%. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-ADM-36** | **Tính điểm tự động theo Điểm tối đa** | **36.1 (Auto Divide)**: Tự động chia đều điểm trắc nghiệm | 1. Điền Điểm tối đa đề thi = `10`<br>2. Click nút "Chia điểm đều" (hoặc khi import tệp mới) | Điểm tối đa: `10` | Số điểm từng câu trắc nghiệm được tính tự động = `10 / Số câu` (VD: 20 câu -> 0.5 đ/câu). Toast báo thành công. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-ADM-37** | **Quản lý & Xóa dữ liệu Ngân hàng đề** | **37.1 (Edit Item)**: Chỉnh sửa thông tin tài nguyên | 1. Click biểu tượng Bút sửa tại học liệu<br>2. Cập nhật Tiêu đề, Môn học, Thang điểm | Data update | Thông tin học liệu được lưu mới thành công. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **37.2 (Delete Item)**: Xóa tài nguyên lỗi/vi phạm | 1. Click biểu tượng Thùng rác xóa<br>2. Xác nhận trong Dialog | Select Item | Tài nguyên bị xóa vĩnh viễn khỏi Ngân hàng đề thi hệ thống. | `[ ] Pass`<br>`[ ] Fail` |
+
+---
+
 ## 🚀 QUY TRÌNH THỰC HIỆN KIỂM THỬ KHUYÊN DÙNG (TEST EXECUTION STEPS)
 
 1. **Bước 1 (Xác thực & Chặn quyền)**: Chạy kịch bản từ **TC-ADM-01** đến **TC-ADM-03**. Thử nghiệm tab ẩn danh để kiểm tra tính năng bảo vệ Route.
 2. **Bước 2 (Bảng điều khiển & Thông báo)**: Thực hiện **TC-ADM-04** đến **TC-ADM-06C**. Sử dụng tài khoản Giáo viên tạo 1 lớp học mới và thêm 1 học sinh, sau đó chuyển sang Admin xem thông báo chuông.
 3. **Bước 3 (Quản lý Người dùng & Bảo mật)**: Thực hiện từ **TC-ADM-07** đến **TC-ADM-17**. Thử tạo giáo viên, nhập email trùng, khóa tài khoản rồi dùng tab ẩn danh kiểm tra xem tài khoản bị khóa có bị chặn không.
 4. **Bước 4 (Quản lý Lớp học & Chế độ Bảo trì)**: Thực hiện từ **TC-ADM-18** đến **TC-ADM-25**. Kiểm thử bật công tắc Chế độ Bảo trì để đảm bảo Học sinh/Giáo viên bị chặn hoàn toàn.
-5. **Bước 5 (Hồ sơ & Đổi Mật khẩu)**: Thực hiện từ **TC-ADM-26** đến **TC-ADM-31** để hoàn tất toàn bộ quy trình kiểm thử dành cho Admin.
+5. **Bước 5 (Hồ sơ & Đổi Mật khẩu)**: Thực hiện từ **TC-ADM-26** đến **TC-ADM-31**.
+6. **Bước 6 (Ngân hàng Đề & Bài tập)**: Thực hiện từ **TC-ADM-32** đến **TC-ADM-37** để hoàn tất toàn bộ quy trình kiểm thử dành cho Admin.

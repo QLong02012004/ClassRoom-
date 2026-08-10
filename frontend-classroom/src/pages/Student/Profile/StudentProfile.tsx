@@ -8,6 +8,7 @@ import {
   User,
   Medal,
   CaretRight,
+  CaretDown,
   Password,
   BellRinging,
   ShieldCheck,
@@ -27,6 +28,7 @@ import { userService } from '../../../service/user.service';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
 import { SaveButton } from "@/components/ui/Buttons/SaveButton";
 import styles from './StudentProfile.module.scss';
@@ -269,19 +271,21 @@ const StudentProfile: React.FC = () => {
               </div>
             </div>
 
-            <div className={styles.infoGroup}>
-              <div className={styles.groupTitle}>Chuyên môn & Trình độ</div>
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Bằng cấp / Trình độ</span>
-                  <span className={styles.value}>{(user as any)?.degree || (user?.role === 'teacher' ? 'Đại học Sư phạm' : 'Chưa cập nhật')}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <span className={styles.label}>Môn học chuyên môn</span>
-                  <span className={styles.value}>{(user as any)?.subject || 'Chưa chọn môn'}</span>
+            {user?.role !== 'admin' && (
+              <div className={styles.infoGroup}>
+                <div className={styles.groupTitle}>Chuyên môn & Trình độ</div>
+                <div className={styles.infoGrid}>
+                  <div className={styles.infoItem}>
+                    <span className={styles.label}>Bằng cấp / Trình độ</span>
+                    <span className={styles.value}>{(user as any)?.degree || (user?.role === 'teacher' ? 'Đại học Sư phạm' : 'Chưa cập nhật')}</span>
+                  </div>
+                  <div className={styles.infoItem}>
+                    <span className={styles.label}>Môn học chuyên môn</span>
+                    <span className={styles.value}>{(user as any)?.subject || 'Chưa chọn môn'}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             <div className={styles.infoGroup}>
               <div className={styles.groupTitle}>Giới thiệu bản thân (Bio)</div>
@@ -535,17 +539,35 @@ const StudentProfile: React.FC = () => {
                       </div>
                       <div className="grid gap-1">
                         <Label htmlFor="gender" className="text-xs font-bold text-slate-600">Giới tính</Label>
-                        <select
-                          id="gender"
-                          className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#f47c20]/30 focus:border-[#f47c20] transition-colors"
-                          value={formData.gender}
-                          onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                        >
-                          <option value="">Chọn giới tính</option>
-                          <option value="Nam">Nam</option>
-                          <option value="Nữ">Nữ</option>
-                          <option value="Khác">Khác</option>
-                        </select>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              id="gender"
+                              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 flex items-center justify-between hover:border-[#f47c20] focus:outline-none focus:ring-2 focus:ring-[#f47c20]/30 transition-colors cursor-pointer"
+                            >
+                              <span className={formData.gender ? "text-slate-800 font-bold" : "text-slate-400"}>
+                                {formData.gender || "Chọn giới tính"}
+                              </span>
+                              <CaretDown size={14} className="text-slate-400" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-[180px] bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100]">
+                            {["Nam", "Nữ", "Khác"].map((val) => (
+                              <DropdownMenuItem
+                                key={val}
+                                onClick={() => setFormData({ ...formData, gender: val })}
+                                className={`cursor-pointer text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors ${
+                                  formData.gender === val
+                                    ? "bg-orange-50 text-[#f47c20] font-bold"
+                                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                }`}
+                              >
+                                {val}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>
@@ -606,27 +628,39 @@ const StudentProfile: React.FC = () => {
                       </div>
                       <div className="grid gap-1">
                         <Label htmlFor="subject" className="text-xs font-bold text-slate-600">Môn học chuyên môn</Label>
-                        <select
-                          id="subject"
-                          className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#2f8fa3]/30 focus:border-[#2f8fa3] transition-colors"
-                          value={formData.subject}
-                          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                        >
-                          <option value="">Chọn môn học</option>
-                          <option value="Toán">Toán học</option>
-                          <option value="Ngữ văn">Ngữ văn</option>
-                          <option value="Tiếng Anh">Tiếng Anh</option>
-                          <option value="Vật lý">Vật lý</option>
-                          <option value="Hóa học">Hóa học</option>
-                          <option value="Sinh học">Sinh học</option>
-                          <option value="Lịch sử">Lịch sử</option>
-                          <option value="Địa lý">Địa lý</option>
-                          <option value="Tin học">Tin học</option>
-                          <option value="Thể dục">Thể dục</option>
-                          <option value="Âm nhạc">Âm nhạc</option>
-                          <option value="Mỹ thuật">Mỹ thuật</option>
-                          <option value="GDCD">GDCD</option>
-                        </select>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              id="subject"
+                              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 flex items-center justify-between hover:border-[#2f8fa3] focus:outline-none focus:ring-2 focus:ring-[#2f8fa3]/30 transition-colors cursor-pointer"
+                            >
+                              <span className={formData.subject ? "text-slate-800 font-bold" : "text-slate-400"}>
+                                {formData.subject || "Chọn môn học"}
+                              </span>
+                              <CaretDown size={14} className="text-slate-400" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-[220px] max-h-60 overflow-y-auto bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100]">
+                            {[
+                              "Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", 
+                              "Sinh học", "Lịch sử", "Địa lý", "Tin học", "Thể dục", 
+                              "Âm nhạc", "Mỹ thuật", "GDCD"
+                            ].map((subj) => (
+                              <DropdownMenuItem
+                                key={subj}
+                                onClick={() => setFormData({ ...formData, subject: subj })}
+                                className={`cursor-pointer text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors ${
+                                  formData.subject === subj
+                                    ? "bg-teal-50 text-[#2f8fa3] font-bold"
+                                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                                }`}
+                              >
+                                {subj}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                   </div>
@@ -765,7 +799,7 @@ const StudentProfile: React.FC = () => {
               <PrimaryButton type="button" variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={isChangingPassword}>
                 Hủy
               </PrimaryButton>
-              <PrimaryButton type="submit" className="bg-primary hover:bg-primary-hover" disabled={isChangingPassword}>
+              <PrimaryButton type="submit" variant="solid" className="bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold px-4 py-2 rounded-xl border-none cursor-pointer" disabled={isChangingPassword}>
                 {isChangingPassword ? "Đang xử lý..." : "Xác nhận đổi"}
               </PrimaryButton>
             </DialogFooter>

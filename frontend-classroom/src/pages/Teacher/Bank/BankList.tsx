@@ -228,20 +228,20 @@ export default function BankList() {
                         Quay lại danh sách
                     </BackButton>
                     {user?.role === 'admin' && (
-                        <div className="mb-4 bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-200">
+                        <div className="mb-4 bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-200 flex-wrap">
                             <span className="text-sm font-bold text-orange-800">Môn học cho học liệu này:</span>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
-                                        className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm outline-none font-semibold bg-white text-slate-800 flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                                        className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm outline-none font-semibold bg-white text-slate-800 flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                                     >
                                         <span>Môn {selectedSubjectForAdmin}</span>
                                         <CaretDown size={14} className="text-slate-400" />
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 w-44">
-                                    {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                                <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 w-48 max-h-60 overflow-y-auto">
+                                    {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tin học", "GDCD", "Âm nhạc", "Mỹ thuật", "Thể dục"].map((subj) => (
                                         <DropdownMenuItem
                                             key={subj}
                                             onClick={() => setSelectedSubjectForAdmin(subj)}
@@ -250,8 +250,31 @@ export default function BankList() {
                                             Môn {subj}
                                         </DropdownMenuItem>
                                     ))}
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            const custom = window.prompt("Nhập tên môn học khác:", "Tiếng Pháp");
+                                            if (custom && custom.trim()) {
+                                                setSelectedSubjectForAdmin(custom.trim());
+                                            }
+                                        }}
+                                        className="px-3 py-1.5 hover:bg-orange-50 rounded-md cursor-pointer text-orange-600 text-sm font-bold transition-colors border-t border-slate-100 mt-1"
+                                    >
+                                        + Môn khác...
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {selectedSubjectForAdmin && !["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tin học", "GDCD", "Âm nhạc", "Mỹ thuật", "Thể dục"].includes(selectedSubjectForAdmin) && (
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-semibold text-orange-600">Tên môn:</span>
+                                    <input
+                                        type="text"
+                                        value={selectedSubjectForAdmin}
+                                        onChange={(e) => setSelectedSubjectForAdmin(e.target.value)}
+                                        placeholder="Nhập tên môn..."
+                                        className="px-3 py-1 border border-orange-300 rounded-lg text-sm font-bold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                     <QuizBuilder
@@ -269,20 +292,20 @@ export default function BankList() {
                         Quay lại danh sách
                     </BackButton>
                     {user?.role === 'admin' && (
-                        <div className="mb-4 bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-200">
+                        <div className="mb-4 bg-orange-50 border border-orange-100 p-4 rounded-xl flex items-center gap-3 animate-in fade-in duration-200 flex-wrap">
                             <span className="text-sm font-bold text-orange-800">Môn học cho học liệu này:</span>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button
                                         type="button"
-                                        className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm outline-none font-semibold bg-white text-slate-800 flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm"
+                                        className="px-4 py-1.5 border border-slate-200 rounded-lg text-sm outline-none font-semibold bg-white text-slate-800 flex items-center gap-2 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
                                     >
                                         <span>Môn {selectedSubjectForAdmin}</span>
                                         <CaretDown size={14} className="text-slate-400" />
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 w-44">
-                                    {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                                <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 w-48 max-h-60 overflow-y-auto">
+                                    {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tin học", "GDCD", "Âm nhạc", "Mỹ thuật", "Thể dục"].map((subj) => (
                                         <DropdownMenuItem
                                             key={subj}
                                             onClick={() => setSelectedSubjectForAdmin(subj)}
@@ -291,8 +314,31 @@ export default function BankList() {
                                             Môn {subj}
                                         </DropdownMenuItem>
                                     ))}
+                                    <DropdownMenuItem
+                                        onClick={() => {
+                                            const custom = window.prompt("Nhập tên môn học khác:", "Tiếng Pháp");
+                                            if (custom && custom.trim()) {
+                                                setSelectedSubjectForAdmin(custom.trim());
+                                            }
+                                        }}
+                                        className="px-3 py-1.5 hover:bg-orange-50 rounded-md cursor-pointer text-orange-600 text-sm font-bold transition-colors border-t border-slate-100 mt-1"
+                                    >
+                                        + Môn khác...
+                                    </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+                            {selectedSubjectForAdmin && !["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tin học", "GDCD", "Âm nhạc", "Mỹ thuật", "Thể dục"].includes(selectedSubjectForAdmin) && (
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-xs font-semibold text-orange-600">Tên môn:</span>
+                                    <input
+                                        type="text"
+                                        value={selectedSubjectForAdmin}
+                                        onChange={(e) => setSelectedSubjectForAdmin(e.target.value)}
+                                        placeholder="Nhập tên môn..."
+                                        className="px-3 py-1 border border-orange-300 rounded-lg text-sm font-bold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+                                    />
+                                </div>
+                            )}
                         </div>
                     )}
                     <AssignmentBuilder
@@ -809,14 +855,14 @@ export default function BankList() {
                                             <DropdownMenuTrigger asChild>
                                                 <button
                                                     type="button"
-                                                    className="w-full text-left px-3 py-2 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold flex items-center justify-between"
+                                                    className="w-full text-left px-3 py-2 border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold flex items-center justify-between cursor-pointer"
                                                 >
                                                     <span>Môn {editFormData.subject}</span>
                                                     <CaretDown size={14} className="text-slate-400" />
                                                 </button>
                                             </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 w-44">
-                                                {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học"].map((subj) => (
+                                            <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 w-48 max-h-60 overflow-y-auto">
+                                                {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "Tin học", "GDCD", "Âm nhạc", "Mỹ thuật", "Thể dục"].map((subj) => (
                                                     <DropdownMenuItem
                                                         key={subj}
                                                         onClick={() => setEditFormData({ ...editFormData, subject: subj })}
@@ -825,6 +871,17 @@ export default function BankList() {
                                                         Môn {subj}
                                                     </DropdownMenuItem>
                                                 ))}
+                                                <DropdownMenuItem
+                                                    onClick={() => {
+                                                        const custom = window.prompt("Nhập tên môn học khác:", "Tiếng Pháp");
+                                                        if (custom && custom.trim()) {
+                                                            setEditFormData({ ...editFormData, subject: custom.trim() });
+                                                        }
+                                                    }}
+                                                    className="px-3 py-1.5 hover:bg-orange-50 rounded-md cursor-pointer text-orange-600 text-sm font-bold transition-colors border-t border-slate-100 mt-1"
+                                                >
+                                                    + Môn khác...
+                                                </DropdownMenuItem>
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>

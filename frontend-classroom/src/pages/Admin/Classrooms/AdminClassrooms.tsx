@@ -26,7 +26,10 @@ import {
   MagnifyingGlass,
   ArrowUpRight,
   ArrowDownRight,
-  Eye
+  Eye,
+  CalendarBlank,
+  XCircle,
+  Clock
 } from "phosphor-react";
 
 import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
@@ -60,13 +63,346 @@ import { useToast } from "../../../components/Styles/ToastContext";
 import { CustomConfirmDialog } from "@/components/ui/Dialogs/CustomConfirmDialog";
 
 import { classroomService, type IClassroomItem, type IClassroomActivities } from "../../../service/classroom.service";
+import { io } from "socket.io-client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
 import { StudentsTable } from "../../../components/ui/Tables/StudentsTable";
 import { attendanceService } from "../../../service/attendance.service";
 import type { Student } from "../../../utils/mockDb";
 import { getMockStudents } from "../../../utils/mockDb";
 
+import type { ITeacherClassroom } from "../../../service/classroom.service";
+import { useNavigate } from "react-router-dom";
+
+const ClassDetailModalContent = ({
+  classItem,
+  onClose,
+  onEnter,
+  onApprove,
+  onReject
+}: {
+  classItem: IClassroomItem;
+  onClose: () => void;
+  onEnter: () => void;
+  onApprove?: (id: string, name: string) => void;
+  onReject?: (id: string, name: string) => void;
+}) => {
+  const [details, setDetails] = useState<ITeacherClassroom | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDetail = async () => {
+      setLoading(true);
+      try {
+        const res = await classroomService.getClassroomDetail(classItem._id);
+        if (isMounted && res.data) {
+          setDetails(res.data);
+        }
+      } catch (err) {
+        console.error("Error fetching classroom details for modal", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchDetail();
+    return () => {
+      isMounted = false;
+    };
+  }, [classItem._id]);
+
+  return (
+    <DialogContent className="!max-w-[850px] sm:max-w-[850px] md:max-w-[900px] w-[95vw] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-2xl [&>button]:hover:bg-[#f47c20] [&>button]:hover:text-white [&>button]:transition-colors [&>button]:cursor-pointer">
+      {/* STANDARD HEADER */}
+      <DialogHeader className="px-6 pt-6 pb-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#f47c20]/10 flex items-center justify-center text-[#f47c20]">
+            <GraduationCap size={24} weight="duotone" />
+          </div>
+          <div className="flex flex-col items-start text-left">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-[#f47c20] px-2 py-0.5 rounded-md text-white shadow-sm">
+                {classItem.subject || "Khóa học"}
+              </span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">#{classItem.id}</span>
+            </div>
+            <DialogTitle className="text-2xl font-black text-slate-800 tracking-tight leading-tight">
+              {classItem.name}
+            </DialogTitle>
+          </div>
+        </div>
+      </DialogHeader>
+
+      {/* COMPACT BODY - 3 COLUMN GRID */}
+      <div className="px-6 pb-6 pt-2 bg-white">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-10">
+            <div className="w-8 h-8 border-4 border-[#f47c20] border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-3 text-sm text-slate-500 font-medium">Đang tải dữ liệu chi tiết...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-4 bg-[#F8FAFC] p-4 rounded-xl border border-slate-100">
+
+            {/* COL 1: TEACHER & STATUS */}
+            <div className="col-span-3 sm:col-span-1 flex flex-col gap-4">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-center h-[88px]">
+                <div className="absolute top-0 right-0 w-16 h-16 bg-[#2f8fa3]/5 rounded-bl-full -z-0 opacity-100"></div>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 relative z-10 flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#2f8fa3]"></div>
+                  Giáo viên phụ trách
+                </h4>
+                <div className="flex items-center gap-3 relative z-10">
+                  <Avatar className="h-9 w-9 border border-slate-100 shadow-sm">
+                    <AvatarImage src={classItem.teacher?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-tr from-[#2f8fa3] to-[#1c6575] text-white font-bold">{classItem.teacher?.name?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="overflow-hidden flex-1">
+                    <p className="font-bold text-slate-800 text-[13px] truncate leading-tight">{classItem.teacher?.name}</p>
+                    <p className="text-[11px] font-medium text-slate-500 truncate leading-tight mt-0.5" title={(classItem.teacher as any)?.email}>{(classItem.teacher as any)?.email || "Chưa cập nhật email"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between h-[72px]">
+                <div>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Trạng thái</h4>
+                  <p className="text-[12px] font-bold text-slate-600">
+                    {classItem.status === "Active" ? "Hoạt động" : classItem.status === "Pending" ? "Chờ phê duyệt" : "Đã khóa"}
+                  </p>
+                </div>
+                {classItem.status === "Active" ? (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-600">
+                    <CheckCircle size={16} weight="fill" />
+                    <span className="text-[12px] font-bold">Đang mở</span>
+                  </div>
+                ) : classItem.status === "Pending" ? (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-600">
+                    <Clock size={16} weight="fill" />
+                    <span className="text-[12px] font-bold">Chờ duyệt</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 border border-rose-100 rounded-lg text-rose-600">
+                    <PauseCircle size={16} weight="fill" />
+                    <span className="text-[12px] font-bold">Đã khóa</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* COL 2: CORE STATS (Students, Approvals) */}
+            <div className="col-span-3 sm:col-span-1 flex flex-col gap-4">
+              <div className="bg-gradient-to-br from-[#f47c20]/5 to-[#f47c20]/10 p-4 rounded-xl border border-[#f47c20]/20 shadow-sm flex items-center justify-between h-[88px]">
+                <div>
+                  <p className="text-3xl font-black text-slate-800 tracking-tight leading-none mb-1">
+                    {classItem.studentCount || 0}
+                  </p>
+                  <p className="text-[10px] font-black text-[#f47c20]/90 uppercase tracking-widest">Học sinh tham gia</p>
+                </div>
+                <div className="w-11 h-11 bg-white rounded-full shadow-sm flex items-center justify-center text-[#f47c20] border border-[#f47c20]/10">
+                  <Users size={22} weight="fill" />
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between h-[72px]">
+                <div>
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Yêu cầu chờ duyệt</h4>
+                  <p className="text-[12px] font-bold text-slate-600">Học sinh xin vào lớp</p>
+                </div>
+                <div className={`flex items-center justify-center min-w-[32px] h-8 px-2 rounded-lg font-bold text-[13px] ${details?.pendingRequestsCount && details.pendingRequestsCount > 0 ? "bg-rose-100 text-rose-700" : "bg-slate-100 text-slate-600"}`}>
+                  {details?.pendingRequestsCount || 0}
+                </div>
+              </div>
+            </div>
+
+            {/* COL 3: ACADEMIC STATS (Grades, Latest Assignment, Date) */}
+            <div className="col-span-3 sm:col-span-1 flex flex-col gap-4">
+              <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center h-[88px]">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#A9d6e5]"></div>
+                  Hoạt động gần nhất
+                </h4>
+                <p className="text-[13px] font-bold text-slate-800 truncate" title={details?.latestAssignmentTitle || "Chưa có bài tập nào"}>
+                  {details?.latestAssignmentTitle || "Chưa có bài tập/hoạt động"}
+                </p>
+                {details?.latestAssignmentDue && (
+                  <p className="text-[11px] font-semibold text-rose-500 mt-0.5">
+                    Hạn: {new Date(details.latestAssignmentDue).toLocaleDateString("vi-VN")}
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 h-[72px]">
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
+                  <p className="text-xl font-black text-[#2f8fa3] leading-none mb-1">{details?.pendingGrades || 0}</p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Bài chờ chấm</p>
+                </div>
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center items-center text-center">
+                  <p className="text-[13px] font-black text-slate-700 leading-none mb-1.5">
+                    {new Date(classItem.createdAt).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: '2-digit' })}
+                  </p>
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Ngày tạo</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* Footer Actions */}
+        <div className="mt-5 flex items-center justify-between border-t border-slate-200/80 pt-4">
+          <p className="text-[11px] text-slate-400 font-semibold hidden sm:block">Dữ liệu chi tiết &bull; Dành cho Quản trị viên</p>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            {classItem.status === 'Pending' && onApprove && onReject ? (
+              <>
+                <button
+                  onClick={() => {
+                    onClose();
+                    onReject(classItem._id, classItem.name);
+                  }}
+                  className="px-4 py-2 rounded-lg font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all text-sm shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  <XCircle size={16} weight="bold" />
+                  Từ chối
+                </button>
+                <button
+                  onClick={() => {
+                    onClose();
+                    onApprove(classItem._id, classItem.name);
+                  }}
+                  className="px-4 py-2 rounded-lg font-bold text-white bg-emerald-600 border border-emerald-600 hover:bg-emerald-700 transition-all text-sm shadow-sm cursor-pointer flex items-center gap-1.5"
+                >
+                  <CheckCircle size={16} weight="bold" />
+                  Phê duyệt lớp
+                </button>
+              </>
+            ) : null}
+            <button
+              onClick={onClose}
+              className="flex-1 sm:flex-none px-5 py-2 rounded-lg font-bold text-slate-600 bg-white border border-slate-200 hover:bg-[#f47c20] hover:text-white hover:border-[#f47c20] transition-colors text-sm shadow-sm cursor-pointer"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      </div>
+    </DialogContent>
+  );
+};
+
+const PendingClassApprovalModal = ({
+  classItem,
+  onClose,
+  onApprove,
+  onReject
+}: {
+  classItem: IClassroomItem;
+  onClose: () => void;
+  onApprove: (id: string, name: string) => void;
+  onReject: (id: string, name: string) => void;
+}) => {
+  return (
+    <DialogContent className="!max-w-[550px] sm:max-w-[550px] w-[95vw] p-0 overflow-hidden bg-white border-none shadow-2xl rounded-2xl [&>button]:hover:bg-[#f47c20] [&>button]:hover:text-white [&>button]:transition-colors [&>button]:cursor-pointer">
+      <DialogHeader className="px-6 pt-6 pb-4 bg-gradient-to-r from-[#f47c20]/10 via-[#f47c20]/5 to-transparent border-b border-amber-100">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#f47c20]/15 flex items-center justify-center text-[#f47c20] shadow-sm">
+            <Clock size={28} weight="duotone" />
+          </div>
+          <div className="flex flex-col items-start text-left">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-[#f47c20] px-2 py-0.5 rounded-md text-white shadow-sm">
+                Yêu cầu duyệt lớp học
+              </span>
+              <span className="text-[11px] font-bold text-slate-400 font-mono">#{classItem.id}</span>
+            </div>
+            <DialogTitle className="text-xl font-black text-slate-800 tracking-tight leading-tight">
+              {classItem.name}
+            </DialogTitle>
+          </div>
+        </div>
+      </DialogHeader>
+
+      <div className="p-6 space-y-4 bg-white">
+        <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-xl text-amber-900 text-xs leading-relaxed font-medium flex items-start gap-2.5 shadow-sm">
+          <div className="p-1 rounded-md bg-amber-200/60 text-amber-800 shrink-0 mt-0.5">
+            <Clock size={16} weight="bold" />
+          </div>
+          <div>
+            <span className="font-bold text-amber-950 text-sm block mb-0.5">Lớp học đang chờ Ban giám hiệu phê duyệt</span>
+            <p className="text-amber-800/90 leading-relaxed">
+              Giáo viên đã khởi tạo lớp học này và đang chờ Admin xét duyệt. Bạn có thể chọn <strong className="text-emerald-700">Phê duyệt</strong> để đưa lớp học vào hoạt động hoặc <strong className="text-rose-700">Từ chối</strong> yêu cầu tạo lớp.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 pt-1">
+          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Bộ môn</span>
+            <p className="font-bold text-slate-800 text-sm">{classItem.subject || "Khác"}</p>
+          </div>
+          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">Ngày khởi tạo</span>
+            <p className="font-bold text-slate-800 text-sm">
+              {new Date(classItem.createdAt).toLocaleDateString("vi-VN")}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">Giáo viên phụ trách</span>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 border border-slate-200 shadow-sm">
+              <AvatarImage src={classItem.teacher?.avatar} />
+              <AvatarFallback className="bg-gradient-to-tr from-[#2f8fa3] to-[#1c6575] text-white font-bold">
+                {classItem.teacher?.name?.charAt(0) || "G"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="overflow-hidden">
+              <p className="font-bold text-slate-800 text-sm truncate">{classItem.teacher?.name}</p>
+              <p className="text-xs text-slate-500 font-medium truncate">{(classItem.teacher as any)?.email || "Chưa cập nhật email"}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5">
+          <button
+            onClick={onClose}
+            className="px-4 py-2.5 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-100 transition-colors text-sm shadow-sm cursor-pointer"
+          >
+            Đóng
+          </button>
+
+          <button
+            onClick={() => onReject(classItem._id, classItem.name)}
+            className="px-4 py-2.5 rounded-xl font-bold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all text-sm shadow-sm cursor-pointer flex items-center gap-1.5"
+          >
+            <XCircle size={18} weight="bold" />
+            Từ chối lớp học
+          </button>
+
+          <button
+            onClick={() => onApprove(classItem._id, classItem.name)}
+            className="px-4 py-2.5 rounded-xl font-bold text-white bg-emerald-600 border border-emerald-600 hover:bg-emerald-700 transition-all text-sm shadow-sm cursor-pointer flex items-center gap-1.5"
+          >
+            <CheckCircle size={18} weight="bold" />
+            Phê duyệt lớp học
+          </button>
+        </div>
+      </div>
+    </DialogContent>
+  );
+};
+
+const normalizeString = (str: string) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
 export default function AdminClassrooms() {
+  const navigate = useNavigate();
   const [globalFilter, setGlobalFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -77,6 +413,7 @@ export default function AdminClassrooms() {
   const [classes, setClasses] = useState<IClassroomItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<IClassroomItem | null>(null);
+  const [pendingApprovalClass, setPendingApprovalClass] = useState<IClassroomItem | null>(null);
   const [classActivities, setClassActivities] = useState<IClassroomActivities | null>(null);
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
 
@@ -183,13 +520,32 @@ export default function AdminClassrooms() {
 
   useEffect(() => {
     fetchClasses();
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on('admin_stats_update', () => {
+      console.log('🔄 [Socket.io] Có thay đổi trạng thái lớp, đang tải lại...');
+      fetchClasses();
+    });
+
+    socket.on('teacher_classrooms_update', () => {
+      fetchClasses();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
   }, []);
 
   const filteredAndSortedClasses = React.useMemo(() => {
     let result = classes;
     if (globalFilter) {
-      const lowerFilter = globalFilter.toLowerCase();
-      result = result.filter(c => c.name.toLowerCase().includes(lowerFilter) || c.id.toLowerCase().includes(lowerFilter));
+      const normalizedFilter = normalizeString(globalFilter);
+      result = result.filter(c =>
+        normalizeString(c.name).includes(normalizedFilter) ||
+        normalizeString(c.id).includes(normalizedFilter)
+      );
     }
     if (statusFilter) {
       result = result.filter(c => c.status === statusFilter);
@@ -199,6 +555,9 @@ export default function AdminClassrooms() {
     }
 
     return result.sort((a, b) => {
+      if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+      if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+
       let first: any;
       let second: any;
       if (sortDescriptor.column === "teacher") {
@@ -216,7 +575,7 @@ export default function AdminClassrooms() {
     });
   }, [classes, globalFilter, statusFilter, subjectFilter, sortDescriptor]);
 
-  const ROWS_PER_PAGE = 8;
+  const ROWS_PER_PAGE = 10;
   const totalPages = Math.ceil(filteredAndSortedClasses.length / ROWS_PER_PAGE);
   const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
@@ -279,6 +638,46 @@ export default function AdminClassrooms() {
     });
   };
 
+  const handleApproveClass = (id: string, name: string) => {
+    setPendingApprovalClass(null);
+    setConfirmDialog({
+      isOpen: true,
+      title: "Phê duyệt lớp học",
+      description: `Bạn có chắc chắn muốn duyệt lớp học "${name}"? Sau khi duyệt, giáo viên và học sinh có thể bắt đầu truy cập hoạt động.`,
+      actionType: 'success',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await classroomService.updateClassroomStatus(id, 'Active');
+          toast.success(`Đã phê duyệt lớp học ${name} thành công!`, 3000);
+          fetchClasses();
+        } catch (error: any) {
+          toast.error("Lỗi khi duyệt: " + error.message, 3000);
+        }
+      }
+    });
+  };
+
+  const handleRejectClass = (id: string, name: string) => {
+    setPendingApprovalClass(null);
+    setConfirmDialog({
+      isOpen: true,
+      title: "Từ chối lớp học này?",
+      description: `Bạn có chắc chắn muốn từ chối lớp học "${name}"? Yêu cầu tạo lớp sẽ bị hủy và thông báo từ chối sẽ được gửi đến giáo viên phụ trách.`,
+      actionType: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        try {
+          await classroomService.deleteClassroom(id);
+          toast.success(`Đã từ chối lớp học ${name}!`, 3000);
+          fetchClasses();
+        } catch (error: any) {
+          toast.error("Lỗi khi từ chối: " + error.message, 3000);
+        }
+      }
+    });
+  };
+
   const handleBulkDelete = () => {
     if (selectedIds.length === 0) return;
 
@@ -328,12 +727,12 @@ export default function AdminClassrooms() {
   return (
     <div className="flex w-full bg-[#F8FAFC]">
       {/* MAIN CONTENT */}
-      <div className={`flex-1 flex flex-col gap-6 transition-all duration-300 ${selectedClass ? 'md:pr-[380px]' : ''}`}>
+      <div className="flex-1 flex flex-col gap-6 transition-all duration-300">
 
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <h2 className="text-3xl tracking-tight font-bold text-slate-900">Quản lý lớp học </h2>
+            <h2 className="text-3xl tracking-tight font-bold text-[#f47c20]">Quản lý lớp học</h2>
             <p className="text-slate-500 mt-1 text-sm font-medium">
               Giám sát và quản trị tất cả các hoạt động đào tạo trên toàn hệ thống.
             </p>
@@ -345,120 +744,140 @@ export default function AdminClassrooms() {
 
         {/* STATS CARDS */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Tổng số lớp học</CardTitle>
-              <GraduationCap className="h-5 w-5 text-blue-500" weight="duotone" />
-            </CardHeader>
-            <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+          {/* Card 1: Tổng số lớp học */}
+          <div className="flex flex-col justify-between rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.03)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-[#E0F7FA]/80 via-[#E0F7FA]/40 to-[#B2EBF2]/30 border border-[#B2EBF2]/50">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#006064]">Tổng số lớp học</p>
               {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-20 mb-4" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </>
+                <div className="mt-3">
+                  <Skeleton className="h-9 w-20 mb-3" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
               ) : (
-                <>
-                  <div className="text-4xl font-bold tracking-tighter">{totalClasses.toLocaleString()}</div>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                    Trên toàn hệ thống <ArrowUpRight className="h-4 w-4 text-blue-500" />
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-3xl font-black text-slate-800 tracking-tight">
+                    {totalClasses.toLocaleString()}
+                  </span>
+                  <div className="w-12 h-12 rounded-2xl bg-white/95 shadow-sm flex items-center justify-center text-[#2f8fa3]">
+                    <GraduationCap size={24} weight="bold" />
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Cập nhật tự động
-                  </div>
-                </>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            {!isLoading && (
+              <div className="mt-4 pt-2 border-t border-[#006064]/10">
+                <div className="flex items-center gap-1 text-[#00838F] font-bold text-xs">
+                  <ArrowUpRight size={14} weight="bold" />
+                  <span>Trên toàn hệ thống</span>
+                </div>
+                <p className="text-[11px] font-semibold text-[#006064]/60 mt-0.5">Cập nhật tự động</p>
+              </div>
+            )}
+          </div>
 
-          <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Đang hoạt động</CardTitle>
-              <CheckCircle className="h-5 w-5 text-emerald-500" weight="duotone" />
-            </CardHeader>
-            <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+          {/* Card 2: Lớp đang hoạt động */}
+          <div className="flex flex-col justify-between rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.03)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-[#FFF8E1]/80 via-[#FFF8E1]/40 to-[#FFE0B2]/30 border border-[#FFE0B2]/50">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#E65100]">Đang hoạt động</p>
               {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-20 mb-4" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </>
+                <div className="mt-3">
+                  <Skeleton className="h-9 w-20 mb-3" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
               ) : (
-                <>
-                  <div className="text-4xl font-bold tracking-tighter">{activeClasses.toLocaleString()}</div>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                    Chiếm {activePercentage}% <ArrowUpRight className="h-4 w-4 text-emerald-500" />
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-3xl font-black text-slate-800 tracking-tight">
+                    {activeClasses.toLocaleString()}
+                  </span>
+                  <div className="w-12 h-12 rounded-2xl bg-white/95 shadow-sm flex items-center justify-center text-[#f47c20]">
+                    <CheckCircle size={24} weight="bold" />
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Tỷ lệ lớp học đang mở
-                  </div>
-                </>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            {!isLoading && (
+              <div className="mt-4 pt-2 border-t border-[#E65100]/10">
+                <div className="flex items-center gap-1 text-[#EF6C00] font-bold text-xs">
+                  <ArrowUpRight size={14} weight="bold" />
+                  <span>Chiếm {activePercentage}%</span>
+                </div>
+                <p className="text-[11px] font-semibold text-[#E65100]/60 mt-0.5">Tỷ lệ lớp học đang mở</p>
+              </div>
+            )}
+          </div>
 
-          <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Lớp bị khóa</CardTitle>
-              <PauseCircle className="h-5 w-5 text-red-500" weight="duotone" />
-            </CardHeader>
-            <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+          {/* Card 3: Lớp bị khóa */}
+          <div className="flex flex-col justify-between rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.03)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-[#E8F5E9]/80 via-[#E8F5E9]/40 to-[#E0F2F1]/30 border border-[#C8E6C9]/50">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#004D40]">Lớp bị khóa</p>
               {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-20 mb-4" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </>
+                <div className="mt-3">
+                  <Skeleton className="h-9 w-20 mb-3" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
               ) : (
-                <>
-                  <div className="text-4xl font-bold tracking-tighter">{lockedClasses.toLocaleString()}</div>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none text-red-500">
-                    Chiếm {lockedPercentage}% <ArrowDownRight className="h-4 w-4 text-red-500" />
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-3xl font-black text-slate-800 tracking-tight">
+                    {lockedClasses.toLocaleString()}
+                  </span>
+                  <div className="w-12 h-12 rounded-2xl bg-white/95 shadow-sm flex items-center justify-center text-[#00796B]">
+                    <PauseCircle size={24} weight="bold" />
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Cần được xem xét lại
-                  </div>
-                </>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            {!isLoading && (
+              <div className="mt-4 pt-2 border-t border-[#004D40]/10">
+                <div className="flex items-center gap-1 text-[#00695C] font-bold text-xs">
+                  <ArrowDownRight size={14} weight="bold" />
+                  <span>Chiếm {lockedPercentage}%</span>
+                </div>
+                <p className="text-[11px] font-semibold text-[#004D40]/60 mt-0.5">Cần được xem xét lại</p>
+              </div>
+            )}
+          </div>
 
-          <Card className="flex flex-col">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Tổng học sinh</CardTitle>
-              <Users className="h-5 w-5 text-orange-500" weight="duotone" />
-            </CardHeader>
-            <CardContent className="group-data-[size=sm]/card:px-3 p-6 pt-0 relative flex-1">
+          {/* Card 4: Tổng học sinh */}
+          <div className="flex flex-col justify-between rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.03)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-[#FFEBEE]/80 via-[#FFEBEE]/40 to-[#FFCCBC]/30 border border-[#FFCDD2]/50">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#BF360C]">Tổng học sinh</p>
               {isLoading ? (
-                <>
-                  <Skeleton className="h-10 w-20 mb-4" />
-                  <Skeleton className="h-4 w-40 mb-2" />
-                  <Skeleton className="h-3 w-32" />
-                </>
+                <div className="mt-3">
+                  <Skeleton className="h-9 w-20 mb-3" />
+                  <Skeleton className="h-4 w-32" />
+                </div>
               ) : (
-                <>
-                  <div className="text-4xl font-bold tracking-tighter">{totalStudents.toLocaleString()}</div>
-                  <div className="mt-4 flex items-center gap-1 text-sm font-medium leading-none">
-                    Trung bình {avgStudents} HS/lớp <ArrowUpRight className="h-4 w-4 text-orange-500" />
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-3xl font-black text-slate-800 tracking-tight">
+                    {totalStudents.toLocaleString()}
+                  </span>
+                  <div className="w-12 h-12 rounded-2xl bg-white/95 shadow-sm flex items-center justify-center text-[#D84315]">
+                    <Users size={24} weight="bold" />
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    Đang tham gia các lớp
-                  </div>
-                </>
+                </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+            {!isLoading && (
+              <div className="mt-4 pt-2 border-t border-[#BF360C]/10">
+                <div className="flex items-center gap-1 text-[#D84315] font-bold text-xs">
+                  <ArrowUpRight size={14} weight="bold" />
+                  <span>Trung bình {avgStudents} HS/lớp</span>
+                </div>
+                <p className="text-[11px] font-semibold text-[#BF360C]/60 mt-0.5">Đang tham gia các lớp</p>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* BULK ACTION TOOLBAR */}
         {selectedIds.length > 0 && (
-          <div className="flex items-center justify-between bg-blue-50 border border-blue-200 px-4 py-3 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 mb-2">
-            <span className="text-sm font-medium text-blue-800">
-              Đã chọn <strong className="text-blue-900 text-base mx-1">{selectedIds.length}</strong> lớp học
+          <div className="flex items-center justify-between bg-[#f47c20]/10 border border-[#f47c20]/20 px-4 py-3 rounded-lg shadow-sm animate-in fade-in slide-in-from-top-2 mb-2">
+            <span className="text-sm font-medium text-[#f47c20]">
+              Đã chọn <strong className="text-[#f47c20] text-base mx-1">{selectedIds.length}</strong> lớp học
             </span>
             <div className="flex items-center gap-3">
               <PrimaryButton
-                className="bg-orange-100 text-orange-600 hover:bg-orange-200 font-medium flex items-center gap-2 h-9 border-none shadow-none"
+                className="bg-[#f47c20]/20 text-[#f47c20] hover:bg-[#f47c20]/30 font-medium flex items-center gap-2 h-9 border-none shadow-none"
                 onClick={handleBulkLock}
               >
                 <LockKey weight="bold" size={16} />
@@ -492,33 +911,38 @@ export default function AdminClassrooms() {
               <DropdownMenuTrigger asChild>
                 <PrimaryButton variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
                   <Funnel size={16} weight="bold" />
-                  Trạng thái {statusFilter ? `: ${statusFilter === "Active" ? "Đang hoạt động" : "Đã khóa"}` : ""}
+                  Trạng thái {statusFilter ? `: ${statusFilter === "Active" ? "Đang hoạt động" : statusFilter === "Pending" ? "Chờ duyệt" : "Đã khóa"}` : ""}
                 </PrimaryButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-[180px]">
                 <DropdownMenuItem onClick={() => setStatusFilter("Active")}>Đang hoạt động</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setStatusFilter("Pending")}>Chờ duyệt</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setStatusFilter("Locked")}>Đã khóa</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setStatusFilter("")} className="font-bold text-slate-500">Tất cả trạng thái</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <PrimaryButton variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
+                  <Funnel size={16} weight="bold" />
+                  Bộ môn {subjectFilter && subjectFilter !== 'all' ? `: ${subjectFilter}` : ""}
+                </PrimaryButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[180px]">
+                <DropdownMenuItem onClick={() => setSubjectFilter("all")} className="font-bold text-slate-500">Tất cả bộ môn</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {uniqueSubjects.map(sub => (
+                  <DropdownMenuItem key={sub} onClick={() => setSubjectFilter(sub)}>{sub}</DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
         {/* DATA TABLE */}
-        <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-          <Tabs value={subjectFilter} className="w-full pt-2" onValueChange={setSubjectFilter}>
-            <div className="px-4 border-b border-slate-100 flex justify-between items-center bg-white h-12 overflow-x-auto">
-              <TabsList className="bg-transparent border-b border-transparent h-auto p-0 flex justify-start gap-6">
-                <TabsTrigger value="all" className="rounded-full px-4 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold text-sm">Tất cả</TabsTrigger>
-                {uniqueSubjects.map(sub => (
-                  <TabsTrigger key={sub} value={sub} className="rounded-full px-4 py-1.5 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-slate-500 font-semibold text-sm bg-transparent border-transparent">
-                    {sub}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </Tabs>
+        <div className="mt-4 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-2">
 
           <Table>
             <Table.ScrollContainer className="min-h-[400px]">
@@ -530,6 +954,10 @@ export default function AdminClassrooms() {
                 sortDescriptor={sortDescriptor}
                 onSelectionChange={setSelectedKeys}
                 onSortChange={setSortDescriptor}
+                onRowAction={(key) => {
+                  const cls = paginatedClasses.find((c) => c._id === key);
+                  if (cls) setSelectedClass(cls);
+                }}
               >
                 <Table.Header>
                   <Table.Column className="after:hidden" id="selection">
@@ -602,7 +1030,10 @@ export default function AdminClassrooms() {
                       <Table.Cell />
                       <Table.Cell />
                       <Table.Cell>
-                        <div className="py-10 text-slate-500 font-medium">Đang tải dữ liệu...</div>
+                        <div className="flex flex-col items-center justify-center py-10">
+                          <div className="w-8 h-8 border-4 border-[#2f8fa3] border-t-transparent rounded-full animate-spin"></div>
+                          <p className="mt-3 text-sm text-slate-500 font-medium">Đang tải dữ liệu chi tiết...</p>
+                        </div>
                       </Table.Cell>
                       <Table.Cell />
                       <Table.Cell />
@@ -640,9 +1071,9 @@ export default function AdminClassrooms() {
                           <Table.Cell className="font-medium text-slate-500">
                             #{index + 1}
                           </Table.Cell>
-                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3">
                             <div className="flex items-center gap-3">
-                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${cls.status === "Locked" ? "bg-red-100 text-red-600" : "bg-blue-100 text-blue-600"}`}>
+                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${cls.status === "Locked" ? "bg-[#f47c20]/10 text-[#f47c20]" : "bg-[#2f8fa3]/10 text-[#2f8fa3]"}`}>
                                 <GraduationCap size={18} weight="fill" />
                               </div>
                               <div className="flex flex-col">
@@ -651,71 +1082,104 @@ export default function AdminClassrooms() {
                               </div>
                             </div>
                           </Table.Cell>
-                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
-                            <Link
-                              to={`/admin/teachers`}
-                              className="flex items-center gap-2 hover:underline text-blue-600 decoration-blue-300 transition-all"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                          <Table.Cell className="py-3">
+                            <div className="flex items-center gap-2 text-slate-700">
                               <Avatar className="h-7 w-7 border border-slate-100">
                                 <AvatarImage src={cls.teacher.avatar} alt={cls.teacher.name} />
-                                <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-bold">{cls.teacher.name.charAt(0)}</AvatarFallback>
+                                <AvatarFallback className="bg-[#2f8fa3]/10 text-[#2f8fa3] text-xs font-bold">{cls.teacher.name.charAt(0)}</AvatarFallback>
                               </Avatar>
                               <span className="font-semibold text-sm">{cls.teacher.name}</span>
-                            </Link>
+                            </div>
                           </Table.Cell>
-                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3">
                             <span className="font-semibold text-slate-700">{cls.subject}</span>
                           </Table.Cell>
-                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3">
                             <span className="font-semibold text-slate-700">{cls.studentCount} HS</span>
                           </Table.Cell>
-                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
+                          <Table.Cell className="py-3">
                             <span className="text-slate-600 font-medium text-sm">{new Date(cls.createdAt).toLocaleDateString("vi-VN")}</span>
                           </Table.Cell>
-                          <Table.Cell className="py-3 cursor-pointer" onClick={() => setSelectedClass(cls)}>
-                            <Chip color={cls.status === "Active" ? "success" : "danger"} size="sm" variant="soft" className="font-medium">
-                              {cls.status === "Active" ? "Hoạt động" : "Đã khóa"}
-                            </Chip>
+                          <Table.Cell className="py-3">
+                            {cls.status === "Pending" ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPendingApprovalClass(cls);
+                                }}
+                                title="Nhấp để Duyệt hoặc Từ chối lớp học"
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 font-bold text-xs shadow-[0_0_10px_rgba(244,124,32,0.15)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                              >
+                                <span className="flex h-2.5 w-2.5 relative">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                                </span>
+                                <span className="uppercase tracking-wide">Chờ duyệt</span>
+                              </button>
+                            ) : (
+                              <Chip color={cls.status === "Active" ? "success" : "danger"} size="sm" variant="soft" className="font-medium">
+                                {cls.status === "Active" ? "Hoạt động" : "Đã khóa"}
+                              </Chip>
+                            )}
                           </Table.Cell>
                           <Table.Cell className="py-3">
                             <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                              <PrimaryButton
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-blue-200 text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-colors"
-                                title="Xem chi tiết lớp học"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedClass(cls);
-                                }}
-                              >
-                                <Eye size={16} weight="bold" />
-                              </PrimaryButton>
-                              <PrimaryButton
-                                variant="outline"
-                                size="icon"
-                                className={`h-8 w-8 transition-colors ${cls.status === 'Locked' ? 'border-orange-200 text-orange-600 hover:bg-orange-50 hover:text-orange-700' : 'text-slate-500 hover:text-slate-800'}`}
-                                title={cls.status === 'Locked' ? "Mở khóa lớp học" : "Khóa lớp học"}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleLockClass(cls._id, cls.name, cls.status === 'Locked');
-                                }}
-                              >
-                                <LockKey size={16} weight="bold" />
-                              </PrimaryButton>
-                              <PrimaryButton
-                                variant="outline"
-                                size="icon"
-                                className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-                                title="Xóa lớp học"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteClass(cls._id, cls.name);
-                                }}
-                              >
-                                <Trash size={16} weight="bold" />
-                              </PrimaryButton>
+                              {cls.status === 'Pending' ? (
+                                <>
+                                  <PrimaryButton
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                                    title="Phê duyệt lớp học"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleApproveClass(cls._id, cls.name);
+                                    }}
+                                  >
+                                    <CheckCircle size={16} weight="bold" />
+                                  </PrimaryButton>
+                                  <PrimaryButton
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                    title="Từ chối lớp học"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRejectClass(cls._id, cls.name);
+                                    }}
+                                  >
+                                    <XCircle size={16} weight="bold" />
+                                  </PrimaryButton>
+                                </>
+                              ) : (
+                                <>
+                                  <PrimaryButton
+                                    variant="outline"
+                                    size="icon"
+                                    className={`h-8 w-8 transition-colors ${cls.status === 'Locked' ? 'border-[#f47c20]/20 text-[#f47c20] hover:bg-[#f47c20]/5 hover:text-[#f47c20]' : 'text-slate-500 hover:text-slate-800'}`}
+                                    title={cls.status === 'Locked' ? "Mở khóa lớp học" : "Khóa lớp học"}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleLockClass(cls._id, cls.name, cls.status === 'Locked');
+                                    }}
+                                  >
+                                    <LockKey size={16} weight="bold" />
+                                  </PrimaryButton>
+                                  <PrimaryButton
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+                                    title="Xóa lớp học"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteClass(cls._id, cls.name);
+                                    }}
+                                  >
+                                    <Trash size={16} weight="bold" />
+                                  </PrimaryButton>
+                                </>
+                              )}
                             </div>
                           </Table.Cell>
                         </Table.Row>
@@ -746,7 +1210,7 @@ export default function AdminClassrooms() {
                         <Pagination.Link
                           isActive={p === page}
                           onPress={() => setPage(p)}
-                          className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
+                          className={p === page ? "bg-[#f47c20] text-white font-bold border-[#f47c20]" : "text-slate-600 font-medium hover:bg-slate-100"}
                         >
                           {p}
                         </Pagination.Link>
@@ -769,98 +1233,30 @@ export default function AdminClassrooms() {
         </div>
       </div>
 
-      {/* RIGHT SIDEBAR - XEM NHANH */}
+      {/* Class Details Modal */}
       {selectedClass && (
-        <div className="hidden md:flex w-[360px] bg-white border-l border-slate-200 fixed right-0 top-0 bottom-0 flex-col z-[150] shadow-2xl animate-in slide-in-from-right-8">
-          <div className="p-5 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white z-10">
-            <h3 className="font-bold text-slate-900 text-lg">Xem nhanh lớp học</h3>
-            <button onClick={() => setSelectedClass(null)} className="text-slate-400 hover:text-slate-800 p-1.5 rounded hover:bg-slate-100 transition-colors">
-              <X size={20} weight="bold" />
-            </button>
-          </div>
-
-          <div className="p-6 flex flex-col gap-6 overflow-y-auto">
-            <div className={`h-40 rounded-xl border flex items-center justify-center ${selectedClass.status === 'Locked' ? 'bg-red-50 border-red-100 text-red-600' : 'bg-orange-50 border-orange-100 text-orange-600'}`}>
-              <GraduationCap size={56} weight="duotone" />
-            </div>
-
-            <div>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">{selectedClass.name}</h2>
-              <p className={`text-sm font-semibold flex items-center gap-1.5 ${selectedClass.status === 'Locked' ? 'text-red-600' : 'text-orange-600'}`}>
-                Trạng thái: {selectedClass.status === 'Locked' ? 'Đã khóa' : 'Đang hoạt động'}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Chủ đề bài giảng hiện tại</h4>
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100">
-                {isLoadingActivities ? (
-                  <p className="font-bold text-slate-500 text-sm mb-1">Đang tải...</p>
-                ) : (
-                  <p className="font-bold text-slate-800 text-sm mb-1">{classActivities?.currentTopic || "Chưa có dữ liệu"}</p>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Hoạt động mới nhất</h4>
-
-              <div className="relative pl-5 border-l-2 border-slate-100 space-y-6">
-                {isLoadingActivities ? (
-                  <p className="text-sm text-slate-500">Đang tải...</p>
-                ) : classActivities?.recentActivities && classActivities.recentActivities.length > 0 ? (
-                  classActivities.recentActivities.map((activity, idx) => (
-                    <div key={idx} className="relative">
-                      <div className={`absolute -left-[26px] top-1 w-3 h-3 rounded-full ring-4 ring-white ${activity.type === 'assignment_created' ? 'bg-orange-500' : 'bg-blue-600'}`} />
-                      <p className="text-sm font-semibold text-slate-800 mb-1">{activity.content}</p>
-                      <p className="text-xs text-slate-400 font-medium">
-                        {new Date(activity.time).toLocaleString('vi-VN')}
-                      </p>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-500">Chưa có hoạt động nào.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-auto pt-6 flex flex-col gap-3">
-              <PrimaryButton
-                onClick={() => handleOpenStudentsModal(selectedClass._id)}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-6 shadow-sm"
-              >
-                Xem danh sách học sinh
-              </PrimaryButton>
-              <PrimaryButton className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-6 shadow-sm">
-                Vào xem trực tiếp
-              </PrimaryButton>
-              <PrimaryButton variant="outline" className="w-full border-slate-200 text-slate-700 font-semibold py-6 shadow-sm">
-                Tải báo cáo lớp học
-              </PrimaryButton>
-            </div>
-          </div>
-        </div>
+        <Dialog open={!!selectedClass} onOpenChange={(open) => !open && setSelectedClass(null)}>
+          <ClassDetailModalContent
+            classItem={selectedClass}
+            onClose={() => setSelectedClass(null)}
+            onEnter={() => navigate(`/classrooms/${selectedClass._id}`)}
+            onApprove={handleApproveClass}
+            onReject={handleRejectClass}
+          />
+        </Dialog>
       )}
 
-      {/* Students Modal */}
-      <Dialog open={isStudentsModalOpen} onOpenChange={setIsStudentsModalOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Danh sách học sinh - {selectedClass?.name}</DialogTitle>
-            <DialogDescription>
-              Xem danh sách các học sinh đang tham gia vào lớp học này. (Chế độ xem - Chỉ giáo viên mới có quyền chỉnh sửa)
-            </DialogDescription>
-          </DialogHeader>
-          {isLoadingStudents ? (
-            <div className="py-10 text-center text-slate-500">Đang tải danh sách học sinh...</div>
-          ) : (
-            <StudentsTable
-              students={classStudents}
-              readOnly={true}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Pending Class Approval Modal */}
+      {pendingApprovalClass && (
+        <Dialog open={!!pendingApprovalClass} onOpenChange={(open) => !open && setPendingApprovalClass(null)}>
+          <PendingClassApprovalModal
+            classItem={pendingApprovalClass}
+            onClose={() => setPendingApprovalClass(null)}
+            onApprove={handleApproveClass}
+            onReject={handleRejectClass}
+          />
+        </Dialog>
+      )}
 
       {/* Custom Confirm Dialog */}
       <CustomConfirmDialog

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, Users, PencilSimple, CaretDown, Check, ClipboardText, BookOpen, MagnifyingGlass, Funnel, CheckSquare, Clock, SquaresFour, List, PushPin, Archive, Trash, UserPlus, XCircle, CheckCircle } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { io } from "socket.io-client";
 import { useNavigate, Link } from "react-router-dom";
 import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
@@ -220,6 +221,23 @@ export default function TeacherClassrooms() {
     };
   }, [user]);
 
+  // Socket.io Real-time update cho Giáo viên khi Admin duyệt / khóa / mở khóa lớp
+  useEffect(() => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    const socket = io(backendUrl, {
+      withCredentials: true,
+    });
+
+    socket.on('teacher_classrooms_update', (socketTeacherId?: string) => {
+      console.log('🔄 [Socket.io] Có thay đổi trạng thái lớp từ Admin, đang cập nhật...');
+      loadData();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [user]);
+
 
 
   const openPendingRequestsModal = (cls: ITeacherClassroom, defaultTab: 'pending' | 'add_existing' | 'create_new' = 'pending') => {
@@ -275,6 +293,17 @@ export default function TeacherClassrooms() {
       loadData();
     } catch (error) {
       toast.error("Không thể lưu trữ lớp học này!");
+    }
+  };
+
+  const handleToggleCloseClick = async (e: React.MouseEvent | null, cls: ITeacherClassroom) => {
+    if (e) e.stopPropagation();
+    try {
+      await classroomService.toggleCloseClassroom(cls._id);
+      toast.success(cls.status === 'Closed' ? `Đã mở lại lớp "${cls.name}"` : `Đã đóng lớp "${cls.name}"`);
+      loadData();
+    } catch (error) {
+      toast.error("Không thể đóng/mở lớp học này!");
     }
   };
 
@@ -365,6 +394,21 @@ export default function TeacherClassrooms() {
               <div className={styles.cardTop}>
                 <div className="flex items-center gap-3">
                   <span className={styles.subjectTag}>{cls.subject || 'Môn học chung'}</span>
+                  {cls.status === 'Pending' ? (
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f47c20]/10 border border-[#f47c20]/30 text-[#d66b1a] font-bold text-[10px] shadow-[0_0_8px_rgba(244,124,32,0.25)]">
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f47c20] opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#f47c20]"></span>
+                      </span>
+                      <span className="uppercase tracking-wider whitespace-nowrap">Chờ duyệt</span>
+                    </div>
+                  ) : cls.status === 'Locked' ? (
+                    <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200 uppercase whitespace-nowrap">Đã khóa</span>
+                  ) : cls.status === 'Closed' ? (
+                    <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-300 uppercase whitespace-nowrap">Đã đóng</span>
+                  ) : (
+                    <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200 uppercase whitespace-nowrap">Hoạt động</span>
+                  )}
                 </div>
                 <div className="flex gap-2 items-center">
                   <button
@@ -377,13 +421,35 @@ export default function TeacherClassrooms() {
                   <button className="p-1.5 text-blue-500 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors" onClick={(e) => handleEditClick(e, cls)}>
                     <PencilSimple size={18} weight="bold" />
                   </button>
-                  <button className="p-1.5 text-orange-500 bg-orange-50 rounded-md hover:bg-orange-100 transition-colors" onClick={(e) => handleArchiveClick(e, cls)}>
+                  <button className="p-1.5 text-orange-500 bg-orange-50 rounded-md hover:bg-orange-100 transition-colors" onClick={(e) => handleArchiveClick(e, cls)} title="Lưu trữ lớp">
                     <Archive size={18} weight="bold" />
                   </button>
+                  {cls.status !== 'Locked' && cls.status !== 'Pending' && cls.status !== 'Archived' && (
+                    <button className="p-1.5 text-slate-500 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors" onClick={(e) => handleToggleCloseClick(e, cls)} title={cls.status === 'Closed' ? "Mở lại lớp" : "Đóng lớp"}>
+                      {cls.status === 'Closed' ? <CheckSquare size={18} weight="bold" className="text-blue-500" /> : <ClipboardText size={18} weight="bold" />}
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <Link to={`/classrooms/${cls._id}`} className="block flex-1 hover:opacity-80 transition-opacity" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <div
+                className="block flex-1 transition-opacity"
+                onClick={(e) => {
+                  if (cls.status === 'Pending') {
+                    e.preventDefault();
+                    toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+                  } else if (cls.status === 'Locked') {
+                    e.preventDefault();
+                    toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                  } else if (cls.status === 'Closed') {
+                    e.preventDefault();
+                    toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                  } else {
+                    navigate(`/classrooms/${cls._id}`);
+                  }
+                }}
+                style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 'not-allowed' : 'pointer', opacity: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 0.6 : 1 }}
+              >
                 <div className={styles.cardMiddle}>
                   <h3 className={styles.classTitle}>{cls.name}</h3>
                   <div className="flex items-center gap-1.5 mt-1 text-slate-500 text-[13px] font-medium">
@@ -391,10 +457,19 @@ export default function TeacherClassrooms() {
                     <span>Tiết tiếp theo: {getNextScheduleText(cls._id)}</span>
                   </div>
                 </div>
-              </Link>
+              </div>
 
               {/* ACTIONABLE INFO STRIP */}
-              <Link to={`/classrooms/${cls._id}`} style={{ textDecoration: 'none' }}>
+              <div
+                onClick={(e) => {
+                  if (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') {
+                    e.preventDefault();
+                  } else {
+                    navigate(`/classrooms/${cls._id}`);
+                  }
+                }}
+                style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 'not-allowed' : 'pointer' }}
+              >
                 <div className={styles.actionableStrip}>
                   {cls.pendingGrades !== undefined && cls.pendingGrades > 0 ? (
                     <div className={styles.actionBadgePending}>
@@ -417,7 +492,7 @@ export default function TeacherClassrooms() {
                     </div>
                   )}
                 </div>
-              </Link>
+              </div>
 
               <div className={styles.cardFooter}>
                 <Link
@@ -459,7 +534,22 @@ export default function TeacherClassrooms() {
                 selectedKeys={selectedKeys}
                 selectionMode="multiple"
                 onSelectionChange={setSelectedKeys}
-                onRowAction={(key) => navigate(`/classrooms/${key}`)}
+                onRowAction={(key) => {
+                  const cls = paginatedClassrooms.find(c => c._id === key);
+                  if (cls && cls.status === 'Pending') {
+                    toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+                    return;
+                  }
+                  if (cls && cls.status === 'Locked') {
+                    toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                    return;
+                  }
+                  if (cls && cls.status === 'Closed') {
+                    toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                    return;
+                  }
+                  navigate(`/classrooms/${key}`);
+                }}
               >
                 <Table.Header>
                   <Table.Column className="after:hidden w-[45px]" id="selection">
@@ -489,6 +579,9 @@ export default function TeacherClassrooms() {
                   <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[170px]" id="nextSchedule">
                     Lịch học tiếp theo
                   </Table.Column>
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px]" id="status">
+                    Trạng thái
+                  </Table.Column>
                   <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[130px] whitespace-nowrap" id="actions">
                     Hành động
                   </Table.Column>
@@ -496,15 +589,22 @@ export default function TeacherClassrooms() {
                 <Table.Body>
                   {filteredClassrooms.length === 0 ? (
                     <Table.Row key="empty" id="empty">
-                      <Table.Cell className="pr-0" />
-                      <Table.Cell colSpan={7}>
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell>
                         <div className="py-12 text-center text-slate-500 font-medium">
-                          <div className="flex flex-col items-center gap-3">
+                          <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
                             <MagnifyingGlass size={36} weight="duotone" className="text-slate-300" />
                             <p className="font-semibold">Không tìm thấy lớp học nào khớp với "{searchQuery}"</p>
                           </div>
                         </div>
                       </Table.Cell>
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
+                      <Table.Cell />
                     </Table.Row>
                   ) : (
                     paginatedClassrooms.map((cls, idx) => {
@@ -603,16 +703,50 @@ export default function TeacherClassrooms() {
                             </div>
                           </Table.Cell>
 
+                          <Table.Cell>
+                            {cls.status === 'Pending' ? (
+                              <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f47c20]/10 border border-[#f47c20]/30 text-[#d66b1a] font-bold text-[10px] shadow-[0_0_8px_rgba(244,124,32,0.25)] whitespace-nowrap">
+                                <span className="flex h-1.5 w-1.5 relative shrink-0">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f47c20] opacity-75"></span>
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#f47c20]"></span>
+                                </span>
+                                <span className="uppercase tracking-wider">Chờ duyệt</span>
+                              </div>
+                            ) : cls.status === 'Locked' ? (
+                              <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-[10px] font-bold border border-red-200 uppercase whitespace-nowrap">Đã khóa</span>
+                            ) : cls.status === 'Closed' ? (
+                              <span className="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold border border-slate-300 uppercase whitespace-nowrap">Đã đóng</span>
+                            ) : (
+                              <span className="bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-[10px] font-bold border border-emerald-200 uppercase whitespace-nowrap">Hoạt động</span>
+                            )}
+                          </Table.Cell>
+
                           <Table.Cell onClick={(e: any) => e.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1 relative">
                               <ClassroomActionMenu
                                 isPinned={isPinned}
                                 onTogglePin={() => togglePin(null, cls._id)}
-                                onViewDetail={() => navigate(`/classrooms/${cls._id}`)}
+                                onViewDetail={() => {
+                                  if (cls.status === 'Pending') {
+                                    toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+                                    return;
+                                  }
+                                  if (cls.status === 'Locked') {
+                                    toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                                    return;
+                                  }
+                                  if (cls.status === 'Closed') {
+                                    toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                                    return;
+                                  }
+                                  navigate(`/classrooms/${cls._id}`);
+                                }}
                                 onEdit={() => handleEditClick(null, cls)}
                                 onAttendance={() => navigate(`/attendance?classId=${cls._id}`)}
                                 onAddStudent={() => openPendingRequestsModal(cls)}
                                 onArchive={() => handleArchiveClick(null, cls)}
+                                onToggleClose={cls.status !== 'Locked' && cls.status !== 'Pending' && cls.status !== 'Archived' ? () => handleToggleCloseClick(null, cls) : undefined}
+                                isClosed={cls.status === 'Closed'}
                               />
                             </div>
                           </Table.Cell>

@@ -11,6 +11,8 @@ interface ClassroomActionMenuProps {
   onGradebook?: () => void;
   onAddStudent?: () => void;
   onArchive: () => void;
+  onToggleClose?: () => void;
+  isClosed?: boolean;
 }
 
 export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
@@ -22,6 +24,8 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
   onGradebook,
   onAddStudent,
   onArchive,
+  onToggleClose,
+  isClosed = false,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
   const popupRef = useRef<HTMLLabelElement>(null);
@@ -70,7 +74,7 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
   }, []);
 
   return (
-    <StyledWrapper 
+    <StyledWrapper
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -121,6 +125,23 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
                 <span>Thêm học sinh</span>
               </button>
             </li>
+            {onToggleClose && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onToggleClose); }}>
+                  {isClosed ? (
+                    <>
+                      <CheckSquare size={16} weight="bold" className="text-blue-500" />
+                      <span>Mở lại lớp</span>
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardText size={16} weight="bold" className="text-gray-500" />
+                      <span>Đóng lớp học</span>
+                    </>
+                  )}
+                </button>
+              </li>
+            )}
             <hr />
             <li>
               <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onArchive); }}>

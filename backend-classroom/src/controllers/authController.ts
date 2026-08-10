@@ -226,6 +226,14 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
         const result = await loginService(email, password);
 
+        // Kiểm tra Chế độ Bảo trì (Maintenance Mode)
+        const SystemSettingsModel = require('../models/SystemSettings').SystemSettingsModel;
+        const settings = await SystemSettingsModel.findOne();
+        if (settings?.maintenanceMode && result.user.role !== 'admin') {
+            res.status(503);
+            return next(new Error('Hệ thống đang trong chế độ bảo trì. Vui lòng quay lại sau!'));
+        }
+
         // Set refresh token vào HTTP-only cookie (không thể đọc bằng JS)
         res.cookie('refresh_token', result.refreshToken, REFRESH_COOKIE_OPTIONS);
 
@@ -237,7 +245,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
             }
         });
     } catch (error) {
-        res.status(401);
+        if (res.statusCode !== 503) res.status(401);
         next(error);
     }
 };
@@ -280,7 +288,9 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
                     email: user.email,
                     role: user.role,
                     status: user.status,
-                    subject: user.subject
+                    subject: user.subject,
+                    bio: user.bio,
+                    degree: user.degree
                 }
             }
         });
@@ -315,7 +325,9 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
                 gender: user.gender,
                 phone: user.phone,
                 address: user.address,
-                subject: user.subject
+                subject: user.subject,
+                bio: user.bio,
+                degree: user.degree
             }
         });
     } catch (error) {

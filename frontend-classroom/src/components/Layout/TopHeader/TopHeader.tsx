@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
+import { io } from "socket.io-client";
 import { gradebookService } from "../../../service/gradebook.service";
 import {
   Bell,
@@ -129,7 +130,27 @@ const TopHeader: React.FC = () => {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(interval);
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on('notification_update', () => {
+      console.log('🔔 [Socket.io] Có thông báo mới, đang cập nhật...');
+      fetchNotifications();
+    });
+
+    socket.on('admin_stats_update', () => {
+      fetchNotifications();
+    });
+
+    socket.on('teacher_classrooms_update', () => {
+      fetchNotifications();
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, [userRole]);
 
   useEffect(() => {

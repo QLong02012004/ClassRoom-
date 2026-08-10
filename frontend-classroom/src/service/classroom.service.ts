@@ -13,7 +13,7 @@ export interface IClassroomItem {
   };
   studentCount: number;
   createdAt: string;
-  status: 'Active' | 'Locked';
+  status: 'Active' | 'Locked' | 'Pending' | 'Closed';
 }
 
 export interface ITeacherClassroom {
@@ -23,7 +23,7 @@ export interface ITeacherClassroom {
   code: string;
   teacherId: string | { _id: string; name: string; avatar?: string };
   students: string[];
-  status: 'Active' | 'Locked' | 'Archived';
+  status: 'Active' | 'Locked' | 'Archived' | 'Pending' | 'Closed';
   requireApproval?: boolean;
   createdAt: string;
   googleSheetId?: string;
@@ -133,11 +133,15 @@ export const classroomService = {
     return await api.put(`/api/v1/classrooms/${id}`, data);
   },
 
+  toggleCloseClassroom: async (id: string): Promise<IBackendRes<ITeacherClassroom>> => {
+    return await api.put(`/api/v1/classrooms/${id}/close`);
+  },
+
   addExistingStudent: async (id: string, studentId: string): Promise<IBackendRes<any>> => {
     return await api.post(`/api/v1/classrooms/${id}/students/add`, { studentId });
   },
 
-  softDeleteClassroom: async (id: string): Promise<IBackendRes<ITeacherClassroom>> => {
+  softDeleteClassroom: async (id: string): Promise<IBackendRes<any>> => {
     return await api.delete(`/api/v1/classrooms/${id}/soft`);
   },
 
