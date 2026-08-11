@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import styles from "./AssignmentBuilder.module.scss";
 import NumberStepper from "../../FormControls/NumberStepper";
-import { SecondaryButton } from "../../Buttons/SecondaryButton";
+import { PrimaryButton } from "../../Buttons/PrimaryButton";
 import { Plus, X, Upload } from 'phosphor-react';
 import { uploadService } from "../../../../service/upload.service";
 import { useToast } from "../../../Styles/ToastContext";
@@ -119,7 +119,21 @@ export default function AssignmentBuilder({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                style={{ display: 'flex', alignItems: 'center', gap: '4px', padding: '0 12px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#64748b', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '4px', 
+                  padding: '0 16px', 
+                  borderRadius: '10px', 
+                  border: '1.5px solid rgba(47, 143, 163, 0.25)', 
+                  backgroundColor: 'rgba(47, 143, 163, 0.08)', 
+                  color: '#2f8fa3', 
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  cursor: 'pointer', 
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s'
+                }}
               >
                 <Upload size={18} />
                 {isUploading ? "Đang tải..." : "Tải file"}
@@ -155,9 +169,9 @@ export default function AssignmentBuilder({
           <button type="button" className={styles.btnCancel} onClick={onCancel} disabled={isSaving}>
             Hủy bỏ
           </button>
-          <SecondaryButton type="submit" className={styles.btnSave} disabled={isSaving || !title.trim() || isUploading}>
+          <PrimaryButton type="submit" variant="default" className="px-6 py-2.5 h-auto text-sm font-semibold rounded-xl" disabled={isSaving || !title.trim() || isUploading}>
             {isSaving ? "Đang lưu..." : "Lưu bài tập"}
-          </SecondaryButton>
+          </PrimaryButton>
         </div>
       </form>
     </div>

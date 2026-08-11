@@ -464,8 +464,38 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
                 <span>Danh sách câu hỏi ({quizQuestions.length})</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 500 }} onClick={(e) => e.stopPropagation()}>
                   <label htmlFor="total-max-score" style={{ color: '#475569', fontWeight: 600 }}>Điểm tối đa đề thi:</label>
-                  <NumberStepper value={totalMaxScore} onChange={(val) => setTotalMaxScore(Number(val))} min={1} max={100} step={1} />
-                  <button type="button" onClick={() => handleDistributePoints()} style={{ padding: '5px 12px', borderRadius: '8px', backgroundColor: '#fff7ed', border: '1px solid #ffedd5', cursor: 'pointer', color: '#c2410c', fontWeight: 700, fontSize: '0.82rem', transition: 'all 0.2s' }} title="Tự động chia đều điểm cho tất cả câu hỏi"></button>
+                  <NumberStepper
+                    value={totalMaxScore}
+                    onChange={(val) => {
+                      const newScore = Number(val);
+                      setTotalMaxScore(newScore);
+                      handleDistributePoints(quizQuestions, newScore);
+                    }}
+                    min={1}
+                    max={100}
+                    step={1}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleDistributePoints()}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(47, 143, 163, 0.08)',
+                      border: '1.5px solid rgba(47, 143, 163, 0.25)',
+                      cursor: 'pointer',
+                      color: '#2f8fa3',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                    title="Tự động chia đều điểm cho tất cả câu hỏi"
+                  >
+                    Chia đều điểm
+                  </button>
                 </div>
               </h4>
 
@@ -589,9 +619,9 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
                 };
 
                 if (isCurrent) {
-                  btnStyle.borderColor = "#fe6747";
-                  btnStyle.backgroundColor = "rgba(254, 103, 71, 0.1)";
-                  btnStyle.color = "#fe6747";
+                  btnStyle.borderColor = "#2f8fa3";
+                  btnStyle.backgroundColor = "rgba(47, 143, 163, 0.1)";
+                  btnStyle.color = "#2f8fa3";
                 } else if (isDone) {
                   btnStyle.borderColor = "#10b981";
                   btnStyle.backgroundColor = "#ecfdf5";

@@ -113,7 +113,7 @@ const StepperContainer = styled.div<{ $fullWidth?: boolean }>`
   transition: border-color 0.2s;
 
   &:focus-within {
-    border-color: #FE6747;
+    border-color: #2f8fa3;
   }
 `;
 
@@ -128,7 +128,7 @@ const NumberInput = styled.input<{ $fullWidth?: boolean }>`
   text-align: ${props => props.$fullWidth ? 'left' : 'center'};
   font-size: 1rem;
   font-weight: 700;
-  color: #FE6747;
+  color: #2f8fa3;
   outline: none;
   background: transparent;
 

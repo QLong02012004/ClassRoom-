@@ -2,6 +2,7 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { FileText, FileXls, DownloadSimple, CheckCircle, Sparkle, Info } from 'phosphor-react';
 import { PrimaryButton } from '@/components/ui/Buttons/PrimaryButton';
+import * as XLSX from 'xlsx';
 
 interface TemplateGuideModalProps {
   isOpen: boolean;
@@ -9,26 +10,176 @@ interface TemplateGuideModalProps {
 }
 
 export default function TemplateGuideModal({ isOpen, onClose }: TemplateGuideModalProps) {
-  
+
   const handleDownloadSampleExcel = () => {
-    // Generate and trigger download of sample XLSX
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + "Nội dung câu hỏi,Phương án A,Phương án B,Phương án C,Phương án D,Đáp án đúng\n"
-      + "Thủ đô của Việt Nam là gì?,TP. Hồ Chí Minh,Hà Nội,Đà Nẵng,Hải Phòng,B\n"
-      + "Phương trình x + 5 = 10 có nghiệm là?,x = 3,x = 5,x = 10,x = 0,B\n"
-      + "Đơn vị đo cường độ dòng điện là gì?,Volt,Ampere,Watt,Ohm,B";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Mau_De_Thi_Trac_Nghiem.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    try {
+      const data = [
+        ["Nội dung câu hỏi", "Phương án A", "Phương án B", "Phương án C", "Phương án D", "Đáp án đúng"],
+        ["Thủ đô của Việt Nam là gì?", "TP. Hồ Chí Minh", "Hà Nội", "Đà Nẵng", "Hải Phòng", "B"],
+        ["Phương trình x + 5 = 10 có nghiệm là?", "x = 3", "x = 5", "x = 10", "x = 0", "B"],
+        ["Đơn vị đo cường độ dòng điện là gì?", "Volt", "Ampere", "Watt", "Ohm", "B"]
+      ];
+      const worksheet = XLSX.utils.aoa_to_sheet(data);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Mau_De_Thi");
+      XLSX.writeFile(workbook, "Mau_De_Thi_Trac_Nghiem.xlsx");
+    } catch (e) {
+      // Fallback using CSV UTF-8 with BOM signature (\uFEFF) to fix Vietnamese characters in standard Excel
+      const csvContent = "\uFEFFNội dung câu hỏi,Phương án A,Phương án B,Phương án C,Phương án D,Đáp án đúng\n"
+        + "Thủ đô của Việt Nam là gì?,TP. Hồ Chí Minh,Hà Nội,Đà Nẵng,Hải Phòng,B\n"
+        + "Phương trình x + 5 = 10 có nghiệm là?,x = 3,x = 5,x = 10,x = 0,B\n"
+        + "Đơn vị đo cường độ dòng điện là gì?,Volt,Ampere,Watt,Ohm,B";
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", "Mau_De_Thi_Trac_Nghiem.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
-  const handleDownloadSampleWord = () => {
-    // Trigger download of sample Word doc instructions
-    const textContent = `CẤU TRÚC ĐỀ THI TRẮC NGHIỆM MẪU (WORD .DOCX)
+  const handleDownloadSampleWord = async () => {
+    try {
+      const { Document, Packer, Paragraph, TextRun } = await import('docx');
+      const doc = new Document({
+        sections: [
+          {
+            properties: {},
+            children: [
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "CẤU TRÚC ĐỀ THI TRẮC NGHIỆM MẪU (WORD .DOCX)",
+                    bold: true,
+                    size: 28,
+                  }),
+                ],
+                spacing: { after: 200 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Câu 1: Thủ đô của Việt Nam là gì?",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                spacing: { before: 120, after: 60 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "A. TP. Hồ Chí Minh", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "B. Hà Nội", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "C. Đà Nẵng", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "D. Hải Phòng", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Đáp án: B", bold: true, size: 24 }),
+                ],
+                spacing: { after: 200 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Câu 2: Phương trình x + 5 = 10 có nghiệm là?",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                spacing: { before: 120, after: 60 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "A. x = 3", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "B. x = 5", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "C. x = 10", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "D. x = 0", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Đáp án: B", bold: true, size: 24 }),
+                ],
+                spacing: { after: 200 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: "Câu 3: Đơn vị đo cường độ dòng điện trong hệ SI là gì?",
+                    bold: true,
+                    size: 24,
+                  }),
+                ],
+                spacing: { before: 120, after: 60 },
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "A. Volt (V)", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "B. Ampere (A)", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "C. Watt (W)", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "D. Ohm (Ω)", size: 24 }),
+                ],
+              }),
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Đáp án: B", bold: true, size: 24 }),
+                ],
+              }),
+            ],
+          },
+        ],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Mau_De_Thi_Word.docx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Error creating docx file", error);
+      // Clean fallback if anything fails
+      const textContent = `CẤU TRÚC ĐỀ THI TRẮC NGHIỆM MẪU (WORD .DOCX)
 
 Câu 1: Thủ đô của Việt Nam là gì?
 A. TP. Hồ Chí Minh
@@ -51,13 +202,14 @@ C. Watt (W)
 D. Ohm (Ω)
 Đáp án: B
 `;
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'Mau_De_Thi_Word.txt';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Mau_De_Thi_Word.docx';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   return (

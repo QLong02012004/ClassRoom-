@@ -345,10 +345,10 @@
   gap: 5px;
   margin-top: 10px;
   padding: 5px 12px;
-  background: rgba(244, 124, 32, 0.05);
-  border: 1px dashed rgba(244, 124, 32, 0.35);
+  background: rgba(47, 143, 163, 0.05);
+  border: 1px dashed rgba(47, 143, 163, 0.35);
   border-radius: 8px;
-  color: vars.$primary;
+  color: vars.$secondary;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -356,8 +356,9 @@
   transition: all 0.2s;
 
   &:hover {
-    background: rgba(244, 124, 32, 0.1);
+    background: rgba(47, 143, 163, 0.1);
     border-style: solid;
+    border-color: vars.$secondary;
   }
 }
 

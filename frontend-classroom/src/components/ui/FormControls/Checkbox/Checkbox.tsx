@@ -40,7 +40,7 @@ const StyledWrapper = styled.div`
 
   .path {
     fill: none;
-    stroke: #FE6747;
+    stroke: #2f8fa3;
     stroke-width: 6;
     stroke-linecap: round;
     stroke-linejoin: round;

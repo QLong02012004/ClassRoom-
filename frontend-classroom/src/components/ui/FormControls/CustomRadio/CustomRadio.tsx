@@ -54,12 +54,12 @@ const StyledWrapper = styled.div`
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background-color: #FE6747; /* Cam chủ đạo khi checked */
+    background-color: #2f8fa3; /* Xanh ngọc bích khi checked */
     transition: all 0.2s ease-in-out;
   }
 
   .radio-button input[type="radio"]:checked ~ .radio-checkmark {
-    border-color: #FE6747;
+    border-color: #2f8fa3;
   }
 
   .radio-button input[type="radio"]:checked ~ .radio-checkmark:before {
