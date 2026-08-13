@@ -1,14 +1,15 @@
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { UserModel } from '../models/User';
 import { ClassModel } from '../models/Class';
 import { AttendanceModel } from '../models/Attendance';
-import { AssignmentModel } from '../models/Assignment';
+import { ClassActivityModel } from '../models/ClassActivity';
+import { BankItemModel } from '../models/BankItem';
 import { AnnouncementModel } from '../models/Announcement';
 import { GradeModel } from '../models/Grade';
 import { ScheduleModel } from '../models/Schedule';
 import { SubmissionModel } from '../models/Submission';
-import { QuizModel } from '../models/Quiz';
 import { QuizResultModel } from '../models/QuizResult';
 
 dotenv.config();
@@ -19,11 +20,11 @@ const cleanAbsolute = async () => {
         console.log('✅ Đã kết nối tới Database để xóa sạch tuyệt đối');
 
         await AnnouncementModel.deleteMany({});
-        await AssignmentModel.deleteMany({});
+        await ClassActivityModel.deleteMany({});
+        await BankItemModel.deleteMany({});
         await AttendanceModel.deleteMany({});
         await ClassModel.deleteMany({});
         await GradeModel.deleteMany({});
-        await QuizModel.deleteMany({});
         await QuizResultModel.deleteMany({});
         await ScheduleModel.deleteMany({});
         await SubmissionModel.deleteMany({});

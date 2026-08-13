@@ -21,6 +21,7 @@ export interface IUser extends Document {
     streak?: number;
     lastLoginDate?: Date;
     isEmailVerified: boolean;
+    isGoogleAccount: boolean;
     emailVerificationOTP?: string;
     emailVerificationExpires?: Date;
     createdAt: Date;
@@ -46,6 +47,7 @@ const UserSchema = new Schema<IUser>({
     streak: { type: Number, default: 0 },
     lastLoginDate: { type: Date },
     isEmailVerified: { type: Boolean, default: false },
+    isGoogleAccount: { type: Boolean, default: false },
     emailVerificationOTP: { type: String, default: null },
     emailVerificationExpires: { type: Date, default: null },
     createdAt: { type: Date, default: Date.now }

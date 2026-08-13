@@ -31,6 +31,7 @@ import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
 import { SaveButton } from "@/components/ui/Buttons/SaveButton";
+import { SecondaryButton } from "@/components/ui/Buttons/SecondaryButton";
 import styles from './StudentProfile.module.scss';
 
 const StudentProfile: React.FC = () => {
@@ -73,6 +74,19 @@ const StudentProfile: React.FC = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // Google password states
+  const [showGooglePasswordDialog, setShowGooglePasswordDialog] = useState(false);
+  const [googlePasswordStep, setGooglePasswordStep] = useState<'request' | 'verify'>('request');
+  const [googlePasswordForm, setGooglePasswordForm] = useState({
+    otp: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [googleShowNewPassword, setGoogleShowNewPassword] = useState(false);
+  const [googleShowConfirmPassword, setGoogleShowConfirmPassword] = useState(false);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -102,9 +116,71 @@ const StudentProfile: React.FC = () => {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Xác thực thông tin đầu vào ở client
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      toast.error('Họ và tên không được để trống!');
+      return;
+    }
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      toast.error('Họ và tên phải có độ dài từ 2 đến 50 ký tự!');
+      return;
+    }
+    const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠỨỪỬỮỰẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăâêôơứừửữựấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰÝỲỶỸÝýỳỷỹ\s]+$/;
+    if (!nameRegex.test(trimmedName)) {
+      toast.error('Họ và tên không được chứa chữ số hoặc ký tự đặc biệt!');
+      return;
+    }
+
+    if (formData.phone && formData.phone.trim() !== '') {
+      const phoneRegex = /^(0[3|5|7|8|9])[0-9]{8}$/;
+      if (!phoneRegex.test(formData.phone.trim())) {
+        toast.error('Số điện thoại không đúng định dạng Việt Nam (10 chữ số, bắt đầu bằng 03, 05, 07, 08 hoặc 09)!');
+        return;
+      }
+    }
+
+    if (formData.dob && formData.dob.trim() !== '') {
+      const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dobRegex.test(formData.dob.trim())) {
+        toast.error('Ngày sinh không đúng định dạng YYYY-MM-DD!');
+        return;
+      }
+
+      const [yearStr] = formData.dob.trim().split('-');
+      const year = parseInt(yearStr, 10);
+      const currentYear = new Date().getFullYear();
+
+      if (year < 1900 || year > currentYear) {
+        toast.error(`Năm sinh không hợp lệ (phải từ 1900 đến ${currentYear})!`);
+        return;
+      }
+
+      const dobDate = new Date(formData.dob);
+      const today = new Date();
+      if (dobDate > today) {
+        toast.error('Ngày sinh không được vượt quá ngày hiện tại!');
+        return;
+      }
+    }
+
+    if (formData.bio && formData.bio.length > 500) {
+      toast.error('Giới thiệu bản thân không được vượt quá 500 ký tự!');
+      return;
+    }
+
+    if (formData.degree && formData.degree.length > 100) {
+      toast.error('Bằng cấp không được vượt quá 100 ký tự!');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      await userService.updateProfile(formData);
+      await userService.updateProfile({
+        ...formData,
+        name: trimmedName
+      });
       toast.success('Cập nhật hồ sơ thành công', 3000);
       setShowEdit(false);
       // Reload trang để AuthContext cập nhật lại (lấy thông tin mới)
@@ -120,6 +196,15 @@ const StudentProfile: React.FC = () => {
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (!passwordRegex.test(passwordForm.newPassword)) {
+      toast.error('Mật khẩu mới phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!');
+      return;
+    }
+    if (passwordForm.oldPassword === passwordForm.newPassword) {
+      toast.error('Mật khẩu mới không được trùng với mật khẩu hiện tại!');
+      return;
+    }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error('Mật khẩu xác nhận không khớp');
       return;
@@ -137,6 +222,57 @@ const StudentProfile: React.FC = () => {
       toast.error(error.message || 'Đổi mật khẩu thất bại');
     } finally {
       setIsChangingPassword(false);
+    }
+  };
+
+  const handleRequestGooglePasswordOtp = async () => {
+    setIsSendingOtp(true);
+    try {
+      await userService.sendPasswordOTP();
+      toast.success('Mã OTP xác thực đã được gửi về email của bạn!', 4000);
+      setGooglePasswordStep('verify');
+    } catch (error: any) {
+      toast.error(error.message || 'Lỗi gửi mã OTP. Vui lòng thử lại!');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const handleSetupGooglePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (!passwordRegex.test(googlePasswordForm.newPassword)) {
+      toast.error('Mật khẩu mới phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!');
+      return;
+    }
+    if (googlePasswordForm.newPassword !== googlePasswordForm.confirmPassword) {
+      toast.error('Mật khẩu xác nhận không khớp!');
+      return;
+    }
+    if (!googlePasswordForm.otp || googlePasswordForm.otp.trim().length !== 6) {
+      toast.error('Vui lòng nhập đúng mã OTP 6 chữ số!');
+      return;
+    }
+
+    setIsSettingPassword(true);
+    try {
+      await userService.setupGooglePassword({
+        otp: googlePasswordForm.otp.trim(),
+        newPassword: googlePasswordForm.newPassword
+      });
+      toast.success('Thiết lập mật khẩu thành công! Bạn có thể đăng nhập bằng cả email & mật khẩu từ bây giờ.', 5000);
+      setShowGooglePasswordDialog(false);
+      setGooglePasswordForm({ otp: '', newPassword: '', confirmPassword: '' });
+      setGooglePasswordStep('request');
+      
+      // Reload profile to refresh user settings
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      toast.error(error.message || 'Lỗi thiết lập mật khẩu!');
+    } finally {
+      setIsSettingPassword(false);
     }
   };
 
@@ -429,16 +565,32 @@ const StudentProfile: React.FC = () => {
               </div>
             </div>
             <div className={styles.accountMenu}>
-              <div className={styles.menuItem} onClick={() => setShowPasswordDialog(true)} style={{ cursor: 'pointer' }}>
-                <div className={styles.menuLeft}>
-                  <div className={styles.menuIcon}><Password size={18} weight="bold" /></div>
-                  <div className={styles.menuText}>
-                    <span className={styles.mTitle}>Đổi mật khẩu</span>
-                    <span className={styles.mSub}>Cập nhật mật khẩu định kỳ</span>
+              {((user as any)?.isGoogleAccount || user?.avatar?.includes('googleusercontent.com')) ? (
+                <div className={styles.menuItem} onClick={() => {
+                  setShowGooglePasswordDialog(true);
+                  setGooglePasswordStep('request');
+                }} style={{ cursor: 'pointer' }}>
+                  <div className={styles.menuLeft}>
+                    <div className={styles.menuIcon}><Password size={18} weight="bold" /></div>
+                    <div className={styles.menuText}>
+                      <span className={styles.mTitle}>Đổi mật khẩu</span>
+                      <span className={styles.mSub} style={{ color: '#0284c7', fontWeight: 600 }}>Thiết lập mật khẩu đăng nhập</span>
+                    </div>
                   </div>
+                  <CaretRight size={16} weight="bold" className={styles.menuArrow} />
                 </div>
-                <CaretRight size={16} weight="bold" className={styles.menuArrow} />
-              </div>
+              ) : (
+                <div className={styles.menuItem} onClick={() => setShowPasswordDialog(true)} style={{ cursor: 'pointer' }}>
+                  <div className={styles.menuLeft}>
+                    <div className={styles.menuIcon}><Password size={18} weight="bold" /></div>
+                    <div className={styles.menuText}>
+                      <span className={styles.mTitle}>Đổi mật khẩu</span>
+                      <span className={styles.mSub}>Cập nhật mật khẩu định kỳ</span>
+                    </div>
+                  </div>
+                  <CaretRight size={16} weight="bold" className={styles.menuArrow} />
+                </div>
+              )}
               <div className={styles.menuItem}>
                 <div className={styles.menuLeft}>
                   <div className={styles.menuIcon}><BellRinging size={18} weight="bold" /></div>
@@ -464,6 +616,12 @@ const StudentProfile: React.FC = () => {
                 Đăng xuất tài khoản
               </button>
             </div>
+            {((user as any)?.isGoogleAccount || user?.avatar?.includes('googleusercontent.com')) && (
+              <div className="mt-3 p-3.5 bg-sky-50/50 border border-sky-100 rounded-2xl text-[11px] text-sky-700 leading-relaxed font-semibold flex items-start gap-2 shadow-3xs">
+                <span className="shrink-0 text-sm leading-none mt-0.5">💡</span>
+                <span>Tài khoản của bạn đăng nhập qua Google. Bạn có thể thiết lập mật khẩu bằng cách bấm vào "Đổi mật khẩu" để tạo mật khẩu đăng nhập trực tiếp trên mọi thiết bị.</span>
+              </div>
+            )}
           </div>
 
           {/* Tổng kết năm học */}
@@ -628,39 +786,16 @@ const StudentProfile: React.FC = () => {
                       </div>
                       <div className="grid gap-1">
                         <Label htmlFor="subject" className="text-xs font-bold text-slate-600">Môn học chuyên môn</Label>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <button
-                              type="button"
-                              id="subject"
-                              className="h-9 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 flex items-center justify-between hover:border-[#2f8fa3] focus:outline-none focus:ring-2 focus:ring-[#2f8fa3]/30 transition-colors cursor-pointer"
-                            >
-                              <span className={formData.subject ? "text-slate-800 font-bold" : "text-slate-400"}>
-                                {formData.subject || "Chọn môn học"}
-                              </span>
-                              <CaretDown size={14} className="text-slate-400" />
-                            </button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent className="w-[220px] max-h-60 overflow-y-auto bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[100]">
-                            {[
-                              "Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", 
-                              "Sinh học", "Lịch sử", "Địa lý", "Tin học", "Thể dục", 
-                              "Âm nhạc", "Mỹ thuật", "GDCD"
-                            ].map((subj) => (
-                              <DropdownMenuItem
-                                key={subj}
-                                onClick={() => setFormData({ ...formData, subject: subj })}
-                                className={`cursor-pointer text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors ${
-                                  formData.subject === subj
-                                    ? "bg-teal-50 text-[#2f8fa3] font-bold"
-                                    : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                                }`}
-                              >
-                                {subj}
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Input
+                          id="subject"
+                          value={formData.subject || "Chưa phân môn"}
+                          disabled
+                          className="h-9 rounded-xl border-slate-200 bg-slate-100 text-slate-500 font-bold text-sm cursor-not-allowed"
+                          title="Chỉ Admin mới có quyền thay đổi môn học chuyên môn"
+                        />
+                        <span className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          💡 Chỉ Admin mới có quyền thay đổi môn học chuyên môn.
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -728,13 +863,18 @@ const StudentProfile: React.FC = () => {
 
       {/* Dialog Đổi mật khẩu */}
       <Dialog open={showPasswordDialog} onOpenChange={setShowPasswordDialog}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-slate-900">Đổi mật khẩu</DialogTitle>
+        <DialogContent className="sm:max-w-[425px] p-6 rounded-2xl">
+          <DialogHeader className="pb-2 border-b border-slate-100">
+            <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <span className="p-1.5 bg-orange-50 text-[#f47c20] rounded-lg">
+                <Password size={20} weight="bold" />
+              </span>
+              Đổi mật khẩu
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleChangePassword} className="space-y-4 py-4">
-            <div className="grid gap-2 relative">
-              <Label htmlFor="oldPassword">Mật khẩu hiện tại</Label>
+          <form onSubmit={handleChangePassword} className="space-y-4 pt-4">
+            <div className="grid gap-1.5 relative">
+              <Label htmlFor="oldPassword" className="text-xs font-extrabold text-slate-700">Mật khẩu hiện tại</Label>
               <div className="relative">
                 <Input
                   id="oldPassword"
@@ -742,68 +882,225 @@ const StudentProfile: React.FC = () => {
                   required
                   value={passwordForm.oldPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, oldPassword: e.target.value })}
-                  className="pr-10"
+                  className="pr-10 h-10 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-[#f47c20]/20 text-sm font-medium"
+                  placeholder="Nhập mật khẩu hiện tại..."
                 />
                 <button
                   type="button"
                   onClick={() => setShowOldPassword(!showOldPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none bg-transparent border-none cursor-pointer"
                 >
                   {showOldPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            <div className="grid gap-2 relative">
-              <Label htmlFor="newPassword">Mật khẩu mới</Label>
+            <div className="grid gap-1.5 relative">
+              <Label htmlFor="newPassword" className="text-xs font-extrabold text-slate-700">Mật khẩu mới</Label>
               <div className="relative">
                 <Input
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   required
-                  minLength={6}
+                  minLength={8}
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="pr-10"
+                  className="pr-10 h-10 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-[#f47c20]/20 text-sm font-medium"
+                  placeholder="Tối thiểu 8 ký tự..."
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none bg-transparent border-none cursor-pointer"
                 >
                   {showNewPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            <div className="grid gap-2 relative">
-              <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
+            <div className="grid gap-1.5 relative">
+              <Label htmlFor="confirmPassword" className="text-xs font-extrabold text-slate-700">Xác nhận mật khẩu mới</Label>
               <div className="relative">
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   required
-                  minLength={6}
+                  minLength={8}
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="pr-10"
+                  className="pr-10 h-10 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-[#f47c20]/20 text-sm font-medium"
+                  placeholder="Nhập lại mật khẩu mới..."
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none bg-transparent border-none cursor-pointer"
                 >
                   {showConfirmPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
-            <DialogFooter className="mt-6">
-              <PrimaryButton type="button" variant="outline" onClick={() => setShowPasswordDialog(false)} disabled={isChangingPassword}>
+            <DialogFooter className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowPasswordDialog(false)}
+                disabled={isChangingPassword}
+                className="h-10 px-5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 font-extrabold text-sm hover:bg-slate-50 transition-all flex items-center justify-center cursor-pointer bg-white"
+              >
                 Hủy
-              </PrimaryButton>
-              <PrimaryButton type="submit" variant="solid" className="bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold px-4 py-2 rounded-xl border-none cursor-pointer" disabled={isChangingPassword}>
-                {isChangingPassword ? "Đang xử lý..." : "Xác nhận đổi"}
-              </PrimaryButton>
+              </button>
+              <SaveButton type="submit" disabled={isChangingPassword}>
+                {isChangingPassword ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Đang xử lý...
+                  </span>
+                ) : (
+                  <span>Xác nhận đổi</span>
+                )}
+              </SaveButton>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Thiết lập mật khẩu cho tài khoản Google */}
+      <Dialog open={showGooglePasswordDialog} onOpenChange={setShowGooglePasswordDialog}>
+        <DialogContent className="sm:max-w-[425px] p-6 rounded-2xl">
+          <DialogHeader className="pb-2 border-b border-slate-100">
+            <DialogTitle className="text-xl font-black text-slate-900 flex items-center gap-2">
+              <span className="p-1.5 bg-[#2f8fa3]/10 text-[#2f8fa3] rounded-lg">
+                <Password size={20} weight="bold" />
+              </span>
+              Thiết lập mật khẩu liên kết
+            </DialogTitle>
+          </DialogHeader>
+
+          {googlePasswordStep === 'request' ? (
+            <div className="py-4 space-y-4">
+              <p className="text-sm text-slate-600 leading-relaxed font-semibold">
+                Chúng tôi sẽ gửi một mã xác thực OTP gồm 6 chữ số tới email của bạn để xác minh danh tính trước khi thiết lập mật khẩu đăng nhập trực tiếp:
+              </p>
+              <div className="p-3.5 bg-orange-50/40 border border-orange-100 rounded-2xl text-center shadow-3xs">
+                <span className="font-bold text-[#f47c20] text-sm tracking-wide">{user?.email}</span>
+              </div>
+              <DialogFooter className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowGooglePasswordDialog(false)}
+                  disabled={isSendingOtp}
+                  className="h-10 px-5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 font-extrabold text-sm hover:bg-slate-50 transition-all flex items-center justify-center cursor-pointer bg-white"
+                >
+                  Hủy
+                </button>
+                <SaveButton type="button" onClick={handleRequestGooglePasswordOtp} disabled={isSendingOtp}>
+                  {isSendingOtp ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Đang gửi...
+                    </span>
+                  ) : (
+                    <span>Nhận mã OTP</span>
+                  )}
+                </SaveButton>
+              </DialogFooter>
+            </div>
+          ) : (
+            <form onSubmit={handleSetupGooglePassword} className="space-y-5 pt-4">
+              <div className="p-3 bg-[#2f8fa3]/10 border border-[#2f8fa3]/20 rounded-2xl text-xs text-[#2f8fa3] font-bold text-center flex items-center justify-center gap-2">
+                <span>🔑</span>
+                <span>Đã gửi mã OTP. Vui lòng kiểm tra email của bạn!</span>
+              </div>
+
+              <div className="grid gap-1.5">
+                <Label htmlFor="googleOtp" className="text-xs font-extrabold text-slate-700">Mã xác thực OTP (6 chữ số)</Label>
+                <Input
+                  id="googleOtp"
+                  type="text"
+                  required
+                  placeholder="Nhập 6 số..."
+                  maxLength={6}
+                  value={googlePasswordForm.otp}
+                  onChange={(e) => setGooglePasswordForm({ ...googlePasswordForm, otp: e.target.value })}
+                  className="text-left px-4 font-bold text-sm h-11 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/10 placeholder:font-semibold placeholder:text-slate-400"
+                />
+              </div>
+
+              <div className="grid gap-1.5 relative">
+                <Label htmlFor="googleNewPassword" className="text-xs font-extrabold text-slate-700">Mật khẩu mới</Label>
+                <div className="relative">
+                  <Input
+                    id="googleNewPassword"
+                    type={googleShowNewPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    value={googlePasswordForm.newPassword}
+                    onChange={(e) => setGooglePasswordForm({ ...googlePasswordForm, newPassword: e.target.value })}
+                    className="pr-10 h-10 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/10 text-sm font-medium"
+                    placeholder="Tối thiểu 8 ký tự..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setGoogleShowNewPassword(!googleShowNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none bg-transparent border-none cursor-pointer"
+                  >
+                    {googleShowNewPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid gap-1.5 relative">
+                <Label htmlFor="googleConfirmPassword" className="text-xs font-extrabold text-slate-700">Xác nhận mật khẩu mới</Label>
+                <div className="relative">
+                  <Input
+                    id="googleConfirmPassword"
+                    type={googleShowConfirmPassword ? "text" : "password"}
+                    required
+                    minLength={8}
+                    value={googlePasswordForm.confirmPassword}
+                    onChange={(e) => setGooglePasswordForm({ ...googlePasswordForm, confirmPassword: e.target.value })}
+                    className="pr-10 h-10 rounded-xl border-slate-200 focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/10 text-sm font-medium"
+                    placeholder="Nhập lại mật khẩu..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setGoogleShowConfirmPassword(!googleShowConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none bg-transparent border-none cursor-pointer"
+                  >
+                    {googleShowConfirmPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6 flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setGooglePasswordStep('request')}
+                  disabled={isSettingPassword}
+                  className="h-10 px-5 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-800 font-extrabold text-sm hover:bg-slate-50 transition-all flex items-center justify-center cursor-pointer bg-white"
+                >
+                  Quay lại
+                </button>
+                <SaveButton type="submit" disabled={isSettingPassword}>
+                  {isSettingPassword ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Đang xử lý...
+                    </span>
+                  ) : (
+                    <span>Thiết lập mật khẩu</span>
+                  )}
+                </SaveButton>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

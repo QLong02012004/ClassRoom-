@@ -1,6 +1,4 @@
-# BỘ KỊCH BẢN KIỂM THỬ CHI TIẾT TOÀN DIỆN DÀNH CHO HỌC SINH (STUDENT DETAILED TEST CASES)
-
-> **Mục đích:** Danh sách kịch bản kiểm thử (Test Cases) chi tiết với đầy đủ các trường hợp kiểm thử (Positive, Negative, Boundary, Security, Edge Cases) cho từng tính năng dành riêng cho Học sinh (Student) trên hệ thống Quản lý Học tập ClassRoom.
+# BỘ KỊCH BẢN KIỂM THỬ CHI TIẾT DÀNH CHO HỌC SINH (STUDENT DETAILED TEST CASES)
 
 ---
 
@@ -13,59 +11,90 @@
 
 ---
 
-## 🛠️ CHI TIẾT CÁC KỊCH BẢN KIỂM THỬ (TEST CASES & SUB-CASES)
-
----
+## 🛠️ CHI TIẾT CÁC KỊCH BẢN KIỂM THỬ (TEST CASES & SUB‑CASES)
 
 ### MODULE 1: XÁC THỰC, ĐĂNG KÝ & THAM GIA LỚP (`/login`, `/register`, `/dashboard`)
-
-| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub-Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: |
-| **TC-STU-01** | **Đăng nhập Học sinh** | **01.1 (Positive)**: Đăng nhập hợp lệ | 1. Mở `/login`<br>2. Nhập Email & Mật khẩu Học sinh<br>3. Bấm "Đăng nhập" | Email: `student@gmail.com`<br>Pass: `123456` | - Đăng nhập thành công, xuất hiện Toast chào mừng.<br>- Chuyển hướng tự động vào Trang chủ Học sinh `/dashboard`. | `[ ] Pass`<br>`[ ] Fail` |
-| | | **01.2 (Positive)**: Đăng nhập 1-Click bằng Google OAuth 2.0 | 1. Click nút **[ Đăng nhập / Đăng ký bằng Google ]**<br>2. Chọn tài khoản Google của Học sinh | Google Credentials | Xác thực thành công, tự động khởi tạo hoặc đăng nhập tài khoản Học sinh ở trạng thái `Active`. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-02** | **Đăng ký Học sinh & Xác thực OTP 6 số** | **02.1 (Positive)**: Đăng ký thủ công -> Nhập OTP 6 số qua Email | 1. Mở `/register`, chọn vai trò Học sinh<br>2. Nhập thông tin & gửi Đăng ký<br>3. Nhập mã OTP 6 số gửi về Email | Email: `hocsinha@gmail.com`<br>Pass: `123456` | - Xác thực OTP thành công, tài khoản chuyển sang trạng thái `Active` ngay lập tức (không cần Admin duyệt).<br>- Học sinh có thể đăng nhập vào hệ thống bình thường ngay lập tức. | `[ ] Pass`<br>`[ ] Fail` |
-| | | **02.2 (UI/UX)**: Đếm ngược 30s Gửi lại mã OTP | 1. Mở Modal OTP 6 số<br>2. Quan sát bộ đếm ngược 30s | Re-send OTP click | Bộ đếm ngược chạy từ 30s về 0s. Khi hết 30s nút "Gửi lại mã" sáng lên, click gửi thành công mã OTP mới. | `[ ] Pass`<br>`[ ] Fail` |
-| | | **02.3 (Security)**: Tự động kích hoạt Modal OTP khi Cố Đăng nhập | 1. Đăng ký tài khoản Học sinh nhưng tắt Modal OTP<br>2. Mở `/login` và bấm Đăng nhập | Email chưa xác thực | Hiển thị Toast cảnh báo và **tự động mở Modal OTP 6 số ngay trên màn hình Đăng nhập** để kích hoạt tại chỗ. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-03** | **Tham gia Lớp học bằng Mã Code (`classCode`)** | **03.1 (Positive)**: Nhập mã `classCode` hợp lệ | 1. Tại Dashboard, bấm nút "Tham gia lớp học"<br>2. Nhập mã `classCode` của Giáo viên (VD: `X8K9L2`) | Valid `classCode` | Gửi yêu cầu xin vào lớp thành công, lớp hiển thị ở tab `Đang chờ duyệt` của Học sinh. | `[ ] Pass`<br>`[ ] Fail` |
-| | | **03.2 (Negative)**: Nhập sai mã code không tồn tại | 1. Nhập mã code ngẫu nhiên không có trong hệ thống | `INVALID` | Hiển thị Toast lỗi: *"Mã lớp học không tồn tại trên hệ thống!"*. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-04** | **Truy cập Lớp học đã được Phê duyệt** | **04.1 (Positive)**: Giáo viên duyệt -> Học sinh truy cập lớp | 1. Sau khi Giáo viên bấm Phê duyệt yêu cầu xin vào lớp<br>2. Click vào thẻ lớp trên Dashboard | Approved Class Card | Chuyển hướng thành công vào Chi tiết lớp học, xem Bảng tin, Bài tập, Tài liệu và Danh sách bài thi. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-01** | **Đăng nhập Học sinh** | **01.1 (Positive)**: Đăng nhập hợp lệ | 1. Mở `/login`<br>2. Nhập Email & Mật khẩu Học sinh<br>3. Bấm "Đăng nhập" | Email: `student@gmail.com`<br>Pass: `123456` | - Đăng nhập thành công, xuất hiện Toast chào mừng.<br>- Chuyển hướng vào `/dashboard`. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **01.2 (Negative – Sai mật khẩu)** | 1. Nhập Email đúng, mật khẩu sai | Email: `student@gmail.com`<br>Pass: `wrong` | - Hiển thị Toast lỗi "Sai mật khẩu".<br>- Không chuyển trang. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **01.3 (Security – XSS trong email)** | Nhập `<script>alert(1)</script>` vào trường Email | Email: `<script>alert(1)</script>` | - Toast lỗi "Email không hợp lệ".<br>- Không thực thi script. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-02** | **Đăng ký Học sinh & OTP 6 số** | **02.1 (Positive)**: Đăng ký thủ công → OTP | 1. Mở `/register`, chọn vai trò Học sinh<br>2. Nhập thông tin hợp lệ<br>3. Gửi đăng ký<br>4. Nhập OTP 6 số từ email | Email: `newstudent@gmail.com`<br>OTP: `123456` | - OTP hợp lệ, tài khoản chuyển sang `Active`.<br>- Chuyển sang `/dashboard`. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **02.2 (UI/UX – Đếm ngược 30s) **| Mở modal OTP, quan sát bộ đếm | - | - Bộ đếm giảm từ 30s → 0s, nút "Gửi lại" bật khi hết. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **02.3 (Security – Resend OTP giới hạn)**| Nhấn "Gửi lại OTP" nhanh liên tục | - | - Hệ thống chỉ cho phép tối đa 3 lần trong 5 phút, sau đó hiển thị lỗi. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-03** | **Tham gia Lớp học bằng Mã Code** | **03.1 (Positive)**: Mã hợp lệ | 1. Tại Dashboard, bấm "Tham gia lớp học"<br>2. Nhập `classCode` hợp lệ | `X8K9L2` | - Yêu cầu xin vào lớp thành công, hiển thị trong tab "Đang chờ duyệt". | `[ ] Pass`<br>`[ ] Fail` |
+| | | **03.2 (Negative – Mã không tồn tại)** | Nhập mã ngẫu nhiên | `INVALID` | - Toast lỗi "Mã lớp học không tồn tại".<br>- Không gửi yêu cầu. | `[ ] Pass`<br>`[ ] Fail` |
+| | | **03.3 (Boundary – Độ dài mã quá dài)** | Nhập chuỗi 20 ký tự | `ABCDEFGHIJKLMNOQRST` | - Toast lỗi "Mã lớp học không hợp lệ". | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-04** | **Truy cập Lớp đã được Phê duyệt** | **04.1 (Positive)**: Giáo viên duyệt → Học sinh truy cập | 1. Giáo viên duyệt yêu cầu<br>2. Học sinh click lớp trên Dashboard | Approved Class Card | - Chuyển tới chi tiết lớp, xem Bảng tin, Bài tập, Tài liệu, Đề thi. | `[ ] Pass`<br>`[ ] Fail` |
 
 ---
 
 ### MODULE 2: KIỂM THỬ BẢO MẬT & TRẠNG THÁI LỚP HỌC (`/dashboard`, `/classrooms`)
-
-| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub-Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: |
-| **TC-STU-05** | **Chặn truy cập Lớp Đã đóng (`Closed`)** | **05.1 (Security Check)**: Bấm vào lớp bị Giáo viên đóng | 1. Tìm lớp học có trạng thái `Closed`<br>2. Nhấp chuột vào thẻ lớp từ Dashboard | Closed Class Card | - Thẻ lớp học bị mờ đi (`opacity: 0.6`, `cursor: not-allowed`).<br>- Chặn không cho truy cập vào lớp và hiện Toast cảnh báo: *"Lớp học đã bị đóng, không thể truy cập."*. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-06** | **Chặn truy cập Lớp Bị khóa (`Locked`)** | **06.1 (Security Check)**: Bấm vào lớp bị Admin khóa | 1. Tìm lớp học có trạng thái `Locked`<br>2. Nhấp chuột vào thẻ lớp từ Dashboard | Locked Class Card | - Thẻ lớp học bị mờ đi.<br>- Chặn không cho truy cập vào lớp và hiện Toast cảnh báo: *"Lớp học đã bị khóa bởi Quản trị viên hệ thống."*. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-05** | **Chặn truy cập Lớp Đã đóng (`Closed`)** | **05.1 (Security)**: Click lớp đóng | 1. Tìm lớp trạng thái `Closed`<br>2. Click vào thẻ lớp | Closed Class Card | - Thẻ mờ (`opacity:0.6`, `cursor:not-allowed`).<br>- Không cho vào lớp, toast "Lớp đã đóng". | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-06** | **Chặn truy cập Lớp Bị khóa (`Locked`)** | **06.1 (Security)**: Click lớp khóa | 1. Tìm lớp trạng thái `Locked`<br>2. Click vào thẻ lớp | Locked Class Card | - Thẻ mờ, toast "Lớp đã khóa bởi Admin". | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-07** | **Kiểm tra quyền truy cập sau khi bị xóa** | **07.1 (Negative)**: Truy cập lớp đã xóa | 1. Xóa lớp (Admin) <br>2. Học sinh cố gắng vào URL `/classrooms/:id` | URL của lớp đã xóa | - 404 Not Found, toast "Lớp không tồn tại". | `[ ] Pass`<br>`[ ] Fail` |
 
 ---
 
 ### MODULE 3: HỌC TẬP, NỘP BÀI & THI TRẮC NGHIỆM (`/assignments`, `/exams`, `/chat`)
-
-| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub-Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: |
-| **TC-STU-07** | **Xem Bảng tin & Tải Tài liệu** | **07.1 (Interactive)**: Xem file PDF/Word & bình luận bài đăng | 1. Vào Tab Bảng tin trong lớp<br>2. Click tải file PDF/Word đính kèm<br>3. Nhập câu hỏi bình luận công khai | Comment text | Tải file thành công, bình luận hiển thị công khai dưới bài đăng của Giáo viên. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-08** | **Nộp Bài tập Tự luận với `<AnimatedSendButton>`** | **08.1 (Positive)**: Nộp bài bằng file & nút máy bay giấy | 1. Mở bài tập tự luận (`/assignments/:id`)<br>2. Tải file làm bài `.pdf`/`.docx`<br>3. Gõ ghi chú bài giải<br>4. Click nút nộp bài máy bay giấy | File bài làm | - Nút `<AnimatedSendButton>` có hiệu ứng máy bay giấy bay mượt mà khi di chuột.<br>- Đã nộp bài thành công, trạng thái đổi thành "Đã nộp bài (Chờ chấm)". | `[ ] Pass`<br>`[ ] Fail` |
-| | | **08.2 (Positive)**: Chỉnh sửa bài nộp trước hạn Deadline | 1. Khi chưa hết hạn Deadline, mở lại bài tập đã nộp<br>2. Bấm "Chỉnh sửa bài làm"<br>3. Tải file mới & nộp lại | New file solution | Bài làm cũ được thay thế bằng bài làm mới, cập nhật thời gian nộp thành công. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-09** | **Làm Bài thi Trắc nghiệm Online đếm ngược** | **09.1 (Exam Flow)**: Làm bài thi có đồng hồ đếm ngược | 1. Mở bài thi trắc nghiệm (`/exams/:id`)<br>2. Tích chọn các đáp án A/B/C/D<br>3. Quan sát đồng hồ đếm ngược<br>4. Bấm "Nộp bài" | Answers selection | - Đồng hồ chạy đếm ngược chuẩn xác.<br>- Tự động nộp bài khi hết giờ.<br>- Hiển thị kết quả điểm số, số câu đúng/sai và lời giải chi tiết ngay sau khi nộp. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-10** | **Hỏi đáp Trợ lý AI Gemini (`/chat`)** | **10.1 (AI Assistant)**: Trợ lý học tập thông minh | 1. Truy cập `/chat`<br>2. Nhập thắc mắc bài tập hoặc xin tóm tắt lý thuyết | Question text | AI Gemini phản hồi phân tích chi tiết lời giải và hướng dẫn từng bước mượt mà. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-08** | **Xem Bảng tin & Tải Tài liệu** | **08.1 (Interactive)**: Xem file PDF/Word & bình luận | 1. Vào Tab Bảng tin<br>2. Click tải file đính kèm<br>3. Nhập bình luận | Comment text | - File tải thành công.<br>- Bình luận hiển thị công khai. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-09** | **Nộp Bài tập Tự luận (AnimatedSendButton)** | **09.1 (Positive)**: Nộp file & ghi chú | 1. Mở `/assignments/:id`<br>2. Tải file `.pdf`/`.docx`<br>3. Nhập ghi chú<br>4. Click nút máy bay giấy | File + note | - Nút hoạt ảnh mượt, nộp thành công, trạng thái "Đã nộp (Chờ chấm)". | `[ ] Pass`<br>`[ ] Fail` |
+| | | **09.2 (Negative – File quá lớn >10MB)** | Tải file 12MB | Large file | - Toast lỗi "Kích thước file vượt quá giới hạn 10MB".<br>- Không cho nộp. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-10** | **Chỉnh sửa bài nộp trước deadline** | **10.1 (Positive)**: Sửa file trước hạn | 1. Mở bài đã nộp trước deadline<br>2. Click "Chỉnh sửa"<br>3. Tải file mới | New file | - Thay thế file cũ, cập nhật thời gian nộp. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-11** | **Làm Đề thi Trắc nghiệm có Đếm ngược** | **11.1 (Exam Flow)**: Đoạn thời gian đồng hồ | 1. Mở `/exams/:id`<br>2. Chọn đáp án<br>3. Quan sát đồng hồ<br>4. Bấm "Nộp" hoặc để hết giờ | Answers | - Đồng hồ chạy chính xác, tự động nộp khi hết giờ.<br>- Hiển thị kết quả chi tiết. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-12** | **Trợ lý AI Gemini (Chat)** | **12.1 (AI Assistant)**: Hỏi đáp học tập | 1. Truy cập `/chat`<br>2. Nhập câu hỏi | Question text | - AI trả lời chi tiết, không lỗi. | `[ ] Pass`<br>`[ ] Fail` |
 
 ---
 
-### MODULE 4: GAMIFICATION XP, THĂNG CẤP LEVEL & ANALYTICS (`/dashboard`)
-
-| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub-Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+### MODULE 4: GAMIFICATION, XP & LEVEL (`/dashboard`)
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
 | :---: | :--- | :--- | :--- | :--- | :--- | :---: |
-| **TC-STU-11** | **Tích lũy XP, Level & Bảng xếp hạng** | **11.1 (Gamification)**: Cộng điểm thưởng XP & Thăng cấp Level | 1. Được GV chấm điểm bài tập hoặc hoàn thành bài thi<br>2. Mở Dashboard xem Thẻ XP & Leaderboard | Gamification System | - Điểm XP được cộng chuẩn công thức: $XP = Điểm \times 3 + 15$ (Thưởng nộp đúng hạn).<br>- Cấp độ Level tự động thăng cấp khi đạt mốc XP.<br>- Vị trí trên Bảng xếp hạng Leaderboard lớp học cập nhật tương ứng. | `[ ] Pass`<br>`[ ] Fail` |
-| | | **11.2 (Streak Counter)**: Đếm chuỗi nộp bài nối tiếp | 1. Nộp liên tiếp 3 bài tập đúng hạn Deadline | On-time submissions | Chuỗi Streak tăng lên 3 ngày. Nếu có 1 bài nộp trễ hạn, Streak tự động reset về 0. | `[ ] Pass`<br>`[ ] Fail` |
-| **TC-STU-12** | **Widget Cảnh báo Lỗ hổng Kiến thức** | **12.1 (AI Analytics)**: Ôn tập dạng bài sai $\ge 40\%$ | 1. Quan sát Card "Cảnh báo Lỗ hổng Kiến thức" ở Dashboard<br>2. Bấm nút **[ Luyện tập ngay ]** | Weakness Analytics | - Tự động lọc ra top 5 dạng bài có tỷ lệ làm sai $\ge 40\%$.<br>- Bấm "Luyện tập ngay" mở phòng ôn tập trắc nghiệm đúng thẻ tag điểm yếu đó. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-13** | **Tích lũy XP & Thăng cấp Level** | **13.1 (Gamification)**: Nhận XP sau chấm điểm | 1. Nhận điểm từ giáo viên<br>2. Mở Dashboard | Points | - XP = Điểm × 3 + 15 (nộp đúng hạn).<br>- Level tự động tăng khi đạt ngưỡng. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-14** | **Streak Counter** | **14.1 (Streak)**: Nộp liên tục 3 ngày | 1. Nộp bài đúng hạn 3 ngày liên tiếp | On‑time submissions | - Streak tăng lên 3.<br>- Reset khi có lần nộp trễ. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-15** | **Bảng xếp hạng Leaderboard** | **15.1 (Leaderboard)**: Xem vị trí trong lớp | 1. Mở Dashboard | - | - Leaderboard cập nhật theo XP, hiển thị vị trí. | `[ ] Pass`<br>`[ ] Fail` |
 
 ---
 
-## 🚀 QUY TRÌNH THỰC HIỆN KIỂM THỬ KHUYÊN DÙNG (STUDENT TEST STEPS)
+### MODULE 5: KHẢ NĂNG TRUY CẬP (Accessibility)
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-STU-16** | **Screen Reader Support** | **16.1 (Accessibility)**: Đọc nội dung Dashboard | 1. Bật screen reader (NVDA/VoiceOver)<br>2. Duyệt Dashboard | - | - Tất cả nội dung (button, link) có aria‑label phù hợp, đọc được. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-17** | **Focus Order** | **17.1 (UI/UX)**: Tab navigation | 1. Nhấn Tab liên tục từ đầu trang | - | - Focus di chuyển logic: Header → Sidebar → Main Content → Footer. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-18** | **Contrast Ratio** | **18.1 (UI/UX)**: Kiểm tra độ tương phản màu | 1. Sử dụng công cụ contrast checker | - | - Tất cả text/background có tỷ lệ >= 4.5:1 (WCAG AA). | `[ ] Pass`<br>`[ ] Fail` |
 
-1. **Bước 1 (Đăng ký & OTP)**: Thực hiện từ **TC-STU-01** đến **TC-STU-02**. Đăng ký tài khoản Học sinh, xác thực OTP 6 số qua Email để chuyển `Active` ngay lập tức.
-2. **Bước 2 (Tham gia Lớp & Kiểm tra Bảo mật)**: Thực hiện từ **TC-STU-03** đến **TC-STU-06**. Nhập mã `classCode` xin vào lớp và kiểm tra tính năng chặn truy cập khi lớp ở trạng thái `Closed` hoặc `Locked`.
-3. **Bước 3 (Học tập & Nộp bài)**: Thực hiện từ **TC-STU-07** đến **TC-STU-10**. Xem bài giảng PDF, nộp bài tập tự luận bằng nút máy bay `<AnimatedSendButton>`, làm thi trắc nghiệm online đếm ngược và hỏi đáp trợ lý AI Gemini.
-4. **Bước 4 (Gamification & Ôn tập điểm yếu)**: Thực hiện **TC-STU-11** và **TC-STU-12**. Kiểm tra tích lũy XP thăng cấp Level, chuỗi Streak nộp bài, xem Bảng xếp hạng Leaderboard và bấm "Luyện tập ngay" ôn tập lỗ hổng kiến thức.
+---
+
+### MODULE 6: HIỆU NĂNG & STRESS (Performance)
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-STU-19** | **Page Load Time** | **19.1 (Performance)**: Tải Dashboard dưới 2s | 1. Mở `/dashboard` trên mạng bình thường | - | - Thời gian tải < 2s, không lỗi. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-20** | **Large Data Set** | **20.1 (Stress)**: Dashboard với >200 lớp | 1. Tạo 200 lớp (admin)<br>2. Đăng nhập học sinh | - | - Dashboard vẫn phản hồi < 3s, scroll mượt. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-21** | **Concurrent Submissions** | **21.1 (Stress)**: 20 học sinh nộp bài cùng lúc | 1. Mỗi học sinh mở bài tập và nộp file | - | - Server xử lý không lỗi, thời gian phản hồi < 1s. | `[ ] Pass`<br>`[ ] Fail` |
+
+---
+
+### MODULE 7: ĐÁP ỨNG DI ĐỘNG (Mobile Responsiveness)
+| Mã TC | Tên Kịch Bản | Trường Hợp Kiểm Thử (Sub‑Cases) | Các Bước Thực Hiện | Dữ Liệu Đầu Vào | Kết Quả Mong Đợi (Expected Outcome) | Trạng Thái |
+| :---: | :--- | :--- | :--- | :--- | :--- | :---: |
+| **TC-STU-22** | **Responsive Layout** | **22.1 (UI/UX)**: Kiểm tra trên màn hình 375×667 (iPhone SE) | 1. Mở trang Dashboard trên thiết bị mô phỏng | - | - Header, Sidebar, Content hiển thị đúng, không overflow. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-23** | **Touch Interaction** | **23.1 (UI/UX)**: Swipe để mở/đóng Sidebar | 1. Vuốt từ trái sang phải | - | - Sidebar mở mượt, đóng khi vuốt ngược lại. | `[ ] Pass`<br>`[ ] Fail` |
+| **TC-STU-24** | **Zoom & Font Scaling** | **24.1 (Accessibility)**: Phóng to 150% | 1. Thiết lập zoom trình duyệt 150% | - | - Nội dung vẫn đọc được, không bị cắt. | `[ ] Pass`<br>`[ ] Fail` |
+
+---
+
+## 🚀 QUY TRÌNH THỰC HIỆN KIỂM THỬ (STUDENT TEST STEPS)
+1. **Bước 1 (Đăng ký & OTP)**: Thực hiện TC‑STU‑01 → TC‑STU‑02.
+2. **Bước 2 (Tham gia lớp & Bảo mật)**: Thực hiện TC‑STU‑03 → TC‑STU‑07.
+3. **Bước 3 (Học tập & Nộp bài)**: Thực hiện TC‑STU‑08 → TC‑STU‑12.
+4. **Bước 4 (Gamification & Điểm thưởng)**: Thực hiện TC‑STU‑13 → TC‑STU‑15.
+5. **Bước 5 (Khả năng truy cập)**: Thực hiện TC‑STU‑16 → TC‑STU‑18.
+6. **Bước 6 (Hiệu năng & Stress)**: Thực hiện TC‑STU‑19 → TC‑STU‑21.
+7. **Bước 7 (Đáp ứng di động)**: Thực hiện TC‑STU‑22 → TC‑STU‑24.
+
+---
+
+*Lưu ý:* Mỗi test case cần được thực hiện trên cả môi trường **desktop** và **mobile** để đảm bảo tính nhất quán.

@@ -109,6 +109,12 @@ const Register: React.FC = () => {
       return;
     }
 
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error("Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!");
+      return;
+    }
+
     try {
       setLoading(true);
       if (role === 'teacher') {

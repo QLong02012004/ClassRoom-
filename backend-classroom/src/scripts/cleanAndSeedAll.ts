@@ -1,16 +1,23 @@
+/**
+ * SCRIPT: DỌN SẠCH & SEED DỮ LIỆU TỔNG HỢP
+ * Tác dụng: Xóa sạch toàn bộ dữ liệu cũ và tiến hành tạo lại mới toàn bộ các tài khoản Admin,
+ * Giáo viên mẫu, 5 Lớp học mẫu và 20 Học sinh mẫu được chia đều vào các lớp.
+ */
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { UserModel } from '../models/User';
-import { ClassModel } from '../models/Class';
+import { ClassModel, IClass } from '../models/Class';
 import { AttendanceModel } from '../models/Attendance';
-import { AssignmentModel } from '../models/Assignment';
+import { ClassActivityModel } from '../models/ClassActivity';
+import { BankItemModel } from '../models/BankItem';
 import { AnnouncementModel } from '../models/Announcement';
 import { GradeModel } from '../models/Grade';
 import { ScheduleModel } from '../models/Schedule';
 import { SubmissionModel } from '../models/Submission';
-import { QuizModel } from '../models/Quiz';
 import { QuizResultModel } from '../models/QuizResult';
+import { UserRole, UserStatus, ClassStatus } from '../constants/enums';
 
 dotenv.config();
 
@@ -54,11 +61,11 @@ const cleanAndSeed = async () => {
         // 1. XÓA SẠCH TẤT CẢ DỮ LIỆU
         console.log('🧹 Đang xóa dữ liệu cũ...');
         await AnnouncementModel.deleteMany({});
-        await AssignmentModel.deleteMany({});
+        await ClassActivityModel.deleteMany({});
+        await BankItemModel.deleteMany({});
         await AttendanceModel.deleteMany({});
         await ClassModel.deleteMany({});
         await GradeModel.deleteMany({});
-        await QuizModel.deleteMany({});
         await QuizResultModel.deleteMany({});
         await ScheduleModel.deleteMany({});
         await SubmissionModel.deleteMany({});
@@ -73,7 +80,8 @@ const cleanAndSeed = async () => {
             name: 'Root Admin',
             email: 'admin@gmail.com',
             passwordHash: passAdmin,
-            role: 'admin'
+            role: UserRole.ADMIN,
+            isEmailVerified: true
         });
         console.log('  🎉 Tạo tài khoản Root Admin thành công (admin@gmail.com / admin123)');
 
@@ -85,7 +93,8 @@ const cleanAndSeed = async () => {
             name: 'Nguyễn Văn Teacher',
             email: 'teacher@gmail.com',
             passwordHash: passTeacher,
-            role: 'teacher'
+            role: UserRole.TEACHER,
+            isEmailVerified: true
         });
         console.log('  🎉 Tạo tài khoản Giáo viên thành công (teacher@gmail.com / teacher123)');
 
@@ -99,7 +108,7 @@ const cleanAndSeed = async () => {
             { name: 'Luyện thi Đại học', subject: 'Tiếng Anh' }
         ];
 
-        const createdClasses = [];
+        const createdClasses: IClass[] = [];
         for (const cls of sampleClasses) {
             let code = generateClassCode();
             let isCodeUnique = false;
@@ -114,7 +123,7 @@ const cleanAndSeed = async () => {
                 subject: cls.subject,
                 code,
                 teacherId: teacher._id,
-                status: 'Active'
+                status: ClassStatus.ACTIVE
             });
             createdClasses.push(newCls);
         }
@@ -130,12 +139,13 @@ const cleanAndSeed = async () => {
                 name: s.name,
                 email: s.email,
                 passwordHash: passStudent,
-                role: 'student',
-                status: 'Active',
+                role: UserRole.STUDENT,
+                status: UserStatus.ACTIVE,
                 gender: s.gender,
                 dob: s.dob,
                 phone: s.phone,
                 parentPhone: s.parentPhone,
+                isEmailVerified: true
             }))
         );
         console.log(`  🎉 Đã tạo ${createdStudents.length} học sinh mẫu thành công!`);

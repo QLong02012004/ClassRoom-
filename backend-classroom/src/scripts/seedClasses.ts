@@ -1,8 +1,14 @@
+/**
+ * SCRIPT: KHỞI TẠO LỚP HỌC MẪU
+ * Tác dụng: Tạo tài khoản giáo viên mẫu (nếu chưa có) và gán cho giáo viên đó 5 lớp học thử nghiệm với mã lớp ngẫu nhiên.
+ */
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { UserModel } from '../models/User';
 import { ClassModel } from '../models/Class';
+import { UserRole, ClassStatus } from '../constants/enums';
 
 dotenv.config();
 
@@ -21,7 +27,7 @@ const seedClasses = async () => {
         console.log('✅ Đã kết nối tới Database để chuẩn bị Seed Classes');
 
         // Tìm giáo viên
-        let teacher = await UserModel.findOne({ role: 'teacher' });
+        let teacher = await UserModel.findOne({ role: UserRole.TEACHER });
         
         // Nếu không có, tạo một giáo viên mẫu
         if (!teacher) {
@@ -33,7 +39,8 @@ const seedClasses = async () => {
                 name: 'Nguyễn Văn Teacher',
                 email: 'teacher@gmail.com',
                 passwordHash,
-                role: 'teacher'
+                role: UserRole.TEACHER,
+                isEmailVerified: true
             });
             console.log('🎉 Tạo tài khoản Giáo viên thành công (teacher@gmail.com / teacher123)');
         }
@@ -65,7 +72,7 @@ const seedClasses = async () => {
                 subject: cls.subject,
                 code,
                 teacherId: teacher._id,
-                status: 'Active'
+                status: ClassStatus.ACTIVE
             });
         }
 

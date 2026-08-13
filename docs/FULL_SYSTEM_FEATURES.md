@@ -20,9 +20,12 @@ Hệ thống Quản lý Học tập (LMS ClassRoom) phân chia thành 3 vai trò
 
 ## II. MA TRẬN PHÂN QUYỀN HỆ THỐNG & LUỒNG ĐĂNG KÝ (RBAC & APPROVAL WORKFLOW)
 
-> **Quy trình Xác thực Email (OTP) & Phê duyệt (Approval Workflow):**
-> 1. **Đăng ký bằng Google OAuth 2.0:** Tự động xác thực email 100%, Học sinh kích hoạt `Active` ngay lập tức; Giáo viên chuyển trạng thái `Pending` chờ Admin duyệt.
-> 2. **Đăng ký Thủ công (Manual Register):** 
+> **Quy trình Xác thực Email (OTP), Đăng ký & Bảo mật:**
+> 1. **Chính sách mật khẩu bảo mật (Strong Password Policy):** Toàn hệ thống bắt buộc mật khẩu phải từ 8 ký tự trở lên, bao gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt.
+> 2. **Đăng ký & Xác thực bằng Google OAuth 2.0:** 
+>    - Tự động xác thực email 100%, Học sinh kích hoạt `Active` ngay lập tức; Giáo viên chuyển trạng thái `Pending` chờ Admin duyệt.
+>    - **Thiết lập mật khẩu liên kết (Google Password Setup):** Đối với tài khoản Google, họ không có mật khẩu cục bộ ban đầu. Khi chọn "Đổi mật khẩu" tại Profile, hệ thống cho phép họ gửi mã OTP xác nhận về Email để xác minh danh tính và thiết lập mật khẩu đăng nhập trực tiếp. Sau khi thiết lập, họ có thể đăng nhập linh hoạt bằng cả Google và Email/Mật khẩu trên mọi thiết bị.
+> 3. **Đăng ký Thủ công (Manual Register):** 
 >    - **Xác thực Email qua OTP:** Cả Học sinh và Giáo viên khi đăng ký thủ công đều phải nhập mã OTP 6 số gửi về Email. Giao diện xác thực gồm 6 ô nhập số độc lập (`[1][2][3]-[4][5][6]`), tự động nhảy con trỏ, tự động bôi đen ghi đè số cũ khi gõ lại, dán nhanh Ctrl+V, nút đóng X và bộ đếm ngược 30 giây để gửi lại mã.
 >    - **Hỗ trợ Đăng ký lại mượt mà (Re-registration):** Nếu người dùng đăng ký dở dang nhưng tắt Modal OTP (chưa xác thực), khi thực hiện Đăng ký lại bằng Email đó, hệ thống sẽ tự động xóa bản ghi chưa xác thực cũ và phát hành mã OTP mới mà không báo lỗi trùng Email.
 >    - **Tự động kích hoạt Modal OTP khi Đăng nhập:** Khi người dùng cố gắng đăng nhập tại `/login` với tài khoản chưa xác thực Email, hệ thống tự động bật Modal OTP 6 số ngay trên màn hình Đăng nhập để người dùng nhập OTP kích hoạt tại chỗ.

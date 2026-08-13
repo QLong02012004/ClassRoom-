@@ -163,6 +163,13 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc!");
       return;
     }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (!passwordRegex.test(newStudentForm.password)) {
+      toast.error("Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!");
+      return;
+    }
+
     const strictEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
     const email = newStudentForm.email.trim().toLowerCase();
 

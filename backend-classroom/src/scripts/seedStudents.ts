@@ -1,9 +1,16 @@
+/**
+ * SCRIPT: KHỞI TẠO HỌC SINH MẪU & ĐIỂM DANH THỬ NGHIỆM
+ * Tác dụng: Tạo ra 20 học sinh mẫu, phân chia đều họ vào các lớp hiện có của giáo viên.
+ * Đồng thời tự động tạo ngẫu nhiên dữ liệu điểm danh cho 3 ngày gần nhất để làm phong phú dữ liệu test.
+ */
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { UserModel } from '../models/User';
 import { ClassModel } from '../models/Class';
 import { AttendanceModel } from '../models/Attendance';
+import { UserRole, UserStatus, ClassStatus } from '../constants/enums';
 
 dotenv.config();
 
@@ -39,14 +46,14 @@ const seedStudents = async () => {
         console.log('✅ Đã kết nối tới Database');
 
         // ── 1. Tìm giáo viên ─────────────────────────────────────────
-        const teacher = await UserModel.findOne({ role: 'teacher' });
+        const teacher = await UserModel.findOne({ role: UserRole.TEACHER });
         if (!teacher) {
             console.error('❌ Không tìm thấy giáo viên. Hãy chạy seedClasses.ts trước!');
             process.exit(1);
         }
 
         // ── 2. Tìm lớp học của giáo viên ─────────────────────────────
-        const classes = await ClassModel.find({ teacherId: teacher._id, status: { $ne: 'Archived' } });
+        const classes = await ClassModel.find({ teacherId: teacher._id, status: { $ne: ClassStatus.ARCHIVED } });
         if (classes.length === 0) {
             console.error('❌ Giáo viên chưa có lớp nào. Hãy chạy seedClasses.ts trước!');
             process.exit(1);
@@ -68,12 +75,13 @@ const seedStudents = async () => {
                 name: s.name,
                 email: s.email,
                 passwordHash,
-                role: 'student',
-                status: 'Active',
+                role: UserRole.STUDENT,
+                status: UserStatus.ACTIVE,
                 gender: s.gender,
                 dob: s.dob,
                 phone: s.phone,
                 parentPhone: s.parentPhone,
+                isEmailVerified: true
             }))
         );
         console.log(`🎉 Đã tạo ${createdStudents.length} học sinh mẫu`);

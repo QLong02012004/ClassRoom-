@@ -180,6 +180,11 @@ export default function TeacherStudents() {
 
       // 2. Nếu có nhập mật khẩu mới thì gọi API reset password
       if (editForm.password) {
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+        if (!passwordRegex.test(editForm.password)) {
+          toast.error("Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!");
+          return;
+        }
         await userService.resetUserPassword(editingStudentId, editForm.password);
       }
 

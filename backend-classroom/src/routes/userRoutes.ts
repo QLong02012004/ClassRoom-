@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getUsers, updateUserStatus, updateUserRole, resetUserPassword, deleteUser, updateProfile, changePassword, updateUser } from '../controllers/userController';
+import { getUsers, updateUserStatus, updateUserRole, resetUserPassword, deleteUser, updateProfile, changePassword, updateUser, sendPasswordOTP, setupGooglePassword } from '../controllers/userController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -12,6 +12,12 @@ router.put('/profile', protect, updateProfile);
 
 // Tự đổi mật khẩu
 router.put('/change-password', protect, changePassword);
+
+// Gửi mã OTP xác nhận thiết lập mật khẩu cho tài khoản Google
+router.post('/send-password-otp', protect, sendPasswordOTP);
+
+// Thiết lập mật khẩu cho tài khoản Google bằng mã OTP đã nhận
+router.post('/setup-google-password', protect, setupGooglePassword);
 
 // Chỉnh sửa thông tin thành viên (Admin hoặc Teacher)
 router.put('/:id', protect, authorize('admin', 'teacher'), updateUser);

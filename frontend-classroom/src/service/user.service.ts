@@ -73,5 +73,15 @@ export const userService = {
   // Admin cập nhật thông tin người dùng
   updateUser: async (id: string, data: { name?: string, email?: string, subject?: string, role?: string }): Promise<IBackendRes<IUserItem>> => {
     return await api.put(`/api/v1/users/${id}`, data);
+  },
+
+  // Gửi mã OTP để thiết lập mật khẩu Google
+  sendPasswordOTP: async (): Promise<IBackendRes<any>> => {
+    return await api.post(`/api/v1/users/send-password-otp`);
+  },
+
+  // Thiết lập mật khẩu cho tài khoản Google bằng OTP
+  setupGooglePassword: async (data: { otp: string; newPassword: string }): Promise<IBackendRes<any>> => {
+    return await api.post(`/api/v1/users/setup-google-password`, data);
   }
 };

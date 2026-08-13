@@ -128,6 +128,12 @@ const Login: React.FC = () => {
   };
 
   const handleRegister = async (data: any) => {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (data.password && !passwordRegex.test(data.password)) {
+      toast.error("Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!");
+      return;
+    }
+
     setLoading(true);
 
     try {

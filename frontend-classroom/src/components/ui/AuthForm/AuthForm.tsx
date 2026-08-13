@@ -32,6 +32,17 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
   const [registerCustomSubject, setRegisterCustomSubject] = useState('');
 
   const [isFlipped, setIsFlipped] = useState(initialMode === 'register');
+  const [isGoogleSdkLoaded, setIsGoogleSdkLoaded] = useState(false);
+
+  // Use a Ref to store the latest callback state to avoid stale closures
+  const googleCallbackRef = React.useRef<any>(null);
+  googleCallbackRef.current = {
+    isFlipped,
+    registerRole,
+    registerSubject,
+    registerCustomSubject,
+    onGoogleLogin
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,28 +60,69 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
     });
   };
 
+  // Check if Google SDK has loaded
   useEffect(() => {
-    const initGoogle = () => {
+    const checkGoogleSdk = () => {
       if ((window as any).google?.accounts?.id) {
-        (window as any).google.accounts.id.initialize({
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "374440336134-v4gcigg4nl0uqmg492htjrg7jf6240ie.apps.googleusercontent.com",
-          callback: (response: any) => {
-            if (response.credential && onGoogleLogin) {
-              onGoogleLogin({
-                credential: response.credential,
-                role: isFlipped ? registerRole : undefined,
-                subject: registerRole === 'teacher' ? (registerSubject === 'Khác' ? registerCustomSubject : registerSubject) : undefined
-              });
-            }
+        setIsGoogleSdkLoaded(true);
+        return true;
+      }
+      return false;
+    };
+    if (checkGoogleSdk()) return;
+    const interval = setInterval(() => {
+      if (checkGoogleSdk()) {
+        clearInterval(interval);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Initialize Google SDK exactly ONCE when loaded
+  useEffect(() => {
+    if (isGoogleSdkLoaded && (window as any).google?.accounts?.id) {
+      (window as any).google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "374440336134-v4gcigg4nl0uqmg492htjrg7jf6240ie.apps.googleusercontent.com",
+        callback: (response: any) => {
+          const current = googleCallbackRef.current;
+          if (response.credential && current?.onGoogleLogin) {
+            const role = current.isFlipped ? current.registerRole : undefined;
+            const subject = current.registerRole === 'teacher' ? (current.registerSubject === 'Khác' ? current.registerCustomSubject : current.registerSubject) : undefined;
+            current.onGoogleLogin({
+              credential: response.credential,
+              role,
+              subject
+            });
           }
+        }
+      });
+    }
+  }, [isGoogleSdkLoaded]);
+
+  // Render Google buttons when DOM elements mount/change
+  useEffect(() => {
+    if (isGoogleSdkLoaded && (window as any).google?.accounts?.id) {
+      const loginBtn = document.getElementById("google-signin-btn-login");
+      if (loginBtn) {
+        (window as any).google.accounts.id.renderButton(loginBtn, {
+          theme: "outline",
+          size: "large",
+          width: 250,
+          text: "signin_with"
         });
       }
-    };
 
-    initGoogle();
-    const timer = setTimeout(initGoogle, 1000);
-    return () => clearTimeout(timer);
-  }, [isFlipped, registerRole, registerSubject, onGoogleLogin]);
+      const registerBtn = document.getElementById("google-signin-btn-register");
+      if (registerBtn) {
+        (window as any).google.accounts.id.renderButton(registerBtn, {
+          theme: "outline",
+          size: "large",
+          width: 250,
+          text: "signup_with"
+        });
+      }
+    }
+  }, [isGoogleSdkLoaded, isFlipped, registerRole]);
 
   const triggerFallbackGoogleSelect = () => {
     const promptEmail = window.prompt(
@@ -95,6 +147,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
         role: isFlipped ? registerRole : undefined,
         subject: registerRole === 'teacher' ? (registerSubject === 'Khác' ? registerCustomSubject : registerSubject) : undefined
       });
+    }
+  };
+
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    if (!container.querySelector('iframe')) {
+      triggerFallbackGoogleSelect();
     }
   };
 
@@ -201,15 +260,32 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
                 {onGoogleLogin && (
                   <>
                     <div className="doodle-divider"><span>hoặc</span></div>
-                    <button type="button" className="doodle-google-btn" onClick={handleGoogleClick} disabled={isLoading}>
-                      <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                      </svg>
-                      Đăng nhập bằng Google
-                    </button>
+                    {isGoogleSdkLoaded ? (
+                      <div className="doodle-google-wrapper">
+                        {/* Button đẹp nguyên bản */}
+                        <button type="button" className="doodle-google-btn" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', margin: 0, pointerEvents: 'none' }} disabled={isLoading}>
+                          <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                          </svg>
+                          Đăng nhập bằng Google
+                        </button>
+                        {/* Iframe thật của Google phủ lên trên để click */}
+                        <div id="google-signin-btn-login" onClick={handleOverlayClick} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0.01, cursor: 'pointer' }}></div>
+                      </div>
+                    ) : (
+                      <button type="button" className="doodle-google-btn" onClick={handleGoogleClick} disabled={isLoading}>
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                        </svg>
+                        Đăng nhập bằng Google
+                      </button>
+                    )}
                   </>
                 )}
               </form>
@@ -338,15 +414,32 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
                 </button>
 
                 {onGoogleLogin && (
-                  <button type="button" className="doodle-google-btn" onClick={handleGoogleClick} disabled={isLoading}>
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                    </svg>
-                    Đăng ký bằng Google
-                  </button>
+                  isGoogleSdkLoaded ? (
+                    <div className="doodle-google-wrapper">
+                      {/* Button đẹp nguyên bản */}
+                      <button type="button" className="doodle-google-btn" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', margin: 0, pointerEvents: 'none' }} disabled={isLoading}>
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                        </svg>
+                        Đăng ký bằng Google
+                      </button>
+                      {/* Iframe thật của Google phủ lên trên để click */}
+                      <div id="google-signin-btn-register" onClick={handleOverlayClick} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0.01, cursor: 'pointer' }}></div>
+                    </div>
+                  ) : (
+                    <button type="button" className="doodle-google-btn" onClick={handleGoogleClick} disabled={isLoading}>
+                      <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                      </svg>
+                      Đăng ký bằng Google
+                    </button>
+                  )
                 )}
               </form>
             </div>
@@ -430,6 +523,24 @@ const StyledWrapper = styled.div<{ $isTeacher?: boolean }>`
     font-size: 11px;
     color: #64748b;
     font-weight: 700;
+  }
+
+  .doodle-google-wrapper {
+    position: relative;
+    width: var(--input-width);
+    height: 38px;
+    margin-top: 4px;
+  }
+
+  .doodle-google-wrapper:hover .doodle-google-btn {
+    transform: translateY(-2px);
+    box-shadow: 4px 4px 0px var(--ink);
+    background-color: #f8fafc;
+  }
+
+  .doodle-google-wrapper:active .doodle-google-btn {
+    transform: translate(2px, 2px);
+    box-shadow: 0px 0px 0px var(--ink);
   }
 
   .doodle-google-btn {

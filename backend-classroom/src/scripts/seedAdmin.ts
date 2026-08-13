@@ -1,7 +1,14 @@
+/**
+ * SCRIPT: KHỞI TẠO TÀI KHOẢN ROOT ADMIN
+ * Tác dụng: Tạo tài khoản quản trị viên tối cao (Root Admin) mặc định nếu chưa tồn tại.
+ * Tài khoản: admin@gmail.com / admin123
+ */
+
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 import dotenv from 'dotenv';
 import { UserModel } from '../models/User';
+import { UserRole } from '../constants/enums';
 
 dotenv.config();
 
@@ -11,7 +18,7 @@ const seedAdmin = async () => {
         console.log('✅ Đã kết nối tới Database để chuẩn bị Seed Admin');
 
         // Kiểm tra xem đã có admin nào chưa
-        const adminExists = await UserModel.findOne({ role: 'admin' });
+        const adminExists = await UserModel.findOne({ role: UserRole.ADMIN });
         if (adminExists) {
             console.log('⚠️ Đã tồn tại tài khoản Admin trong hệ thống, không cần tạo mới!');
             process.exit(0);
@@ -25,7 +32,8 @@ const seedAdmin = async () => {
             name: 'Root Admin',
             email: 'admin@gmail.com',
             passwordHash,
-            role: 'admin'
+            role: UserRole.ADMIN,
+            isEmailVerified: true
         });
 
         console.log('🎉 Tạo tài khoản Root Admin thành công!');

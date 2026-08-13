@@ -584,6 +584,11 @@ export default function AdminUsers() {
   const handleConfirmResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      toast.error("Mật khẩu mới phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!", 3000);
+      return;
+    }
     setIsResetting(true);
     try {
       await userService.resetUserPassword(selectedUser._id, newPassword);
@@ -710,6 +715,12 @@ export default function AdminUsers() {
     // Nếu không phải domain phổ biến và chứa dãy số linh tinh rác dài hơn 3 số (ví dụ @g123213mail.com, @g123ail.com)
     if (!isStandardDomain && (/[0-9]{3,}/.test(domain) || domain.length > 20)) {
       toast.error("Tên miền Email nghi vấn rác (ví dụ: chứa dãy số ngẫu nhiên)! Vui lòng sử dụng email thật.", 4000);
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error("Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!", 3000);
       return;
     }
 

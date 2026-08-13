@@ -108,6 +108,8 @@ export const registerTeacherService = async (
     newTeacher.emailVerificationExpires = otpExpires;
     await newTeacher.save();
 
+    console.log(`[REGISTER OTP] Teacher ${newTeacher.email} OTP is: ${otp}`);
+
     // Gửi email OTP (chạy background không block)
     sendVerificationEmail(newTeacher.email, otp).catch(e => console.error("Lỗi gửi email:", e));
 
@@ -193,7 +195,8 @@ export const loginService = async (email: string, password: string) => {
             address: user.address,
             subject: user.subject,
             bio: user.bio,
-            degree: user.degree
+            degree: user.degree,
+            isGoogleAccount: user.isGoogleAccount
         },
         accessToken,
         refreshToken
@@ -243,9 +246,21 @@ export const googleAuthService = async (
             throw new Error('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Admin!');
         }
 
-        // Cập nhật avatar từ Google nếu chưa có
+        // Cập nhật avatar và cờ Google nếu chưa có
+        let isUpdated = false;
         if (!user.avatar && avatar) {
             user.avatar = avatar;
+            isUpdated = true;
+        }
+        if (!user.isGoogleAccount) {
+            user.isGoogleAccount = true;
+            isUpdated = true;
+        }
+        if (!user.isEmailVerified) {
+            user.isEmailVerified = true;
+            isUpdated = true;
+        }
+        if (isUpdated) {
             await user.save();
         }
 
@@ -261,7 +276,8 @@ export const googleAuthService = async (
                 avatar: user.avatar,
                 subject: user.subject,
                 bio: user.bio,
-                degree: user.degree
+                degree: user.degree,
+                isGoogleAccount: user.isGoogleAccount
             },
             accessToken,
             refreshToken
@@ -282,7 +298,9 @@ export const googleAuthService = async (
         role: targetRole,
         status: initialStatus,
         avatar,
-        subject: requestedSubject || ''
+        subject: requestedSubject || '',
+        isGoogleAccount: true,
+        isEmailVerified: true
     });
 
     if (initialStatus === UserStatus.PENDING) {
@@ -317,7 +335,8 @@ export const googleAuthService = async (
             avatar: newUser.avatar,
             subject: newUser.subject,
             bio: newUser.bio,
-            degree: newUser.degree
+            degree: newUser.degree,
+            isGoogleAccount: newUser.isGoogleAccount
         },
         accessToken,
         refreshToken

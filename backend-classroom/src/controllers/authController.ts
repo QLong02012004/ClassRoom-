@@ -98,6 +98,7 @@ export const registerStudentAccount = async (req: Request, res: Response, next: 
         result.emailVerificationExpires = otpExpires;
         await result.save();
 
+        console.log(`[REGISTER OTP] Student ${result.email} OTP is: ${otp}`);
         sendVerificationEmail(result.email, otp).catch(e => console.error("Lỗi gửi email:", e));
 
         res.status(201).json({
@@ -290,7 +291,8 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
                     status: user.status,
                     subject: user.subject,
                     bio: user.bio,
-                    degree: user.degree
+                    degree: user.degree,
+                    isGoogleAccount: user.isGoogleAccount
                 }
             }
         });
@@ -327,7 +329,8 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
                 address: user.address,
                 subject: user.subject,
                 bio: user.bio,
-                degree: user.degree
+                degree: user.degree,
+                isGoogleAccount: user.isGoogleAccount
             }
         });
     } catch (error) {
