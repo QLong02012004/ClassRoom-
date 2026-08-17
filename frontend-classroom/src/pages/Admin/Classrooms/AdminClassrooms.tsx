@@ -72,6 +72,8 @@ import { getMockStudents } from "../../../utils/mockDb";
 
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { useNavigate } from "react-router-dom";
+import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
+import { DropdownFilter } from "../../../components/ui/Dropdowns/DropdownFilter";
 
 const ClassDetailModalContent = ({
   classItem,
@@ -396,21 +398,47 @@ const normalizeString = (str: string) => {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
 };
 
+
+
 export default function AdminClassrooms() {
   const navigate = useNavigate();
+  const [classes, setClasses] = useState<IClassroomItem[]>([]);
   const [globalFilter, setGlobalFilter] = useState("");
+
+  const searchSuggestions = React.useMemo<SearchSuggestionItem[]>(() => {
+    if (!globalFilter.trim()) return [];
+    const normalizedFilter = normalizeString(globalFilter);
+    return classes
+      .filter(c =>
+        normalizeString(c.name).includes(normalizedFilter) ||
+        normalizeString(c.id || "").includes(normalizedFilter) ||
+        normalizeString(c._id).includes(normalizedFilter) ||
+        normalizeString(c.subject || "").includes(normalizedFilter) ||
+        normalizeString(c.teacher?.name || "").includes(normalizedFilter)
+      )
+      .slice(0, 5)
+      .map(c => ({
+        id: c._id,
+        title: c.name,
+        subtitle: c.teacher?.name ? `${c.teacher.name} • ${c.subject || "Khác"}` : (c.subject || "Khác"),
+        tag: c.id || `CLASS-${c._id.substring(0, 4).toUpperCase()}`,
+        rawData: c
+      }));
+  }, [classes, globalFilter]);
+
   const [statusFilter, setStatusFilter] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const toast = useToast();
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
   const [page, setPage] = useState(1);
 
-  const [classes, setClasses] = useState<IClassroomItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedClass, setSelectedClass] = useState<IClassroomItem | null>(null);
   const [pendingApprovalClass, setPendingApprovalClass] = useState<IClassroomItem | null>(null);
@@ -544,7 +572,10 @@ export default function AdminClassrooms() {
       const normalizedFilter = normalizeString(globalFilter);
       result = result.filter(c =>
         normalizeString(c.name).includes(normalizedFilter) ||
-        normalizeString(c.id).includes(normalizedFilter)
+        normalizeString(c.id || "").includes(normalizedFilter) ||
+        normalizeString(c._id).includes(normalizedFilter) ||
+        normalizeString(c.subject || "").includes(normalizedFilter) ||
+        normalizeString(c.teacher?.name || "").includes(normalizedFilter)
       );
     }
     if (statusFilter) {
@@ -897,47 +928,43 @@ export default function AdminClassrooms() {
         {/* TABLE TOOLBAR */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
           <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-            <div className="relative w-full md:w-80">
-              <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <Input
-                placeholder="Tìm kiếm lớp học hoặc mã lớp..."
-                value={globalFilter ?? ""}
-                onChange={(event) => setGlobalFilter(event.target.value)}
-                className="pl-9 bg-white shadow-sm border-slate-200"
-              />
-            </div>
+            <SmartSearchBar
+              placeholder="Tìm kiếm lớp học hoặc mã lớp..."
+              value={globalFilter}
+              onChange={setGlobalFilter}
+              suggestions={searchSuggestions}
+              onSelectSuggestion={(item) => {
+                setSelectedClass(item.rawData);
+              }}
+              recentSearchesKey="adminRecentSearches"
+            />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <PrimaryButton variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
-                  <Funnel size={16} weight="bold" />
-                  Trạng thái {statusFilter ? `: ${statusFilter === "Active" ? "Đang hoạt động" : statusFilter === "Pending" ? "Chờ duyệt" : "Đã khóa"}` : ""}
-                </PrimaryButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[180px]">
-                <DropdownMenuItem onClick={() => setStatusFilter("Active")}>Đang hoạt động</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("Pending")}>Chờ duyệt</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter("Locked")}>Đã khóa</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setStatusFilter("")} className="font-bold text-slate-500">Tất cả trạng thái</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <DropdownFilter
+              label="Trạng thái"
+              value={statusFilter || "all"}
+              onChange={(key) => setStatusFilter(key === "all" ? "" : key)}
+              options={[
+                { id: "all", label: "Tất cả trạng thái" },
+                { id: "Active", label: "Đang hoạt động" },
+                { id: "Pending", label: "Chờ duyệt" },
+                { id: "Locked", label: "Đã khóa" }
+              ]}
+              minWidthClass="min-w-[180px]"
+            />
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <PrimaryButton variant="outline" className="w-full md:w-auto bg-white gap-2 border-slate-200 shadow-sm text-slate-600 font-semibold">
-                  <Funnel size={16} weight="bold" />
-                  Bộ môn {subjectFilter && subjectFilter !== 'all' ? `: ${subjectFilter}` : ""}
-                </PrimaryButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-[180px]">
-                <DropdownMenuItem onClick={() => setSubjectFilter("all")} className="font-bold text-slate-500">Tất cả bộ môn</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {uniqueSubjects.map(sub => (
-                  <DropdownMenuItem key={sub} onClick={() => setSubjectFilter(sub)}>{sub}</DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <DropdownFilter
+              label="Bộ môn"
+              value={subjectFilter}
+              onChange={(key) => setSubjectFilter(key)}
+              options={[
+                { id: "all", label: "Tất cả bộ môn" },
+                ...uniqueSubjects.map(sub => ({
+                  id: sub,
+                  label: sub
+                }))
+              ]}
+              minWidthClass="min-w-[180px]"
+            />
           </div>
         </div>
 
@@ -1042,17 +1069,13 @@ export default function AdminClassrooms() {
                     </Table.Row>
                   ) : paginatedClasses.length === 0 ? (
                     <Table.Row key="empty" id="empty">
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell>
-                        <div className="py-10 text-slate-500 font-medium">Không tìm thấy kết quả nào.</div>
+                      <Table.Cell colSpan={9} className="py-12 text-center text-slate-500 font-medium">
+                        <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                          <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+                          <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy lớp học</p>
+                          <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy lớp học nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
+                        </div>
                       </Table.Cell>
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
                     </Table.Row>
                   ) : (
                     paginatedClasses.map((cls, idx) => {

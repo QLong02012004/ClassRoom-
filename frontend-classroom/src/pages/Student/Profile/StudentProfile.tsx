@@ -1,9 +1,9 @@
 import React, { useState, useRef } from 'react';
-import { 
-  PencilSimple, 
-  TrendUp, 
-  BookBookmark, 
-  Fire, 
+import {
+  PencilSimple,
+  TrendUp,
+  BookBookmark,
+  Fire,
   CalendarCheck,
   User,
   Medal,
@@ -45,7 +45,9 @@ const StudentProfile: React.FC = () => {
 
   const username = user?.name || "Người dùng";
   const email = user?.email || "Chưa cập nhật email";
-  const avatar = user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=FE6747&color=fff&bold=true`;
+  const avatar = (user?.avatar && user.avatar.trim() !== '')
+    ? user.avatar
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=FE6747&color=fff&bold=true`;
 
   const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -100,7 +102,7 @@ const StudentProfile: React.FC = () => {
     reader.onload = async (event) => {
       const base64String = event.target?.result as string;
       setFormData((prev) => ({ ...prev, avatar: base64String }));
-      
+
       try {
         await userService.updateProfile({ avatar: base64String });
         toast.success('Đã cập nhật ảnh đại diện', 3000);
@@ -112,6 +114,15 @@ const StudentProfile: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const capitalizeWords = (str: string) => {
+    if (!str) return "";
+    return str
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -127,7 +138,7 @@ const StudentProfile: React.FC = () => {
       toast.error('Họ và tên phải có độ dài từ 2 đến 50 ký tự!');
       return;
     }
-    const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠỨỪỬỮỰẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăâêôơứừửữựấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰÝỲỶỸÝýỳỷỹ\s]+$/;
+    const nameRegex = /^[\p{L}\s]+$/u;
     if (!nameRegex.test(trimmedName)) {
       toast.error('Họ và tên không được chứa chữ số hoặc ký tự đặc biệt!');
       return;
@@ -144,7 +155,7 @@ const StudentProfile: React.FC = () => {
     if (formData.dob && formData.dob.trim() !== '') {
       const dobRegex = /^\d{4}-\d{2}-\d{2}$/;
       if (!dobRegex.test(formData.dob.trim())) {
-        toast.error('Ngày sinh không đúng định dạng YYYY-MM-DD!');
+        toast.error('Ngày sinh không hợp lệ!');
         return;
       }
 
@@ -176,10 +187,11 @@ const StudentProfile: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    const formattedName = capitalizeWords(trimmedName);
     try {
       await userService.updateProfile({
         ...formData,
-        name: trimmedName
+        name: formattedName
       });
       toast.success('Cập nhật hồ sơ thành công', 3000);
       setShowEdit(false);
@@ -264,7 +276,7 @@ const StudentProfile: React.FC = () => {
       setShowGooglePasswordDialog(false);
       setGooglePasswordForm({ otp: '', newPassword: '', confirmPassword: '' });
       setGooglePasswordStep('request');
-      
+
       // Reload profile to refresh user settings
       setTimeout(() => {
         window.location.reload();
@@ -282,16 +294,23 @@ const StudentProfile: React.FC = () => {
       <div className={styles.profileHeader}>
         <div className={styles.headerLeft}>
           <div className={styles.avatarWrapper}>
-            <img 
-              src={avatar} 
-              alt={username} 
+            <img
+              src={avatar}
+              alt="Avatar"
+              onError={(e) => {
+                const target = e.currentTarget;
+                const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=FE6747&color=fff&bold=true`;
+                if (target.src !== fallbackUrl) {
+                  target.src = fallbackUrl;
+                }
+              }}
               style={{ objectFit: 'cover' }}
             />
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              style={{ display: 'none' }} 
-              accept="image/*" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              accept="image/*"
               onChange={handleFileChange}
             />
             <button className={styles.editAvatarBtn} onClick={() => fileInputRef.current?.click()}>
@@ -715,11 +734,10 @@ const StudentProfile: React.FC = () => {
                               <DropdownMenuItem
                                 key={val}
                                 onClick={() => setFormData({ ...formData, gender: val })}
-                                className={`cursor-pointer text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors ${
-                                  formData.gender === val
+                                className={`cursor-pointer text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors ${formData.gender === val
                                     ? "bg-orange-50 text-[#f47c20] font-bold"
                                     : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                                }`}
+                                  }`}
                               >
                                 {val}
                               </DropdownMenuItem>
@@ -817,7 +835,11 @@ const StudentProfile: React.FC = () => {
                       placeholder="Nhập lời giới thiệu ngắn gọn về bản thân, kinh nghiệm, sở thích..."
                       className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-colors resize-none"
                       value={formData.bio}
-                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const capitalized = val.length > 0 ? val.charAt(0).toUpperCase() + val.slice(1) : val;
+                        setFormData({ ...formData, bio: capitalized });
+                      }}
                     />
                     <p className="text-right text-[10px] text-slate-400 font-medium">{formData.bio?.length || 0} ký tự</p>
                   </div>

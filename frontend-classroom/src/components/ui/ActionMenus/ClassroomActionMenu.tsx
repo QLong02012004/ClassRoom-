@@ -7,12 +7,13 @@ interface ClassroomActionMenuProps {
   onTogglePin?: () => void;
   onViewDetail: () => void;
   onEdit: () => void;
-  onAttendance: () => void;
+  onAttendance?: () => void;
   onGradebook?: () => void;
   onAddStudent?: () => void;
   onArchive: () => void;
   onToggleClose?: () => void;
   isClosed?: boolean;
+  isGridView?: boolean;
 }
 
 export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
@@ -26,6 +27,7 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
   onArchive,
   onToggleClose,
   isClosed = false,
+  isGridView = false,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
   const popupRef = useRef<HTMLLabelElement>(null);
@@ -33,6 +35,7 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
   const [fixedStyle, setFixedStyle] = useState<React.CSSProperties>({});
 
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isGridView) return;
     if (e.target.checked && popupRef.current) {
       const rect = popupRef.current.getBoundingClientRect();
       const style: React.CSSProperties = {
@@ -69,8 +72,19 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
         }
       }
     };
+    const handleClose = () => {
+      if (checkboxRef.current && checkboxRef.current.checked) {
+        checkboxRef.current.checked = false;
+      }
+    };
     document.addEventListener('click', handleClickOutside, true);
-    return () => document.removeEventListener('click', handleClickOutside, true);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('resize', handleClose, true);
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('resize', handleClose, true);
+    };
   }, []);
 
   return (
@@ -113,12 +127,14 @@ export const ClassroomActionMenu: React.FC<ClassroomActionMenuProps> = ({
               </button>
             </li>
             <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onAttendance); }}>
-                <CheckSquare size={16} weight="bold" className="text-emerald-500" />
-                <span>Điểm danh</span>
-              </button>
-            </li>
+            {onAttendance && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onAttendance); }}>
+                  <CheckSquare size={16} weight="bold" className="text-emerald-500" />
+                  <span>Điểm danh</span>
+                </button>
+              </li>
+            )}
             <li>
               <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onGradebook || onAddStudent); }}>
                 <UserPlus size={16} weight="bold" className="text-[#2f8fa3]" />
@@ -265,6 +281,7 @@ const StyledWrapper = styled.div`
     visibility: hidden;
     opacity: 0;
     position: absolute;
+    right: 0;
     padding: var(--nav-padding-y) var(--nav-padding-x);
     background: var(--nav-bg);
     font-family: var(--nav-font-family);

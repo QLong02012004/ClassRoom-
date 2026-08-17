@@ -14,7 +14,7 @@ export const getAdminClassrooms = async (req: Request, res: Response, next: Next
     try {
         // Lấy danh sách lớp, kèm theo thông tin của giáo viên phụ trách
         const classes = await ClassModel.find()
-            .populate('teacherId', 'name avatar') // Sẽ lấy name và avatar của giáo viên
+            .populate('teacherId', 'name avatar email') // Sẽ lấy name, avatar và email của giáo viên
             .sort({ createdAt: -1 });
 
         // Chuyển đổi định dạng để trả về cho Frontend
@@ -28,7 +28,8 @@ export const getAdminClassrooms = async (req: Request, res: Response, next: Next
                 teacher: {
                     id: (cls.teacherId as any)?._id || '',
                     name: (cls.teacherId as any)?.name || 'Chưa rõ',
-                    avatar: (cls.teacherId as any)?.avatar || ''
+                    avatar: (cls.teacherId as any)?.avatar || '',
+                    email: (cls.teacherId as any)?.email || ''
                 },
                 studentCount: cls.students?.length || 0,
                 createdAt: cls.createdAt,
@@ -80,7 +81,7 @@ export const updateClassroomStatus = async (req: Request, res: Response, next: N
             notifyTeacherClassroomsUpdate(existingClass.teacherId.toString());
             notifyAdminStatsUpdate();
             notifyNotificationUpdate();
-        } 
+        }
         // Khi Admin Khóa lớp học
         else if (status === 'Locked') {
             await createUserNotification(
@@ -296,6 +297,24 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
             return res.status(400).json({ message: 'Tên lớp học là bắt buộc' });
         }
 
+        // Ngăn chặn mã HTML/Script (XSS)
+        const htmlRegex = /<[^>]*>/g;
+        if (htmlRegex.test(className)) {
+            return res.status(400).json({ message: 'Tên lớp học không được chứa các ký tự HTML hoặc mã script!' });
+        }
+
+        // Kiểm tra xem giáo viên đã có lớp học nào cùng tên và cùng môn học chưa (không tính các lớp đã bị ARCHIVED)
+        const duplicateClass = await ClassModel.findOne({
+            name: className,
+            subject: subject || '',
+            teacherId,
+            status: { $ne: ClassStatus.ARCHIVED }
+        });
+
+        if (duplicateClass) {
+            return res.status(400).json({ message: 'Bạn đã có một lớp học với cùng tên và môn học này rồi!' });
+        }
+
         let code = generateClassCode();
         let isCodeUnique = false;
         // Đảm bảo code là duy nhất
@@ -317,17 +336,6 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
             requireApproval: requireApproval !== undefined ? Boolean(requireApproval) : true
         });
 
-        try {
-            const teacherEmail = (req as any).user?.email;
-            const sheetResult = await GoogleSheetsService.createSheetForClassroom(className, teacherEmail);
-            if (sheetResult) {
-                newClass.googleSheetId = sheetResult.sheetId;
-                newClass.googleSheetUrl = sheetResult.sheetUrl;
-            }
-        } catch (sheetErr: any) {
-            console.error('[createClassroom GoogleSheet Non-blocking Error]:', sheetErr?.message || sheetErr);
-        }
-
         await newClass.save();
 
         // Kích hoạt thông báo cho Admin
@@ -340,6 +348,22 @@ export const createClassroom = async (req: Request, res: Response, next: NextFun
         );
 
         notifyAdminStatsUpdate();
+
+        // Tạo Google Sheet trong nền (background) để không làm block API phản hồi
+        const teacherEmail = (req as any).user?.email;
+        GoogleSheetsService.createSheetForClassroom(className, teacherEmail)
+            .then(async (sheetResult) => {
+                if (sheetResult) {
+                    await ClassModel.findByIdAndUpdate(newClass._id, {
+                        googleSheetId: sheetResult.sheetId,
+                        googleSheetUrl: sheetResult.sheetUrl
+                    });
+                    console.log(`[GoogleSheet Background Success] Created sheet for class: ${newClass._id}`);
+                }
+            })
+            .catch((sheetErr) => {
+                console.error('[createClassroom GoogleSheet Background Error]:', sheetErr?.message || sheetErr);
+            });
 
         res.status(201).json({
             message: 'Tạo lớp học thành công',
@@ -356,6 +380,29 @@ export const updateClassroom = async (req: Request, res: Response, next: NextFun
         const { id } = req.params;
         const teacherId = (req as any).user?.id;
         const { className, subject, requireApproval } = req.body;
+
+        if (!className) {
+            return res.status(400).json({ message: 'Tên lớp học là bắt buộc' });
+        }
+
+        // Ngăn chặn mã HTML/Script (XSS)
+        const htmlRegex = /<[^>]*>/g;
+        if (htmlRegex.test(className)) {
+            return res.status(400).json({ message: 'Tên lớp học không được chứa các ký tự HTML hoặc mã script!' });
+        }
+
+        // Kiểm tra xem giáo viên đã có lớp học NÀO KHÁC cùng tên và cùng môn học chưa (không tính lớp đang sửa và các lớp đã bị ARCHIVED)
+        const duplicateClass = await ClassModel.findOne({
+            _id: { $ne: id as any },
+            name: className,
+            subject: subject || '',
+            teacherId,
+            status: { $ne: ClassStatus.ARCHIVED }
+        });
+
+        if (duplicateClass) {
+            return res.status(400).json({ message: 'Bạn đã có một lớp học khác với cùng tên và môn học này rồi!' });
+        }
 
         const updatedClass = await ClassModel.findOneAndUpdate(
             { _id: id as any, teacherId: teacherId as any },

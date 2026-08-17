@@ -7,10 +7,13 @@ import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
-import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import { ShineButton } from "../../../components/ui/Buttons/ShineButton";
+import ViewModeSwitch from "../../../components/ui/Buttons/ViewModeSwitch";
 import { useAuth } from "../../../context/AuthContext";
 import styles from "./TeacherClassrooms.module.scss";
 import { Table, Pagination, Checkbox, Button } from "@heroui/react";
+import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
+import { DropdownFilter } from "../../../components/ui/Dropdowns/DropdownFilter";
 import type { Selection } from "@heroui/react";
 import { ClassroomActionMenu } from "../../../components/ui/ActionMenus/ClassroomActionMenu";
 import { ManageStudentsModal } from "../../../components/ui/Dialogs/ManageStudentsModal";
@@ -26,6 +29,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "../../../components/ui/alert-dialog";
+import { Checkbox as ApprovalCheckbox } from "../../../components/ui/checkbox";
 
 const SUBJECT_OPTIONS = [
   { value: "Toán học", emoji: "🔢", color: "#3b82f6" },
@@ -39,6 +43,23 @@ const SUBJECT_OPTIONS = [
   { value: "Tin học", emoji: "💻", color: "#6366f1" },
 ];
 
+const capitalizeWords = (str: string) => {
+  if (!str) return "";
+  return str
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
+const removeAccents = (str: string) => {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
 export default function TeacherClassrooms() {
   const { user } = useAuth();
   const toast = useToast();
@@ -49,19 +70,71 @@ export default function TeacherClassrooms() {
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [classToArchive, setClassToArchive] = useState<ITeacherClassroom | null>(null);
+  const [isSubmittingClass, setIsSubmittingClass] = useState(false);
 
   // Modal duyệt & Thêm học sinh state
   const [showPendingModal, setShowPendingModal] = useState(false);
   const [selectedClassForPending, setSelectedClassForPending] = useState<ITeacherClassroom | null>(null);
   const [modalTab, setModalTab] = useState<'pending' | 'add_existing' | 'create_new'>('pending');
 
-  // Default to list view as requested
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  // Default to grid view
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    let timeGreeting = "Chào ngày mới";
+    if (hour >= 5 && hour < 11) timeGreeting = "Chào buổi sáng";
+    else if (hour >= 11 && hour < 14) timeGreeting = "Chào buổi trưa";
+    else if (hour >= 14 && hour < 18) timeGreeting = "Chào buổi chiều";
+    else timeGreeting = "Chào buổi tối";
+
+    const titleText = user?.gender === "Female" ? "cô" : "thầy";
+    const rawName = user?.name || '';
+    const formattedName = rawName
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+    return `${timeGreeting}, ${titleText === 'cô' ? 'Cô' : 'Thầy'} ${formattedName}!`;
+  }, [user]);
+
+  const activeClassesCount = useMemo(() => {
+    return classrooms.filter(c => c.status === 'Active').length;
+  }, [classrooms]);
+
+  const archivedOrClosedClassesCount = useMemo(() => {
+    return classrooms.filter(c => c.status === 'Archived' || c.status === 'Closed').length;
+  }, [classrooms]);
+
+  const totalStudentsCount = useMemo(() => {
+    return classrooms.reduce((sum, cls) => sum + (cls.students?.length || 0), 0);
+  }, [classrooms]);
+
+  const todaySchedules = useMemo(() => {
+    const currentJSday = new Date().getDay();
+    const todayDayOfWeek = currentJSday === 0 ? 7 : currentJSday;
+    const todayScheds = schedules.filter(s => {
+      const clsId = s.classId?._id || s.classId;
+      return s.dayOfWeek === todayDayOfWeek && classrooms.some(c => c._id === clsId && c.status !== 'Archived');
+    });
+    return todayScheds.sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [schedules, classrooms]);
+
+  const todaySchedulesText = useMemo(() => {
+    if (!todaySchedules.length) return "Hôm nay không có ca dạy nào.";
+    return todaySchedules
+      .map(s => {
+        const clsName = s.classId?.name || "Lớp học";
+        return `${s.startTime} ${clsName}`;
+      })
+      .join(", ");
+  }, [todaySchedules]);
 
   // Table selection & pagination state
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
   const [page, setPage] = useState(1);
-  const ROWS_PER_PAGE = 8;
+  const ROWS_PER_PAGE = 9;
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     try {
@@ -96,14 +169,46 @@ export default function TeacherClassrooms() {
   const selectedSubject = SUBJECT_OPTIONS.find(o => o.value === newClass.subject) || { value: newClass.subject, emoji: "📚", color: "#64748b" };
 
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const searchSuggestions = useMemo<SearchSuggestionItem[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const qNormalized = removeAccents(searchQuery.toLowerCase().trim());
+    return classrooms
+      .filter(cls => {
+        const nameNormalized = removeAccents(cls.name.toLowerCase());
+        const codeNormalized = removeAccents((cls.code || "").toLowerCase());
+        return nameNormalized.includes(qNormalized) || codeNormalized.includes(qNormalized);
+      })
+      .slice(0, 5)
+      .map(cls => ({
+        id: cls._id,
+        title: cls.name,
+        subtitle: cls.subject || "Môn học chung",
+        tag: cls.code,
+        rawData: cls
+      }));
+  }, [classrooms, searchQuery]);
 
   const filteredClassrooms = useMemo(() => {
+    const qNormalized = removeAccents(searchQuery.toLowerCase().trim());
     const filtered = classrooms.filter((cls) => {
-      const q = searchQuery.toLowerCase().trim();
-      const matchSearch = !q ||
-        cls.name.toLowerCase().includes(q) ||
-        (cls.code || "").toLowerCase().includes(q);
-      return matchSearch;
+      // 1. Search Query Filter
+      if (qNormalized) {
+        const nameNormalized = removeAccents(cls.name.toLowerCase());
+        const codeNormalized = removeAccents((cls.code || "").toLowerCase());
+        const subjectNormalized = removeAccents((cls.subject || "").toLowerCase());
+        const matchesSearch = nameNormalized.includes(qNormalized) || 
+                             codeNormalized.includes(qNormalized) ||
+                             subjectNormalized.includes(qNormalized);
+        if (!matchesSearch) return false;
+      }
+      
+      // 2. Status Filter
+      if (statusFilter !== "all") {
+        if (cls.status !== statusFilter) return false;
+      }
+      
+      return true;
     });
 
     return filtered.sort((a, b) => {
@@ -113,12 +218,12 @@ export default function TeacherClassrooms() {
       if (!aPinned && bPinned) return 1;
       return 0;
     });
-  }, [classrooms, searchQuery, pinnedIds]);
+  }, [classrooms, searchQuery, statusFilter, pinnedIds]);
 
-  // Reset pagination on search
+  // Reset pagination on search or filter change
   useEffect(() => {
     setPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, statusFilter]);
 
   const totalPages = Math.ceil(filteredClassrooms.length / ROWS_PER_PAGE) || 1;
   const startIdx = filteredClassrooms.length === 0 ? 0 : (page - 1) * ROWS_PER_PAGE + 1;
@@ -246,6 +351,14 @@ export default function TeacherClassrooms() {
     setShowPendingModal(true);
   };
 
+  const handleCopyCode = (e: React.MouseEvent, code: string) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    toast.success(`Đã sao chép mã lớp: ${code}`);
+  };
+
   const handleCreateOrUpdateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newClass.className || !newClass.subject) {
@@ -253,20 +366,28 @@ export default function TeacherClassrooms() {
       return;
     }
 
+    if (isSubmittingClass) return;
+    setIsSubmittingClass(true);
+
+    const formattedClassName = capitalizeWords(newClass.className);
+    const classData = { ...newClass, className: formattedClassName };
+
     try {
       if (editingId) {
-        await classroomService.updateClassroom(editingId, newClass);
+        await classroomService.updateClassroom(editingId, classData);
         toast.success(`Cập nhật lớp học thành công!`);
       } else {
-        await classroomService.createClassroom(newClass);
-        toast.success(`Tạo lớp học "${newClass.className}" thành công!`);
+        await classroomService.createClassroom(classData);
+        toast.success(`Tạo lớp học "${formattedClassName}" thành công!`);
       }
       setNewClass({ className: "", subject: (user as any)?.subject || "Toán học", requireApproval: false });
       setEditingId(null);
       setShowModal(false);
       loadData();
-    } catch (err) {
-      toast.error(editingId ? "Đã xảy ra lỗi khi cập nhật lớp học!" : "Đã xảy ra lỗi khi tạo lớp học!");
+    } catch (err: any) {
+      toast.error(err?.message || (editingId ? "Đã xảy ra lỗi khi cập nhật lớp học!" : "Đã xảy ra lỗi khi tạo lớp học!"));
+    } finally {
+      setIsSubmittingClass(false);
     }
   };
 
@@ -316,50 +437,110 @@ export default function TeacherClassrooms() {
           <p>Quản lý các lớp ôn luyện thêm, theo dõi sĩ số và phân phối mã code.</p>
         </div>
         <div className={styles.headerActions}>
-          {/* SEARCH */}
-          <div className={styles.searchBox}>
-            <MagnifyingGlass size={16} weight="bold" className={styles.searchIcon} />
-            <input
-              type="text"
-              placeholder="Tìm theo tên, mã lớp..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className={styles.searchInput}
-            />
-            {searchQuery && (
-              <button className={styles.searchClear} onClick={() => setSearchQuery("")}>×</button>
-            )}
-          </div>
-
-          <AnimatedAddButton onClick={handleAttemptCreateClass}>
+          <ShineButton onClick={handleAttemptCreateClass}>
+            <Plus size={16} weight="bold" />
             Tạo lớp học mới
-          </AnimatedAddButton>
+          </ShineButton>
         </div>
       </div>
 
-      {/* VIEW CONTROLS & STATS */}
-      <div className="flex justify-between items-center mb-1 px-1">
-        <h3 className="text-slate-500 font-medium text-sm">
-          Hiển thị <span className="text-slate-800 font-bold">{filteredClassrooms.length}</span> lớp học
-        </h3>
+      {/* CỤM 3 THẺ KPI TÓM TẮT (Admin Dashboard style) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
+        {/* Card 1: Tổng số lớp */}
+        <div className="bg-[#e0f2fe]/50 border border-[#bae6fd]/30 rounded-3xl p-5 flex flex-col justify-between shadow-3xs relative overflow-hidden min-h-[140px]">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-xs font-bold text-[#0369a1] uppercase tracking-wider block">Tổng số lớp học</span>
+              <strong className="text-4xl font-bold text-slate-800 block mt-1.5">{classrooms.length}</strong>
+            </div>
+            <div className="p-3 bg-white text-[#0369a1] rounded-2xl shadow-3xs shrink-0 flex items-center justify-center">
+              <BookOpen size={22} weight="bold" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <span className="text-sm font-semibold text-[#0369a1] block">↗ Lớp học của bạn</span>
+            <span className="text-xs text-slate-500 font-medium block mt-0.5">{activeClassesCount} Hoạt động / {archivedOrClosedClassesCount} Lưu trữ & đóng</span>
+          </div>
+        </div>
+
+        {/* Card 2: Tổng sĩ số */}
+        <div className="bg-[#fef3c7]/50 border border-[#fde68a]/30 rounded-3xl p-5 flex flex-col justify-between shadow-3xs relative overflow-hidden min-h-[140px]">
+          <div className="flex justify-between items-start">
+            <div>
+              <span className="text-xs font-bold text-[#b45309] uppercase tracking-wider block">Tổng sĩ số học sinh</span>
+              <strong className="text-4xl font-bold text-slate-800 block mt-1.5">{totalStudentsCount}</strong>
+            </div>
+            <div className="p-3 bg-white text-[#b45309] rounded-2xl shadow-3xs shrink-0 flex items-center justify-center">
+              <Users size={22} weight="bold" />
+            </div>
+          </div>
+          <div className="mt-4">
+            <span className="text-sm font-semibold text-[#b45309] block">↗ Quản lý học tập</span>
+            <span className="text-xs text-slate-500 font-medium block mt-0.5">Sĩ số học sinh đang quản lý trực tiếp</span>
+          </div>
+        </div>
+
+        {/* Card 3: Ca dạy hôm nay */}
+        <div className="bg-[#dcfce7]/50 border border-[#bbf7d0]/30 rounded-3xl p-5 flex flex-col justify-between shadow-3xs relative overflow-hidden min-h-[140px]">
+          <div className="flex justify-between items-start">
+            <div className="min-w-0 flex-1">
+              <span className="text-xs font-bold text-[#15803d] uppercase tracking-wider block">Ca dạy hôm nay</span>
+              <strong className="text-4xl font-bold text-slate-800 block mt-1.5">{todaySchedules.length}</strong>
+            </div>
+            <div className="p-3 bg-white text-[#15803d] rounded-2xl shadow-3xs shrink-0 flex items-center justify-center">
+              <Clock size={22} weight="bold" />
+            </div>
+          </div>
+          <div className="mt-4 min-w-0">
+            <span className="text-sm font-semibold text-[#15803d] block">↗ Ca dạy hôm nay</span>
+            <span className="text-xs text-slate-500 font-medium block mt-0.5 truncate" title={todaySchedulesText}>
+              {todaySchedulesText}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* VIEW CONTROLS & SEARCH BAR */}
+      <div className="flex justify-between items-center mb-6 px-1 gap-4">
+        <div className="flex items-center gap-3">
+          <SmartSearchBar
+            placeholder="Tìm theo tên, mã lớp... (Ấn /)"
+            value={searchQuery}
+            onChange={setSearchQuery}
+            suggestions={searchSuggestions}
+            onSelectSuggestion={(item) => {
+              const cls = item.rawData;
+              if (cls.status === 'Pending') {
+                toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+              } else if (cls.status === 'Locked') {
+                toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+              } else if (cls.status === 'Closed') {
+                toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+              } else {
+                navigate(`/classrooms/${cls._id}`);
+              }
+            }}
+            recentSearchesKey="teacherClassroomSearches"
+            widthClass="w-full md:w-[380px]"
+          />
+
+          <DropdownFilter
+            label="Trạng thái"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { id: "all", label: "Tất cả trạng thái" },
+              { id: "Active", label: "Hoạt động", icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
+              { id: "Pending", label: "Chờ duyệt", icon: <div className="w-2 h-2 rounded-full bg-[#f47c20]" /> },
+              { id: "Closed", label: "Đã đóng", icon: <div className="w-2 h-2 rounded-full bg-slate-400" /> },
+              { id: "Locked", label: "Đã khóa", icon: <div className="w-2 h-2 rounded-full bg-red-500" /> }
+            ]}
+            minWidthClass="min-w-[170px]"
+          />
+        </div>
 
         {/* VIEW MODE TOGGLE */}
-        <div className="flex bg-slate-100/80 rounded-lg p-1 border border-slate-200/60 shadow-sm">
-          <button
-            className={`p-1.5 rounded-md ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
-            onClick={() => setViewMode('grid')}
-            title="Dạng lưới (Grid)"
-          >
-            <SquaresFour size={18} weight={viewMode === 'grid' ? 'bold' : 'regular'} />
-          </button>
-          <button
-            className={`p-1.5 rounded-md ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700'}`}
-            onClick={() => setViewMode('list')}
-            title="Dạng danh sách (List)"
-          >
-            <List size={18} weight={viewMode === 'list' ? 'bold' : 'regular'} />
-          </button>
-        </div>
+        <ViewModeSwitch viewMode={viewMode} onViewModeChange={setViewMode} />
       </div>
 
       {/* BULK ACTION TOOLBAR (Synchronized with ActivitiesTable design) */}
@@ -382,11 +563,14 @@ export default function TeacherClassrooms() {
       {viewMode === 'grid' ? (
         <div className={styles.classesGrid}>
           {filteredClassrooms.length === 0 ? (
-            <div className={styles.emptyState}>
-              <MagnifyingGlass size={40} weight="duotone" />
-              <p>Không tìm thấy lớp học nào khớp với "{searchQuery}"</p>
+            <div className="col-span-full py-16 text-center text-slate-500 font-medium flex justify-center items-center w-full">
+              <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+                <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy lớp học</p>
+                <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy lớp học nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
+              </div>
             </div>
-          ) : filteredClassrooms.map((cls) => (
+          ) : paginatedClassrooms.map((cls) => (
             <div
               key={cls._id}
               className={styles.classCard}
@@ -410,25 +594,28 @@ export default function TeacherClassrooms() {
                     <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200 uppercase whitespace-nowrap">Hoạt động</span>
                   )}
                 </div>
-                <div className="flex gap-2 items-center">
-                  <button
-                    className={`p-1.5 rounded-md transition-colors ${pinnedIds.includes(cls._id) ? 'text-amber-500 bg-amber-50 hover:bg-amber-100' : 'text-slate-400 hover:bg-slate-100'}`}
-                    onClick={(e) => togglePin(e, cls._id)}
-                    title={pinnedIds.includes(cls._id) ? "Bỏ ghim" : "Ghim lớp học"}
-                  >
-                    <PushPin size={18} weight={pinnedIds.includes(cls._id) ? "fill" : "regular"} />
-                  </button>
-                  <button className="p-1.5 text-blue-500 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors" onClick={(e) => handleEditClick(e, cls)}>
-                    <PencilSimple size={18} weight="bold" />
-                  </button>
-                  <button className="p-1.5 text-orange-500 bg-orange-50 rounded-md hover:bg-orange-100 transition-colors" onClick={(e) => handleArchiveClick(e, cls)} title="Lưu trữ lớp">
-                    <Archive size={18} weight="bold" />
-                  </button>
-                  {cls.status !== 'Locked' && cls.status !== 'Pending' && cls.status !== 'Archived' && (
-                    <button className="p-1.5 text-slate-500 bg-slate-100 rounded-md hover:bg-slate-200 transition-colors" onClick={(e) => handleToggleCloseClick(e, cls)} title={cls.status === 'Closed' ? "Mở lại lớp" : "Đóng lớp"}>
-                      {cls.status === 'Closed' ? <CheckSquare size={18} weight="bold" className="text-blue-500" /> : <ClipboardText size={18} weight="bold" />}
-                    </button>
-                  )}
+                <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
+                  <ClassroomActionMenu
+                    isPinned={pinnedIds.includes(cls._id)}
+                    onTogglePin={() => togglePin(null, cls._id)}
+                    isGridView
+                    onViewDetail={() => {
+                      if (cls.status === 'Pending') {
+                        toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+                      } else if (cls.status === 'Locked') {
+                        toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                      } else if (cls.status === 'Closed') {
+                        toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                      } else {
+                        navigate(`/classrooms/${cls._id}`);
+                      }
+                    }}
+                    onEdit={() => handleEditClick(null, cls)}
+                    onAddStudent={() => openPendingRequestsModal(cls)}
+                    onArchive={() => handleArchiveClick(null, cls)}
+                    onToggleClose={cls.status !== 'Locked' && cls.status !== 'Pending' && cls.status !== 'Archived' ? () => handleToggleCloseClick(null, cls) : undefined}
+                    isClosed={cls.status === 'Closed'}
+                  />
                 </div>
               </div>
 
@@ -451,8 +638,20 @@ export default function TeacherClassrooms() {
                 style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 'not-allowed' : 'pointer', opacity: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 0.6 : 1 }}
               >
                 <div className={styles.cardMiddle}>
-                  <h3 className={styles.classTitle}>{cls.name}</h3>
-                  <div className="flex items-center gap-1.5 mt-1 text-slate-500 text-[13px] font-medium">
+                  <div className="flex justify-between items-center gap-3">
+                    <h3 className={`${styles.classTitle} truncate flex-1`} title={cls.name}>
+                      {cls.name}
+                    </h3>
+                    <button
+                      onClick={(e) => handleCopyCode(e, cls.code)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold text-[#2f8fa3] bg-[#2f8fa3]/8 hover:bg-[#2f8fa3]/15 border border-[#2f8fa3]/20 rounded-md transition-all cursor-pointer select-none shadow-3xs shrink-0"
+                      title="Nhấn để sao chép mã lớp"
+                    >
+                      <span className="font-mono uppercase tracking-wider">{cls.code || 'N/A'}</span>
+                      <ClipboardText size={12} className="text-[#2f8fa3]/70" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-2.5 text-slate-500 text-[13px] font-medium">
                     <Clock size={14} weight="duotone" className="text-orange-500" />
                     <span>Tiết tiếp theo: {getNextScheduleText(cls._id)}</span>
                   </div>
@@ -505,7 +704,7 @@ export default function TeacherClassrooms() {
                 </Link>
                 <Link
                   to={`/attendance?classId=${cls._id}`}
-                  className={styles.quickActionBtn}
+                  className={styles.attendanceBtn}
                   title="Điểm danh"
                 >
                   <CheckSquare size={16} weight="bold" />
@@ -561,25 +760,25 @@ export default function TeacherClassrooms() {
                       </Checkbox.Content>
                     </Checkbox>
                   </Table.Column>
-                  <Table.Column isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[220px] max-w-[220px]" id="name">
+                  <Table.Column isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[220px] max-w-[220px] whitespace-nowrap" id="name">
                     Tên lớp
                   </Table.Column>
-                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px]" id="code">
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px] whitespace-nowrap" id="code">
                     Mã lớp
                   </Table.Column>
-                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px]" id="subject">
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px] whitespace-nowrap" id="subject">
                     Môn học
                   </Table.Column>
-                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[180px]" id="students">
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px] whitespace-nowrap" id="students">
                     Sĩ số
                   </Table.Column>
-                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[180px]" id="assignments">
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[180px] whitespace-nowrap" id="assignments">
                     Bài tập
                   </Table.Column>
-                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[170px]" id="nextSchedule">
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[220px] whitespace-nowrap" id="nextSchedule">
                     Lịch học tiếp theo
                   </Table.Column>
-                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[120px]" id="status">
+                  <Table.Column className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[140px] whitespace-nowrap" id="status">
                     Trạng thái
                   </Table.Column>
                   <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3 w-[130px] whitespace-nowrap" id="actions">
@@ -589,22 +788,13 @@ export default function TeacherClassrooms() {
                 <Table.Body>
                   {filteredClassrooms.length === 0 ? (
                     <Table.Row key="empty" id="empty">
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell>
-                        <div className="py-12 text-center text-slate-500 font-medium">
-                          <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
-                            <MagnifyingGlass size={36} weight="duotone" className="text-slate-300" />
-                            <p className="font-semibold">Không tìm thấy lớp học nào khớp với "{searchQuery}"</p>
-                          </div>
+                      <Table.Cell colSpan={9} className="py-12 text-center text-slate-500 font-medium">
+                        <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                          <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+                          <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy lớp học</p>
+                          <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy lớp học nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
                         </div>
                       </Table.Cell>
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
-                      <Table.Cell />
                     </Table.Row>
                   ) : (
                     paginatedClassrooms.map((cls, idx) => {
@@ -755,50 +945,50 @@ export default function TeacherClassrooms() {
                     })
                   )}
                 </Table.Body>
-              </Table.Content>
-            </Table.ScrollContainer>
-            <Table.Footer>
-              {totalPages > 0 && (
-                <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
-                  <Pagination.Summary className="text-sm text-slate-500 font-medium">
-                    Hiển thị {startIdx} đến {endIdx} trong số {filteredClassrooms.length} kết quả
-                  </Pagination.Summary>
-                  <Pagination.Content>
-                    <Pagination.Item>
-                      <Pagination.Previous
-                        isDisabled={page === 1}
-                        onPress={() => setPage((p) => Math.max(1, p - 1))}
-                      >
-                        <Pagination.PreviousIcon />
-                        Trang trước
-                      </Pagination.Previous>
-                    </Pagination.Item>
-                    {pages.map((p) => (
-                      <Pagination.Item key={p}>
-                        <Pagination.Link
-                          isActive={p === page}
-                          onPress={() => setPage(p)}
-                          className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
-                        >
-                          {p}
-                        </Pagination.Link>
-                      </Pagination.Item>
-                    ))}
-                    <Pagination.Item>
-                      <Pagination.Next
-                        isDisabled={page === totalPages}
-                        onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      >
-                        Trang sau
-                        <Pagination.NextIcon />
-                      </Pagination.Next>
-                    </Pagination.Item>
-                  </Pagination.Content>
-                </Pagination>
-              )}
-            </Table.Footer>
-          </Table>
-        </div>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
+      </div>
+      )}
+
+      {/* PAGINATION TOOLBAR */}
+      {totalPages > 0 && filteredClassrooms.length > 0 && (
+        <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent mt-6 mb-8">
+          <Pagination.Summary className="text-sm text-slate-500 font-medium">
+            Hiển thị {startIdx} đến {endIdx} trong số {filteredClassrooms.length} kết quả
+          </Pagination.Summary>
+          <Pagination.Content>
+            <Pagination.Item>
+              <Pagination.Previous
+                isDisabled={page === 1}
+                onPress={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <Pagination.PreviousIcon />
+                Trang trước
+              </Pagination.Previous>
+            </Pagination.Item>
+            {pages.map((p) => (
+              <Pagination.Item key={p}>
+                <Pagination.Link
+                  isActive={p === page}
+                  onPress={() => setPage(p)}
+                  className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
+                >
+                  {p}
+                </Pagination.Link>
+              </Pagination.Item>
+            ))}
+            <Pagination.Item>
+              <Pagination.Next
+                isDisabled={page === totalPages}
+                onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Trang sau
+                <Pagination.NextIcon />
+              </Pagination.Next>
+            </Pagination.Item>
+          </Pagination.Content>
+        </Pagination>
       )}
 
       {/* MODAL CREATE / UPDATE */}
@@ -859,22 +1049,24 @@ export default function TeacherClassrooms() {
                       Học sinh nhập đúng mã sẽ phải chờ bạn phê duyệt trước khi vào lớp để tránh tài khoản lạ/spam.
                     </span>
                   </div>
-                  <input
+                  <ApprovalCheckbox
                     id="modalRequireApproval"
-                    type="checkbox"
                     checked={newClass.requireApproval}
-                    onChange={(e) => setNewClass({ ...newClass, requireApproval: e.target.checked })}
-                    className="w-5 h-5 accent-orange-500 rounded cursor-pointer shrink-0"
+                    onCheckedChange={(checked) => setNewClass({ ...newClass, requireApproval: checked === true })}
+                    className="w-5 h-5 shrink-0 border-2 border-slate-300 data-checked:bg-[#f47c20] data-checked:border-[#f47c20]"
                   />
                 </div>
 
                 <div className={styles.modalActions}>
-                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)}>
+                  <button type="button" className={styles.btnCancel} onClick={() => setShowModal(false)} disabled={isSubmittingClass}>
                     Hủy bỏ
                   </button>
-                  <button type="submit" className={styles.btnConfirm}>
-                    {editingId ? "Cập nhật" : "Tạo lớp học"}
-                  </button>
+                  <ShineButton type="submit" disabled={isSubmittingClass}>
+                    {isSubmittingClass
+                      ? (editingId ? "Đang cập nhật..." : "Đang tạo...")
+                      : (editingId ? "Cập nhật" : "Tạo lớp học")
+                    }
+                  </ShineButton>
                 </div>
               </form>
             </div>
@@ -899,16 +1091,13 @@ export default function TeacherClassrooms() {
         }}
       >
         <AlertDialogContent className="bg-white max-w-md p-6 rounded-2xl shadow-xl border border-slate-100 overflow-hidden relative">
-          {/* Top Gradient Bar combining Ocean Blue ($secondary) & Sunscreen Orange ($primary) */}
-          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#2f8fa3] via-[#f47c20] to-[#2f8fa3]" />
-
           <AlertDialogHeader className="text-left pt-1">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#2f8fa3]/10 text-[#2f8fa3] flex items-center justify-center shrink-0 border border-[#2f8fa3]/20">
+              <div className="w-10 h-10 rounded-xl bg-[#f47c20]/10 text-[#f47c20] flex items-center justify-center shrink-0 border border-[#f47c20]/20">
                 <Archive size={22} weight="duotone" />
               </div>
               <div>
-                <AlertDialogTitle className="text-slate-900 text-lg font-extrabold">Lưu trữ lớp học</AlertDialogTitle>
+                <AlertDialogTitle className="text-[#f47c20] text-lg font-extrabold">Lưu trữ lớp học</AlertDialogTitle>
                 <AlertDialogDescription className="text-slate-500 text-xs mt-0.5">
                   Bạn có chắc chắn muốn lưu trữ lớp <span className="font-semibold text-slate-800">"{classToArchive?.name}"</span> không?
                 </AlertDialogDescription>
@@ -916,9 +1105,8 @@ export default function TeacherClassrooms() {
             </div>
           </AlertDialogHeader>
 
-          <div className="bg-gradient-to-r from-[#2f8fa3]/10 via-slate-50 to-[#2f8fa3]/5 text-slate-700 p-4 rounded-xl text-sm border border-[#2f8fa3]/25 flex gap-3 items-start my-3">
-            <Archive size={22} weight="duotone" className="shrink-0 text-[#2f8fa3] mt-0.5" />
-            <p className="leading-relaxed text-xs font-medium text-slate-600">
+          <div className="bg-gradient-to-r from-[#2f8fa3]/10 via-slate-50 to-[#2f8fa3]/5 text-slate-700 p-4 rounded-xl text-sm border border-[#2f8fa3]/25 my-3">
+            <p className="leading-relaxed text-xs font-medium text-slate-600 m-0">
               Lớp học sẽ được ẩn khỏi màn hình chính nhưng <strong className="text-[#2f8fa3] font-bold">toàn bộ dữ liệu điểm số, bài tập, và danh sách học sinh vẫn được bảo lưu an toàn.</strong>
             </p>
           </div>
@@ -933,8 +1121,8 @@ export default function TeacherClassrooms() {
               Hủy
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="default"
               onClick={confirmArchive}
-              className="bg-[#2f8fa3] hover:bg-[#247485] text-white border-none shadow-md shadow-[#2f8fa3]/20 font-semibold"
             >
               Xác nhận Lưu trữ
             </AlertDialogAction>

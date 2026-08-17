@@ -178,7 +178,7 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
                 res.status(400);
                 return next(new Error('Họ và tên phải có độ dài từ 2 đến 50 ký tự!'));
             }
-            const nameRegex = /^[a-zA-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÂÊÔƠỨỪỬỮỰẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂưăâêôơứừửữựấầẩẫậắằẳẵặẹẻẽềềểếỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰÝỲỶỸÝýỳỷỹ\s]+$/;
+            const nameRegex = /^[\p{L}\s]+$/u;
             if (!nameRegex.test(trimmedName)) {
                 res.status(400);
                 return next(new Error('Họ và tên không được chứa chữ số hoặc ký tự đặc biệt!'));

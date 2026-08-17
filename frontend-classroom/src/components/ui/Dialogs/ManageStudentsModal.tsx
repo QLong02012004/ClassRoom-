@@ -71,12 +71,18 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
     }
   }, [isOpen, classroom, defaultTab]);
 
-  // Tìm kiếm học sinh trong hệ thống
+  // Tìm kiếm học sinh trong hệ thống (chỉ tìm khi người dùng gõ từ khóa)
   useEffect(() => {
     if (isOpen && modalTab === "add_existing") {
+      const query = studentSearchQuery.trim();
+      if (!query) {
+        setStudentSearchResults([]);
+        setIsSearchingStudent(false);
+        return;
+      }
       setIsSearchingStudent(true);
       const timer = setTimeout(() => {
-        userService.getUsers({ role: 'student', search: studentSearchQuery.trim() })
+        userService.getUsers({ role: 'student', search: query })
           .then(res => {
             setStudentSearchResults(res.data || []);
             setIsSearchingStudent(false);
@@ -219,16 +225,16 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* HEADER - TIÊU ĐỀ MÀU CAM $primary (#f47c20) */}
-        <div className="bg-white border-b border-slate-200 p-5 flex items-start justify-between shrink-0">
-          <div className="flex flex-col gap-1">
-            <h3 className="flex items-center gap-2 text-xl font-extrabold m-0 text-[#f47c20]">
-              <UserPlus size={26} weight="duotone" className="text-[#f47c20]" />
-              Yêu cầu tham gia & Thêm học sinh: {classroom.name}
+        <div className="bg-white border-b border-slate-200 p-5 flex items-start justify-between shrink-0 gap-4">
+          <div className="flex flex-col gap-1 flex-1 min-w-0 pr-2">
+            <h3 className="flex items-start gap-2 text-xl font-extrabold m-0 text-[#f47c20] leading-snug">
+              <UserPlus size={26} weight="duotone" className="text-[#f47c20] shrink-0 mt-0.5" />
+              <span>Yêu cầu tham gia & Thêm học sinh: {classroom.name}</span>
             </h3>
             <p className="text-slate-500 text-sm m-0">Quản lý học sinh tham gia và duyệt các yêu cầu xin vào lớp</p>
           </div>
           <button
-            className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 border border-slate-200 cursor-pointer p-2 rounded-full hover:bg-rose-50 shrink-0"
+            className="text-slate-400 hover:text-rose-500 transition-colors bg-slate-50 border border-slate-200 cursor-pointer p-2 rounded-full hover:bg-rose-50 shrink-0 ml-2"
             onClick={onClose}
           >
             <XCircle size={20} weight="bold" />
@@ -239,7 +245,7 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
         <div className="flex border-b border-slate-200 bg-slate-100/70 p-1.5 gap-1 shrink-0">
           <button
             type="button"
-            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${modalTab === 'pending' ? 'bg-white text-[#f47c20] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${modalTab === 'pending' ? 'bg-white text-[#2f8fa3] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             onClick={() => setModalTab('pending')}
           >
             <UserPlus size={16} weight="bold" />
@@ -247,7 +253,7 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
           </button>
           <button
             type="button"
-            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${modalTab === 'add_existing' ? 'bg-white text-[#f47c20] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${modalTab === 'add_existing' ? 'bg-white text-[#2f8fa3] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             onClick={() => setModalTab('add_existing')}
           >
             <MagnifyingGlass size={16} weight="bold" />
@@ -255,7 +261,7 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
           </button>
           <button
             type="button"
-            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${modalTab === 'create_new' ? 'bg-white text-[#f47c20] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+            className={`flex-1 py-2.5 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${modalTab === 'create_new' ? 'bg-white text-[#2f8fa3] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
             onClick={() => setModalTab('create_new')}
           >
             <Plus size={16} weight="bold" />
@@ -396,10 +402,10 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
                     <input
                       id="studentSearchQueryModal"
                       type="text"
-                      placeholder="Nhập tên, email hoặc SĐT học sinh..."
+                      placeholder="Nhập tên, email hoặc SĐT học sinh để tìm kiếm..."
                       value={studentSearchQuery}
                       onChange={(e) => setStudentSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 outline-none focus:border-[#f47c20] focus:ring-2 focus:ring-[#f47c20]/20"
+                      className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 outline-none focus:border-[#2f8fa3] focus:ring-2 focus:ring-[#2f8fa3]/20"
                     />
                   </div>
                 </div>
@@ -414,11 +420,11 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
                         <div
                           key={st._id}
                           onClick={() => setSelectedStudentId(st._id)}
-                          className={`p-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${isSelected ? 'bg-orange-50/80 border-[#f47c20] shadow-xs' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
+                          className={`p-3 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${isSelected ? 'bg-cyan-50/80 border-[#2f8fa3] shadow-xs' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
                         >
                           <div className="flex items-center gap-3">
                             <img
-                              src={st.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(st.name)}&background=f47c20&color=fff&bold=true`}
+                              src={st.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(st.name)}&background=2f8fa3&color=fff&bold=true`}
                               alt={st.name}
                               className="w-9 h-9 rounded-full object-cover border border-slate-200"
                             />
@@ -427,13 +433,13 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
                               <span className="text-[11px] text-slate-500">{st.email} {st.parentPhone ? `• SĐT PH: ${st.parentPhone}` : ''}</span>
                             </div>
                           </div>
-                          {isSelected && <CheckCircle size={18} weight="fill" className="text-[#f47c20]" />}
+                          {isSelected && <CheckCircle size={18} weight="fill" className="text-[#2f8fa3]" />}
                         </div>
                       );
                     })
                   ) : (
                     <div className="py-8 text-center text-xs text-slate-500 font-medium">
-                      {studentSearchQuery ? "Không tìm thấy học sinh nào khớp với từ khóa" : "Danh sách học sinh trên hệ thống"}
+                      {studentSearchQuery.trim() ? "Không tìm thấy học sinh nào khớp với từ khóa" : "Vui lòng nhập tên, email hoặc SĐT học sinh ở trên để tìm kiếm"}
                     </div>
                   )}
                 </div>

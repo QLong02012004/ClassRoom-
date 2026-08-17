@@ -127,7 +127,31 @@ const Login: React.FC = () => {
     }
   };
 
+  const capitalizeWords = (str: string) => {
+    if (!str) return "";
+    return str
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
   const handleRegister = async (data: any) => {
+    const trimmedName = (data.name || "").trim();
+    if (!trimmedName) {
+      toast.error("Họ và tên không được để trống!");
+      return;
+    }
+    if (trimmedName.length < 2 || trimmedName.length > 50) {
+      toast.error("Họ và tên phải có độ dài từ 2 đến 50 ký tự!");
+      return;
+    }
+    const nameRegex = /^[\p{L}\s]+$/u;
+    if (!nameRegex.test(trimmedName)) {
+      toast.error("Họ và tên không được chứa chữ số hoặc ký tự đặc biệt!");
+      return;
+    }
+
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
     if (data.password && !passwordRegex.test(data.password)) {
       toast.error("Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!");
@@ -135,18 +159,19 @@ const Login: React.FC = () => {
     }
 
     setLoading(true);
+    const formattedName = capitalizeWords(trimmedName);
 
     try {
       if (data.role === 'teacher') {
         await authService.registerTeacher({
-          name: data.name,
+          name: formattedName,
           email: data.email,
           password: data.password,
           subject: data.subject
         });
       } else {
         await authService.registerStudent({
-          name: data.name,
+          name: formattedName,
           email: data.email,
           password: data.password
         });

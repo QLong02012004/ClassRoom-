@@ -8,6 +8,7 @@
   max-width: 1300px;
   margin: 0 auto;
   font-family: vars.$font-main;
+  padding-bottom: 48px;
 }
 
 .pageHeader {
@@ -41,61 +42,7 @@
     flex-wrap: wrap;
   }
 
-  /* ─── SEARCH BOX ────────────────────────────── */
-  .searchBox {
-    position: relative;
-    display: flex;
-    align-items: center;
-    background: white;
-    border: 1.5px solid vars.$sidebar-border;
-    border-radius: 10px;
-    padding: 0 10px;
-    height: 38px;
-    gap: 6px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    min-width: 200px;
 
-    &:focus-within {
-      border-color: vars.$primary;
-      box-shadow: 0 0 0 3px rgba(vars.$primary, 0.1);
-    }
-
-    .searchIcon {
-      color: #94a3b8;
-      flex-shrink: 0;
-    }
-
-    .searchInput {
-      border: none;
-      outline: none;
-      background: transparent;
-      font-size: 0.85rem;
-      color: vars.$dark-text;
-      font-family: inherit;
-      flex: 1;
-      min-width: 0;
-
-      &::placeholder {
-        color: #b0bec5;
-      }
-    }
-
-    .searchClear {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 1rem;
-      cursor: pointer;
-      padding: 0 2px;
-      line-height: 1;
-      flex-shrink: 0;
-      transition: color 0.15s;
-
-      &:hover {
-        color: vars.$primary;
-      }
-    }
-  }
 
   /* ─── SEMESTER DROPDOWN ─────────────────────── */
   .semesterDropdown {
@@ -214,13 +161,68 @@
       align-items: stretch;
     }
 
-    .searchBox {
-      width: 100%;
-    }
+
 
     .btnCreateHeader {
       width: 100%;
       justify-content: center;
+    }
+  }
+}
+
+/* ─── SEARCH BOX (TOP LEVEL) ────────────────── */
+.searchBox {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: white;
+  border: 1.5px solid vars.$sidebar-border;
+  border-radius: 10px;
+  padding: 0 10px;
+  height: 38px;
+  gap: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 350px;
+  max-width: 480px;
+
+  &:focus-within {
+    border-color: vars.$primary;
+    box-shadow: 0 0 0 3px rgba(vars.$primary, 0.1);
+  }
+
+  .searchIcon {
+    color: #94a3b8;
+    flex-shrink: 0;
+  }
+
+  .searchInput {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.85rem;
+    color: vars.$dark-text;
+    font-family: inherit;
+    flex: 1;
+    min-width: 0;
+
+    &::placeholder {
+      color: #b0bec5;
+    }
+  }
+
+  .searchClear {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: color 0.15s;
+
+    &:hover {
+      color: vars.$primary;
     }
   }
 }
@@ -272,11 +274,18 @@
   gap: 16px;
   transition: vars.$transition-normal;
   text-align: left;
+  position: relative;
+  z-index: 1;
+
+  &:has(input:checked) {
+    z-index: 50;
+  }
 
   &:hover {
     transform: translateY(-4px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
     border-color: rgba(0, 0, 0, 0.08);
+    z-index: 2;
   }
 
   .cardTop {
@@ -313,7 +322,7 @@
 
     .classTitle {
       font-size: 1.15rem;
-      font-weight: 800;
+      font-weight: 700;
       color: vars.$primary;
       margin: 0;
     }
@@ -357,6 +366,32 @@
       &:hover {
         background: vars.$primary;
         color: white;
+      }
+
+      span {
+        white-space: nowrap;
+      }
+    }
+
+    .attendanceBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 4px;
+      background: rgba(vars.$primary, 0.08);
+      color: vars.$primary;
+      border: 1px solid rgba(vars.$primary, 0.18);
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-decoration: none;
+      transition: vars.$transition-fast;
+
+      &:hover {
+        background: vars.$primary;
+        color: white;
+        border-color: vars.$primary;
       }
 
       span {
@@ -407,9 +442,9 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    background: rgba(vars.$primary, 0.05);
-    border: 1px solid rgba(vars.$primary, 0.12);
-    color: vars.$primary;
+    background: rgba(vars.$secondary, 0.06);
+    border: 1px solid rgba(vars.$secondary, 0.18);
+    color: vars.$secondary;
     font-size: 0.75rem;
     font-weight: 600;
     padding: 6px 10px;
@@ -448,7 +483,7 @@
   background: white;
   border-radius: 16px;
   width: 100%;
-  max-width: 440px;
+  max-width: 520px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
   animation: modalFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: left;
@@ -456,13 +491,7 @@
   position: relative;
 
   &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, vars.$secondary 0%, vars.$primary 100%);
+    content: none;
   }
 
   .modalHeader {
@@ -530,8 +559,8 @@
     margin-bottom: 20px;
 
     label {
-      font-size: 0.8rem;
-      font-weight: 600;
+      font-size: 0.85rem;
+      font-weight: 700;
       color: #334155;
     }
 

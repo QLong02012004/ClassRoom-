@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { bankService } from '../../../service/bank.service';
 import type { IBankItem } from '../../../service/bank.service';
 import { useToast } from '../../../components/Styles/ToastContext';
+import { SmartSearchBar, type SearchSuggestionItem } from '../../../components/ui/Inputs/SmartSearchBar';
+import { DropdownFilter } from '../../../components/ui/Dropdowns/DropdownFilter';
 import { Plus, BookOpen, FileText, DotsThree, Trash, PencilSimple, Clock, CaretDown, MagnifyingGlass, Funnel, Info, TextAa, ListChecks, DownloadSimple, CheckCircle, ClipboardText, Calculator } from 'phosphor-react';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../../../components/ui/dropdown-menu';
 import QuizBuilder from '../../../components/ui/Builders/QuizBuilder/QuizBuilder';
@@ -77,6 +79,21 @@ export default function BankList() {
 
     // State bộ lọc và tìm kiếm
     const [searchTerm, setSearchTerm] = useState("");
+    const searchSuggestions = useMemo<SearchSuggestionItem[]>(() => {
+        if (!searchTerm.trim()) return [];
+        const query = searchTerm.toLowerCase();
+        return items
+            .filter(item => item.title.toLowerCase().includes(query))
+            .slice(0, 5)
+            .map(item => ({
+                id: item._id,
+                title: item.title,
+                subtitle: `${item.type === 'quiz' ? 'Trắc nghiệm' : 'Tài liệu'} • ${item.subject || 'Khác'}`,
+                tag: item.maxScore ? `${item.maxScore}đ` : undefined,
+                rawData: item
+            }));
+    }, [items, searchTerm]);
+
     const [filterType, setFilterType] = useState("all");
     const [filterSubject, setFilterSubject] = useState("all");
 
@@ -379,8 +396,8 @@ export default function BankList() {
             ) : (
                 <>
                     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                            <BookOpen size={28} className="text-primary" weight="fill" />
+                        <h1 className="text-2xl font-bold text-[#f47c20] flex items-center gap-2">
+                            <BookOpen size={28} className="text-[#f47c20]" weight="fill" />
                             Ngân Hàng Đề & Tài Liệu
                         </h1>
                         <p className="text-slate-500 mt-1">Nơi soạn giảng và lưu trữ các đề trắc nghiệm, bài tập để giao cho nhiều lớp</p>
@@ -402,90 +419,62 @@ export default function BankList() {
                                     {/* SEARCH, FILTER AND ACTION BAR */}
                                     <div className="mb-4 flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
                                         <div className="flex flex-col sm:flex-row gap-2.5 flex-1 items-stretch sm:items-center">
-                                            <div className="relative w-full sm:w-[320px]">
-                                                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                                    <MagnifyingGlass size={18} className="text-slate-400" />
-                                                </div>
-                                                <input
-                                                    type="text"
-                                                    placeholder="Tìm kiếm tài nguyên theo tiêu đề..."
-                                                    value={searchTerm}
-                                                    onChange={(e) => {
-                                                        setSearchTerm(e.target.value);
+                                            <SmartSearchBar
+                                                placeholder="Tìm kiếm tài nguyên theo tiêu đề..."
+                                                value={searchTerm}
+                                                onChange={(val) => {
+                                                    setSearchTerm(val);
+                                                    setCurrentPage(1);
+                                                }}
+                                                suggestions={searchSuggestions}
+                                                onSelectSuggestion={(item) => {
+                                                    setSelectedDetailsItem(item.rawData);
+                                                    setShowDetailsDialog(true);
+                                                }}
+                                                recentSearchesKey="teacherBankSearches"
+                                                widthClass="w-full sm:w-[320px]"
+                                            />
+                                            <div className="flex gap-2">
+                                                <DropdownFilter
+                                                    label="Loại"
+                                                    value={filterType}
+                                                    onChange={(key) => {
+                                                        setFilterType(key);
                                                         setCurrentPage(1);
                                                     }}
-                                                    className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-medium"
+                                                    options={[
+                                                        { id: "all", label: "Tất cả loại" },
+                                                        { id: "quiz", label: "Trắc nghiệm" },
+                                                        { id: "document", label: "Bài tập" }
+                                                    ]}
+                                                    minWidthClass="min-w-[140px]"
                                                 />
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <button
-                                                            type="button"
-                                                            className="pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white min-w-[140px] flex items-center justify-between relative hover:bg-slate-50 transition-colors"
-                                                        >
-                                                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                                                <Funnel size={16} className="text-slate-400" />
-                                                            </div>
-                                                            <span>
-                                                                {filterType === 'all' ? 'Tất cả loại' : filterType === 'quiz' ? 'Trắc nghiệm' : 'Bài tập'}
-                                                            </span>
-                                                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                                                                <CaretDown size={14} className="text-slate-400" />
-                                                            </div>
-                                                        </button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1 min-w-[140px]">
-                                                        <DropdownMenuItem onClick={() => { setFilterType('all'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Tất cả loại</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => { setFilterType('quiz'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Trắc nghiệm</DropdownMenuItem>
-                                                        <DropdownMenuItem onClick={() => { setFilterType('document'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Bài tập</DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
 
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <button
-                                                            type="button"
-                                                            className="pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white min-w-[140px] flex items-center justify-between relative hover:bg-slate-50 transition-colors"
-                                                        >
-                                                            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-                                                                <BookOpen size={16} className="text-slate-400" />
-                                                            </div>
-                                                            <span>
-                                                                {filterSubject === 'all' ? 'Tất cả môn' : filterSubject}
-                                                            </span>
-                                                            <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                                                                <CaretDown size={14} className="text-slate-400" />
-                                                            </div>
-                                                        </button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent className="bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2 min-w-[180px] max-h-72 overflow-y-auto flex flex-col gap-1">
-                                                        <DropdownMenuItem onClick={() => { setFilterSubject('all'); setCurrentPage(1); }} className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors">Tất cả môn</DropdownMenuItem>
-                                                        {Array.from(new Set(items.map(item => item.subject).filter(Boolean) as string[])).map((subj) => (
-                                                            <DropdownMenuItem
-                                                                key={subj}
-                                                                onClick={() => { setFilterSubject(subj); setCurrentPage(1); }}
-                                                                className="px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-medium transition-colors"
-                                                            >
-                                                                {subj}
-                                                            </DropdownMenuItem>
-                                                        ))}
-                                                        <div className="border-t border-slate-100 mt-1 pt-2 px-1 flex flex-col gap-1.5" onClick={(e) => e.stopPropagation()}>
-                                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider pl-2">Môn khác</span>
-                                                            <input
-                                                                type="text"
-                                                                placeholder="Nhập tên môn..."
-                                                                value={filterSubject === 'all' ? '' : filterSubject}
-                                                                onChange={(e) => {
-                                                                    const val = e.target.value;
-                                                                    setFilterSubject(val.trim() === '' ? 'all' : val);
-                                                                    setCurrentPage(1);
-                                                                }}
-                                                                className="w-full px-2.5 py-1.5 text-xs font-semibold border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 bg-slate-50 focus:bg-white text-slate-800 transition-all placeholder:text-slate-400"
-                                                            />
-                                                        </div>
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                <DropdownFilter
+                                                    label="Môn học"
+                                                    value={filterSubject}
+                                                    onChange={(key) => {
+                                                        setFilterSubject(key);
+                                                        setCurrentPage(1);
+                                                    }}
+                                                    options={[
+                                                        { id: "all", label: "Tất cả môn" },
+                                                        ...Array.from(new Set(items.map(item => item.subject).filter(Boolean) as string[])).map(subj => ({
+                                                            id: subj,
+                                                            label: subj
+                                                        }))
+                                                    ]}
+                                                    icon={<BookOpen size={16} className="text-slate-400" />}
+                                                    minWidthClass="min-w-[180px]"
+                                                    hasCustomInput={true}
+                                                    customInputLabel="Môn khác"
+                                                    customInputPlaceholder="Nhập tên môn..."
+                                                    customInputValue={filterSubject === 'all' ? '' : filterSubject}
+                                                    onCustomInputChange={(val) => {
+                                                        setFilterSubject(val.trim() === '' ? 'all' : val);
+                                                        setCurrentPage(1);
+                                                    }}
+                                                />
                                             </div>
                                         </div>
 
@@ -567,19 +556,13 @@ export default function BankList() {
                                                 <Table.Body>
                                                     {currentItems.length === 0 ? (
                                                         <Table.Row>
-                                                            <Table.Cell className="px-5 py-8 text-center text-slate-400 font-medium" colSpan={7}>
-                                                                <div className="flex flex-col items-center justify-center gap-2 py-6">
-                                                                    <Info size={32} className="text-slate-300" weight="duotone" />
-                                                                    <span className="text-slate-500 font-semibold">Không tìm thấy kết quả phù hợp với bộ lọc</span>
-                                                                    <span className="text-slate-400 text-xs">Vui lòng thử tìm kiếm với từ khóa khác hoặc thiết lập lại bộ lọc</span>
+                                                            <Table.Cell className="px-5 py-12 text-center text-slate-500 font-medium" colSpan={7}>
+                                                                <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                                                                    <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+                                                                    <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy tài nguyên</p>
+                                                                    <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy tài nguyên học liệu nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
                                                                 </div>
                                                             </Table.Cell>
-                                                            <Table.Cell className="hidden font-medium text-slate-300">—</Table.Cell>
-                                                            <Table.Cell className="hidden font-medium text-slate-300">—</Table.Cell>
-                                                            <Table.Cell className="hidden font-medium text-slate-300">—</Table.Cell>
-                                                            <Table.Cell className="hidden font-medium text-slate-300">—</Table.Cell>
-                                                            <Table.Cell className="hidden font-medium text-slate-300">—</Table.Cell>
-                                                            <Table.Cell className="hidden font-medium text-slate-300">—</Table.Cell>
                                                         </Table.Row>
                                                     ) : (
                                                         currentItems.map(item => (

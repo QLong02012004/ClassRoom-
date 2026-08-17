@@ -51,6 +51,8 @@ import styles from "./AdminUsers.module.scss";
 import { authService } from "../../../service/auth.service";
 import { userService, type IUserItem } from "../../../service/user.service";
 import { io } from "socket.io-client";
+import { DropdownFilter } from "../../../components/ui/Dropdowns/DropdownFilter";
+import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
 
 // Chuyển đổi role từ DB sang tiếng Việt để hiển thị
 const roleToVi = (role: string): "Admin" | "Giáo viên" | "Học sinh" => {
@@ -74,6 +76,15 @@ const normalizeString = (str: string) => {
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+};
+
+const capitalizeWords = (str: string) => {
+  if (!str) return "";
+  return str
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
 };
 
 // Định nghĩa User type dùng trong table (có thêm _id để gọi API)
@@ -261,6 +272,25 @@ export default function AdminUsers() {
   const initialStatusParam = searchParams.get("status") || "all";
 
   const [globalFilter, setGlobalFilter] = useState("");
+  const searchSuggestions = useMemo<SearchSuggestionItem[]>(() => {
+    if (!globalFilter.trim()) return [];
+    const normalizedFilter = normalizeString(globalFilter);
+    return users
+      .filter(u =>
+        normalizeString(u.name).includes(normalizedFilter) ||
+        normalizeString(u.email).includes(normalizedFilter) ||
+        (u.phone && normalizeString(u.phone).includes(normalizedFilter))
+      )
+      .slice(0, 5)
+      .map(u => ({
+        id: u._id,
+        title: u.name,
+        subtitle: `${u.email} • ${u.role}${u.subject ? ` (${u.subject})` : ""}`,
+        tag: u.phone || undefined,
+        rawData: u
+      }));
+  }, [users, globalFilter]);
+
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatusParam);
 
@@ -648,9 +678,10 @@ export default function AdminUsers() {
   const handleUpdateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    const formattedName = capitalizeWords(editFormData.name);
     try {
       const response = await userService.updateUser(editFormData.id, {
-        name: editFormData.name,
+        name: formattedName,
         email: editFormData.email,
         subject: editFormData.role === "teacher" ? (editFormData.subject === "Khác" ? editFormData.customSubject : editFormData.subject) : "",
         role: editFormData.role,
@@ -663,7 +694,7 @@ export default function AdminUsers() {
           u._id === editFormData.id
             ? {
               ...u,
-              name: editFormData.name,
+              name: formattedName,
               email: editFormData.email,
               role: roleToVi(editFormData.role),
               subject: editFormData.role === "teacher" ? editFormData.subject : "",
@@ -725,18 +756,19 @@ export default function AdminUsers() {
     }
 
     setIsSubmitting(true);
+    const formattedName = capitalizeWords(formData.name);
     try {
       let response;
       if (formData.role === "teacher") {
         response = await authService.createTeacher({
-          name: formData.name,
+          name: formattedName,
           email: formData.email,
           password: formData.password,
           subject: formData.subject === "Khác" ? formData.customSubject : formData.subject,
         });
       } else {
         response = await authService.createStudent({
-          name: formData.name,
+          name: formattedName,
           email: formData.email,
           password: formData.password,
         });
@@ -776,94 +808,42 @@ export default function AdminUsers() {
       {/* TABLE TOOLBAR */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <div className="relative w-full md:w-72">
-            <MagnifyingGlass
-              size={16}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10"
-            />
-            <HeroInput
-              placeholder="Tìm kiếm theo tên / email..."
-              value={globalFilter ?? ""}
-              onChange={(event) => setGlobalFilter(event.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all shadow-sm"
-            />
-          </div>
-          <Select
-            className="w-full md:w-auto"
-            aria-label="Lọc theo vai trò"
-            selectedKey={roleFilter}
-            onSelectionChange={(key) => setRoleFilter(key as string)}
-          >
-            <Select.Trigger className="w-full md:w-auto flex items-center justify-between bg-white gap-2 border border-slate-200 shadow-sm text-slate-600 font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
-              <div className="flex items-center gap-2">
-                <Funnel size={16} weight="bold" />
-                <span>
-                  Vai trò{" "}
-                  {roleFilter !== "all" ? `: ${roleFilter}` : ""}
-                </span>
-              </div>
-            </Select.Trigger>
-            <Select.Popover className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 z-50">
-              <ListBox className="p-1 outline-none space-y-1">
-                <ListBoxItem id="Admin" textValue="Admin" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
-                  Admin
-                </ListBoxItem>
-                <ListBoxItem id="Giáo viên" textValue="Giáo viên" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
-                  Giáo viên
-                </ListBoxItem>
-                <ListBoxItem id="Học sinh" textValue="Học sinh" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
-                  Học sinh
-                </ListBoxItem>
-                <ListBoxItem id="all" textValue="Tất cả vai trò" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-bold text-slate-500 border-t border-slate-100 mt-1 text-sm">
-                  Tất cả vai trò
-                </ListBoxItem>
-              </ListBox>
-            </Select.Popover>
-          </Select>
+          <SmartSearchBar
+            placeholder="Tìm kiếm theo tên / email..."
+            value={globalFilter}
+            onChange={setGlobalFilter}
+            suggestions={searchSuggestions}
+            onSelectSuggestion={(item) => {
+              handleOpenDetail(item.rawData);
+            }}
+            recentSearchesKey="adminUserSearches"
+            widthClass="w-full md:w-72"
+          />
+          <DropdownFilter
+            label="Vai trò"
+            value={roleFilter}
+            onChange={(key) => setRoleFilter(key)}
+            options={[
+              { id: "all", label: "Tất cả vai trò" },
+              { id: "Admin", label: "Admin" },
+              { id: "Giáo viên", label: "Giáo viên" },
+              { id: "Học sinh", label: "Học sinh" }
+            ]}
+            minWidthClass="min-w-[150px]"
+          />
 
-          <Select
-            className="w-full md:w-auto"
-            aria-label="Lọc theo trạng thái"
-            selectedKey={statusFilter}
-            onSelectionChange={(key) => setStatusFilter(key as string)}
-          >
-            <Select.Trigger className="w-full md:w-auto flex items-center justify-between bg-white gap-2 border border-slate-200 shadow-sm text-slate-600 font-semibold px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20">
-              <div className="flex items-center gap-2">
-                <Funnel size={16} weight="bold" />
-                <span>
-                  Trạng thái{" "}
-                  {statusFilter !== "all"
-                    ? `: ${statusFilter === "Active" ? "Hoạt động" : statusFilter === "Pending" ? "Chờ phê duyệt" : "Đang khóa"}`
-                    : ""}
-                </span>
-              </div>
-            </Select.Trigger>
-            <Select.Popover className="w-48 bg-white border border-slate-200 rounded-lg shadow-lg mt-1 z-50">
-              <ListBox className="p-1 outline-none space-y-1">
-                <ListBoxItem id="Active" textValue="Hoạt động" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                    Hoạt động
-                  </div>
-                </ListBoxItem>
-                <ListBoxItem id="Pending" textValue="Chờ phê duyệt" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-amber-500" />
-                    Chờ phê duyệt
-                  </div>
-                </ListBoxItem>
-                <ListBoxItem id="Locked" textValue="Đang khóa" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-medium text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-500" />
-                    Đang khóa
-                  </div>
-                </ListBoxItem>
-                <ListBoxItem id="all" textValue="Tất cả trạng thái" className="px-3 py-2 hover:bg-slate-100 rounded cursor-pointer outline-none focus:bg-slate-100 font-bold text-slate-500 border-t border-slate-100 mt-1 text-sm">
-                  Tất cả trạng thái
-                </ListBoxItem>
-              </ListBox>
-            </Select.Popover>
-          </Select>
+          <DropdownFilter
+            label="Trạng thái"
+            value={statusFilter}
+            onChange={(key) => setStatusFilter(key)}
+            options={[
+              { id: "all", label: "Tất cả trạng thái" },
+              { id: "Active", label: "Hoạt động", icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
+              { id: "Pending", label: "Chờ phê duyệt", icon: <div className="w-2 h-2 rounded-full bg-amber-500" /> },
+              { id: "Locked", label: "Đang khóa", icon: <div className="w-2 h-2 rounded-full bg-red-500" /> }
+            ]}
+            minWidthClass="min-w-[170px]"
+          />
 
           {pendingCount > 0 && (
             <button
@@ -1570,19 +1550,13 @@ export default function AdminUsers() {
                   ))
                 ) : filteredAndSortedUsers.length === 0 ? (
                   <Table.Row key="empty" id="empty">
-                    <Table.Cell className="pr-0" />
-                    <Table.Cell />
-                    <Table.Cell>
-                      <div className="py-10 opacity-0 pointer-events-none w-[200px]">.</div>
-                      <div className="absolute inset-x-0 flex justify-center items-center text-slate-500 font-medium pointer-events-none" style={{ top: 0, bottom: 0 }}>
-                        Không tìm thấy người dùng phù hợp
+                    <Table.Cell colSpan={8} className="py-12 text-center text-slate-500 font-medium">
+                      <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                        <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+                        <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy người dùng</p>
+                        <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy thành viên nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
                       </div>
                     </Table.Cell>
-                    <Table.Cell />
-                    <Table.Cell />
-                    <Table.Cell />
-                    <Table.Cell />
-                    <Table.Cell />
                   </Table.Row>
                 ) : (
                   paginatedItems.map((user, idx) => {

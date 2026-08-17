@@ -278,38 +278,87 @@ const TopHeader: React.FC = () => {
           </button>
 
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-[320px] bg-white rounded-xl shadow-xl border border-slate-200 pb-2 z-50 overflow-hidden">
-              <div className="px-4 py-3 font-bold text-white bg-primary mb-2 shadow-sm flex items-center justify-between">
-                <span>Thông báo</span>
-                {unreadCount > 0 && (
-                  <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-normal">
-                    {unreadCount} chưa đọc
-                  </span>
-                )}
+            <div className="absolute right-0 mt-2 w-[400px] bg-white rounded-2xl border z-50 overflow-hidden flex flex-col" style={{ maxHeight: '500px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 16px -6px rgba(0,0,0,0.05)', borderColor: '#E2E8F0' }}>
+              {/* Header */}
+              <div className="px-5 py-4 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid #E2E8F0' }}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[15px] font-extrabold" style={{ color: '#0F172A' }}>Thông báo</span>
+                  {unreadCount > 0 && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold" style={{ background: 'rgba(244,124,32,0.10)', color: '#f47c20', border: '1px solid rgba(244,124,32,0.20)' }}>
+                      {unreadCount} chưa đọc
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      await notificationService.markAllAsRead();
+                      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+                    } catch {}
+                  }}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
+                  style={{ background: 'rgba(47,143,163,0.08)', color: '#2f8fa3', border: '1px solid rgba(47,143,163,0.2)' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(47,143,163,0.15)'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(47,143,163,0.08)'; }}
+                >
+                  Đọc tất cả
+                </button>
               </div>
+
+              {/* List */}
               {notifications.length === 0 ? (
-                <div className="px-4 py-6 text-center text-sm text-slate-500">
-                  Không có thông báo mới
+                <div className="flex flex-col items-center justify-center py-14 gap-3">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style={{ background: '#F8FAFC' }}>🔕</div>
+                  <p className="text-sm font-medium" style={{ color: '#64748B' }}>Không có thông báo mới</p>
                 </div>
               ) : (
-                <div className="flex flex-col max-h-[320px] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-primary [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-[#e55c3f]">
-                  {notifications.map((notif) => (
-                    <div
-                      key={notif._id}
-                      className={`px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors border-b border-slate-100 last:border-none ${notif.isRead ? "bg-white" : "bg-orange-50/50"}`}
-                      onClick={() => handleNotificationClick(notif)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <span className={`text-sm block mb-1 whitespace-normal ${notif.isRead ? "font-medium text-slate-700" : "font-bold text-slate-900"}`}>
-                          {notif.title}
-                        </span>
-                        {!notif.isRead && (
-                          <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0 mt-1"></span>
+                <div className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full" style={{ scrollbarColor: '#E2E8F0 transparent' }}>
+                  {notifications.map((notif) => {
+                    const isUnread = !notif.isRead;
+
+                    const createdDate = notif.createdAt ? new Date(notif.createdAt) : null;
+                    const timeStr = createdDate ? (() => {
+                      const diff = Date.now() - createdDate.getTime();
+                      const mins = Math.floor(diff / 60000);
+                      const hrs = Math.floor(diff / 3600000);
+                      const days = Math.floor(diff / 86400000);
+                      if (mins < 1) return 'Vừa xong';
+                      if (mins < 60) return `${mins} phút trước`;
+                      if (hrs < 24) return `${hrs} giờ trước`;
+                      return `${days} ngày trước`;
+                    })() : '';
+
+                    return (
+                      <div
+                        key={notif._id}
+                        className="flex items-start gap-3 px-4 py-3.5 cursor-pointer transition-colors"
+                        style={{
+                          background: isUnread ? 'rgba(244,124,32,0.04)' : '#FFFFFF',
+                          borderBottom: '1px solid #F8FAFC',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.background = isUnread ? 'rgba(244,124,32,0.08)' : '#F8FAFC')}
+                        onMouseLeave={e => (e.currentTarget.style.background = isUnread ? 'rgba(244,124,32,0.04)' : '#FFFFFF')}
+                        onClick={() => handleNotificationClick(notif)}
+                      >
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm leading-snug whitespace-normal break-words" style={{ fontWeight: isUnread ? 700 : 600, color: isUnread ? '#0F172A' : '#334155' }}>
+                            {notif.title}
+                          </p>
+                          <p className="text-[12px] mt-0.5 leading-relaxed whitespace-normal break-words" style={{ color: '#64748B' }} dangerouslySetInnerHTML={{ __html: notif.message }} />
+                          {timeStr && (
+                            <span className="text-[10px] mt-1.5 block" style={{ color: '#94A3B8' }}>{timeStr}</span>
+                          )}
+                        </div>
+
+                        {/* Unread dot */}
+                        {isUnread && (
+                          <span className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ background: '#f47c20' }}></span>
                         )}
                       </div>
-                      <span className="text-xs text-slate-600 block whitespace-normal" dangerouslySetInnerHTML={{ __html: notif.message }} />
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
