@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { UserPlus, MagnifyingGlass, Plus, CheckCircle, Clock, CheckSquare, XCircle, Eye, EyeSlash } from "phosphor-react";
+import { UserPlus, MagnifyingGlass, Plus, CheckCircle, Clock, CheckSquare, XCircle, Eye, EyeSlash, CaretDown } from "phosphor-react";
 import { useToast } from "../../Styles/ToastContext";
 import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { userService } from "../../../service/user.service";
 import { authService } from "../../../service/auth.service";
 import { AnimatedAddButton } from "../Buttons/AnimatedAddButton";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../dropdown-menu";
 
 interface ManageStudentsModalProps {
   isOpen: boolean;
@@ -41,7 +42,18 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
   const [isAddingStudent, setIsAddingStudent] = useState(false);
 
   // State cho Tab 3: Tạo học sinh mới
-  const [newStudentForm, setNewStudentForm] = useState({ name: "", email: "", password: "", parentPhone: "" });
+  const [newStudentForm, setNewStudentForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    gradeLevel: "",
+    school: "",
+    phone: "",
+    dob: "",
+    gender: "",
+    parentPhone: "",
+    parentRelationship: ""
+  });
   const [isCreatingStudent, setIsCreatingStudent] = useState(false);
 
   // Load danh sách yêu cầu chờ duyệt
@@ -66,7 +78,18 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
       setStudentSearchQuery("");
       setStudentSearchResults([]);
       setSelectedStudentId(null);
-      setNewStudentForm({ name: "", email: "", password: "", parentPhone: "" });
+      setNewStudentForm({
+        name: "",
+        email: "",
+        password: "",
+        gradeLevel: "",
+        school: "",
+        phone: "",
+        dob: "",
+        gender: "",
+        parentPhone: "",
+        parentRelationship: ""
+      });
       loadPendingRequests();
     }
   }, [isOpen, classroom, defaultTab]);
@@ -180,18 +203,10 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
     const email = newStudentForm.email.trim().toLowerCase();
 
     if (!email || !strictEmailRegex.test(email)) {
-      toast.error("Địa chỉ Email không đúng định dạng cú pháp chuẩn (ví dụ: student@school.edu.vn hoặc user@gmail.com)!");
+      toast.error("Địa chỉ Email không đúng định dạng cú pháp chuẩn!");
       return;
     }
 
-    const domain = email.split('@')[1] || '';
-    const allowedDomains = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'edu.vn', 'school.edu.vn', 'classroom.com'];
-    const isStandardDomain = allowedDomains.some(d => domain === d || domain.endsWith('.' + d));
-
-    if (!isStandardDomain && (/[0-9]{3,}/.test(domain) || domain.length > 20)) {
-      toast.error("Tên miền Email nghi vấn rác (ví dụ: chứa dãy số ngẫu nhiên)! Vui lòng sử dụng email thật.");
-      return;
-    }
     setIsCreatingStudent(true);
     try {
       const response = await authService.createStudent({
@@ -202,8 +217,31 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
         classId: classroom._id,
       });
 
+      const createdUserId = response?.user?.id || response?.user?._id;
+      if (createdUserId) {
+        await userService.updateUser(createdUserId, {
+          gradeLevel: newStudentForm.gradeLevel || undefined,
+          school: newStudentForm.school || undefined,
+          phone: newStudentForm.phone || undefined,
+          dob: newStudentForm.dob || undefined,
+          gender: newStudentForm.gender || undefined,
+          parentRelationship: newStudentForm.parentRelationship || undefined
+        });
+      }
+
       toast.success(response?.message || `Tạo tài khoản học sinh "${newStudentForm.name}" thành công!`);
-      setNewStudentForm({ name: "", email: "", password: "", parentPhone: "" });
+      setNewStudentForm({
+        name: "",
+        email: "",
+        password: "",
+        gradeLevel: "",
+        school: "",
+        phone: "",
+        dob: "",
+        gender: "",
+        parentPhone: "",
+        parentRelationship: ""
+      });
       if (onSuccess) onSuccess();
     } catch (err: any) {
       toast.error(err.message || "Đã xảy ra lỗi khi tạo tài khoản học sinh!");
@@ -273,29 +311,6 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
           {/* TAB 1: PENDING REQUESTS */}
           {modalTab === 'pending' && (
             <>
-              {/* CLASS CODE STRIP */}
-              <div className="bg-gradient-to-r from-cyan-50 to-blue-50/60 border-b border-slate-200 px-6 py-3 flex flex-wrap items-center justify-between gap-3 shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-600">Mã tham gia lớp học:</span>
-                  <span className="font-mono font-extrabold text-sm text-[#2f8fa3] bg-white border border-[#2f8fa3]/30 px-3 py-0.5 rounded-lg shadow-2xs">
-                    {classroom.code || `CLASS-${classroom._id.substring(0, 4).toUpperCase()}`}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(classroom.code || `CLASS-${classroom._id.substring(0, 4).toUpperCase()}`);
-                      toast.success("Đã chép mã lớp vào bộ nhớ tạm!");
-                    }}
-                    className="text-xs font-bold text-[#2f8fa3] hover:underline bg-transparent border-none cursor-pointer p-0 ml-1"
-                  >
-                    Sao chép mã
-                  </button>
-                </div>
-                <span className="text-xs text-slate-500 font-medium">
-                  💡 Gửi mã này cho học sinh nhập vào hệ thống xin tham gia
-                </span>
-              </div>
-
               {loadingPendingList ? (
                 <div className="text-center py-16 text-slate-500 font-medium flex flex-col items-center justify-center gap-3">
                   <div className="w-8 h-8 border-4 border-[#2f8fa3] border-t-transparent rounded-full animate-spin"></div>
@@ -308,28 +323,28 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
                   </div>
                   <div>
                     <p className="font-bold text-slate-800 text-base m-0">Không có học sinh nào đang chờ duyệt</p>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm">Học sinh nhập mã lớp <strong>{classroom.code}</strong> sẽ gửi yêu cầu xuất hiện ở đây để bạn phê duyệt.</p>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm">Tất cả yêu cầu xin vào lớp học đã được phê duyệt xử lý.</p>
                   </div>
                 </div>
               ) : (
                 <>
                   {/* TOOLBAR */}
-                  <div className="bg-white border-b border-slate-200 px-6 py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 z-10 relative">
+                  <div className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 z-10 relative">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-slate-800">
-                        Có <strong className="text-[#f47c20] text-base px-1">{pendingRequests.length}</strong> học sinh đang chờ
+                      <span className="text-base font-extrabold text-slate-800 flex items-center gap-1">
+                        Có <strong className="text-[#f47c20] text-xl font-black px-0.5">{pendingRequests.length}</strong> học sinh đang chờ
                       </span>
-                      <span className="text-[11px] text-slate-500 mt-0.5">Vui lòng duyệt để học sinh có thể vào lớp</span>
+                      <span className="text-xs text-slate-500 font-medium mt-0.5">Vui lòng duyệt để học sinh có thể vào lớp</span>
                     </div>
-                    <button
+                    <AnimatedAddButton
                       type="button"
                       onClick={handleApproveAllStudents}
                       disabled={processingActionId === 'all'}
-                      className="px-4 py-2 bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 border-none shrink-0"
+                      icon={<CheckSquare size={18} weight="bold" className="shrink-0" />}
+                      className="px-5 py-2.5 text-xs rounded-xl"
                     >
-                      <CheckSquare size={16} weight="bold" />
                       <span>{processingActionId === 'all' ? "Đang xử lý..." : "Duyệt tất cả"}</span>
-                    </button>
+                    </AnimatedAddButton>
                   </div>
 
                   {/* LIST */}
@@ -338,47 +353,54 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
                       const student = req.studentId || {};
                       const isProcessing = processingActionId === req._id;
                       return (
-                        <div key={req._id} className="group flex flex-wrap items-center justify-between bg-white border border-slate-200 p-4 rounded-2xl shadow-xs hover:shadow-md hover:border-[#2f8fa3]/50 transition-all gap-4">
-                          <div className="flex items-center gap-3 flex-1 min-w-[200px]">
+                        <div key={req._id} className="group flex items-center justify-between bg-white border border-slate-200 p-4 rounded-2xl shadow-2xs hover:shadow-md hover:border-[#2f8fa3]/40 transition-all gap-4">
+                          <div className="flex items-center gap-3.5 min-w-0 flex-1">
                             <div className="relative shrink-0">
                               <img
                                 src={student.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(student.name || "HS")}&background=f47c20&color=fff&bold=true`}
                                 alt={student.name}
-                                className="w-11 h-11 rounded-full border-2 border-slate-100 shadow-xs object-cover"
+                                className="w-12 h-12 rounded-full border-2 border-slate-100 shadow-xs object-cover"
                               />
-                              <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-[#f47c20] border-2 border-white rounded-full" title="Đang chờ"></div>
+                              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-[#f47c20] border-2 border-white rounded-full" title="Chờ duyệt"></span>
                             </div>
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <span className="font-extrabold text-slate-800 text-[14px] truncate group-hover:text-[#2f8fa3] transition-colors" title={student.name || "Học sinh"}>{student.name || "Học sinh"}</span>
-                              <span className="text-[12px] text-slate-500 font-medium truncate mt-0.5" title={student.email}>
-                                {student.email}
-                              </span>
-                              <div className="text-[11px] text-slate-400 font-medium mt-1 flex items-center gap-1.5 whitespace-nowrap">
+
+                            <div className="flex flex-col min-w-0 flex-1 gap-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-extrabold text-slate-800 text-base leading-none capitalize truncate group-hover:text-[#2f8fa3] transition-colors" title={student.name || "Học sinh"}>
+                                  {student.name || "Học sinh"}
+                                </span>
+                                {student.email && (
+                                  <span className="text-xs text-slate-500 font-medium truncate bg-slate-100 px-2.5 py-0.5 rounded-md border border-slate-200">
+                                    {student.email}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
                                 <Clock size={13} weight="bold" className="shrink-0 text-[#2f8fa3]" />
-                                <span>{new Date(req.createdAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
+                                <span>Gửi yêu cầu: {new Date(req.createdAt).toLocaleString("vi-VN", { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto mt-2 sm:mt-0 justify-end">
+                          <div className="flex items-center gap-2 shrink-0">
                             <button
                               type="button"
                               onClick={() => handleRejectStudent(req._id)}
                               disabled={isProcessing}
-                              className="flex-1 sm:flex-none justify-center px-3.5 py-1.5 bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 border-none"
+                              className="px-4 py-2 bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 border-none active:scale-95"
                             >
                               <XCircle size={15} weight="bold" />
                               <span>Từ chối</span>
                             </button>
-                            <button
+                            <AnimatedAddButton
                               type="button"
                               onClick={() => handleApproveStudent(req._id)}
                               disabled={isProcessing}
-                              className="flex-1 sm:flex-none justify-center px-4 py-1.5 bg-[#f47c20] hover:bg-[#e06d15] text-white font-bold text-xs rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 border-none"
+                              icon={<CheckCircle size={16} weight="bold" className="shrink-0" />}
+                              className="px-4 py-2 text-xs rounded-xl"
                             >
-                              <CheckCircle size={15} weight="bold" />
                               <span>Duyệt</span>
-                            </button>
+                            </AnimatedAddButton>
                           </div>
                         </div>
                       );
@@ -517,16 +539,113 @@ export const ManageStudentsModal: React.FC<ManageStudentsModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="modalStudentParentPhone" className="text-xs font-bold text-slate-700">SĐT Phụ huynh (Tùy chọn)</label>
-                  <input
-                    id="modalStudentParentPhone"
-                    type="text"
-                    placeholder="Ví dụ: 0912345678"
-                    value={newStudentForm.parentPhone}
-                    onChange={(e) => setNewStudentForm({ ...newStudentForm, parentPhone: e.target.value })}
-                    className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentGrade" className="text-xs font-bold text-slate-700">Khối lớp (VD: 4, 5, 7, 8, 9, 12)</label>
+                    <input
+                      id="modalStudentGrade"
+                      type="text"
+                      placeholder="Ví dụ: 10"
+                      value={newStudentForm.gradeLevel}
+                      onChange={(e) => setNewStudentForm({ ...newStudentForm, gradeLevel: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentSchool" className="text-xs font-bold text-slate-700">Trường học chính quy</label>
+                    <input
+                      id="modalStudentSchool"
+                      type="text"
+                      placeholder="Ví dụ: THPT Chuyên Hà Nội - Amsterdam"
+                      value={newStudentForm.school}
+                      onChange={(e) => setNewStudentForm({ ...newStudentForm, school: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentPhone" className="text-xs font-bold text-slate-700">SĐT cá nhân học sinh</label>
+                    <input
+                      id="modalStudentPhone"
+                      type="text"
+                      placeholder="Ví dụ: 0912345678"
+                      value={newStudentForm.phone}
+                      onChange={(e) => setNewStudentForm({ ...newStudentForm, phone: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentDob" className="text-xs font-bold text-slate-700">Ngày sinh</label>
+                    <input
+                      id="modalStudentDob"
+                      type="date"
+                      value={newStudentForm.dob}
+                      onChange={(e) => setNewStudentForm({ ...newStudentForm, dob: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentGender" className="text-xs font-bold text-slate-700">Giới tính</label>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          id="modalStudentGender"
+                          className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 flex items-center justify-between outline-none focus:border-[#f47c20] cursor-pointer"
+                        >
+                          <span className={newStudentForm.gender ? "text-slate-800 font-bold" : "text-slate-400"}>
+                            {newStudentForm.gender || "-- Chọn giới tính --"}
+                          </span>
+                          <CaretDown size={14} className="text-slate-400" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-[180px] bg-white border border-slate-100 shadow-xl rounded-xl p-1 z-[10000]">
+                        {["Nam", "Nữ", "Khác"].map((val) => (
+                          <DropdownMenuItem
+                            key={val}
+                            onClick={() => setNewStudentForm({ ...newStudentForm, gender: val })}
+                            className={`cursor-pointer text-sm font-semibold rounded-lg px-3 py-1.5 transition-colors ${newStudentForm.gender === val
+                                ? "bg-orange-50 text-[#f47c20] font-bold"
+                                : "text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                              }`}
+                          >
+                            {val}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentParentPhone" className="text-xs font-bold text-slate-700">SĐT Phụ huynh (Chính)</label>
+                    <input
+                      id="modalStudentParentPhone"
+                      type="text"
+                      placeholder="Ví dụ: 0987654321"
+                      value={newStudentForm.parentPhone}
+                      onChange={(e) => setNewStudentForm({ ...newStudentForm, parentPhone: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="modalStudentParentRelationship" className="text-xs font-bold text-slate-700">Mối quan hệ phụ huynh</label>
+                    <input
+                      id="modalStudentParentRelationship"
+                      type="text"
+                      placeholder="Ví dụ: Bố, Mẹ, Người giám hộ..."
+                      value={newStudentForm.parentRelationship}
+                      onChange={(e) => setNewStudentForm({ ...newStudentForm, parentRelationship: e.target.value })}
+                      className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl text-sm outline-none focus:border-[#f47c20]"
+                    />
+                  </div>
                 </div>
               </div>
 

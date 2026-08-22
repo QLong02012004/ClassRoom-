@@ -6,7 +6,7 @@ import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { ClassModel } from '../models/Class';
 import { SubmissionStatus } from '../constants/enums';
-import { notifyAdminStatsUpdate } from '../socket';
+import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate } from '../socket';
 
 // Lấy toàn bộ bài tập của học sinh
 export const getStudentActivities = async (req: Request, res: Response): Promise<any> => {
@@ -66,6 +66,13 @@ export const assignActivity = async (req: Request, res: Response) => {
     try {
         const { classId } = req.params;
         const { bankItemId, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
+
+        if (dueDate) {
+            const dueTime = new Date(dueDate).getTime();
+            if (!isNaN(dueTime) && dueTime < Date.now() - 60000) {
+                return res.status(400).json({ message: 'Hạn nộp bài không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.' });
+            }
+        }
 
         const bankItem = await BankItemModel.findById(bankItemId);
         if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
@@ -156,6 +163,14 @@ export const updateActivity = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
+
+        if (updateData.dueDate) {
+            const dueTime = new Date(updateData.dueDate).getTime();
+            if (!isNaN(dueTime) && dueTime < Date.now() - 60000) {
+                return res.status(400).json({ message: 'Hạn nộp bài không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.' });
+            }
+        }
+
         const updated = await ClassActivityModel.findByIdAndUpdate(id, updateData, { new: true });
         if (!updated) return res.status(404).json({ message: 'Không tìm thấy' });
         res.json(updated);
@@ -219,6 +234,8 @@ export const submitActivityQuiz = async (req: Request, res: Response): Promise<a
         );
 
         notifyAdminStatsUpdate();
+        notifySubmissionUpdate({ assignmentId: activityId, classId: activity.classId.toString() });
+        notifyTeacherClassroomsUpdate();
 
         res.status(200).json({ message: 'Nộp bài thành công', data: quizResult });
     } catch (error) {
@@ -310,6 +327,8 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
         );
 
         notifyAdminStatsUpdate();
+        notifySubmissionUpdate({ assignmentId: activityId, classId: activity.classId.toString() });
+        notifyTeacherClassroomsUpdate();
 
         res.status(200).json({ message: 'Nộp bài tập thành công', data: submission });
     } catch (error) {

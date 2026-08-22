@@ -31,6 +31,7 @@ import {
 import * as XLSX from "xlsx";
 import { ExcelImportButton, ExcelExportButton } from "../../../components/ui/Tables/ExcelButtons";
 import { activityService } from "../../../service/activity.service";
+import { io } from "socket.io-client";
 import styles from "./TeacherGradebook.module.scss";
 
 // Màu avatar dựa trên tên
@@ -91,6 +92,7 @@ export default function TeacherGradebook() {
   const [editDueDate, setEditDueDate] = useState("");
   const [editMaxScore, setEditMaxScore] = useState(10);
   const [editCategory, setEditCategory] = useState("homework");
+  const [editCustomCategory, setEditCustomCategory] = useState("");
   const [editAllowMultiple, setEditAllowMultiple] = useState(false);
   const [updatingAssignment, setUpdatingAssignment] = useState(false);
 
@@ -154,7 +156,21 @@ export default function TeacherGradebook() {
 
   useEffect(() => {
     loadGradebook();
-  }, [loadGradebook]);
+
+    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
+      if (!data?.classId || data.classId === selectedClassId) {
+        console.log("⚡ [Socket.io Realtime] Sổ điểm có bài nộp/cập nhật điểm mới, tự động làm mới...");
+        loadGradebook();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [loadGradebook, selectedClassId]);
 
   const handleScoreChange = (studentId: string, assignmentId: string, value: string) => {
     setEditingScores(prev => ({
@@ -349,6 +365,14 @@ export default function TeacherGradebook() {
       return;
     }
 
+    if (newDueDate) {
+      const selectedTime = new Date(newDueDate).getTime();
+      if (!isNaN(selectedTime) && selectedTime < Date.now() - 60000) {
+        toast.error("Hạn nộp bài không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.");
+        return;
+      }
+    }
+
     setCreatingTask(true);
     try {
       await gradebookService.createAssignment({
@@ -382,7 +406,16 @@ export default function TeacherGradebook() {
     const dateStr = task.dueDate ? new Date(task.dueDate).toISOString().substring(0, 16) : "";
     setEditDueDate(dateStr);
     setEditMaxScore(task.maxScore);
-    setEditCategory(task.category);
+
+    const knownCategories = ["homework", "periodic", "mock_exam", "attitude"];
+    if (task.category && !knownCategories.includes(task.category)) {
+      setEditCategory("custom");
+      setEditCustomCategory(task.category);
+    } else {
+      setEditCategory(task.category || "homework");
+      setEditCustomCategory("");
+    }
+
     setEditAllowMultiple(task.allowMultipleSubmissions ?? false);
   };
 
@@ -391,13 +424,27 @@ export default function TeacherGradebook() {
     e.preventDefault();
     if (!selectedAssignmentForEdit) return;
 
+    const finalCategory = editCategory === "custom" ? editCustomCategory : editCategory;
+    if (editCategory === "custom" && !editCustomCategory.trim()) {
+      toast.error("Vui lòng nhập tên phân loại bài tập tùy chỉnh!");
+      return;
+    }
+
+    if (editDueDate) {
+      const selectedTime = new Date(editDueDate).getTime();
+      if (!isNaN(selectedTime) && selectedTime < Date.now() - 60000) {
+        toast.error("Hạn nộp bài không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.");
+        return;
+      }
+    }
+
     setUpdatingAssignment(true);
     try {
       await activityService.updateActivity(selectedAssignmentForEdit._id, {
         title: editTitle,
         dueDate: editDueDate,
         maxScore: editMaxScore,
-        category: editCategory,
+        category: finalCategory,
         allowMultipleSubmissions: editAllowMultiple
       });
       toast.success("Cập nhật bài tập thành công!");
@@ -851,17 +898,28 @@ export default function TeacherGradebook() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-700">Phân loại điểm</label>
+              <label className="text-sm font-semibold text-slate-700">Phân loại bài tập</label>
               <select
                 value={editCategory}
                 onChange={(e) => setEditCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
               >
-                <option value="attitude">Chuyên cần / Thái độ</option>
                 <option value="homework">Bài tập về nhà</option>
+                <option value="attitude">Chuyên cần / Thái độ</option>
                 <option value="periodic">Kiểm tra định kỳ</option>
                 <option value="mock_exam">Thi thử</option>
+                <option value="custom">+ Lựa chọn khác...</option>
               </select>
+              {editCategory === "custom" && (
+                <input
+                  type="text"
+                  placeholder="Nhập loại bài tập tùy chỉnh..."
+                  value={editCustomCategory}
+                  onChange={(e) => setEditCustomCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none bg-orange-50/30 font-medium text-slate-800"
+                  required
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -871,6 +929,7 @@ export default function TeacherGradebook() {
                   type="datetime-local"
                   value={editDueDate}
                   onChange={(e) => setEditDueDate(e.target.value)}
+                  min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 outline-none"
                   required
                 />

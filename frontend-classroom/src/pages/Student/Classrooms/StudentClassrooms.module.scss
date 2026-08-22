@@ -80,34 +80,44 @@
 
 .classCard {
   background: white;
-  border: 1px solid rgba(0, 0, 0, 0.04);
+  border: 2px solid #cbd5e1;
   border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.01);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
   display: flex;
   flex-direction: column;
   gap: 16px;
   transition: vars.$transition-normal;
   text-align: left;
+  position: relative;
+  z-index: 1;
 
-  &:hover {
+  &:has(input:checked) {
+    transform: none !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    border-color: vars.$primary;
+    z-index: 50;
+  }
+
+  &:hover:not(:has(input:checked)) {
     transform: translateY(-4px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    border-color: rgba(244, 124, 32, 0.4);
   }
 
   .cardTop {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: center;
 
-    .classTitle {
-      font-size: 1.35rem;
-      font-weight: 800;
-      color: vars.$primary;
-      letter-spacing: -0.3px;
-      margin: 0;
-      text-transform: capitalize;
+    .subjectTag {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: vars.$secondary;
+      background: rgba(vars.$secondary, 0.1);
+      border: 1px solid rgba(vars.$secondary, 0.2);
+      padding: 4px 10px;
+      border-radius: 99px;
     }
 
     .statusTag {
@@ -119,23 +129,29 @@
       border-radius: 99px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      margin-top: 2px;
     }
   }
 
   .cardMiddle {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+
+    .classTitle {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: vars.$primary;
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
 
     .teacherInfo {
       display: flex;
       align-items: center;
       gap: 6px;
       color: vars.$text-sub;
-      font-size: 0.8rem;
+      font-size: 0.825rem;
       font-weight: 600;
-      margin-top: 2px;
     }
   }
 
@@ -165,57 +181,66 @@
       border-radius: 99px;
       overflow: hidden;
     }
-
-    .progressBarFill {
-      height: 100%;
-      background: vars.$primary;
-      border-radius: 99px;
-      transition: width 0.8s ease-out;
-    }
   }
 
   .cardFooter {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
     border-top: 1px solid #f8fafc;
     padding-top: 16px;
     margin-top: 4px;
 
-    .avatarsGroup {
+    .quickActionBtn {
       display: flex;
       align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 4px;
+      background: #f1f5f9;
+      color: vars.$text-sub;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: vars.$transition-fast;
+      cursor: pointer;
 
-      img {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid white;
-        margin-right: -8px;
-        object-fit: cover;
+      &:hover {
+        background: vars.$primary;
+        color: white;
       }
 
-      .avatarMore {
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: 2px solid white;
-        background: #f1f5f9;
-        color: vars.$text-sub;
-        font-size: 0.7rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-left: 4px;
-        z-index: 4;
+      span {
+        white-space: nowrap;
       }
     }
 
-    .studentCountText {
+    .enterBtn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 8px 4px;
+      background: rgba(vars.$primary, 0.08);
+      color: vars.$primary;
+      border: 1px solid rgba(vars.$primary, 0.18);
+      border-radius: 8px;
       font-size: 0.75rem;
-      font-weight: 600;
-      color: vars.$text-sub;
+      font-weight: 800;
+      text-decoration: none;
+      transition: vars.$transition-fast;
+      cursor: pointer;
+
+      &:hover {
+        background: vars.$primary;
+        color: white;
+        border-color: vars.$primary;
+      }
+
+      span {
+        white-space: nowrap;
+      }
     }
   }
 }

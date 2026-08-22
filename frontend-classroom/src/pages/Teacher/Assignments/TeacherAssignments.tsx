@@ -26,6 +26,7 @@ import type { IAssignment, IGrade, IGradebookStudent, ISubmission } from "../../
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
+import { io } from "socket.io-client";
 import styles from "./TeacherAssignments.module.scss";
 
 const categoryLabels: Record<string, string> = {
@@ -119,7 +120,24 @@ export default function TeacherAssignments() {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+
+    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
+      console.log("⚡ [Socket.io Realtime] Có bài nộp/điểm mới, tự động cập nhật...");
+      loadData();
+      if (selectedAssignment && (!data?.assignmentId || data.assignmentId === selectedAssignment._id)) {
+        gradebookService.getAssignmentSubmissions(selectedAssignment._id).then(res => {
+          if (res && res.data) setSubmissions(res.data);
+        }).catch(console.error);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [loadData, selectedAssignment]);
 
   // Create Assignment
   const handleCreateAssignment = async (e: React.FormEvent) => {
@@ -131,6 +149,14 @@ export default function TeacherAssignments() {
     if (!title || !deadline) {
       toast.error("Vui lòng điền đủ Tiêu đề và Hạn nộp!");
       return;
+    }
+
+    if (deadline) {
+      const selectedTime = new Date(deadline).getTime();
+      if (!isNaN(selectedTime) && selectedTime < Date.now() - 60000) {
+        toast.error("Hạn nộp bài (ngày & giờ) không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.");
+        return;
+      }
     }
 
     const finalCategory = assignCategory === 'custom' ? customCategory : assignCategory;
@@ -328,17 +354,20 @@ export default function TeacherAssignments() {
             {/* Deadline + Type */}
             <div className={styles.formRow}>
               <div className={styles.formGroup}>
-                <label>Hạn nộp</label>
+                <label>Hạn nộp (Ngày & Giờ)</label>
                 <input
-                  type="date"
+                  type="datetime-local"
                   className={styles.textInput}
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
+                  onFocus={(e) => { e.target.min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16); }}
+                  onClick={(e) => { (e.target as HTMLInputElement).min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16); }}
+                  min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
                   required
                 />
               </div>
               <div className={styles.formGroup}>
-                <label>Loại đầu điểm</label>
+                <label>Phân loại bài tập</label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button type="button" className={`${styles.selectInput} flex justify-between items-center bg-white text-left w-full h-[42px]`}>
@@ -347,7 +376,7 @@ export default function TeacherAssignments() {
                           assignCategory === "homework" ? "Bài tập về nhà (Hệ số 1)" :
                             assignCategory === "periodic" ? "Kiểm tra định kỳ (Hệ số 1)" :
                               assignCategory === "mock_exam" ? "Thi thử (Hệ số 1)" :
-                                "Tùy chỉnh (Khác)"}
+                                (customCategory ? customCategory : "+ Lựa chọn khác...")}
                       </span>
                       <CaretDown size={14} weight="bold" />
                     </button>
@@ -379,9 +408,9 @@ export default function TeacherAssignments() {
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       onClick={() => setAssignCategory("custom")}
-                      className={`px-3 py-2 text-sm whitespace-nowrap text-slate-700 hover:!bg-orange-50 hover:!text-orange-600 focus:!bg-orange-50 focus:!text-orange-600 rounded-lg cursor-pointer transition-colors ${assignCategory === "custom" ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                      className={`px-3 py-2 text-sm whitespace-nowrap text-orange-600 hover:!bg-orange-50 focus:!bg-orange-50 rounded-lg cursor-pointer transition-colors border-t border-slate-100 ${assignCategory === "custom" ? "bg-orange-50 font-semibold" : ""}`}
                     >
-                      Tùy chỉnh (Khác)
+                      + Lựa chọn khác...
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getAnnouncements, createAnnouncement, addComment, deleteAnnouncement, togglePin, likeComment, likeAnnouncement } from '../controllers/announcementController';
+import { getAnnouncements, createAnnouncement, addComment, deleteAnnouncement, togglePin, likeComment, likeAnnouncement, deleteComment } from '../controllers/announcementController';
 import { protect } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -12,6 +12,9 @@ router.post('/', protect, createAnnouncement);
 
 // Thêm bình luận vào thông báo
 router.post('/:id/comments', protect, addComment);
+
+// Xóa bình luận khỏi thông báo
+router.delete('/:id/comments/:commentId', protect, deleteComment);
 
 // Xóa thông báo
 router.delete('/:id', protect, deleteAnnouncement);

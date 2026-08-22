@@ -2,8 +2,9 @@ import { Request, Response, NextFunction } from 'express';
 import { AnnouncementModel } from '../models/Announcement';
 import { UserModel } from '../models/User';
 import { ClassModel } from '../models/Class';
-import { createAdminNotification } from '../services/notificationService';
-import { NotificationType } from '../constants/enums';
+import { createAdminNotification, createUserNotification } from '../services/notificationService';
+import { NotificationType, UserRole } from '../constants/enums';
+import { notifyClassroomFeedUpdate } from '../socket';
 
 // [GET] /api/v1/announcements
 // Lấy danh sách thông báo của một lớp học
@@ -48,7 +49,7 @@ export const createAnnouncement = async (req: Request, res: Response, next: Next
 
         const populatedAnnouncement = await announcement.populate('authorId', 'name role avatar');
 
-        // Kích hoạt thông báo cho Admin
+        // Kích hoạt thông báo cho Admin & Tất cả Học sinh trong lớp
         const classroom = await ClassModel.findById(classId);
         const classroomName = classroom ? classroom.name : 'lớp học';
         const teacherName = (req as any).user?.name || 'Giáo viên';
@@ -58,6 +59,28 @@ export const createAnnouncement = async (req: Request, res: Response, next: Next
             `Giáo viên ${teacherName} đã đăng một thông báo mới trong lớp "${classroomName}".`,
             NotificationType.ANNOUNCEMENT
         );
+
+        if (classroom && classroom.students && classroom.students.length > 0) {
+            const notifTypeLabel = type === 'reminder' ? 'nhắc nhở' : type === 'material' ? 'tài liệu' : type === 'assignment' ? 'bài tập' : 'thông báo';
+            const cleanContentSummary = content.substring(0, 80) + (content.length > 80 ? '...' : '');
+            const notifTitle = `📢 ${classroomName}: Thông báo mới`;
+            const notifMessage = `Giáo viên <strong>${teacherName}</strong> đã đăng một ${notifTypeLabel} mới: "${cleanContentSummary}"`;
+
+            await Promise.all(
+                classroom.students.map((studentId: any) =>
+                    createUserNotification(
+                        studentId.toString(),
+                        UserRole.STUDENT,
+                        authorId,
+                        notifTitle,
+                        notifMessage,
+                        NotificationType.ANNOUNCEMENT
+                    )
+                )
+            );
+        }
+
+        notifyClassroomFeedUpdate(classId);
 
         res.status(201).json({
             message: 'Đăng thông báo thành công',
@@ -85,9 +108,15 @@ export const addComment = async (req: Request, res: Response, next: NextFunction
             return res.status(404).json({ message: 'Không tìm thấy người dùng' });
         }
 
+        const announcement = await AnnouncementModel.findById(id);
+        if (!announcement) {
+            return res.status(404).json({ message: 'Không tìm thấy thông báo để bình luận' });
+        }
+
         const comment = {
             authorId: user._id as any,
             authorName: user.name,
+            authorRole: user.role,
             content,
             createdAt: new Date()
         };
@@ -101,6 +130,100 @@ export const addComment = async (req: Request, res: Response, next: NextFunction
         if (!updatedAnnouncement) {
             return res.status(404).json({ message: 'Không tìm thấy thông báo để bình luận' });
         }
+
+        // Tự động tạo thông báo (Notification Bell) cho người nhận
+        const classroom = await ClassModel.findById(announcement.classId);
+        const classroomName = classroom ? classroom.name : 'lớp học';
+        const cleanContentSummary = content.replace(/<!--replyTo:.*?-->/g, '').trim();
+        const contentPreview = cleanContentSummary.substring(0, 60) + (cleanContentSummary.length > 60 ? '...' : '');
+
+        // Map danh sách những người cần nhận thông báo: recipientId -> { role, isReply }
+        const recipientsMap = new Map<string, { role: UserRole; isReply: boolean }>();
+
+        // 1. Nếu có đính kèm <!--replyTo:commentId-->, lấy tác giả của comment đó
+        const matchReplyTo = content.match(/<!--replyTo:(.*?)-->/);
+        if (matchReplyTo) {
+            const targetCommentId = matchReplyTo[1];
+            const targetComment = (announcement.comments as any).id(targetCommentId);
+            if (targetComment && targetComment.authorId.toString() !== authorId.toString()) {
+                const targetUser = await UserModel.findById(targetComment.authorId);
+                if (targetUser) {
+                    recipientsMap.set(targetUser._id.toString(), {
+                        role: targetUser.role as UserRole,
+                        isReply: true
+                    });
+                }
+            }
+        }
+
+        // 2. Nếu comment bắt đầu bằng @Tên, tìm comment tác giả tương ứng
+        if (!matchReplyTo && content.trim().startsWith('@')) {
+            const lowerContent = content.toLowerCase();
+            for (const c of announcement.comments || []) {
+                const cAuthorName = (c.authorName || '').toLowerCase().trim();
+                if (cAuthorName && lowerContent.startsWith(`@${cAuthorName}`) && c.authorId.toString() !== authorId.toString()) {
+                    const targetUser = await UserModel.findById(c.authorId);
+                    if (targetUser) {
+                        recipientsMap.set(targetUser._id.toString(), {
+                            role: targetUser.role as UserRole,
+                            isReply: true
+                        });
+                        break;
+                    }
+                }
+            }
+        }
+
+        // 3. Thông báo cho tác giả của bài đăng thông báo (nếu tác giả không phải là người đang comment)
+        const announcementAuthorId = announcement.authorId.toString();
+        if (announcementAuthorId !== authorId.toString() && !recipientsMap.has(announcementAuthorId)) {
+            const authorUser = await UserModel.findById(announcement.authorId);
+            if (authorUser) {
+                recipientsMap.set(authorUser._id.toString(), {
+                    role: authorUser.role as UserRole,
+                    isReply: false
+                });
+            }
+        }
+
+        // 4. Nếu giáo viên hoặc quản trị viên trả lời trong thread mà chưa tìm thấy người nhận cụ thể,
+        // thông báo cho tất cả học sinh đã từng bình luận trong bài đăng này
+        if ((user.role === UserRole.TEACHER || user.role === UserRole.ADMIN) && recipientsMap.size === 0) {
+            for (const c of announcement.comments || []) {
+                const cAuthorId = c.authorId.toString();
+                if (cAuthorId !== authorId.toString() && !recipientsMap.has(cAuthorId)) {
+                    const prevUser = await UserModel.findById(c.authorId);
+                    if (prevUser) {
+                        recipientsMap.set(cAuthorId, {
+                            role: prevUser.role as UserRole,
+                            isReply: true
+                        });
+                    }
+                }
+            }
+        }
+
+        // Gửi thông báo đến từng người nhận
+        for (const [recId, info] of recipientsMap.entries()) {
+            const notifTitle = info.isReply
+                ? `💬 ${classroomName}: Phản hồi bình luận mới`
+                : `💬 ${classroomName}: Bình luận mới`;
+
+            const notifMessage = info.isReply
+                ? `<strong>${user.name}</strong> đã trả lời bình luận của bạn: "${contentPreview}"`
+                : `<strong>${user.name}</strong> đã bình luận vào bài đăng của bạn: "${contentPreview}"`;
+
+            await createUserNotification(
+                recId,
+                info.role,
+                authorId,
+                notifTitle,
+                notifMessage,
+                NotificationType.ANNOUNCEMENT
+            );
+        }
+
+        notifyClassroomFeedUpdate(updatedAnnouncement.classId ? updatedAnnouncement.classId.toString() : undefined);
 
         res.status(200).json({
             message: 'Thêm bình luận thành công',
@@ -130,6 +253,8 @@ export const deleteAnnouncement = async (req: Request, res: Response, next: Next
 
         await AnnouncementModel.findByIdAndDelete(id);
 
+        notifyClassroomFeedUpdate(announcement.classId ? announcement.classId.toString() : undefined);
+
         res.status(200).json({ message: 'Đã xóa thông báo thành công' });
     } catch (error) {
         next(error);
@@ -157,6 +282,8 @@ export const togglePin = async (req: Request, res: Response, next: NextFunction)
         await announcement.save();
 
         const populatedAnnouncement = await announcement.populate('authorId', 'name role avatar');
+
+        notifyClassroomFeedUpdate(announcement.classId ? announcement.classId.toString() : undefined);
 
         res.status(200).json({
             message: announcement.isPinned ? 'Đã ghim thông báo' : 'Đã bỏ ghim thông báo',
@@ -197,6 +324,8 @@ export const likeComment = async (req: Request, res: Response, next: NextFunctio
 
         await announcement.save();
 
+        notifyClassroomFeedUpdate(announcement.classId ? announcement.classId.toString() : undefined);
+
         res.status(200).json({
             message: likeIndex !== -1 && likeIndex !== undefined ? 'Đã bỏ thích bình luận' : 'Đã thích bình luận',
             data: announcement // Trả về announcement đã cập nhật
@@ -233,9 +362,55 @@ export const likeAnnouncement = async (req: Request, res: Response, next: NextFu
 
         const populatedAnnouncement = await announcement.populate('authorId', 'name role avatar');
 
+        notifyClassroomFeedUpdate(announcement.classId ? announcement.classId.toString() : undefined);
+
         res.status(200).json({
             message: likeIndex !== -1 && likeIndex !== undefined ? 'Đã bỏ thích bài đăng' : 'Đã thích bài đăng',
             data: populatedAnnouncement
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// [DELETE] /api/v1/announcements/:id/comments/:commentId
+// Xóa bình luận (chính tác giả bình luận hoặc giáo viên có quyền xóa)
+export const deleteComment = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
+    try {
+        const { id, commentId } = req.params;
+        const requesterId = (req as any).user.id;
+        const requesterRole = (req as any).user.role;
+
+        const announcement = await AnnouncementModel.findById(id);
+        if (!announcement) {
+            return res.status(404).json({ message: 'Không tìm thấy bài đăng' });
+        }
+
+        const comment = (announcement.comments as any).id(commentId);
+        if (!comment) {
+            return res.status(404).json({ message: 'Không tìm thấy bình luận' });
+        }
+
+        // Tác giả bình luận OR giáo viên OR admin được quyền xóa
+        const normalizedRole = requesterRole?.toLowerCase();
+        if (
+            comment.authorId.toString() !== requesterId &&
+            normalizedRole !== UserRole.TEACHER &&
+            normalizedRole !== UserRole.ADMIN
+        ) {
+            return res.status(403).json({ message: 'Bạn không có quyền xóa bình luận này' });
+        }
+
+        (announcement.comments as any).pull(commentId);
+        await announcement.save();
+
+        const updatedAnnouncement = await AnnouncementModel.findById(id).populate('authorId', 'name role avatar');
+
+        notifyClassroomFeedUpdate(announcement.classId ? announcement.classId.toString() : undefined);
+
+        res.status(200).json({
+            message: 'Đã xóa bình luận thành công',
+            data: updatedAnnouncement
         });
     } catch (error) {
         next(error);

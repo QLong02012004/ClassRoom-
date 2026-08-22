@@ -1,15 +1,23 @@
 import React, { useRef, useEffect, useState } from 'react';
 import styled from 'styled-components';
-import { Pencil, Trash } from "phosphor-react";
+import { Chalkboard, ClipboardText, Users, ChartBar, PencilSimple, Trash } from "phosphor-react";
 
 interface StudentActionMenuProps {
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onEnterClass?: () => void;
+  onViewActivities?: () => void;
+  onViewMembers?: () => void;
+  onViewGrades?: () => void;
 }
 
 export const StudentActionMenu: React.FC<StudentActionMenuProps> = ({
   onEdit,
   onDelete,
+  onEnterClass,
+  onViewActivities,
+  onViewMembers,
+  onViewGrades,
 }) => {
   const checkboxRef = useRef<HTMLInputElement>(null);
   const popupRef = useRef<HTMLLabelElement>(null);
@@ -38,11 +46,11 @@ export const StudentActionMenu: React.FC<StudentActionMenuProps> = ({
     }
   };
 
-  const handleAction = (action: () => void) => {
+  const handleAction = (action?: () => void) => {
     if (checkboxRef.current) {
       checkboxRef.current.checked = false;
     }
-    action();
+    if (action) action();
   };
 
   useEffect(() => {
@@ -53,12 +61,23 @@ export const StudentActionMenu: React.FC<StudentActionMenuProps> = ({
         }
       }
     };
+    const handleClose = () => {
+      if (checkboxRef.current && checkboxRef.current.checked) {
+        checkboxRef.current.checked = false;
+      }
+    };
     document.addEventListener('click', handleClickOutside, true);
-    return () => document.removeEventListener('click', handleClickOutside, true);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('resize', handleClose, true);
+    return () => {
+      document.removeEventListener('click', handleClickOutside, true);
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('resize', handleClose, true);
+    };
   }, []);
 
   return (
-    <StyledWrapper 
+    <StyledWrapper
       onClick={(e) => e.stopPropagation()}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -71,21 +90,59 @@ export const StudentActionMenu: React.FC<StudentActionMenuProps> = ({
           <span />
         </div>
         <nav className={`popup-window ${placement}`} style={fixedStyle}>
-          <legend>Tùy chọn</legend>
+          <legend>Tùy chọn thao tác</legend>
           <ul>
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onEdit); }}>
-                <Pencil size={16} weight="bold" className="text-blue-500" />
-                <span>Sửa thông tin / Đổi MK</span>
-              </button>
-            </li>
-            <hr />
-            <li>
-              <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onDelete); }}>
-                <Trash size={16} weight="bold" className="text-red-500" />
-                <span>Xóa tài khoản</span>
-              </button>
-            </li>
+            {onEdit && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onEdit); }}>
+                  <PencilSimple size={16} weight="bold" className="text-orange-500" />
+                  <span>Chỉnh sửa thông tin</span>
+                </button>
+              </li>
+            )}
+            {onEnterClass && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onEnterClass); }}>
+                  <Chalkboard size={16} weight="bold" className="text-orange-500" />
+                  <span>Vào lớp học</span>
+                </button>
+              </li>
+            )}
+            {onViewActivities && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onViewActivities); }}>
+                  <ClipboardText size={16} weight="bold" className="text-blue-500" />
+                  <span>Bài tập & Bài thi</span>
+                </button>
+              </li>
+            )}
+            {onViewMembers && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onViewMembers); }}>
+                  <Users size={16} weight="bold" className="text-indigo-500" />
+                  <span>Xem thành viên</span>
+                </button>
+              </li>
+            )}
+            {onViewGrades && (
+              <li>
+                <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onViewGrades); }}>
+                  <ChartBar size={16} weight="bold" className="text-emerald-500" />
+                  <span>Bảng điểm cá nhân</span>
+                </button>
+              </li>
+            )}
+            {onDelete && (
+              <>
+                <hr />
+                <li>
+                  <button type="button" onClick={(e) => { e.preventDefault(); handleAction(onDelete); }}>
+                    <Trash size={16} weight="bold" className="text-red-500" />
+                    <span>Xóa tài khoản</span>
+                  </button>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
       </label>
@@ -105,8 +162,8 @@ const StyledWrapper = styled.div`
     --burger-btn-border-radius: calc(var(--burger-diameter) / 2);
     --burger-line-transition: .3s;
     --burger-transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
-    --burger-hover-scale: 1.1;
-    --burger-active-scale: .95;
+    --burger-hover-scale: 1;
+    --burger-active-scale: 1;
     --burger-enable-outline-color: var(--burger-bg);
     --burger-enable-outline-width: 0.125em;
     --burger-enable-outline-offset: var(--burger-enable-outline-width);
@@ -120,7 +177,7 @@ const StyledWrapper = styled.div`
     --nav-bg: #fff;
     --nav-font-family: inherit;
     --nav-default-scale: .8;
-    --nav-active-scale: 1;
+    --nav-[#2f8fa3]: 1;
     --nav-position-left: unset;
     --nav-position-right: 0;
     --nav-title-size: 0.75rem;
@@ -166,7 +223,7 @@ const StyledWrapper = styled.div`
     border: none;
     cursor: pointer;
     overflow: hidden;
-    transition: var(--burger-transition);
+    transition: background-color 0.2s ease;
     outline: var(--burger-enable-outline-width) solid transparent;
     outline-offset: 0;
   }
@@ -198,26 +255,28 @@ const StyledWrapper = styled.div`
   }
 
   .popup-window {
-    transform: scale(var(--nav-default-scale));
+    transform: scale(0.8);
     visibility: hidden;
     opacity: 0;
     position: absolute;
+    right: 0;
     padding: var(--nav-padding-y) var(--nav-padding-x);
     background: var(--nav-bg);
     font-family: var(--nav-font-family);
     border-radius: var(--nav-border-radius);
-    box-shadow: var(--nav-shadow-width) var(--nav-shadow-color);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
     border: var(--nav-border-width) solid var(--nav-border-color);
     transition: var(--burger-transition);
-    min-width: 200px;
+    min-width: 190px;
+    z-index: 99999;
   }
 
   .popup-window.bottom {
-    top: calc(var(--burger-diameter) + var(--burger-enable-outline-width) + var(--burger-enable-outline-offset));
+    top: calc(var(--burger-diameter) + 0.25em);
   }
 
   .popup-window.top {
-    bottom: calc(var(--burger-diameter) + var(--burger-enable-outline-width) + var(--burger-enable-outline-offset));
+    bottom: calc(var(--burger-diameter) + 0.25em);
   }
 
   .popup-window legend {
@@ -226,6 +285,9 @@ const StyledWrapper = styled.div`
     color: var(--nav-title-color);
     font-size: var(--nav-title-size);
     font-weight: 600;
+    text-align: left;
+    display: block;
+    width: 100%;
   }
 
   .popup-window ul {
@@ -269,19 +331,6 @@ const StyledWrapper = styled.div`
     background: #fee2e2;
   }
 
-  .burger:hover {
-    transform: scale(var(--burger-hover-scale));
-  }
-
-  .burger:active {
-    transform: scale(var(--burger-active-scale));
-  }
-
-  .burger:focus:not(:hover) {
-    outline-color: var(--burger-enable-outline-color);
-    outline-offset: var(--burger-enable-outline-offset);
-  }
-
   .popup input:checked+.burger span:nth-child(1) {
     top: 50%;
     transform: translateY(-50%) rotate(45deg);
@@ -297,7 +346,7 @@ const StyledWrapper = styled.div`
   }
 
   .popup input:checked~nav {
-    transform: scale(var(--nav-active-scale));
+    transform: scale(1);
     visibility: visible;
     opacity: 1;
   }

@@ -33,7 +33,7 @@ $warning: #F59E0B; // Vàng Hổ Phách - Điểm chuyên cần muộn
 $danger: #EF4444; // Đỏ Dịu - Học sinh vắng mặt
 
 // --- 3. MÀU TRẠNG THÁI HỆ THỐNG ---
-$success: $secondary;
+$success: #10b981; // Xanh Ngọc Emerald - Trạng thái thành công, hoàn thành, đã chấm
 $info: #3B82F6; // Xanh Dương - Thông báo hệ thống chung, hướng dẫn hoặc mẹo nhanh.
 
 // --- 4. HIỆU ỨNG BÓNG ĐỔ (SHADOWS) ---
@@ -53,8 +53,8 @@ $transition-fast: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 $transition-normal: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
 // --- 7. KIỂU CHỮ & TYPOGRAPHY ---
-$font-main: 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-$font-heading: 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-main: 'Geist Variable', 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$font-heading: 'Geist Variable', 'Outfit', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 $font-mono: ui-monospace, Consolas, monospace;
 
 $font-xs: 0.75rem;

@@ -330,6 +330,10 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
                 subject: user.subject,
                 bio: user.bio,
                 degree: user.degree,
+                gradeLevel: user.gradeLevel,
+                school: user.school,
+                parentPhone: user.parentPhone,
+                parentRelationship: user.parentRelationship,
                 isGoogleAccount: user.isGoogleAccount
             }
         });

@@ -16,6 +16,7 @@ import { useAuth } from '../../../context/AuthContext';
 import NumberStepper from '../../../components/ui/FormControls/NumberStepper';
 import { SaveButton } from '../../../components/ui/Buttons/SaveButton';
 import { BankActionMenu } from '../../../components/ui/ActionMenus/BankActionMenu';
+import { ResourceDetailModal } from '../../../components/ui/Dialogs/ResourceDetailModal/ResourceDetailModal';
 import { ScrollArea } from '../../../components/ui/scroll-area';
 import {
     Dialog,
@@ -696,150 +697,12 @@ export default function BankList() {
                 </>
             )}
 
-            {/* Modal Xem chi tiết học liệu */}
-            <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-                <DialogContent className="sm:max-w-[1000px] max-h-[90vh] flex flex-col overflow-hidden bg-white p-0">
-                    <DialogHeader className="px-6 py-4 border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-                        <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selectedDetailsItem?.type === 'quiz' ? 'bg-orange-100 text-orange-500' : 'bg-emerald-100 text-emerald-500'}`}>
-                                {selectedDetailsItem?.type === 'quiz' ? <ClipboardText size={24} weight="duotone" /> : <Calculator size={24} weight="duotone" />}
-                            </div>
-                            {selectedDetailsItem?.title}
-                        </DialogTitle>
-
-                    </DialogHeader>
-                    {selectedDetailsItem && (
-                        <div className="flex-1 min-h-0 p-6 flex flex-col md:flex-row gap-6 overflow-hidden">
-                            {/* Cột trái: Thông tin chung */}
-                            <ScrollArea className="w-full md:w-[320px] lg:w-[350px] flex-shrink-0 h-full" type="auto">
-                                <div className="space-y-4 pr-4">
-                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                        <Info size={18} className="text-orange-500" weight="duotone" />
-                                        Thông tin chung
-                                    </h3>
-                                    <div className="bg-orange-50/30 border border-orange-100 rounded-xl p-4 space-y-3">
-                                        <div className="flex items-center justify-between border-b border-orange-100 pb-2">
-                                            <span className="font-medium text-slate-500 text-sm">Loại tài nguyên:</span>
-                                            <span className={`px-2.5 py-0.5 text-[11px] font-bold rounded-full border ${selectedDetailsItem.type === 'quiz' ? 'bg-orange-50 border-orange-200 text-orange-600' : 'bg-emerald-50 border-emerald-200 text-emerald-600'}`}>
-                                                {selectedDetailsItem.type === 'quiz' ? 'Trắc nghiệm' : 'Bài tập tự luận'}
-                                            </span>
-                                        </div>
-                                        {selectedDetailsItem.subject && (
-                                            <div className="flex items-center justify-between border-b border-orange-100 pb-2">
-                                                <span className="font-medium text-slate-500 text-sm">Môn học:</span>
-                                                <span className="font-bold text-blue-600 text-sm">{selectedDetailsItem.subject}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex items-center justify-between border-b border-orange-100 pb-2">
-                                            <span className="font-medium text-slate-500 text-sm">Phạm vi chia sẻ:</span>
-                                            <span className={`px-2 py-0.5 text-[11px] font-bold rounded-md ${selectedDetailsItem.sharingStatus === 'CENTER_SHARED' ? 'bg-purple-100 text-purple-700' : 'bg-slate-100 text-slate-600'}`}>
-                                                {selectedDetailsItem.sharingStatus === 'CENTER_SHARED' ? 'Thư viện chung' : 'Cá nhân'}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between border-b border-orange-100 pb-2">
-                                            <span className="font-medium text-slate-500 text-sm">Điểm tối đa:</span>
-                                            <span className="font-bold text-slate-800 text-sm">{selectedDetailsItem.maxScore} điểm</span>
-                                        </div>
-                                        {selectedDetailsItem.type === 'quiz' && selectedDetailsItem.durationMinutes && (
-                                            <div className="flex items-center justify-between">
-                                                <span className="font-medium text-slate-500 text-sm">Thời gian làm bài:</span>
-                                                <span className="font-bold text-slate-800 text-sm flex items-center gap-1">
-                                                    <Clock size={16} className="text-orange-500" />
-                                                    {selectedDetailsItem.durationMinutes} phút
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-4">
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                                            <TextAa size={18} className="text-orange-500" weight="duotone" />
-                                            Mô tả chi tiết
-                                        </h3>
-                                        <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-600 leading-relaxed border border-slate-200 whitespace-pre-wrap">
-                                            {selectedDetailsItem.description || <span className="text-slate-400 italic">Không có mô tả chi tiết.</span>}
-                                        </div>
-                                    </div>
-                                </div>
-                            </ScrollArea>
-
-                            {/* Cột phải: Nội dung */}
-                            <div className="flex-[1.5] border-t md:border-t-0 md:border-l border-slate-100 pt-6 md:pt-0 md:pl-6 flex flex-col min-h-0">
-                                {selectedDetailsItem.type === 'document' && selectedDetailsItem.fileUrl ? (
-                                    <div className="h-full border border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center p-8 text-center">
-                                        <FileText size={64} weight="duotone" className="text-emerald-500 mb-4" />
-                                        <h4 className="text-lg font-bold text-slate-800 mb-2">Tài liệu đính kèm</h4>
-                                        <p className="text-slate-500 text-sm mb-6 max-w-xs">
-                                            Học liệu này là dạng file tự luận. Bạn có thể tải file về để xem chi tiết nội dung.
-                                        </p>
-                                        <a
-                                            href={selectedDetailsItem.fileUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 text-white font-bold text-sm bg-emerald-500 hover:bg-emerald-600 transition-colors px-6 py-2.5 rounded-xl shadow-sm"
-                                        >
-                                            <DownloadSimple size={18} weight="bold" /> Tải xuống tài liệu
-                                        </a>
-                                    </div>
-                                ) : selectedDetailsItem.type === 'quiz' && selectedDetailsItem.quizQuestions ? (
-                                    <div className="flex flex-col min-h-0 flex-1">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                                <ListChecks size={18} className="text-orange-500" weight="duotone" />
-                                                Danh sách câu hỏi
-                                            </h3>
-                                            <span className="px-3 py-1 bg-orange-100 text-orange-700 font-bold text-xs rounded-full">
-                                                {selectedDetailsItem.quizQuestions.length} câu
-                                            </span>
-                                        </div>
-                                        <ScrollArea className="flex-1 min-h-0 pr-4" type="auto">
-                                            <div className="space-y-4">
-                                                {selectedDetailsItem.quizQuestions.map((q: any, qIdx: number) => (
-                                                    <div key={q._id || qIdx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-orange-200 transition-colors">
-                                                        <div className="flex items-start gap-3 mb-3">
-                                                            <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs flex-shrink-0 mt-0.5">
-                                                                {qIdx + 1}
-                                                            </div>
-                                                            <p className="font-semibold text-slate-800 leading-snug text-sm">{q.questionText}</p>
-                                                        </div>
-                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-10">
-                                                            {q.options.map((opt: string, optIdx: number) => {
-                                                                const isCorrect = optIdx === q.correctOptionIndex;
-                                                                return (
-                                                                    <div key={optIdx} className={`p-2.5 rounded-lg text-sm flex items-center gap-2 ${isCorrect ? 'bg-orange-50 border border-orange-200 text-orange-800 font-medium' : 'bg-slate-50 border border-slate-100 text-slate-600'}`}>
-                                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${isCorrect ? 'bg-orange-500 text-white' : 'bg-white border border-slate-300 text-slate-500'}`}>
-                                                                            {String.fromCharCode(65 + optIdx)}
-                                                                        </div>
-                                                                        <span className="flex-1">{opt}</span>
-                                                                        {isCorrect && <CheckCircle size={16} weight="fill" className="text-orange-500 flex-shrink-0" />}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </ScrollArea>
-                                    </div>
-                                ) : (
-                                    <div className="h-full border border-slate-200 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 text-sm font-medium">
-                                        Không có nội dung chi tiết
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter className="m-0 px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
-                        <button
-                            type="button"
-                            onClick={() => setShowDetailsDialog(false)}
-                            className="px-6 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm rounded-xl transition-colors"
-                        >
-                            Đóng
-                        </button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            {/* Modal Xem chi tiết học liệu (dùng chung ResourceDetailModal) */}
+            <ResourceDetailModal
+                isOpen={showDetailsDialog}
+                onClose={() => setShowDetailsDialog(false)}
+                item={selectedDetailsItem}
+            />
 
 
             {/* Modal Chỉnh sửa học liệu */}

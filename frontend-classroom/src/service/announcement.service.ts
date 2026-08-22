@@ -73,5 +73,10 @@ export const announcementService = {
   // Thích / Bỏ thích bình luận
   likeComment: async (announcementId: string, commentId: string): Promise<IBackendRes<IAnnouncement>> => {
     return await api.put(`/api/v1/announcements/${announcementId}/comments/${commentId}/like`);
+  },
+
+  // Xóa bình luận
+  deleteComment: async (announcementId: string, commentId: string): Promise<IBackendRes<IAnnouncement>> => {
+    return await api.delete(`/api/v1/announcements/${announcementId}/comments/${commentId}`);
   }
 };

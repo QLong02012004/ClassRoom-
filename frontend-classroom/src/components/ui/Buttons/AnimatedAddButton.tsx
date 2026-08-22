@@ -14,19 +14,19 @@ export const AnimatedAddButton = React.forwardRef<HTMLButtonElement, AnimatedAdd
         ref={ref}
         className={cn(
           "group relative isolate overflow-hidden inline-flex items-center justify-center gap-2",
-          "px-5 py-2",
-          "text-sm tracking-[0.5px] no-underline font-semibold",
-          "text-white bg-[#f47c20] hover:bg-[#e06d15]",
-          "cursor-pointer border-none rounded-[10px]",
-          "transition-all duration-200 ease-out",
-          "active:scale-95",
-          "shadow-xs hover:shadow-md",
+          "px-5 py-2.5",
+          "text-sm font-semibold no-underline",
+          "text-[#f47c20] bg-white border-2 border-[#f47c20] hover:text-white",
+          "cursor-pointer rounded-xl shadow-xs transition-all duration-300 ease-out",
+          "active:scale-95 hover:shadow-md hover:border-[#f47c20]",
+          "before:absolute before:left-0 before:top-0 before:-z-10 before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-[#f47c20] before:scale-0 before:transition-transform before:duration-[700ms] before:ease-out hover:before:scale-100",
+          "disabled:opacity-50 disabled:pointer-events-none",
           className
         )}
         {...props}
       >
-        {icon !== undefined ? icon : <Plus size={18} weight="bold" className="shrink-0" />}
-        {children || "Thêm mới"}
+        {icon !== undefined ? icon : <Plus size={16} weight="bold" className="shrink-0 transition-transform group-hover:rotate-90 duration-300" />}
+        <span className="relative z-10 flex items-center gap-1.5">{children || "Thêm mới"}</span>
       </button>
     );
   }

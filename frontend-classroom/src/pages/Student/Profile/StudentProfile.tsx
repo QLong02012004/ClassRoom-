@@ -62,7 +62,11 @@ const StudentProfile: React.FC = () => {
     avatar: user?.avatar || '',
     degree: (user as any)?.degree || '',
     subject: (user as any)?.subject || '',
-    bio: (user as any)?.bio || ''
+    bio: (user as any)?.bio || '',
+    gradeLevel: (user as any)?.gradeLevel || '',
+    school: (user as any)?.school || '',
+    parentPhone: (user as any)?.parentPhone || '',
+    parentRelationship: (user as any)?.parentRelationship || ''
   });
 
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
@@ -426,13 +430,13 @@ const StudentProfile: React.FC = () => {
               </div>
             </div>
 
-            {user?.role !== 'admin' && (
+            {user?.role === 'teacher' && (
               <div className={styles.infoGroup}>
                 <div className={styles.groupTitle}>Chuyên môn & Trình độ</div>
                 <div className={styles.infoGrid}>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Bằng cấp / Trình độ</span>
-                    <span className={styles.value}>{(user as any)?.degree || (user?.role === 'teacher' ? 'Đại học Sư phạm' : 'Chưa cập nhật')}</span>
+                    <span className={styles.value}>{(user as any)?.degree || 'Đại học Sư phạm'}</span>
                   </div>
                   <div className={styles.infoItem}>
                     <span className={styles.label}>Môn học chuyên môn</span>
@@ -459,12 +463,26 @@ const StudentProfile: React.FC = () => {
                   <span className={styles.value}>{email}</span>
                 </div>
                 <div className={styles.infoItem}>
-                  <span className={styles.label}>Số điện thoại</span>
+                  <span className={styles.label}>Số điện thoại cá nhân</span>
                   <span className={styles.value}>{user?.phone || 'Chưa cập nhật'}</span>
                 </div>
                 <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}>
                   <span className={styles.label}>Địa chỉ thường trú</span>
                   <span className={styles.value}>{user?.address || 'Chưa cập nhật'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.infoGroup}>
+              <div className={styles.groupTitle}>Thông tin Phụ huynh & Liên hệ khẩn cấp</div>
+              <div className={styles.infoGrid}>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>SĐT Phụ huynh (Chính)</span>
+                  <span className={styles.value}>{(user as any)?.parentPhone || 'Chưa cập nhật'}</span>
+                </div>
+                <div className={styles.infoItem}>
+                  <span className={styles.label}>Mối quan hệ</span>
+                  <span className={styles.value}>{(user as any)?.parentRelationship || 'Chưa cập nhật'}</span>
                 </div>
               </div>
             </div>
@@ -475,15 +493,11 @@ const StudentProfile: React.FC = () => {
                 <div className={styles.tagsGrid}>
                   <div className={styles.tagBox}>
                     <div className={styles.tagLabel}>Khối lớp</div>
-                    <div className={styles.tagValue}>Lớp 12 - THPT</div>
+                    <div className={styles.tagValue}>{(user as any)?.gradeLevel ? `Khối ${(user as any).gradeLevel}` : 'Chưa chọn khối'}</div>
                   </div>
                   <div className={styles.tagBox}>
-                    <div className={styles.tagLabel}>Chuyên ngành</div>
-                    <div className={styles.tagValue}>Khoa học Tự nhiên</div>
-                  </div>
-                  <div className={styles.tagBox}>
-                    <div className={styles.tagLabel}>Năm nhập học</div>
-                    <div className={styles.tagValue}>Niên khóa 2021</div>
+                    <div className={styles.tagLabel}>Trường học chính quy</div>
+                    <div className={styles.tagValue}>{(user as any)?.school || 'Chưa cập nhật'}</div>
                   </div>
                 </div>
               </div>
@@ -818,8 +832,58 @@ const StudentProfile: React.FC = () => {
                     </div>
                   </div>
                 ) : (
-                  /* Placeholder cho Student: không có section chuyên môn */
-                  <div className="h-[102px]" />
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <div className="w-1 h-3.5 bg-blue-500 rounded-full" />
+                      <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">Trường học & Phụ huynh</span>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="grid gap-1">
+                          <Label htmlFor="gradeLevel" className="text-xs font-bold text-slate-600">Khối lớp (VD: 4, 5, 7, 8...)</Label>
+                          <Input
+                            id="gradeLevel"
+                            placeholder="VD: 10"
+                            value={formData.gradeLevel}
+                            onChange={(e) => setFormData({ ...formData, gradeLevel: e.target.value })}
+                            className="h-9 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label htmlFor="school" className="text-xs font-bold text-slate-600">Trường học ban ngày</Label>
+                          <Input
+                            id="school"
+                            placeholder="VD: THPT Lê Hồng Phong"
+                            value={formData.school}
+                            onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                            className="h-9 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="grid gap-1">
+                          <Label htmlFor="parentPhone" className="text-xs font-bold text-slate-600">SĐT Phụ huynh (Chính)</Label>
+                          <Input
+                            id="parentPhone"
+                            placeholder="VD: 0987 654 321"
+                            value={formData.parentPhone}
+                            onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                            className="h-9 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+                          />
+                        </div>
+                        <div className="grid gap-1">
+                          <Label htmlFor="parentRelationship" className="text-xs font-bold text-slate-600">Mối quan hệ</Label>
+                          <Input
+                            id="parentRelationship"
+                            placeholder="VD: Bố, Mẹ..."
+                            value={formData.parentRelationship}
+                            onChange={(e) => setFormData({ ...formData, parentRelationship: e.target.value })}
+                            className="h-9 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/20 text-sm"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
 
                 {/* Bio */}

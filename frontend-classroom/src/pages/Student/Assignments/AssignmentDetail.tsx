@@ -11,15 +11,14 @@ import {
   UploadSimple,
   X,
   Bell,
-  Info,
-  ChatTeardropText,
-  PaperPlaneRight
+  Info
 } from "phosphor-react";
 import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
 import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton.tsx";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { io } from "socket.io-client";
 import styles from "./AssignmentDetail.module.scss";
 
 export default function AssignmentDetail() {
@@ -32,12 +31,10 @@ export default function AssignmentDetail() {
   const [className, setClassName] = useState("");
   const [teacherName, setTeacherName] = useState("Thầy/Cô giáo");
   const [note, setNote] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [mySubmission, setMySubmission] = useState<any>(null);
-  const [newComment, setNewComment] = useState("");
-  const [isSendingComment, setIsSendingComment] = useState(false);
   const [isResubmitting, setIsResubmitting] = useState(false);
 
   const formatRelativeTime = (iso: string) => {
@@ -49,20 +46,6 @@ export default function AssignmentDetail() {
     if (minutes < 60) return `${minutes} phút trước`;
     if (hours < 24) return `${hours} giờ trước`;
     return `${days} ngày trước`;
-  };
-
-  const handleSendComment = async () => {
-    if (!newComment.trim() || !assignment) return;
-    setIsSendingComment(true);
-    try {
-      await gradebookService.addComment(assignment._id, newComment);
-      setNewComment("");
-      loadData();
-    } catch (err) {
-      toast.error("Lỗi khi gửi bình luận");
-    } finally {
-      setIsSendingComment(false);
-    }
   };
 
   const loadData = async () => {
@@ -98,12 +81,35 @@ export default function AssignmentDetail() {
 
   useEffect(() => {
     loadData();
-  }, [id]);
+
+    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on("submission_update", (data?: { assignmentId?: string }) => {
+      if (!data?.assignmentId || data.assignmentId === id) {
+        console.log("⚡ [Socket.io Realtime] Cập nhật bài nộp/điểm số từ giáo viên...");
+        loadData();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [id, loadData]);
 
   const formatDate = (iso: string) => {
+    if (!iso) return "";
     const d = new Date(iso);
     return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}, Thứ ${d.getDay() === 0 ? "Chủ nhật" : `${d.getDay() + 1}`
       }, ${d.getDate()} Tháng ${d.getMonth() + 1}`;
+  };
+
+  const formatShortDate = (iso: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    return `${time} - ${date}`;
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -116,29 +122,38 @@ export default function AssignmentDetail() {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) setSelectedFile(file);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files);
+      setSelectedFiles((prev) => [...prev, ...droppedFiles]);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setSelectedFile(file);
+    if (e.target.files && e.target.files.length > 0) {
+      const newFiles = Array.from(e.target.files);
+      setSelectedFiles((prev) => [...prev, ...newFiles]);
+    }
+    if (e.target) e.target.value = "";
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async () => {
     if (!assignment) return;
-    if (!selectedFile && !note.trim()) {
-      toast.error("Vui lòng đính kèm file hoặc nhập ghi chú trước khi nộp!");
+    if (selectedFiles.length === 0 && !note.trim()) {
+      toast.error("Vui lòng đính kèm ít nhất 1 file hoặc nhập ghi chú trước khi nộp!");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const attachments = selectedFile ? [{
-        name: selectedFile.name,
-        url: URL.createObjectURL(selectedFile),
-        size: `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`
-      }] : [];
+      const attachments = selectedFiles.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      }));
 
       await gradebookService.submitAssignment(assignment._id, {
         submissionText: note,
@@ -146,6 +161,7 @@ export default function AssignmentDetail() {
       });
 
       toast.success("Nộp bài thành công! 🎉", 3000);
+      setSelectedFiles([]);
       setIsResubmitting(false);
       loadData();
     } catch (err: any) {
@@ -189,7 +205,7 @@ export default function AssignmentDetail() {
 
             <h1 className={styles.assignmentTitle}>{assignment.title}</h1>
 
-            {/* Meta info */}
+            {/* Meta info: Giáo viên + Hạn chót + Lịch sử hoạt động */}
             <div className={styles.metaGrid}>
               <div className={styles.metaItem}>
                 <div className={`${styles.iconWrapper} ${styles.redIcon}`}>
@@ -200,6 +216,7 @@ export default function AssignmentDetail() {
                   <span className={styles.metaValue}>{teacherName}</span>
                 </div>
               </div>
+
               <div className={styles.metaItem}>
                 <div className={`${styles.iconWrapper} ${styles.blueIcon}`}>
                   <CalendarBlank size={18} weight="bold" />
@@ -207,6 +224,23 @@ export default function AssignmentDetail() {
                 <div>
                   <span className={styles.metaLabel}>Hạn chót nộp bài</span>
                   <span className={styles.metaValue}>{formatDate(assignment.deadline)}</span>
+                </div>
+              </div>
+
+              <div className={styles.metaItem}>
+                <div className={`${styles.iconWrapper} ${styles.orangeIcon}`}>
+                  <Bell size={18} weight="bold" />
+                </div>
+                <div>
+                  <span className={styles.metaLabel}>Lịch sử hoạt động</span>
+                  <span className={styles.metaValue}>
+                    Đã giao: {formatShortDate(assignment.createdAt)}
+                  </span>
+                  {isSubmitted && (
+                    <span className={styles.metaSubValue}>
+                      {isGraded ? `Đã chấm: ${mySubmission.grade}/10` : `Đã nộp ${formatRelativeTime(mySubmission.submittedAt)}`}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -259,49 +293,6 @@ export default function AssignmentDetail() {
               </>
             )}
 
-            {/* Comments Section */}
-            <hr className={styles.divider} style={{ marginTop: 32 }} />
-            <h4 className={styles.sectionLabel}>
-              <ChatTeardropText size={22} weight="fill" className="text-[#f47c20]" />
-              Thảo luận với Giáo viên
-            </h4>
-            <div className={styles.commentsContainer}>
-              {(mySubmission?.comments || []).map((c: any, i: number) => (
-                <div key={i} className={`${styles.commentBubble} ${c.isTeacher ? styles.teacherBubble : styles.studentBubble}`}>
-                  <div className={styles.commentAvatar}>
-                    <User size={16} weight="bold" />
-                  </div>
-                  <div className={styles.commentContent}>
-                    <div className={styles.commentHeader}>
-                      <span className={styles.commentName}>{c.isTeacher ? c.name || teacherName : "Tôi"}</span>
-                      <span className={styles.commentTime}>{formatRelativeTime(c.createdAt)}</span>
-                    </div>
-                    <p className={styles.commentText}>{c.text}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className={styles.commentInputWrapper}>
-              <input
-                type="text"
-                placeholder="Nhắn tin cho giáo viên (không cần qua Zalo)..."
-                className={styles.commentInput}
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleSendComment();
-                }}
-                disabled={isSendingComment}
-              />
-              <button
-                className={styles.sendCommentBtn}
-                onClick={handleSendComment}
-                disabled={isSendingComment || !newComment.trim()}
-                style={{ opacity: (!newComment.trim() || isSendingComment) ? 0.5 : 1 }}
-              >
-                <PaperPlaneRight size={18} weight="bold" />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -334,6 +325,18 @@ export default function AssignmentDetail() {
                 <CheckCircle size={32} weight="fill" style={{ color: "#10B981" }} />
                 <p>Đã nộp lúc {new Date(mySubmission.submittedAt).toLocaleString("vi-VN")}</p>
                 <p className={styles.subNote}>Đang chờ giáo viên chấm điểm...</p>
+                {mySubmission.attachments && mySubmission.attachments.length > 0 && (
+                  <div className={styles.submittedFilesList}>
+                    <p className={styles.submittedFilesTitle}>Các file đã nộp ({mySubmission.attachments.length}):</p>
+                    {mySubmission.attachments.map((att: any, idx: number) => (
+                      <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className={styles.submittedFileItem}>
+                        <FilePdf size={18} weight="fill" className="text-[#EF4444]" />
+                        <span className={styles.submittedFileName}>{att.name}</span>
+                        {att.size && <span className={styles.submittedFileSize}>{att.size}</span>}
+                      </a>
+                    ))}
+                  </div>
+                )}
                 {assignment.allowMultipleSubmissions !== false && !isPastDeadline && (
                   <button className={styles.resubmitBtn} onClick={() => setIsResubmitting(true)}>Nộp lại bài</button>
                 )}
@@ -351,6 +354,15 @@ export default function AssignmentDetail() {
               </div>
             ) : (
               <>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  hidden
+                  multiple
+                  accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.zip,.rar"
+                  onChange={handleFileChange}
+                />
+
                 {/* Drag & Drop area */}
                 <div
                   className={`${styles.dropZone} ${isDragging ? styles.dragging : ""}`}
@@ -359,34 +371,61 @@ export default function AssignmentDetail() {
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    hidden
-                    accept=".pdf,.doc,.docx"
-                    onChange={handleFileChange}
-                  />
-                  {selectedFile ? (
-                    <div className={styles.selectedFile}>
-                      <FilePdf size={28} weight="fill" className="text-[#EF4444]" />
-                      <span>{selectedFile.name}</span>
+                  <div className={styles.uploadIconContainer}>
+                    <UploadSimple size={24} weight="bold" className={styles.uploadIcon} />
+                  </div>
+                  <p className={styles.dropText}>Kéo và thả file vào đây</p>
+                  <p className={styles.dropSubText}>Có thể chọn nhiều file cùng lúc (PDF, Word, Ảnh, Zip...)</p>
+                </div>
+
+                {/* Selected Files List */}
+                {selectedFiles.length > 0 && (
+                  <div className={styles.fileListContainer}>
+                    <div className={styles.fileListHeader}>
+                      <span>File đã chọn ({selectedFiles.length})</span>
                       <button
-                        className={styles.removeFile}
-                        onClick={(e) => { e.stopPropagation(); setSelectedFile(null); }}
+                        type="button"
+                        className={styles.addMoreFilesBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
                       >
-                        <X size={14} weight="bold" />
+                        + Thêm file
                       </button>
                     </div>
-                  ) : (
-                    <>
-                      <div className={styles.uploadIconContainer}>
-                        <UploadSimple size={24} weight="bold" className={styles.uploadIcon} />
-                      </div>
-                      <p className={styles.dropText}>Kéo và thả file vào đây</p>
-                      <p className={styles.dropSubText}>Hoặc nhấn để chọn từ máy tính</p>
-                    </>
-                  )}
-                </div>
+                    <div className={styles.fileItemsList}>
+                      {selectedFiles.map((file, idx) => (
+                        <div key={idx} className={styles.selectedFileItem}>
+                          <div className={styles.fileItemInfo}>
+                            {file.name.endsWith('.pdf') ? (
+                              <FilePdf size={22} weight="fill" className="text-[#EF4444] flex-shrink-0" />
+                            ) : file.name.endsWith('.doc') || file.name.endsWith('.docx') ? (
+                              <FileDoc size={22} weight="fill" className="text-[#2f8fa3] flex-shrink-0" />
+                            ) : (
+                              <CloudArrowUp size={22} weight="bold" className="text-[#f47c20] flex-shrink-0" />
+                            )}
+                            <div className={styles.fileItemDetails}>
+                              <span className={styles.fileItemName} title={file.name}>{file.name}</span>
+                              <span className={styles.fileItemSize}>{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.removeFile}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveFile(idx);
+                            }}
+                            title="Xóa file này"
+                          >
+                            <X size={14} weight="bold" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Note */}
                 <label className={styles.noteLabel}>Ghi chú cho giáo viên</label>
@@ -402,13 +441,13 @@ export default function AssignmentDetail() {
                 <AnimatedSendButton
                   onClick={handleSubmit}
                   disabled={isSubmitting}
-                  text={isSubmitting ? "Đang nộp bài..." : "Nộp bài tập ngay"}
+                  text={isSubmitting ? "Đang nộp bài..." : selectedFiles.length > 1 ? `Nộp ${selectedFiles.length} file ngay` : "Nộp bài tập ngay"}
                   className="w-full"
                 />
                 <div className={styles.editNoteContainer}>
                   <Info size={16} className={styles.infoIcon} />
                   <p className={styles.editNote}>
-                    Bạn có thể chỉnh sửa bài nộp trước thời hạn chót.
+                    Bạn có thể chọn nhiều file và chỉnh sửa trước thời hạn chót.
                   </p>
                 </div>
                 {isResubmitting && (
@@ -442,52 +481,6 @@ export default function AssignmentDetail() {
               </div>
             </div>
           )}
-
-          {/* Activity Log */}
-          <div className={styles.activityCard}>
-            <h4 className={styles.activityTitle}>LỊCH SỬ HOẠT ĐỘNG</h4>
-            <div className={styles.activityList}>
-              <div className={styles.activityItem}>
-                <div className={`${styles.actIconWrapper} ${styles.orangeBg}`}>
-                  <Bell size={14} weight="fill" color="white" />
-                </div>
-                <div>
-                  <p className={styles.actText}>Bài tập đã được giao</p>
-                  <span className={styles.actTime}>
-                    {formatRelativeTime(assignment.createdAt)} • {new Date(assignment.createdAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-              </div>
-
-              {isSubmitted && (
-                <div className={styles.activityItem}>
-                  <div className={`${styles.actIconWrapper} ${styles.greenBg}`}>
-                    <CheckCircle size={14} weight="fill" color="white" />
-                  </div>
-                  <div>
-                    <p className={styles.actText}>Bạn đã nộp bài</p>
-                    <span className={styles.actTime}>
-                      {formatRelativeTime(mySubmission.submittedAt)} • {new Date(mySubmission.submittedAt).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {isGraded && (
-                <div className={styles.activityItem}>
-                  <div className={`${styles.actIconWrapper} ${styles.blueBg}`}>
-                    <CheckCircle size={14} weight="fill" color="white" />
-                  </div>
-                  <div>
-                    <p className={styles.actText}>Giáo viên đã chấm điểm</p>
-                    <span className={styles.actTime}>
-                      Điểm: {mySubmission.grade}/10
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
       </div>
     </div>

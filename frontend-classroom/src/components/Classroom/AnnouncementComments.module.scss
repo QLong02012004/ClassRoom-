@@ -1,0 +1,268 @@
+@use "sass:color";
+@use "../Styles/variables.module" as vars;
+
+.commentsContainer {
+  margin-top: 20px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+
+  .commentsHeader {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 14px;
+  }
+
+  .commentList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .singleCommentWrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      border-bottom: 1px solid #f8fafc;
+      padding-bottom: 8px;
+      margin-bottom: 6px;
+      transition: all 0.2s ease-in-out;
+
+      &.teacherComment {
+        background-color: #fff9f8;
+        border: 1px solid #ffd8d1;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #ffd8d1;
+      }
+
+      &.replyComment {
+        margin-left: 44px;
+        border: none;
+        border-left: 3px solid #cbd5e1;
+        padding: 6px 12px;
+        padding-left: 12px;
+        border-radius: 0;
+        background-color: #f8fafc;
+      }
+
+      .commentBodyWrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        .user {
+          display: grid;
+          grid-template-columns: 36px 1fr;
+          gap: 10px;
+
+          .userPic {
+            width: 36px;
+            height: 36px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f1f5f9;
+            border-radius: 50%;
+
+            img {
+              width: 100%;
+              height: 100%;
+              border-radius: 50%;
+              object-fit: cover;
+            }
+
+            &::after {
+              content: "";
+              width: 8px;
+              height: 8px;
+              position: absolute;
+              right: 0px;
+              bottom: 0px;
+              border-radius: 50%;
+              background-color: #10b981;
+              border: 2px solid #ffffff;
+            }
+          }
+
+          .userInfo {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            justify-content: center;
+            gap: 1px;
+
+            .nameHeaderRow {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              width: 100%;
+              gap: 8px;
+
+              .authorNameText {
+                font-weight: 700;
+                font-size: 13px;
+                color: #334155;
+                white-space: nowrap;
+              }
+
+              .teacherBadge {
+                font-size: 9px;
+                font-weight: 700;
+                background-color: vars.$secondary;
+                color: white;
+                padding: 2px 7px;
+                border-radius: 4px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                white-space: nowrap;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                width: fit-content;
+                margin-left: auto;
+              }
+            }
+
+            .metaRow {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              p {
+                font-weight: 500;
+                font-size: 11px;
+                color: #94a3b8;
+                margin: 0;
+              }
+            }
+          }
+        }
+
+        .commentContent {
+          font-size: 14px;
+          color: #334155;
+          margin: 0;
+          line-height: 1.5;
+          padding-left: 46px;
+
+          .mentionTag {
+            font-weight: 700;
+            color: vars.$secondary;
+            margin-right: 4px;
+          }
+        }
+
+        .commentActions {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          margin-top: 2px;
+          padding-left: 46px;
+
+          .likeBtn,
+          .replyBtn {
+            background: none;
+            border: none;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease-in-out;
+
+            &.liked {
+              color: #f5356e;
+            }
+
+            &:hover {
+              color: #2563eb;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .toggleRepliesBtn,
+  .toggleAllCommentsBtn {
+    background: none;
+    border: none;
+    color: #64748b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: vars.$secondary;
+    }
+  }
+
+  .toggleRepliesBtn {
+    margin-left: 44px;
+    margin-top: 4px;
+    margin-bottom: 10px;
+  }
+
+  .toggleAllCommentsBtn {
+    margin-top: 10px;
+  }
+
+  .quickReplyForm {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+
+    .replyAvatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .replyInputWrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      background-color: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 24px;
+      padding: 4px 6px 4px 16px;
+      transition: all 0.2s ease-in-out;
+
+      &:focus-within {
+        border-color: vars.$secondary;
+        background-color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(47, 143, 163, 0.18);
+      }
+
+      &:hover {
+        border-color: vars.$secondary;
+      }
+
+      input {
+        flex: 1;
+        border: none;
+        background: transparent;
+        font-size: 13.5px;
+        color: #334155;
+        outline: none;
+
+        &::placeholder {
+          color: #94a3b8;
+        }
+      }
+    }
+  }
+}

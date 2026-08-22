@@ -6,11 +6,12 @@ interface AnimatedSendButtonProps {
   disabled?: boolean;
   text?: string;
   className?: string;
+  size?: 'sm' | 'md' | 'lg';
 }
 
-const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabled, text = "Send", className }) => {
+const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabled, text = "Send", className, size = "md" }) => {
   return (
-    <StyledWrapper className={className}>
+    <StyledWrapper className={`${className || ''} ${size}`}>
       <button onClick={onClick} disabled={disabled} style={{ width: '100%', justifyContent: 'center' }}>
         <div className="svg-wrapper-1">
           <div className="svg-wrapper">
@@ -27,39 +28,65 @@ const AnimatedSendButton: React.FC<AnimatedSendButtonProps> = ({ onClick, disabl
 }
 
 const StyledWrapper = styled.div`
+  &.sm button {
+    font-size: 12px;
+    padding: 0.35em 0.8em;
+    border-radius: 12px;
+    border-width: 1.5px;
+  }
+
+  &.sm button svg {
+    width: 13px;
+    height: 13px;
+  }
+
   button {
     font-family: inherit;
-    font-size: 15px;
-    background: #f47c20;
-    color: white;
-    padding: 0.7em 1.2em;
+    font-size: 14px;
+    background: #ffffff;
+    color: #f47c20;
+    padding: 0.55em 1.2em;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
-    border-radius: 12px;
+    border: 2px solid #f47c20;
+    border-radius: 20px;
     overflow: hidden;
-    transition: all 0.2s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
     width: 100%;
-    box-shadow: 0 4px 14px rgba(244, 124, 32, 0.25);
+    box-shadow: 0 2px 8px rgba(244, 124, 32, 0.12);
   }
 
   button:disabled {
-    background: #e2e8f0;
-    color: #94a3b8;
+    background: #ffffff;
+    border: 2px solid #f47c20;
+    color: #f47c20;
+    opacity: 0.5;
     cursor: not-allowed;
+    box-shadow: none;
   }
 
   button:disabled svg {
-    color: #94a3b8;
+    color: #f47c20;
+  }
+
+  button:not(:disabled) {
+    background: #ffffff;
+    color: #f47c20;
+    border: 2px solid #f47c20;
+    box-shadow: 0 2px 8px rgba(244, 124, 32, 0.12);
+  }
+
+  button:not(:disabled) svg {
+    color: #f47c20;
   }
 
   button span {
     display: block;
     margin-left: 0.3em;
     transition: all 0.3s ease-in-out;
-    font-weight: bold;
+    font-weight: 600;
   }
 
   button svg {
@@ -68,6 +95,17 @@ const StyledWrapper = styled.div`
     transition: transform 0.3s ease-in-out;
     width: 16px;
     height: 16px;
+  }
+
+  button:hover:not(:disabled) {
+    background: #f47c20;
+    color: #ffffff;
+    border-color: #f47c20;
+    box-shadow: 0 4px 14px rgba(244, 124, 32, 0.35);
+  }
+
+  button:hover:not(:disabled) svg {
+    color: #ffffff;
   }
 
   button:hover:not(:disabled) .svg-wrapper {

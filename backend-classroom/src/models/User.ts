@@ -8,6 +8,9 @@ export interface IUser extends Document {
     role: UserRole;
     status: UserStatus;
     parentPhone?: string;
+    parentRelationship?: string;
+    gradeLevel?: string;
+    school?: string;
     avatar?: string;
     dob?: string;
     gender?: string;
@@ -34,6 +37,9 @@ const UserSchema = new Schema<IUser>({
     role: { type: String, enum: Object.values(UserRole), default: UserRole.STUDENT },
     status: { type: String, enum: Object.values(UserStatus), default: UserStatus.ACTIVE },
     parentPhone: { type: String, default: '' },
+    parentRelationship: { type: String, default: '' },
+    gradeLevel: { type: String, default: '' },
+    school: { type: String, default: '' },
     avatar: { type: String, default: '' },
     dob: { type: String, default: '' },
     gender: { type: String, default: '' },

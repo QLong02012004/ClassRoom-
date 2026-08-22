@@ -1,7 +1,7 @@
 import { NotificationModel } from '../models/Notification';
 import mongoose from 'mongoose';
 import { UserRole, NotificationType } from '../constants/enums';
-import { notifyAdminStatsUpdate } from '../socket';
+import { notifyAdminStatsUpdate, notifyNotificationUpdate } from '../socket';
 
 export const createAdminNotification = async (
     senderId: string | mongoose.Types.ObjectId,
@@ -42,6 +42,7 @@ export const createUserNotification = async (
             type,
             readBy: []
         });
+        notifyNotificationUpdate(String(recipientId));
     } catch (error) {
         console.error('❌ Lỗi tạo thông báo User:', error);
     }

@@ -184,8 +184,8 @@ const StyledWrapper = styled.div`
     --burger-btn-border-radius: calc(var(--burger-diameter) / 2);
     --burger-line-transition: .3s;
     --burger-transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
-    --burger-hover-scale: 1.1;
-    --burger-active-scale: .95;
+    --burger-hover-scale: 1;
+    --burger-active-scale: 1;
     --burger-enable-outline-color: var(--burger-bg);
     --burger-enable-outline-width: 0.125em;
     --burger-enable-outline-offset: var(--burger-enable-outline-width);
@@ -245,7 +245,7 @@ const StyledWrapper = styled.div`
     border: none;
     cursor: pointer;
     overflow: hidden;
-    transition: var(--burger-transition);
+    transition: background-color 0.2s ease;
     outline: var(--burger-enable-outline-width) solid transparent;
     outline-offset: 0;
   }
@@ -306,6 +306,9 @@ const StyledWrapper = styled.div`
     color: var(--nav-title-color);
     font-size: var(--nav-title-size);
     font-weight: 600;
+    text-align: left;
+    display: block;
+    width: 100%;
   }
 
   .popup-window ul {
@@ -347,14 +350,6 @@ const StyledWrapper = styled.div`
   .popup-window ul li:last-child button:focus-visible {
     color: #ea580c;
     background: #fff7ed;
-  }
-
-  .burger:hover {
-    transform: scale(var(--burger-hover-scale));
-  }
-
-  .burger:active {
-    transform: scale(var(--burger-active-scale));
   }
 
   .burger:focus:not(:hover) {

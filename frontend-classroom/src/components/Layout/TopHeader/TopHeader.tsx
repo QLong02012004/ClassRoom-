@@ -45,8 +45,9 @@ const TopHeader: React.FC = () => {
   const isGradebookPage = location.pathname.includes("/gradebook");
   const isClassroomRoute = location.pathname.startsWith("/classrooms/") || isAttendancePage || isGradebookPage;
 
-  const isOverview = isClassroomRoute && !isStudentsPage && !isAttendancePage && !isGradebookPage && (activeTab === "overview" || !activeTab);
+  const isOverview = isClassroomRoute && !isStudentsPage && !isAttendancePage && !isGradebookPage && (activeTab === "overview" || activeTab === "feed" || !activeTab);
   const isActivities = isClassroomRoute && !isStudentsPage && !isAttendancePage && !isGradebookPage && (activeTab === "activities" || activeTab === "assignments" || activeTab === "quizzes");
+  const isMembers = isClassroomRoute && !isStudentsPage && !isAttendancePage && !isGradebookPage && (activeTab === "members");
 
   // Breadcrumbs mapping (hỗ trợ cả các route con)
   const getPageTitle = (path: string) => {
@@ -216,43 +217,62 @@ const TopHeader: React.FC = () => {
             <button
               type="button"
               onClick={() => navigate(`/classrooms/${currentClassId}?tab=overview`)}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${isOverview ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+              className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isOverview ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
             >
-              <Chalkboard size={14} weight="bold" />
-              <span>Tổng quan</span>
+              <Chalkboard size={14} weight="bold" className={isOverview ? "text-[#f47c20]" : "text-slate-500"} />
+              <span>Bảng tin</span>
             </button>
             <button
               type="button"
               onClick={() => navigate(`/classrooms/${currentClassId}?tab=activities`)}
-              className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${isActivities ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+              className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isActivities ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
             >
-              <ClipboardText size={14} weight="bold" />
+              <ClipboardText size={14} weight="bold" className={isActivities ? "text-[#f47c20]" : "text-slate-500"} />
               <span>Bài tập & Bài thi</span>
             </button>
-            {(user?.role === "teacher" || user?.role === "admin") && (
+            {userRole === "student" ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/classrooms/${currentClassId}?tab=members`)}
+                  className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isMembers ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  <Users size={14} weight="bold" className={isMembers ? "text-[#f47c20]" : "text-slate-500"} />
+                  <span>Thành viên</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/grades?classId=${currentClassId}`)}
+                  className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isGradebookPage || location.pathname.startsWith("/grades") ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
+                >
+                  <ChartBar size={14} weight="bold" className={isGradebookPage || location.pathname.startsWith("/grades") ? "text-[#f47c20]" : "text-slate-500"} />
+                  <span>Điểm số</span>
+                </button>
+              </>
+            ) : (
               <>
                 <button
                   type="button"
                   onClick={() => navigate(`/classrooms/${currentClassId}/students`)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${isStudentsPage ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isStudentsPage ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
                 >
-                  <Users size={14} weight="bold" />
+                  <Users size={14} weight="bold" className={isStudentsPage ? "text-[#f47c20]" : "text-slate-500"} />
                   <span>Học sinh</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate(`/attendance?classId=${currentClassId}`)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${isAttendancePage ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isAttendancePage ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
                 >
-                  <CheckSquare size={14} weight="bold" />
+                  <CheckSquare size={14} weight="bold" className={isAttendancePage ? "text-[#f47c20]" : "text-slate-500"} />
                   <span>Điểm danh</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate(`/gradebook?classId=${currentClassId}`)}
-                  className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${isGradebookPage ? "bg-white text-orange-600 shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
+                  className={`px-3.5 py-1 rounded-full text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${isGradebookPage ? "bg-white text-[#f47c20] shadow-xs" : "text-slate-600 hover:text-slate-900"}`}
                 >
-                  <ChartBar size={14} weight="bold" />
+                  <ChartBar size={14} weight="bold" className={isGradebookPage ? "text-[#f47c20]" : "text-slate-500"} />
                   <span>Sổ điểm</span>
                 </button>
               </>

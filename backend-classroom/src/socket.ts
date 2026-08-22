@@ -50,9 +50,30 @@ export const notifyNotificationUpdate = (recipientId?: string) => {
   }
 };
 
+export const notifyStudentClassroomsUpdate = (studentId?: string) => {
+  if (io) {
+    console.log(`📡 [Socket.io] Phát tín hiệu student_classrooms_update...`);
+    io.emit('student_classrooms_update', studentId);
+  }
+};
+
 export const notifySettingsUpdate = () => {
   if (io) {
     console.log('📡 [Socket.io] Phát tín hiệu settings_update...');
     io.emit('settings_update');
+  }
+};
+
+export const notifyClassroomFeedUpdate = (classId?: string) => {
+  if (io) {
+    console.log(`📡 [Socket.io] Phát tín hiệu classroom_feed_update cho classId: ${classId || 'all'}`);
+    io.emit('classroom_feed_update', classId);
+  }
+};
+
+export const notifySubmissionUpdate = (data?: { assignmentId?: string; classId?: string }) => {
+  if (io) {
+    console.log(`📡 [Socket.io] Phát tín hiệu submission_update...`, data);
+    io.emit('submission_update', data);
   }
 };

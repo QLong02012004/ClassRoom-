@@ -947,6 +947,7 @@ export default function AdminClassrooms() {
                 { id: "all", label: "Tất cả trạng thái" },
                 { id: "Active", label: "Đang hoạt động" },
                 { id: "Pending", label: "Chờ duyệt" },
+                { id: "Closed", label: "Đã đóng" },
                 { id: "Locked", label: "Đã khóa" }
               ]}
               minWidthClass="min-w-[180px]"

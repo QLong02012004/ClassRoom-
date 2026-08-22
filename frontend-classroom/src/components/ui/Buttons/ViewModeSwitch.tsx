@@ -3,23 +3,25 @@ import styled from 'styled-components';
 import { SquaresFour, List } from 'phosphor-react';
 
 interface ViewModeSwitchProps {
-  viewMode: 'grid' | 'list';
-  onViewModeChange: (mode: 'grid' | 'list') => void;
+  viewMode: 'grid' | 'list' | 'table';
+  onViewModeChange: (mode: any) => void;
+  id?: string;
 }
 
-const ViewModeSwitch: React.FC<ViewModeSwitchProps> = ({ viewMode, onViewModeChange }) => {
-  const isChecked = viewMode === 'list';
+const ViewModeSwitch: React.FC<ViewModeSwitchProps> = ({ viewMode, onViewModeChange, id = "viewModeToggle" }) => {
+  const isChecked = viewMode === 'list' || viewMode === 'table';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onViewModeChange(e.target.checked ? 'list' : 'grid');
+    const targetMode = e.target.checked ? (viewMode === 'list' ? 'list' : 'table') : 'grid';
+    onViewModeChange(targetMode);
   };
 
   return (
     <StyledWrapper>
-      <label htmlFor="viewModeToggle" className="switch" aria-label="Toggle View Mode">
+      <label htmlFor={id} className="switch" aria-label="Toggle View Mode">
         <input
           type="checkbox"
-          id="viewModeToggle"
+          id={id}
           checked={isChecked}
           onChange={handleChange}
         />

@@ -66,7 +66,7 @@ const NavBar: React.FC = () => {
 
   const username = user?.name || "Người dùng";
   const userRole = user?.role || "teacher";
-  const userAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=FE6747&color=fff&bold=true`;
+  const userAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=f47c20&color=fff&bold=true`;
 
   const roleDisplay =
     userRole === "admin" ? "Quản trị viên" :

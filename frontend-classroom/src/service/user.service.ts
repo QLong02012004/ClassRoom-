@@ -8,6 +8,9 @@ export interface IUserItem {
   role: 'admin' | 'teacher' | 'student';
   status: 'Active' | 'Locked' | 'Pending';
   parentPhone?: string;
+  parentRelationship?: string;
+  gradeLevel?: string;
+  school?: string;
   avatar?: string;
   dob?: string;
   gender?: string;
@@ -70,8 +73,8 @@ export const userService = {
     return await api.put(`/api/v1/users/change-password`, data);
   },
 
-  // Admin cập nhật thông tin người dùng
-  updateUser: async (id: string, data: { name?: string, email?: string, subject?: string, role?: string }): Promise<IBackendRes<IUserItem>> => {
+  // Admin/Teacher cập nhật thông tin người dùng
+  updateUser: async (id: string, data: Partial<IUserItem>): Promise<IBackendRes<IUserItem>> => {
     return await api.put(`/api/v1/users/${id}`, data);
   },
 

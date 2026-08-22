@@ -141,6 +141,10 @@ export const classroomService = {
     return await api.post(`/api/v1/classrooms/${id}/students/add`, { studentId });
   },
 
+  removeStudentFromClassroom: async (id: string, studentId: string): Promise<IBackendRes<any>> => {
+    return await api.delete(`/api/v1/classrooms/${id}/students/${studentId}`);
+  },
+
   softDeleteClassroom: async (id: string): Promise<IBackendRes<any>> => {
     return await api.delete(`/api/v1/classrooms/${id}/soft`);
   },

@@ -22,7 +22,8 @@ import {
     rejectJoinRequest,
     approveAllJoinRequests,
     getStudentPendingClasses,
-    toggleCloseClassroom
+    toggleCloseClassroom,
+    removeStudentFromClassroom
 } from '../controllers/classroomController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
@@ -75,6 +76,9 @@ router.get('/:id/students', protect, authorize('teacher'), getClassroomStudents)
 
 // Thêm học sinh có sẵn vào lớp
 router.post('/:id/students/add', protect, authorize('teacher'), addStudentToClassroom);
+
+// Xóa / Mời học sinh ra khỏi lớp
+router.delete('/:id/students/:studentId', protect, authorize('teacher'), removeStudentFromClassroom);
 
 // Tạo lớp học mới
 router.post('/', protect, authorize('teacher'), createClassroom);

@@ -197,21 +197,28 @@ export default function TeacherClassrooms() {
         const nameNormalized = removeAccents(cls.name.toLowerCase());
         const codeNormalized = removeAccents((cls.code || "").toLowerCase());
         const subjectNormalized = removeAccents((cls.subject || "").toLowerCase());
-        const matchesSearch = nameNormalized.includes(qNormalized) || 
-                             codeNormalized.includes(qNormalized) ||
-                             subjectNormalized.includes(qNormalized);
+        const matchesSearch = nameNormalized.includes(qNormalized) ||
+          codeNormalized.includes(qNormalized) ||
+          subjectNormalized.includes(qNormalized);
         if (!matchesSearch) return false;
       }
-      
+
       // 2. Status Filter
       if (statusFilter !== "all") {
         if (cls.status !== statusFilter) return false;
       }
-      
+
       return true;
     });
 
     return filtered.sort((a, b) => {
+      // 1. Ưu tiên các lớp đang có học sinh gửi yêu cầu chờ duyệt (pendingRequestsCount > 0)
+      const aPending = (a.pendingRequestsCount || 0) > 0;
+      const bPending = (b.pendingRequestsCount || 0) > 0;
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
+
+      // 2. Ưu tiên các lớp được ghim (pinned)
       const aPinned = pinnedIds.includes(a._id);
       const bPinned = pinnedIds.includes(b._id);
       if (aPinned && !bPinned) return -1;
@@ -326,15 +333,20 @@ export default function TeacherClassrooms() {
     };
   }, [user]);
 
-  // Socket.io Real-time update cho Giáo viên khi Admin duyệt / khóa / mở khóa lớp
+  // Socket.io Real-time update cho Giáo viên khi có thay đổi lớp, bài nộp hoặc chấm điểm mới
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
     const socket = io(backendUrl, {
       withCredentials: true,
     });
 
-    socket.on('teacher_classrooms_update', (socketTeacherId?: string) => {
-      console.log('🔄 [Socket.io] Có thay đổi trạng thái lớp từ Admin, đang cập nhật...');
+    socket.on('teacher_classrooms_update', () => {
+      console.log('🔄 [Socket.io] Có thay đổi thông tin lớp học, đang làm mới...');
+      loadData();
+    });
+
+    socket.on('submission_update', () => {
+      console.log('🔄 [Socket.io] Có học sinh nộp bài hoặc điểm số mới, đang làm mới số bài cần chấm...');
       loadData();
     });
 
@@ -530,10 +542,10 @@ export default function TeacherClassrooms() {
             onChange={setStatusFilter}
             options={[
               { id: "all", label: "Tất cả trạng thái" },
-              { id: "Active", label: "Hoạt động", icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
-              { id: "Pending", label: "Chờ duyệt", icon: <div className="w-2 h-2 rounded-full bg-[#f47c20]" /> },
-              { id: "Closed", label: "Đã đóng", icon: <div className="w-2 h-2 rounded-full bg-slate-400" /> },
-              { id: "Locked", label: "Đã khóa", icon: <div className="w-2 h-2 rounded-full bg-red-500" /> }
+              { id: "Active", label: "Đang hoạt động" },
+              { id: "Pending", label: "Chờ duyệt" },
+              { id: "Closed", label: "Đã đóng" },
+              { id: "Locked", label: "Đã khóa" }
             ]}
             minWidthClass="min-w-[170px]"
           />
@@ -576,8 +588,22 @@ export default function TeacherClassrooms() {
               className={styles.classCard}
             >
               <div className={styles.cardTop}>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className={styles.subjectTag}>{cls.subject || 'Môn học chung'}</span>
+                  {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPendingRequestsModal(cls);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#2f8fa3] text-white font-extrabold text-[10px] shadow-xs hover:bg-[#257385] cursor-pointer transition-all hover:scale-105 active:scale-95 animate-pulse"
+                      title="Nhấn để duyệt học sinh đang chờ gia nhập lớp"
+                    >
+                      <UserPlus size={12} weight="bold" />
+                      <span>Duyệt ({cls.pendingRequestsCount})</span>
+                    </button>
+                  )}
                   {cls.status === 'Pending' ? (
                     <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f47c20]/10 border border-[#f47c20]/30 text-[#d66b1a] font-bold text-[10px] shadow-[0_0_8px_rgba(244,124,32,0.25)]">
                       <span className="flex h-2 w-2 relative">
@@ -661,16 +687,24 @@ export default function TeacherClassrooms() {
               {/* ACTIONABLE INFO STRIP */}
               <div
                 onClick={(e) => {
-                  if (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') {
+                  if (cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0) {
+                    e.stopPropagation();
+                    openPendingRequestsModal(cls);
+                  } else if (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') {
                     e.preventDefault();
                   } else {
-                    navigate(`/classrooms/${cls._id}`);
+                    navigate(`/classrooms/${cls._id}?tab=activities`);
                   }
                 }}
-                style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 'not-allowed' : 'pointer' }}
+                style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') && !(cls.pendingRequestsCount && cls.pendingRequestsCount > 0) ? 'not-allowed' : 'pointer' }}
               >
                 <div className={styles.actionableStrip}>
-                  {cls.pendingGrades !== undefined && cls.pendingGrades > 0 ? (
+                  {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 ? (
+                    <div className={styles.actionBadgePending} style={{ backgroundColor: '#e0f2fe', color: '#0284c7', borderColor: '#7dd3fc' }}>
+                      <UserPlus size={14} weight="bold" />
+                      <span>Có {cls.pendingRequestsCount} học sinh chờ duyệt</span>
+                    </div>
+                  ) : cls.pendingGrades !== undefined && cls.pendingGrades > 0 ? (
                     <div className={styles.actionBadgePending}>
                       <ClipboardText size={14} weight="bold" />
                       <span>{cls.pendingGrades} bài cần chấm</span>
@@ -945,10 +979,10 @@ export default function TeacherClassrooms() {
                     })
                   )}
                 </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
-      </div>
+              </Table.Content>
+            </Table.ScrollContainer>
+          </Table>
+        </div>
       )}
 
       {/* PAGINATION TOOLBAR */}

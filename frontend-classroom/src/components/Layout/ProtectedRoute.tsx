@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { settingsService } from '../../service/settings.service';
 import MaintenancePage from '../../pages/MaintenancePage';
 import { io } from 'socket.io-client';
+import FullPageLoader from '../ui/Loaders/FullPageLoader';
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -37,9 +38,10 @@ const ProtectedRoute: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <FullPageLoader
+        text="Đang kết nối hệ thống..."
+        subtext="Đang xác thực thông tin tài khoản"
+      />
     );
   }
 
@@ -59,9 +61,10 @@ export const AdminRoute: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <FullPageLoader
+        text="Đang kết nối hệ thống..."
+        subtext="Đang xác thực thông tin tài khoản"
+      />
     );
   }
 
@@ -78,9 +81,10 @@ export const TeacherOrAdminRoute: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
+      <FullPageLoader
+        text="Đang kết nối hệ thống..."
+        subtext="Đang xác thực thông tin tài khoản"
+      />
     );
   }
 

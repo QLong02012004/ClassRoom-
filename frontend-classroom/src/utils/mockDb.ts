@@ -36,6 +36,12 @@ export interface Student {
   password?: string;
   studentCode: string;
   parentPhone: string;
+  parentRelationship?: string;
+  gradeLevel?: string;
+  school?: string;
+  phone?: string;
+  dob?: string;
+  gender?: string;
   classId: string;
   grades: Grades;
   avatar?: string;

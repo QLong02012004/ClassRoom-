@@ -322,6 +322,13 @@ span[data-selected="true"] svg {
   color: #ffffff !important;
 }
 
+/* Fix HeroUI Table first-row floating card glitch */
+[data-slot="row"],
+table tbody tr {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
 /* --- CUSTOM SCROLLBAR --- */
 ::-webkit-scrollbar {
   width: 8px;

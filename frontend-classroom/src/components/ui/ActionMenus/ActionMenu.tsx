@@ -282,6 +282,9 @@ const StyledWrapper = styled.div`
     color: var(--nav-title-color);
     font-size: var(--nav-title-size);
     font-weight: 600;
+    text-align: left;
+    display: block;
+    width: 100%;
   }
 
   .popup-window ul {
@@ -326,14 +329,6 @@ const StyledWrapper = styled.div`
   .popup-window ul li:last-child button:focus-visible {
     color: #dc2626; /* red-600 */
     background: #fee2e2; /* red-100 */
-  }
-
-  .burger:hover {
-    transform: scale(var(--burger-hover-scale));
-  }
-
-  .burger:active {
-    transform: scale(var(--burger-active-scale));
   }
 
   .burger:focus:not(:hover) {

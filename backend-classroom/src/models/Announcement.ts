@@ -4,6 +4,7 @@ import { AnnouncementType } from '../constants/enums';
 export interface IComment {
     authorId: Types.ObjectId;
     authorName: string;
+    authorRole?: string;
     content: string;
     createdAt: Date;
     likes?: Types.ObjectId[];
@@ -30,6 +31,7 @@ export interface IAnnouncement extends Document {
 const CommentSchema = new Schema<IComment>({
     authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     authorName: { type: String, required: true },
+    authorRole: { type: String },
     content: { type: String, required: true },
     createdAt: { type: Date, default: Date.now },
     likes: [{ type: Schema.Types.ObjectId, ref: 'User' }]

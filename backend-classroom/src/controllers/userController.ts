@@ -165,7 +165,7 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
         }
 
         // Lấy dữ liệu từ body (chỉ cho phép cập nhật các trường được chỉ định)
-        const { name, avatar, dob, gender, phone, address, bio, degree } = req.body;
+        const { name, avatar, dob, gender, phone, address, bio, degree, gradeLevel, school, parentPhone, parentRelationship } = req.body;
 
         // Xác thực thông tin đầu vào
         if (name !== undefined) {
@@ -218,9 +218,9 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
         }
 
         if (gender !== undefined && gender !== '') {
-            if (!['Nam', 'Nữ', 'Khác'].includes(gender)) {
+            if (!['Nam', 'Nữ', 'Khác', 'MALE', 'FEMALE', 'OTHER'].includes(gender)) {
                 res.status(400);
-                return next(new Error('Giới tính không hợp lệ (chỉ chấp nhận Nam, Nữ, Khác)!'));
+                return next(new Error('Giới tính không hợp lệ!'));
             }
         }
 
@@ -243,6 +243,10 @@ export const updateProfile = async (req: AuthRequest, res: Response, next: NextF
         if (address !== undefined) updateData.address = address;
         if (bio !== undefined) updateData.bio = bio;
         if (degree !== undefined) updateData.degree = degree;
+        if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel;
+        if (school !== undefined) updateData.school = school;
+        if (parentPhone !== undefined) updateData.parentPhone = parentPhone;
+        if (parentRelationship !== undefined) updateData.parentRelationship = parentRelationship;
 
         const updatedUser = await UserModel.findByIdAndUpdate(
             userId,
@@ -322,7 +326,7 @@ export const changePassword = async (req: AuthRequest, res: Response, next: Next
 export const updateUser = async (req: AuthRequest, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { id } = req.params;
-        const { name, email, subject, role, parentPhone } = req.body;
+        const { name, email, subject, role, parentPhone, parentRelationship, gradeLevel, school, phone, dob, gender } = req.body;
 
         const updateData: any = {};
         if (name !== undefined) updateData.name = name;
@@ -330,6 +334,12 @@ export const updateUser = async (req: AuthRequest, res: Response, next: NextFunc
         if (subject !== undefined) updateData.subject = subject;
         if (role !== undefined) updateData.role = role;
         if (parentPhone !== undefined) updateData.parentPhone = parentPhone;
+        if (parentRelationship !== undefined) updateData.parentRelationship = parentRelationship;
+        if (gradeLevel !== undefined) updateData.gradeLevel = gradeLevel;
+        if (school !== undefined) updateData.school = school;
+        if (phone !== undefined) updateData.phone = phone;
+        if (dob !== undefined) updateData.dob = dob;
+        if (gender !== undefined) updateData.gender = gender;
 
         // Nếu cập nhật email, kiểm tra xem email có bị trùng với tài khoản khác không
         if (email) {
