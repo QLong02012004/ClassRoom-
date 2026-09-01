@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: announcementRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/announcementRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Bảng tin Lớp học (`/api/v1/announcements/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định tuyến các thao tác: Đăng bài, bình luận, xóa bình luận, ghim bài viết, thích bài đăng/bình luận tới `announcementController.ts`.
+ *   - Tất cả đều được bảo mật qua Middleware `protect`.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import { getAnnouncements, createAnnouncement, addComment, deleteAnnouncement, togglePin, likeComment, likeAnnouncement, deleteComment } from '../controllers/announcementController';
 import { protect } from '../middlewares/authMiddleware';

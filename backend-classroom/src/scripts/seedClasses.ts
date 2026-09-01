@@ -1,6 +1,14 @@
 /**
- * SCRIPT: KHỞI TẠO LỚP HỌC MẪU
- * Tác dụng: Tạo tài khoản giáo viên mẫu (nếu chưa có) và gán cho giáo viên đó 5 lớp học thử nghiệm với mã lớp ngẫu nhiên.
+ * ============================================================================
+ * TÊN FILE: seedClasses.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/seedClasses.ts
+ * MỤC ĐÍCH:
+ *   Script Khởi Tạo Lớp Học Mẫu (Class Seeding Script).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Tìm hoặc tạo mới tài khoản Giáo viên mẫu (`teacher@gmail.com` / `teacher123`).
+ *   - Tạo 5 lớp học thử nghiệm (12A1 Toán, 12A2 Lý, 11B1 Hóa, 10C1 Văn, Luyện thi Anh) với mã code 6 ký tự ngẫu nhiên duy nhất.
+ * ============================================================================
  */
 
 import mongoose from 'mongoose';

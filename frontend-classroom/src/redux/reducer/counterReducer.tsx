@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * TÊN FILE: counterReducer.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/redux/reducer/counterReducer.tsx
+ * MỤC ĐÍCH:
+ *   Legacy Redux Reducer cho counter (File dự phòng/tham khảo cũ).
+ * ============================================================================
+ */
+
 /* import { INCREMENT, DECREMENT } from '../action/'; // Đảm bảo đúng đường dẫn
 
 interface CounterState {

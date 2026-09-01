@@ -1,3 +1,15 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: STUDENT_TESTING_GUIDE.md
+ĐƯỜNG DẪN: docs/STUDENT_TESTING_GUIDE.md
+MỤC ĐÍCH:
+  Bộ Kịch Bản Kiểm Thử Chi Tiết Dành Cho Học Sinh (Student Test Cases).
+
+CÁCH THỨC SỬ DỤNG:
+  - Cung cấp danh sách các Test Cases đầy đủ cho các chức năng Học sinh: Đăng ký & OTP, Tham gia lớp bằng mã code, Nộp bài tự luận, Làm đề thi trắc nghiệm AI đếm ngược, Tích lũy Gamification XP/Streak/Leaderboard, Trợ lý Gemini AI và Kiểm thử di động / Accessibility.
+============================================================================
+-->
+
 # BỘ KỊCH BẢN KIỂM THỬ CHI TIẾT DÀNH CHO HỌC SINH (STUDENT DETAILED TEST CASES)
 
 ---

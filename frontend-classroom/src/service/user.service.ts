@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: user.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/user.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `userService` gọi API HTTP quản lý Hồ sơ người dùng,
+ *   phân quyền, cập nhật trạng thái tài khoản, đổi mật khẩu và mật khẩu tài khoản Google.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lấy danh sách người dùng (`getUsers`), sửa hồ sơ (`updateProfile`), đổi mật khẩu (`changePassword`).
+ *   - Admin quản lý: Khóa/Mở khóa (`updateUserStatus`), đổi vai trò (`updateUserRole`), reset mật khẩu (`resetUserPassword`).
+ *   - Tạo mật khẩu tài khoản Google: `sendPasswordOTP`, `setupGooglePassword`.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

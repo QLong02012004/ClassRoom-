@@ -1,6 +1,14 @@
 /**
- * SCRIPT: DỌN DẸP DỮ LIỆU TRẮC NGHIỆM (QUIZ)
- * Tác dụng: Xóa bỏ toàn bộ các đề thi trắc nghiệm trong ngân hàng đề, hoạt động trắc nghiệm đã giao và kết quả làm bài của học sinh.
+ * ============================================================================
+ * TÊN FILE: cleanQuizzes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/cleanQuizzes.ts
+ * MỤC ĐÍCH:
+ *   Script dọn dẹp các đề thi trắc nghiệm (Quiz Cleanup Script).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Xóa bỏ toàn bộ đề thi trắc nghiệm trong `BankItemModel` và `ClassActivityModel` dạng `QUIZ`.
+ *   - Xóa bỏ toàn bộ kết quả làm bài trắc nghiệm trong `QuizResultModel`.
+ * ============================================================================
  */
 
 import mongoose from 'mongoose';

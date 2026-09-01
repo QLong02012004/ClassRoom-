@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * TÊN FILE: userAction.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/redux/action/userAction.tsx
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Legacy Redux Action Creators cho Đăng nhập & Đăng xuất (File dự phòng/tham khảo cũ).
+ * ============================================================================
+ */
+
 /* export const FETCH_USER_LOGIN_SUCCESS = "FETCH_USER_LOGIN_SUCCESS";
 export const USER_LOGOUT_SUCCESS = "USER_LOGOUT_SUCCESS";
 export const UPDATE_USER_PROFILE_SUCCESS = "UPDATE_USER_PROFILE_SUCCESS";

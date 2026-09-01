@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Notification.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Notification.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Thông báo Quả Chuông (Notifications).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định danh người nhận cá nhân (`recipientId`) hoặc nhóm người nhận theo vai trò (`recipientRole`: ADMIN, TEACHER, STUDENT).
+ *   - Lưu tiêu đề (`title`), nội dung (`message`), người gửi (`sender`), loại thông báo (`type`) và cờ trạng thái đã đọc (`isRead`).
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 import { UserRole, NotificationType } from '../constants/enums';
 

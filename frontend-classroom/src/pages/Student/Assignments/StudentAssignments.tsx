@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pagination } from "@heroui/react";
 import {
   BookOpen,
   ArrowRight,
@@ -31,6 +32,7 @@ import styles from "./StudentAssignments.module.scss";
 export default function StudentAssignments() {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("all");
   const [filterClass, setFilterClass] = useState("all");
   const [filterType, setFilterType] = useState("all");
@@ -44,6 +46,7 @@ export default function StudentAssignments() {
 
   useEffect(() => {
     const fetchAssignments = async () => {
+      setLoading(true);
       try {
         const res = await gradebookService.getStudentAssignments();
         if (res && res.data) {
@@ -58,6 +61,8 @@ export default function StudentAssignments() {
         }
       } catch (err) {
         console.error("Không thể tải danh sách bài tập", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchAssignments();
@@ -68,7 +73,6 @@ export default function StudentAssignments() {
     if (assign.submission) return "submitted";
     const diff = new Date(assign.deadline).getTime() - Date.now();
     if (diff < 0) return "late";
-    if (diff < 3 * 24 * 60 * 60 * 1000) return "urgent"; // Dưới 3 ngày
     return "pending";
   };
 
@@ -77,7 +81,6 @@ export default function StudentAssignments() {
       case "graded": return "Đã chấm điểm";
       case "submitted": return "Đã nộp bài";
       case "late": return "Quá hạn nộp";
-      case "urgent": return "Sắp đến hạn";
       default: return "Chưa nộp bài";
     }
   };
@@ -85,7 +88,9 @@ export default function StudentAssignments() {
   const formatDeadline = (iso: string) => {
     try {
       const d = new Date(iso);
-      return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()} • ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const timeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      return `${timeStr} - ${dateStr}`;
     } catch {
       return iso;
     }
@@ -109,7 +114,6 @@ export default function StudentAssignments() {
     return true;
   });
 
-  const urgent = filteredAssignments.filter((a) => getStatus(a) === "urgent");
   const pending = filteredAssignments.filter((a) => getStatus(a) === "pending");
   const late = filteredAssignments.filter((a) => getStatus(a) === "late");
   const submitted = filteredAssignments.filter((a) => getStatus(a) === "submitted");
@@ -117,7 +121,6 @@ export default function StudentAssignments() {
 
   const statusOptions = [
     { id: "all", label: "Tất cả trạng thái", icon: <ListChecks size={15} weight="duotone" className="text-slate-600" /> },
-    { id: "urgent", label: "Sắp đến hạn", icon: <Hourglass size={15} weight="duotone" className="text-amber-500" /> },
     { id: "late", label: "Quá hạn", icon: <XCircle size={15} weight="duotone" className="text-red-500" /> },
     { id: "pending", label: "Chưa nộp", icon: <NotePencil size={15} weight="duotone" className="text-orange-500" /> },
     { id: "submitted", label: "Đã nộp", icon: <CheckCircle size={15} weight="duotone" className="text-teal-600" /> },
@@ -133,52 +136,19 @@ export default function StudentAssignments() {
     return (
       <div
         key={assign._id}
-        className={`${styles.assignCard} ${status === "late" ? styles.lateCard : ""} ${status === "urgent" ? styles.urgentCard : ""} ${isDone ? styles.doneCard : ""} tour-step-assign-card`}
+        className={`${styles.assignCard} ${status === "late" ? styles.lateCard : ""} ${isDone ? styles.doneCard : ""} tour-step-assign-card`}
         onClick={() => navigate(`/assignments/${assign._id}`)}
       >
         <div className={styles.cardMain}>
           {/* Card Top Badges Header */}
           <div className={styles.cardHeaderRow}>
-            <div className="flex items-center gap-1 min-w-0 flex-shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
               <span className={styles.classBadge}>
                 {assign.className}
               </span>
               <span className={styles.typeBadge}>
                 {isQuiz ? "Trắc nghiệm" : "Tự luận"}
               </span>
-            </div>
-
-            <div className={`${styles.statusBadge} ${styles[status]}`}>
-              {status === "late" && (
-                <>
-                  <XCircle size={13} weight="fill" className="text-red-500 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{getStatusLabel(status)}</span>
-                </>
-              )}
-              {status === "urgent" && (
-                <>
-                  <Hourglass size={13} weight="fill" className="text-amber-500 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{timeLeft || getStatusLabel(status)}</span>
-                </>
-              )}
-              {status === "pending" && (
-                <>
-                  <NotePencil size={13} weight="bold" className="text-slate-500 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{getStatusLabel(status)}</span>
-                </>
-              )}
-              {status === "submitted" && (
-                <>
-                  <CheckCircle size={13} weight="fill" className="text-teal-600 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{getStatusLabel(status)}</span>
-                </>
-              )}
-              {status === "graded" && (
-                <>
-                  <Star size={13} weight="fill" className="text-amber-400 flex-shrink-0" />
-                  <span className="whitespace-nowrap">{getStatusLabel(status)}</span>
-                </>
-              )}
             </div>
           </div>
 
@@ -199,77 +169,102 @@ export default function StudentAssignments() {
               <span>Hạn: <strong>{formatDeadline(assign.deadline)}</strong></span>
             </div>
 
-            <div className="flex items-center justify-between gap-2">
-              <div className={styles.metaItem}>
-                <Target size={14} weight="bold" />
-                <span>Điểm: <strong>{assign.maxScore || 10} đ</strong></span>
-              </div>
-              {assign.durationMinutes ? (
-                <div className={styles.metaItem}>
-                  <Timer size={14} weight="bold" />
-                  <span><strong>{assign.durationMinutes} phút</strong></span>
-                </div>
-              ) : (
-                <div className={styles.metaItem}>
-                  <FileText size={14} weight="bold" />
-                  <span>{isQuiz ? 'Trắc nghiệm' : 'Tự luận'}</span>
-                </div>
-              )}
+            <div className={styles.metaItem}>
+              <Target size={14} weight="bold" />
+              <span>
+                Điểm:{" "}
+                <strong>
+                  {status === "graded" && assign.submission?.grade !== undefined && assign.submission?.grade !== null
+                    ? `${assign.submission.grade}/${assign.maxScore || 10} đ`
+                    : `0/${assign.maxScore || 10} đ`}
+                </strong>
+              </span>
+            </div>
+
+            <div className={styles.metaItem}>
+              <Timer size={14} weight="bold" />
+              <span>Thời gian: <strong>{assign.durationMinutes ? `${assign.durationMinutes} phút` : "Tự do"}</strong></span>
             </div>
           </div>
         </div>
 
         {/* Card Footer Action Block */}
         <div className={styles.cardFooter}>
-          {status === "graded" ? (
-            <>
-              <div className={styles.scoreBlock}>
-                <span className={styles.scoreValue}>{assign.submission?.grade ?? 0}</span>
-                <span className={styles.scoreMax}>/ {assign.maxScore || 10}đ</span>
-              </div>
-              <PrimaryButton
-                variant="outline"
-                size="sm"
-                className="!text-xs font-extrabold ml-auto"
-              >
-                Xem kết quả <ArrowRight size={13} weight="bold" />
-              </PrimaryButton>
-            </>
-          ) : (
-            <>
-              <div className="whitespace-nowrap">
-                {!isDone && timeLeft && (
-                  <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
-                    <Hourglass size={11} weight="fill" className="text-amber-500" /> {timeLeft}
-                  </span>
-                )}
-                {!isDone && !timeLeft && (
-                  <span className="text-[11px] font-bold text-red-600 bg-red-50 border border-red-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
-                    <XCircle size={11} weight="fill" className="text-red-500" /> Hết hạn
-                  </span>
-                )}
-                {isDone && (
-                  <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
-                    <CheckCircle size={11} weight="fill" className="text-teal-600" /> Đã nộp
-                  </span>
-                )}
-              </div>
+          <div className="whitespace-nowrap">
+            {status === "graded" && (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                <CheckCircle size={12} weight="fill" className="text-emerald-600" /> Đã chấm
+              </span>
+            )}
+            {status === "submitted" && (
+              <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                <CheckCircle size={11} weight="fill" className="text-teal-600" /> Đã nộp
+              </span>
+            )}
+            {status === "late" && (
+              <span className="text-[11px] font-bold text-red-600 bg-red-50 border border-red-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                <XCircle size={11} weight="fill" className="text-red-500" /> Hết hạn
+              </span>
+            )}
+            {status === "pending" && (
+              <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                <Hourglass size={11} weight="fill" className="text-amber-500" /> Chưa nộp
+              </span>
+            )}
+          </div>
 
-              <PrimaryButton
-                variant={isDone ? "outline" : "default"}
-                size="sm"
-                className="!text-xs font-extrabold ml-auto"
-              >
+          <PrimaryButton
+            variant={isDone ? "outline" : "default"}
+            size="sm"
+            className="!text-xs font-extrabold ml-auto"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/assignments/${assign._id}`);
+            }}
+          >
+            {status === "graded" ? (
+              <>
+                Xem kết quả <ArrowRight size={13} weight="bold" />
+              </>
+            ) : (
+              <>
                 {isDone ? "Xem bài làm" : "Làm bài ngay"} <ArrowRight size={13} weight="bold" />
-              </PrimaryButton>
-            </>
-          )}
+              </>
+            )}
+          </PrimaryButton>
         </div>
       </div>
     );
   };
 
   const renderList = (list: any[], emptyMessage: string) => {
+    if (loading) {
+      return (
+        <div className={styles.assignmentList}>
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="bg-white border-2 border-slate-200 rounded-[20px] p-5 flex flex-col justify-between gap-4 animate-pulse min-h-[240px] shadow-2xs"
+            >
+              <div className="flex justify-between items-center">
+                <div className="h-5 w-20 bg-slate-200 rounded-lg" />
+                <div className="h-5 w-16 bg-slate-200 rounded-full" />
+              </div>
+              <div className="flex flex-col gap-2 mt-2">
+                <div className="h-6 w-3/4 bg-slate-200 rounded-lg" />
+                <div className="h-4 w-1/2 bg-slate-100 rounded-md" />
+              </div>
+              <div className="h-20 w-full bg-slate-100/90 rounded-xl mt-2 border border-slate-100" />
+              <div className="flex justify-between items-center pt-3 border-t border-slate-100 mt-auto">
+                <div className="h-6 w-20 bg-slate-100 rounded-lg" />
+                <div className="h-8 w-24 bg-slate-200 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
     if (list.length === 0) {
       return (
         <div className={styles.emptyState}>
@@ -290,37 +285,43 @@ export default function StudentAssignments() {
           {paginatedList.map(renderAssignmentCard)}
         </div>
 
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 mt-2 mb-2">
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold whitespace-nowrap"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Trang trước
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition-all ${currentPage === i + 1 ? 'bg-[#f47c20] text-white shadow-sm scale-105' : 'text-slate-700 hover:bg-orange-50 hover:text-[#f47c20]'}`}
-                  onClick={() => setCurrentPage(i + 1)}
+        {list.length > 0 && (
+          <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-white rounded-2xl shadow-3xs mt-2">
+            <Pagination.Summary className="text-sm text-slate-500 font-medium">
+              Hiển thị {startIndex + 1} đến {Math.min(startIndex + itemsPerPage, list.length)} trong số {list.length} kết quả
+            </Pagination.Summary>
+            <Pagination.Content>
+              <Pagination.Item>
+                <Pagination.Previous
+                  isDisabled={currentPage === 1}
+                  onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 >
-                  {i + 1}
-                </button>
+                  <Pagination.PreviousIcon />
+                  Trang trước
+                </Pagination.Previous>
+              </Pagination.Item>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <Pagination.Item key={p}>
+                  <Pagination.Link
+                    isActive={p === currentPage}
+                    onPress={() => setCurrentPage(p)}
+                    className={p === currentPage ? "bg-[#f47c20] text-white font-bold border-[#f47c20]" : "text-slate-600 font-medium hover:bg-slate-100"}
+                  >
+                    {p}
+                  </Pagination.Link>
+                </Pagination.Item>
               ))}
-            </div>
-            <button
-              type="button"
-              className="px-3 py-1.5 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-xs font-bold whitespace-nowrap"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Trang sau
-            </button>
-          </div>
+              <Pagination.Item>
+                <Pagination.Next
+                  isDisabled={currentPage === totalPages}
+                  onPress={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
+                  Trang sau
+                  <Pagination.NextIcon />
+                </Pagination.Next>
+              </Pagination.Item>
+            </Pagination.Content>
+          </Pagination>
         )}
       </div>
     );
@@ -340,10 +341,10 @@ export default function StudentAssignments() {
             <Notebook size={16} weight="duotone" className="text-[#f47c20]" />
             <span>{assignments.length} Bài tập</span>
           </div>
-          {urgent.length > 0 && (
+          {pending.length > 0 && (
             <div className={styles.statPill}>
-              <Warning size={16} weight="fill" className={styles.iconWarning} />
-              <span className="text-amber-700">{urgent.length} Sắp đến hạn</span>
+              <NotePencil size={16} weight="duotone" className="text-[#f47c20]" />
+              <span>{pending.length} Chưa nộp</span>
             </div>
           )}
         </div>
@@ -363,12 +364,12 @@ export default function StudentAssignments() {
 
         <div className="flex flex-wrap md:flex-nowrap gap-2.5 tour-step-filters">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-3.5 py-2 outline-none hover:bg-orange-50 hover:text-[#f47c20] hover:border-orange-200 transition-colors min-w-[130px] h-[36px] cursor-pointer whitespace-nowrap">
-              <span className="whitespace-nowrap">{filterType === "all" ? "Môn học (Tất cả)" : (filterType === "quiz" ? "Trắc nghiệm" : "Tự luận")}</span>
+            <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-3.5 py-2 outline-none hover:bg-orange-50 hover:text-[#f47c20] hover:border-orange-200 transition-colors min-w-[140px] h-[36px] cursor-pointer whitespace-nowrap">
+              <span className="whitespace-nowrap">{filterType === "all" ? "Tất cả loại bài" : (filterType === "quiz" ? "Trắc nghiệm" : "Tự luận")}</span>
               <CaretDown size={13} className="text-slate-400" weight="bold" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[170px]">
-              <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setFilterType("all")}>Môn học (Tất cả)</DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setFilterType("all")}>Tất cả loại bài</DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setFilterType("quiz")}>Trắc nghiệm</DropdownMenuItem>
               <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setFilterType("essay")}>Tự luận</DropdownMenuItem>
             </DropdownMenuContent>
@@ -400,14 +401,13 @@ export default function StudentAssignments() {
               })()}
               <CaretDown size={13} className="text-[#f47c20] flex-shrink-0" weight="bold" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[200px]">
+            <DropdownMenuContent align="end" className="w-[230px] p-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50">
               {statusOptions.map(opt => {
                 const count = opt.id === "all" ? filteredAssignments.length
-                  : opt.id === "urgent" ? urgent.length
-                    : opt.id === "late" ? late.length
-                      : opt.id === "pending" ? pending.length
-                        : opt.id === "submitted" ? submitted.length
-                          : graded.length;
+                  : opt.id === "late" ? late.length
+                    : opt.id === "pending" ? pending.length
+                      : opt.id === "submitted" ? submitted.length
+                        : graded.length;
 
                 return (
                   <DropdownMenuItem
@@ -435,7 +435,6 @@ export default function StudentAssignments() {
       {/* Grid Content */}
       <div className="outline-none">
         {activeTab === "all" && renderList(filteredAssignments, "Chưa có bài tập nào thỏa mãn bộ lọc tìm kiếm")}
-        {activeTab === "urgent" && renderList(urgent, "Không có bài tập nào sắp đến hạn")}
         {activeTab === "late" && renderList(late, "Tuyệt vời! Không có bài nào bị quá hạn")}
         {activeTab === "pending" && renderList(pending, "Không có bài tập nào chưa nộp")}
         {activeTab === "submitted" && renderList(submitted, "Chưa có bài tập nào đang chờ chấm")}

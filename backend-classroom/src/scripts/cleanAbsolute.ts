@@ -1,4 +1,16 @@
 
+/**
+ * ============================================================================
+ * TÊN FILE: cleanAbsolute.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/cleanAbsolute.ts
+ * MỤC ĐÍCH:
+ *   Script dọn dẹp sạch hoàn toàn (100% Reset Database) loại bỏ tất cả collections trong MongoDB.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Xóa sạch dữ liệu trong các bảng Announcement, ClassActivity, BankItem, Attendance, Class, Grade, QuizResult, Schedule, Submission, User.
+ * ============================================================================
+ */
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { UserModel } from '../models/User';

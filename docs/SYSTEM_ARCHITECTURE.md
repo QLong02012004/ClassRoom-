@@ -1,3 +1,16 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: SYSTEM_ARCHITECTURE.md
+ĐƯỜNG DẪN: docs/SYSTEM_ARCHITECTURE.md
+MỤC ĐÍCH:
+  Tài Liệu Sơ Đồ Kiến Trúc Hệ Thống (System Architecture Diagram & Data Flows).
+
+CÁCH THỨC SỬ DỤNG:
+  - Đặc tả mô hình phân tầng Client - Gateway - Service - Database - External Services (React, Node.js/Express, MongoDB, Redis, Google Gemini AI API, Socket.io Real-time).
+  - Cung cấp Mermaid Sequence Diagrams giải thích chi tiết luồng xử lý: Duyệt/Khóa lớp Realtime, Đăng ký OTP 6 số, AI Gemini parse đề thi .docx, Chấm bài tích lũy XP Gamification.
+============================================================================
+-->
+
 # TÀI LIỆU SƠ ĐỒ KIẾN TRÚC HỆ THỐNG (SYSTEM ARCHITECTURE DIAGRAM)
 ## Hệ thống Quản lý Học tập LMS ClassRoom
 

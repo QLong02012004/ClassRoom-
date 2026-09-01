@@ -1,3 +1,26 @@
+/**
+ * ============================================================================
+ * TÊN FILE: bankController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/bankController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Ngân hàng Tài nguyên Học tập (Bank Items) gồm Ngân hàng câu hỏi trắc nghiệm,
+ *   đề thi mẫu và bài tập dùng chung toàn trung tâm hoặc cá nhân Giáo viên.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/bank/*`).
+ *   - Thao tác trên `BankItemModel`.
+ *   - Phân quyền chia sẻ tài nguyên:
+ *     + Admin tạo: `CENTER_SHARED` (Dùng chung cho toàn bộ Giáo viên theo môn học).
+ *     + Giáo viên tạo: `PRIVATE` (Chỉ dùng riêng cho lớp của giáo viên đó).
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `createBankItem`: Tạo đề thi/bài tập mới lưu vào ngân hàng.
+ *   - `getMyBankItems`: Lấy danh sách đề thi ngân hàng theo phân quyền role và môn học chuyên môn.
+ *   - `getBankItemById`: Xem thông tin chi tiết 1 bài tập/đề thi trong ngân hàng.
+ *   - `updateBankItem` & `deleteBankItem`: Chỉnh sửa nội dung câu hỏi hoặc xóa khỏi ngân hàng.
+ * ============================================================================
+ */
+
 import { Request, Response } from 'express';
 import { BankItemModel } from '../models/BankItem';
 

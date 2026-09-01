@@ -1,3 +1,29 @@
+/**
+ * ============================================================================
+ * TÊN FILE: authController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/authController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Xác thực & Phân quyền người dùng (Đăng ký, Đăng nhập, Xác thực OTP Email,
+ *   Đăng nhập Google OAuth, Làm mới Access Token via HTTP-Only Cookie và Đăng xuất).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/auth/*`).
+ *   - Gọi `authService.ts` để băm mật khẩu (bcrypt) và sinh JWT (Access Token 15 phút, Refresh Token 7 ngày).
+ *   - Đặt Refresh Token vào `HTTP-Only Cookie` để chống tấn công XSS.
+ *   - Tương tác với `emailService.ts` để gửi mã xác nhận OTP 6 chữ số tới Email đăng ký của Học sinh/Giáo viên.
+ *   - Kiểm tra Chế độ bảo trì hệ thống (`maintenanceMode`) trước khi cho phép đăng nhập.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `registerStudentAccount` & `registerTeacherAccount`: Đăng ký tài khoản (gửi OTP hoặc gửi yêu cầu duyệt tới Admin).
+ *   - `verifyEmail` & `resendOTP`: Xác nhận mã OTP Email để kích hoạt tài khoản.
+ *   - `login`: Đăng nhập bằng Email/Mật khẩu.
+ *   - `refreshToken`: Làm mới Access Token tự động khi hết hạn (Refresh Token Rotation).
+ *   - `googleLogin`: Đăng nhập nhanh bằng tài khoản Google One-Tap.
+ *   - `getMe`: Lấy thông tin tài khoản hiện tại từ Token.
+ *   - `logout`: Đăng xuất & xóa Cookie HTTP-Only.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { createAccountService, registerTeacherService, loginService, verifyRefreshToken, generateTokens, googleAuthService } from '../services/authService';
 import { generateOTP, sendVerificationEmail } from '../services/emailService';

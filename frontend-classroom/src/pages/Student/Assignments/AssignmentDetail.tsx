@@ -19,6 +19,8 @@ import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { io } from "socket.io-client";
+import { uploadService } from "@/service/upload.service";
+import { formatCleanFileName } from "@/lib/utils";
 import styles from "./AssignmentDetail.module.scss";
 
 export default function AssignmentDetail() {
@@ -149,11 +151,42 @@ export default function AssignmentDetail() {
 
     setIsSubmitting(true);
     try {
-      const attachments = selectedFiles.map((file) => ({
-        name: file.name,
-        url: URL.createObjectURL(file),
-        size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`
-      }));
+      const attachmentPromises = selectedFiles.map(async (file) => {
+        let formattedSize = "";
+        if (file.size < 1024) {
+          formattedSize = `${file.size} B`;
+        } else if (file.size < 1024 * 1024) {
+          formattedSize = `${(file.size / 1024).toFixed(1)} KB`;
+        } else {
+          formattedSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        try {
+          // Upload file lên Backend Server / Supabase để có URL thật vĩnh viễn
+          const res: any = await uploadService.uploadFile(file);
+          const serverUrl = res?.data?.url || res?.url || (typeof res?.data === 'string' ? res.data : '');
+          if (serverUrl) {
+            return { name: file.name, url: serverUrl, size: formattedSize };
+          }
+        } catch (err) {
+          console.warn("Upload file to server failed, fallback Base64:", err);
+        }
+
+        // Dự phòng Base64 nếu server offline
+        return new Promise<{ name: string; url: string; size: string }>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            resolve({
+              name: file.name,
+              url: (e.target?.result as string) || "",
+              size: formattedSize
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const attachments = await Promise.all(attachmentPromises);
 
       await gradebookService.submitAssignment(assignment._id, {
         submissionText: note,
@@ -283,8 +316,8 @@ export default function AssignmentDetail() {
                       )}
                     </div>
                     <div>
-                      <span className={styles.fileName}>
-                        {assignment.bankItemId.fileUrl.split('/').pop() || "Tai-lieu-dinh-kem"}
+                      <span className={styles.fileName} title={assignment.bankItemId.fileUrl.split('/').pop() || "Tai-lieu-dinh-kem"}>
+                        {formatCleanFileName(assignment.bankItemId.fileUrl)}
                       </span>
                       <span className={styles.fileSize}>Tài liệu môn học</span>
                     </div>
@@ -331,7 +364,7 @@ export default function AssignmentDetail() {
                     {mySubmission.attachments.map((att: any, idx: number) => (
                       <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className={styles.submittedFileItem}>
                         <FilePdf size={18} weight="fill" className="text-[#EF4444]" />
-                        <span className={styles.submittedFileName}>{att.name}</span>
+                        <span className={styles.submittedFileName} title={att.name}>{formatCleanFileName(att.name)}</span>
                         {att.size && <span className={styles.submittedFileSize}>{att.size}</span>}
                       </a>
                     ))}
@@ -406,7 +439,7 @@ export default function AssignmentDetail() {
                               <CloudArrowUp size={22} weight="bold" className="text-[#f47c20] flex-shrink-0" />
                             )}
                             <div className={styles.fileItemDetails}>
-                              <span className={styles.fileItemName} title={file.name}>{file.name}</span>
+                              <span className={styles.fileItemName} title={file.name}>{formatCleanFileName(file.name)}</span>
                               <span className={styles.fileItemSize}>{(file.size / (1024 * 1024)).toFixed(2)} MB</span>
                             </div>
                           </div>

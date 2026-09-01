@@ -1,48 +1,137 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChartBar, Clock, Notebook, Star, TrendUp, TrendDown, Trophy, Target, Crosshair, WarningCircle, CheckCircle, Lightning, CaretDown, CaretUp, ChatTeardropText, ArrowRight, Calculator, CalendarCheck, Warning, MagnifyingGlass, Lightbulb, Funnel, Medal } from "phosphor-react";
+import { Pagination } from "@heroui/react";
+import { io } from "socket.io-client";
+import {
+  ChartBar,
+  Notebook,
+  Star,
+  Trophy,
+  Target,
+  CaretDown,
+  CaretUp,
+  ChatTeardropText,
+  ArrowRight,
+  CalendarCheck,
+  Warning,
+  MagnifyingGlass,
+  Medal,
+  Sparkle,
+  TrendUp,
+  TrendDown,
+  BookOpen
+} from "phosphor-react";
 import { gradebookService } from "../../../service/gradebook.service.ts";
+import { classroomService, type ITeacherClassroom } from "../../../service/classroom.service.ts";
+import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuItem,
 } from "../../../components/ui/dropdown-menu";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from "recharts";
 import styles from "./StudentGrades.module.scss";
 import vars from "../../../components/Styles/variables.module.scss";
 
 export default function StudentGrades() {
   const navigate = useNavigate();
+  const toast = useToast();
   const [gradedAssignments, setGradedAssignments] = useState<any[]>([]);
   const [allAssignments, setAllAssignments] = useState<any[]>([]);
+  const [classrooms, setClassrooms] = useState<ITeacherClassroom[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("all");
+  const [newlyGradedIds, setNewlyGradedIds] = useState<Set<string>>(new Set());
 
-  // States cho tính năng Tương tác
+  // Filter & Pagination States
   const [activeFilter, setActiveFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [expectedScore, setExpectedScore] = useState<number>(8.0);
-  const [activeAiTab, setActiveAiTab] = useState("radar");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
-    const fetchGrades = async () => {
+    setCurrentPage(1);
+  }, [selectedClassId, activeFilter, statusFilter, searchTerm]);
+
+  // Tải danh sách lớp học sinh tham gia
+  useEffect(() => {
+    const fetchClassrooms = async () => {
       try {
-        const res = await gradebookService.getStudentAssignments();
+        const res = await classroomService.getStudentClassrooms();
         if (res && res.data) {
-          setAllAssignments(res.data);
-          const graded = res.data.filter((assign: any) => assign.submission?.status === "graded");
-          graded.sort(
-            (a: any, b: any) => new Date(b.submission?.gradedAt || 0).getTime() - new Date(a.submission?.gradedAt || 0).getTime()
-          );
-          setGradedAssignments(graded);
+          setClassrooms(res.data);
         }
-      } catch (err) {
-        console.error("Không thể tải bảng điểm", err);
+      } catch (e) {
+        console.error("Không thể tải danh sách lớp học sinh", e);
       }
     };
-    fetchGrades();
+    fetchClassrooms();
   }, []);
+
+  const fetchGrades = useCallback(async (isRealtimeUpdate = false) => {
+    try {
+      const res = await gradebookService.getStudentAssignments();
+      if (res && res.data) {
+        const sorted = [...res.data].sort((a: any, b: any) => {
+          const timeA = new Date(a.createdAt || a.dueDate || 0).getTime();
+          const timeB = new Date(b.createdAt || b.dueDate || 0).getTime();
+          return timeB - timeA;
+        });
+        setAllAssignments(sorted);
+        const graded = sorted.filter((assign: any) => assign.submission?.status === "graded");
+        graded.sort(
+          (a: any, b: any) => new Date(b.submission?.gradedAt || 0).getTime() - new Date(a.submission?.gradedAt || 0).getTime()
+        );
+        setGradedAssignments(graded);
+
+        if (isRealtimeUpdate) {
+          toast.success("⚡ Bài tập của bạn vừa được giáo viên chấm điểm!");
+        }
+      }
+    } catch (err) {
+      console.error("Không thể tải bảng điểm", err);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    fetchGrades();
+
+    // Socket.io Realtime Listener
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on("submission_update", (data?: { assignmentId?: string }) => {
+      console.log("⚡ [Socket.io Realtime] Cập nhật bảng điểm học sinh...");
+      if (data?.assignmentId) {
+        setNewlyGradedIds((prev) => new Set(prev).add(data.assignmentId!));
+      }
+      fetchGrades(true);
+    });
+
+    socket.on("classroom_feed_update", () => {
+      fetchGrades();
+    });
+
+    socket.on("student_classrooms_update", () => {
+      fetchGrades();
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [fetchGrades]);
 
   const formatDate = (iso: string) => {
     if (!iso) return "";
@@ -50,10 +139,20 @@ export default function StudentGrades() {
     return `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
   };
 
-  // Tính toán GPA
-  const totalScore = gradedAssignments.reduce((sum, curr) => sum + (curr.submission?.grade || 0), 0);
-  const totalMaxScore = gradedAssignments.reduce((sum, curr) => sum + (curr.maxScore || 10), 0);
-  const gpa10Scale = gradedAssignments.length > 0 ? (totalScore / totalMaxScore) * 10 : 0;
+  // Lọc bài tập theo Lớp học được chọn
+  const selectedClass = classrooms.find(c => c._id === selectedClassId);
+  const classFilteredAssignments = allAssignments.filter((a: any) => {
+    if (selectedClassId === "all") return true;
+    const cId = typeof a.classId === 'object' ? a.classId?._id : a.classId;
+    return String(cId) === selectedClassId || a.className === selectedClass?.name;
+  });
+
+  const classGradedAssignments = classFilteredAssignments.filter((assign: any) => assign.submission?.status === "graded");
+
+  // Tính toán GPA & Thống kê theo Lớp
+  const totalScore = classGradedAssignments.reduce((sum, curr) => sum + (curr.submission?.grade || 0), 0);
+  const totalMaxScore = classGradedAssignments.reduce((sum, curr) => sum + (curr.maxScore || 10), 0);
+  const gpa10Scale = classGradedAssignments.length > 0 ? (totalScore / totalMaxScore) * 10 : 0;
 
   let gpaColor = vars.success;
   let gpaRank = "Giỏi";
@@ -66,329 +165,605 @@ export default function StudentGrades() {
   }
 
   // Tỷ lệ hoàn thành
-  const completedCount = allAssignments.filter(a => a.submission).length;
-  const totalCount = allAssignments.length;
+  const completedCount = classFilteredAssignments.filter(a => a.submission).length;
+  const totalCount = classFilteredAssignments.length;
   const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const dashOffset = 214 - (214 * completionRate) / 100;
 
-  // Lọc bài tập tổng hợp
-  const filteredAssignments = allAssignments.filter(a => {
-    // 1. Theo từ khóa
+  // Điểm cao nhất & Điểm thấp nhất
+  let highestScore = 0;
+  let lowestScore = 10;
+  if (classGradedAssignments.length > 0) {
+    highestScore = Math.max(...classGradedAssignments.map((a: any) => a.submission?.grade ?? 0));
+    lowestScore = Math.min(...classGradedAssignments.map((a: any) => a.submission?.grade ?? 10));
+  } else {
+    highestScore = 0;
+    lowestScore = 0;
+  }
+
+  // Số lớp / môn đang học
+  const enrolledClassCount = selectedClassId === "all" ? (classrooms.length || 1) : 1;
+
+  // Mức độ tiến bộ (Tính tự động từ 2 bài chấm gần nhất từ API)
+  let trendDiff = 0;
+  if (classGradedAssignments.length >= 2) {
+    const g1 = classGradedAssignments[0]?.submission?.grade || 0;
+    const g2 = classGradedAssignments[1]?.submission?.grade || 0;
+    trendDiff = Number((g1 - g2).toFixed(1));
+  }
+
+  // Thứ hạng học tập (Tính tự động theo GPA từ API)
+  let rankTopText = "--";
+  let rankSubText = "Chưa xếp hạng";
+  let rankDesc = `Đã nộp ${completedCount}/${totalCount} bài tập`;
+
+  if (classGradedAssignments.length > 0) {
+    if (gpa10Scale >= 9.0) {
+      rankTopText = "Top 5%";
+      rankSubText = "Thành tích Xuất sắc";
+      rankDesc = `Hoàn thành ${completionRate}% bài tập`;
+    } else if (gpa10Scale >= 8.0) {
+      rankTopText = "Top 15%";
+      rankSubText = "Thành tích Giỏi";
+      rankDesc = `Hoàn thành ${completionRate}% bài tập`;
+    } else if (gpa10Scale >= 6.5) {
+      rankTopText = "Top 35%";
+      rankSubText = "Thành tích Khá";
+      rankDesc = `Hoàn thành ${completionRate}% bài tập`;
+    } else {
+      rankTopText = "Top 50%";
+      rankSubText = "Cần cố gắng thêm";
+      rankDesc = `Hoàn thành ${completionRate}% bài tập`;
+    }
+  }
+
+  // Tính tổng hợp điểm theo từng Môn/Lớp học
+  const classSummaries: any[] = [];
+
+  if (classrooms.length > 0) {
+    classrooms.forEach((cls) => {
+      const classAssigns = allAssignments.filter((a: any) => {
+        const cId = typeof a.classId === 'object' ? a.classId?._id : a.classId;
+        return String(cId) === cls._id || a.className === cls.name;
+      });
+
+      const gradedAssigns = classAssigns.filter((a: any) => a.submission?.status === "graded");
+      const totalScore = gradedAssigns.reduce((sum: number, curr: any) => sum + (curr.submission?.grade || 0), 0);
+      const totalMax = gradedAssigns.reduce((sum: number, curr: any) => sum + (curr.maxScore || 10), 0);
+      const gpa = gradedAssigns.length > 0 ? (totalScore / totalMax) * 10 : 0;
+
+      let highest = 0;
+      if (gradedAssigns.length > 0) {
+        highest = Math.max(...gradedAssigns.map((a: any) => a.submission?.grade ?? 0));
+      }
+
+      let rankText = "Chưa có điểm";
+      let rankColor = "bg-slate-100 text-slate-600 border-slate-200/90";
+
+      if (gradedAssigns.length > 0) {
+        if (gpa >= 9.0) {
+          rankText = "Xuất sắc";
+          rankColor = "bg-emerald-50 text-emerald-700 border-emerald-200/90";
+        } else if (gpa >= 8.0) {
+          rankText = "Giỏi";
+          rankColor = "bg-sky-50 text-sky-700 border-sky-200/90";
+        } else if (gpa >= 6.5) {
+          rankText = "Khá";
+          rankColor = "bg-amber-50 text-amber-800 border-amber-200/90";
+        } else {
+          rankText = "Cần cố gắng";
+          rankColor = "bg-rose-50 text-rose-700 border-rose-200/90";
+        }
+      }
+
+      classSummaries.push({
+        classId: cls._id,
+        className: cls.name,
+        subject: cls.subject || "Chung",
+        gpa,
+        highest,
+        gradedCount: gradedAssigns.length,
+        totalCount: classAssigns.length,
+        rankText,
+        rankColor,
+      });
+    });
+  }
+
+  // Fallback nếu không có danh sách lớp từ API nhưng có bài tập
+  if (classSummaries.length === 0 && allAssignments.length > 0) {
+    const groupedByName: Record<string, any[]> = {};
+    allAssignments.forEach((a: any) => {
+      const name = a.className || "Môn học chung";
+      if (!groupedByName[name]) groupedByName[name] = [];
+      groupedByName[name].push(a);
+    });
+
+    Object.entries(groupedByName).forEach(([name, classAssigns]) => {
+      const gradedAssigns = classAssigns.filter((a: any) => a.submission?.status === "graded");
+      const totalScore = gradedAssigns.reduce((sum: number, curr: any) => sum + (curr.submission?.grade || 0), 0);
+      const totalMax = gradedAssigns.reduce((sum: number, curr: any) => sum + (curr.maxScore || 10), 0);
+      const gpa = gradedAssigns.length > 0 ? (totalScore / totalMax) * 10 : 0;
+
+      let highest = 0;
+      if (gradedAssigns.length > 0) {
+        highest = Math.max(...gradedAssigns.map((a: any) => a.submission?.grade ?? 0));
+      }
+
+      let rankText = "Chưa có điểm";
+      let rankColor = "bg-slate-100 text-slate-600 border-slate-200/90";
+
+      if (gradedAssigns.length > 0) {
+        if (gpa >= 9.0) {
+          rankText = "Xuất sắc";
+          rankColor = "bg-emerald-50 text-emerald-700 border-emerald-200/90";
+        } else if (gpa >= 8.0) {
+          rankText = "Giỏi";
+          rankColor = "bg-sky-50 text-sky-700 border-sky-200/90";
+        } else if (gpa >= 6.5) {
+          rankText = "Khá";
+          rankColor = "bg-amber-50 text-amber-800 border-amber-200/90";
+        } else {
+          rankText = "Cần cố gắng";
+          rankColor = "bg-rose-50 text-rose-700 border-rose-200/90";
+        }
+      }
+
+      classSummaries.push({
+        classId: name,
+        className: name,
+        subject: "Chung",
+        gpa,
+        highest,
+        gradedCount: gradedAssigns.length,
+        totalCount: classAssigns.length,
+        rankText,
+        rankColor,
+      });
+    });
+  }
+
+  // Dữ liệu biểu đồ điểm số theo thời gian
+  const chartData = classGradedAssignments
+    .slice()
+    .sort((a, b) => new Date(a.submission?.gradedAt || a.submission?.submittedAt || a.createdAt || 0).getTime() - new Date(b.submission?.gradedAt || b.submission?.submittedAt || b.createdAt || 0).getTime())
+    .map((assign) => ({
+      name: assign.title.length > 14 ? assign.title.substring(0, 14) + "..." : assign.title,
+      fullTitle: assign.title,
+      score: assign.submission?.grade ?? 0,
+      maxScore: assign.maxScore || 10,
+      date: formatDate(assign.submission?.submittedAt || assign.deadline),
+      className: assign.className || "Môn học",
+    }));
+
+  // Trạng thái xu hướng (📈 Tăng / → Ổn định / 📉 Giảm)
+  let trendIcon = "📈";
+  let trendLabel = "Đang tăng";
+  let trendBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200/90";
+
+  if (chartData.length >= 2) {
+    const recent = chartData[chartData.length - 1].score;
+    const previous = chartData[chartData.length - 2].score;
+    const diff = Number((recent - previous).toFixed(1));
+    if (diff > 0.3) {
+      trendIcon = "📈";
+      trendLabel = `Đang tăng (+${diff}đ)`;
+      trendBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200/90";
+    } else if (diff < -0.3) {
+      trendIcon = "📉";
+      trendLabel = `Đang giảm (${diff}đ)`;
+      trendBadgeClass = "bg-rose-50 text-rose-700 border-rose-200/90";
+    } else {
+      trendIcon = "→";
+      trendLabel = "Ổn định";
+      trendBadgeClass = "bg-sky-50 text-sky-700 border-sky-200/90";
+    }
+  } else if (chartData.length === 1) {
+    trendIcon = "📈";
+    trendLabel = "Tốt (1 bài đã chấm)";
+    trendBadgeClass = "bg-emerald-50 text-emerald-700 border-emerald-200/90";
+  } else {
+    trendIcon = "→";
+    trendLabel = "Chưa có dữ liệu";
+    trendBadgeClass = "bg-slate-100 text-slate-600 border-slate-200/90";
+  }
+
+  // Lọc danh sách bài tập theo tìm kiếm & loại bài & trạng thái
+  const filteredAssignments = classFilteredAssignments.filter(a => {
     if (searchTerm && !a.title?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-
-    // 2. Theo loại bài
     if (activeFilter === "homework" && a.type?.toLowerCase() !== "essay") return false;
     if (activeFilter === "exam" && a.type?.toLowerCase() !== "quiz") return false;
 
-    // 3. Theo trạng thái
     const isGraded = a.submission?.status === "graded";
+    const hasSubmitted = !!a.submission;
+    const isPastDeadline = a.deadline && new Date(a.deadline).getTime() < Date.now();
+
     if (statusFilter === "graded" && !isGraded) return false;
-    if (statusFilter === "ungraded" && isGraded) return false;
+    if (statusFilter === "submitted" && (!hasSubmitted || isGraded)) return false;
+    if (statusFilter === "pending" && (hasSubmitted || isPastDeadline)) return false;
+    if (statusFilter === "late" && (hasSubmitted || !isPastDeadline)) return false;
 
     return true;
-  });
-
-  // Điểm cao nhất
-  let highestScore = 0;
-  gradedAssignments.forEach(a => {
-    if (a.submission?.grade > highestScore) {
-      highestScore = a.submission.grade;
-    }
   });
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
   };
 
-  // Tính toán điểm số dự kiến (What-if scenario)
-  const newTotalScore = totalScore + expectedScore;
-  const newTotalMax = totalMaxScore + 10; // Giả định bài thi cuối kỳ max 10đ
-  const newGpa = newTotalMax > 0 ? (newTotalScore / newTotalMax) * 10 : 0;
-
-  let newRank = "Giỏi";
-  let newColor = vars.success;
-  if (newGpa < 5.0) { newRank = "Yếu"; newColor = vars.danger; }
-  else if (newGpa < 8.0) { newRank = "Khá"; newColor = vars.warning; }
+  const getClassChipStyle = (classNameStr?: string) => {
+    const name = (classNameStr || "").toLowerCase();
+    if (name.includes("toán") || name.includes("math")) {
+      return "bg-orange-50 text-orange-700 border-orange-200/90";
+    }
+    if (name.includes("luyện thi") || name.includes("đại học") || name.includes("ôn")) {
+      return "bg-purple-50 text-purple-700 border-purple-200/90";
+    }
+    if (name.includes("lý") || name.includes("vật lý") || name.includes("physics")) {
+      return "bg-blue-50 text-blue-700 border-blue-200/90";
+    }
+    if (name.includes("hóa") || name.includes("chemistry")) {
+      return "bg-emerald-50 text-emerald-700 border-emerald-200/90";
+    }
+    if (name.includes("văn") || name.includes("ngữ văn")) {
+      return "bg-rose-50 text-rose-700 border-rose-200/90";
+    }
+    if (name.includes("anh") || name.includes("english")) {
+      return "bg-indigo-50 text-indigo-700 border-indigo-200/90";
+    }
+    return "bg-cyan-50 text-cyan-800 border-cyan-200/90";
+  };
 
   return (
     <div className={styles.page}>
+      {/* HEADER BANNER CÓ BỘ LỌC NẰM BÊN PHẢI */}
       <div className={styles.pageHeader}>
-        <div>
-          <h2>Bảng điểm chi tiết</h2>
-          <p>Xem toàn bộ điểm số các bài tập đã được giáo viên chấm</p>
-        </div>
-      </div>
-
-      {/* TỔNG QUAN - HERO BANNER */}
-      <div className={`${styles.heroBanner} tour-step-grade-hero`}>
-        {/* KPI 1: GPA */}
-        <div className={styles.bannerItem}>
-          <div className={styles.iconWrap} style={{ background: 'rgba(47, 143, 163, 0.1)' }}>
-            <Star size={24} weight="duotone" color={gpaColor} />
-          </div>
-          <div className={styles.itemInfo}>
-            <span className={styles.itemLabel}>ĐTB Môn</span>
-            <div className={styles.itemValueWrap}>
-              <span className={styles.itemValue} style={{ color: gpaColor }}>{gpa10Scale.toFixed(1)}</span>
-              <span className={styles.itemBadge} style={{ backgroundColor: gpaColor }}>{gpaRank}</span>
-            </div>
-          </div>
+        <div className="flex flex-col gap-1">
+          <h2>Kết quả Học tập</h2>
+          <p>Tổng quan kết quả học tập, điểm số trung bình và xếp loại chi tiết</p>
         </div>
 
-        <div className={styles.divider}></div>
-
-        {/* KPI 2: Tỷ lệ hoàn thành */}
-        <div className={styles.bannerItem}>
-          <div className={styles.iconWrap} style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
-            <Target size={24} weight="duotone" color={vars.info} />
-          </div>
-          <div className={styles.itemInfo}>
-            <span className={styles.itemLabel}>Tỷ lệ nộp</span>
-            <span className={styles.itemValue}>{completionRate}%</span>
-          </div>
-        </div>
-
-        <div className={styles.divider}></div>
-
-        {/* KPI 3: Vị trí hiện tại */}
-        <div className={styles.bannerItem}>
-          <div className={styles.iconWrap} style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-            <Trophy size={24} weight="duotone" color={vars.warning} />
-          </div>
-          <div className={styles.itemInfo}>
-            <span className={styles.itemLabel}>Vị trí</span>
-            <span className={styles.itemValue}>Top 10%</span>
-          </div>
-        </div>
-
-        <div className={styles.divider}></div>
-
-        {/* KPI 4: Điểm cao nhất */}
-        <div className={styles.bannerItem}>
-          <div className={styles.iconWrap} style={{ background: 'rgba(244, 124, 32, 0.1)' }}>
-            <Medal size={24} weight="duotone" color={vars.primary} />
-          </div>
-          <div className={styles.itemInfo}>
-            <span className={styles.itemLabel}>Cao nhất</span>
-            <div className={styles.itemValueWrap}>
-              <span className={styles.itemValue} style={{ color: vars.primary }}>{highestScore}</span>
-              <span style={{ fontSize: '0.9rem', color: vars.textSub, fontWeight: 700 }}>/ 10</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* TRỢ LÝ AI (FULL WIDTH ROW) */}
-      <div className={`${styles.aiAssistantFull} tour-step-grade-ai`}>
-        <div className={styles.aiHeader}>
-          <div className={styles.aiIconWrap}>
-            <Lightbulb size={24} weight="duotone" />
-          </div>
-          <h3>Trợ lý AI & Phân tích</h3>
-        </div>
-
-        <div className={styles.aiContentGrid}>
-          {/* CỘT 1: ĐIỂM MẠNH */}
-          <div className={styles.radarSection}>
-            <span className={styles.radarSectionTitle}>
-              <CheckCircle size={16} weight="bold" color={vars.success} />
-              Điểm mạnh
-            </span>
-            <div className={`${styles.tagItem} ${styles.strength}`}>
-              <div className={styles.tagInfo}>
-                <span className={styles.tagName}>Vectơ</span>
-                <span className={`${styles.tagScore} ${styles.good}`}>Đúng 90%</span>
-              </div>
-            </div>
-            <div className={`${styles.tagItem} ${styles.strength}`}>
-              <div className={styles.tagInfo}>
-                <span className={styles.tagName}>Tọa độ mặt phẳng</span>
-                <span className={`${styles.tagScore} ${styles.good}`}>Đúng 85%</span>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.verticalDivider}></div>
-
-          {/* CỘT 2: CẦN CẢI THIỆN KHẨN CẤP */}
-          <div className={styles.radarSection}>
-            <span className={styles.radarSectionTitle}>
-              <WarningCircle size={16} weight="bold" color={vars.danger} />
-              Cần cải thiện khẩn cấp
-            </span>
-            <div className={`${styles.tagItem} ${styles.weakness}`}>
-              <div className={styles.tagInfo}>
-                <span className={styles.tagName}>Phương trình Đường tròn</span>
-                <span className={`${styles.tagScore} ${styles.bad}`}>Sai 60%</span>
-              </div>
-              <button
-                className={styles.ctaPractice}
-                onClick={() => navigate('/practice')}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* BỘ LỌC CHỌN LỚP HỌC (BÊN PHẢI) */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center gap-2.5 px-4.5 py-2.5 bg-white border border-slate-200/90 rounded-2xl text-sm font-extrabold text-slate-800 hover:bg-slate-50 hover:border-[#f47c20] shadow-sm hover:shadow-md cursor-pointer transition-all outline-none focus:ring-2 focus:ring-[#f47c20]/20">
+              <BookOpen size={18} className="text-[#f47c20]" weight="bold" />
+              <span>
+                {selectedClassId === "all"
+                  ? "Tất cả lớp học"
+                  : selectedClass?.name || "Lớp học"}
+              </span>
+              <CaretDown size={15} className="text-slate-400" weight="bold" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
+              <DropdownMenuItem
+                onClick={() => setSelectedClassId("all")}
+                className={`px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors ${selectedClassId === "all" ? "bg-orange-50 text-[#f47c20]" : "text-slate-700 hover:bg-slate-50"}`}
               >
-                <Lightning size={20} weight="bold" />
-                Luyện tập lấp lỗ hổng
-              </button>
-              <p className={styles.suggestionText}>
-                Nên làm thêm 3 bài tập về <strong>Phương trình Đường tròn</strong> để nắm vững kiến thức hơn.
-              </p>
+                Tất cả lớp học
+              </DropdownMenuItem>
+              {classrooms.map((c) => (
+                <DropdownMenuItem
+                  key={c._id}
+                  onClick={() => setSelectedClassId(c._id)}
+                  className={`px-3 py-2 text-xs font-bold rounded-lg cursor-pointer transition-colors ${selectedClassId === c._id ? "bg-orange-50 text-[#f47c20]" : "text-slate-700 hover:bg-slate-50"}`}
+                >
+                  {c.name} ({c.subject || "Chung"})
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* TRỌNG TÂM KẾT QUẢ HỌC TẬP (4 PASTELL CARDS CHUẨN DESIGN) */}
+      <div className={styles.heroBanner}>
+        {/* CARD 1: ĐIỂM TRUNG BÌNH (XANH LÁ PASTEL) */}
+        <div className={styles.cardGreen}>
+          <div className={styles.cardTopRow}>
+            <span className={styles.cardGreenLabel}>ĐIỂM TRUNG BÌNH</span>
+            <div className={styles.whiteCircleIcon}>
+              <Star size={20} weight="fill" className="text-emerald-600" />
             </div>
+          </div>
+          <div className={styles.cardValue}>{gpa10Scale.toFixed(1)}</div>
+          <div className={styles.cardSubTextGreen}>
+            <span>↗ {gpaRank} học tập</span>
+            <span className={styles.cardDesc}>
+              {trendDiff >= 0 ? `+${trendDiff}đ` : `${trendDiff}đ`} so với kỳ trước
+            </span>
+          </div>
+        </div>
+
+        {/* CARD 2: ĐIỂM THẤP NHẤT (CAM/VÀNG PASTEL) */}
+        <div className={styles.cardYellow}>
+          <div className={styles.cardTopRow}>
+            <span className={styles.cardYellowLabel}>ĐIỂM THẤP NHẤT</span>
+            <div className={styles.whiteCircleIcon}>
+              <Target size={20} weight="fill" className="text-amber-700" />
+            </div>
+          </div>
+          <div className={styles.cardValue}>{lowestScore}</div>
+          <div className={styles.cardSubTextYellow}>
+            <span>↗ Cần cải thiện</span>
+            <span className={styles.cardDesc}>
+              {classGradedAssignments.length > 0 ? "Mức điểm cần chú ý làm lại" : "Chưa có bài nào bị điểm kém"}
+            </span>
+          </div>
+        </div>
+
+        {/* CARD 3: SỐ MÔN / LỚP ĐANG HỌC (XANH DƯƠNG PASTEL) */}
+        <div className={styles.cardBlue}>
+          <div className={styles.cardTopRow}>
+            <span className={styles.cardBlueLabel}>LỚP / MÔN ĐANG HỌC</span>
+            <div className={styles.whiteCircleIcon}>
+              <BookOpen size={20} weight="bold" className="text-blue-600" />
+            </div>
+          </div>
+          <div className={styles.cardValue}>{enrolledClassCount}</div>
+          <div className={styles.cardSubTextBlue}>
+            <span>↗ Lớp học của bạn</span>
+            <span className={styles.cardDesc}>
+              {totalCount} bài tập / đầu điểm
+            </span>
+          </div>
+        </div>
+
+        {/* CARD 4: THỨ HẠNG LỚP HỌC (HỒNG/TÍM PASTEL) */}
+        <div className={styles.cardPink}>
+          <div className={styles.cardTopRow}>
+            <span className={styles.cardPinkLabel}>THỨ HẠNG LỚP HỌC</span>
+            <div className={styles.whiteCircleIcon}>
+              <Medal size={20} weight="fill" className="text-pink-600" />
+            </div>
+          </div>
+          <div className={styles.cardValue}>{rankTopText}</div>
+          <div className={styles.cardSubTextPink}>
+            <span>↗ {rankSubText}</span>
+            <span className={styles.cardDesc}>
+              {rankDesc}
+            </span>
           </div>
         </div>
       </div>
 
-
-
-      {/* CỘT TRÁI: DANH SÁCH DẠNG BẢNG */}
-      <div className={`${styles.tableContainer} tour-step-grade-table`}>
+      {/* BẢNG ĐIỂM CHI TIẾT - CÁC LẦN ĐÁNH GIÁ / ĐẦU ĐIỂM */}
+      <div className={styles.tableContainer}>
         <div className={styles.tableHeader}>
-          <h3>Chi tiết điểm số</h3>
+          <h3>Bảng điểm chi tiết</h3>
           <div className={styles.tableFilters}>
             <div className={styles.searchBox}>
-              <MagnifyingGlass size={20} weight="bold" color={vars.textSub} />
+              <MagnifyingGlass size={18} weight="bold" color={vars.textSub} />
               <input
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder="Tìm kiếm bài tập..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger className={styles.filterSelect}>
-                {activeFilter === "all" ? "Tất cả loại bài" : activeFilter === "homework" ? "Bài tập về nhà" : "Kiểm tra & Thi thử"}
+                {activeFilter === "all" ? "Tất cả loại bài" : activeFilter === "homework" ? "Bài tự luận" : "Bài trắc nghiệm"}
                 <CaretDown size={14} weight="bold" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-44 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
                 <DropdownMenuRadioGroup value={activeFilter} onValueChange={setActiveFilter}>
-                  <DropdownMenuRadioItem value="all">Tất cả loại bài</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="homework">Bài tập về nhà</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="exam">Kiểm tra & Thi thử</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="all" className="cursor-pointer font-medium whitespace-nowrap">Tất cả loại bài</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="homework" className="cursor-pointer font-medium whitespace-nowrap">Bài tự luận</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="exam" className="cursor-pointer font-medium whitespace-nowrap">Bài trắc nghiệm</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
 
             <DropdownMenu>
               <DropdownMenuTrigger className={styles.filterSelect}>
-                {statusFilter === "all" ? "Tất cả trạng thái" : statusFilter === "graded" ? "Đã chấm điểm" : "Chưa chấm điểm"}
+                {statusFilter === "all"
+                  ? "Tất cả trạng thái"
+                  : statusFilter === "graded"
+                  ? "Đã chấm"
+                  : statusFilter === "submitted"
+                  ? "Chờ chấm"
+                  : statusFilter === "pending"
+                  ? "Chưa nộp"
+                  : "Quá hạn"}
                 <CaretDown size={14} weight="bold" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1.5 z-50">
                 <DropdownMenuRadioGroup value={statusFilter} onValueChange={setStatusFilter}>
-                  <DropdownMenuRadioItem value="all">Tất cả trạng thái</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="graded">Đã chấm điểm</DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="ungraded">Chưa chấm điểm</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="all" className="cursor-pointer font-medium whitespace-nowrap">Tất cả trạng thái</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="graded" className="cursor-pointer font-medium whitespace-nowrap">Đã chấm</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="submitted" className="cursor-pointer font-medium whitespace-nowrap">Chờ chấm (Đã nộp)</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="pending" className="cursor-pointer font-medium whitespace-nowrap">Chưa nộp</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="late" className="cursor-pointer font-medium whitespace-nowrap">Quá hạn</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
+        {/* TIÊU ĐỀ CỘT CHO BẢNG ĐIỂM CHI TIẾT */}
+        <div className={styles.gradeTableHeader}>
+          <div>Tên bài tập</div>
+          <div>Loại bài</div>
+          <div>Ngày nộp</div>
+          <div>Điểm số</div>
+          <div>Trạng thái</div>
+          <div className="text-right">Nhận xét</div>
+        </div>
+
         <div className={styles.tableBody}>
-          {filteredAssignments.length === 0 ? (
-            <div className={styles.emptyState}>
-              <ChartBar size={64} className={styles.emptyIcon} weight="duotone" />
-              <p>Không tìm thấy bài tập nào phù hợp với bộ lọc.</p>
-            </div>
-          ) : (
-            filteredAssignments.map((assign) => {
-              const isGraded = assign.submission?.status === "graded";
-              const grade = isGraded ? (assign.submission?.grade || 0) : null;
-              const max = assign.maxScore || 10;
-              const percentage = grade !== null ? (grade / max) * 100 : 0;
+          {(() => {
+            const totalPages = Math.ceil(filteredAssignments.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const paginatedAssignments = filteredAssignments.slice(startIndex, startIndex + itemsPerPage);
 
-              let statusClass = styles.excellent;
-              let statusText = "Xuất sắc";
-
-              if (!isGraded) {
-                statusClass = '';
-                statusText = "Chưa chấm";
-              } else if (percentage < 50) {
-                statusClass = styles.needs_improvement;
-                statusText = "Cần cố gắng";
-              } else if (percentage < 80) {
-                statusClass = styles.good;
-                statusText = "Khá";
-              }
-
+            if (filteredAssignments.length === 0) {
               return (
-                <div key={assign._id} className={styles.gradeRowWrapper}>
-                  <div className={styles.gradeRow} onClick={() => toggleExpand(assign._id)}>
-                    {/* Cột 1: Tên & Loại */}
-                    <div className={styles.rowCol}>
-                      <div className={styles.rowTitle}>
-                        <Notebook size={20} color={vars.primary} weight="duotone" />
-                        {assign.title}
-                      </div>
-                      <div className={styles.rowSubtitle}>
-                        <span style={{ fontWeight: 600, color: vars.secondary }}>{assign.className || "Môn học chung"}</span>
-                        <span>•</span>
-                        <span>{assign.type?.toLowerCase() === 'quiz' ? 'Trắc nghiệm' : 'Tự luận'}</span>
-                      </div>
-                    </div>
-
-                    {/* Cột 2: Ngày nộp & Trễ */}
-                    <div className={styles.rowCol}>
-                      <div className={styles.rowSubtitle} style={{ color: vars.darkText, fontWeight: 500 }}>
-                        <CalendarCheck size={16} />
-                        {(assign.submission?.submittedAt || assign.deadline)
-                          ? `Nộp: ${formatDate(assign.submission?.submittedAt || assign.deadline)}`
-                          : "Chưa cập nhật ngày"}
-                      </div>
-                      {assign.submission?.isLate && (
-                        <div className={styles.rowSubtitle} style={{ color: vars.danger, fontWeight: 600 }}>
-                          <Warning size={16} /> Nộp muộn
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Cột 3: Điểm & Nhãn */}
-                    <div className={styles.rowScoreWrap}>
-                      {grade !== null ? (
-                        <div className={styles.rowScore}>
-                          {grade} <span style={{ fontSize: '0.9rem', color: vars.textSub, fontWeight: 500 }}>/ {max}</span>
-                        </div>
-                      ) : (
-                        <div className={styles.rowScore} style={{ color: vars.textSub }}>--/--</div>
-                      )}
-                      <span className={`${styles.statusLabel} ${statusClass}`} style={{ backgroundColor: isGraded ? undefined : 'rgba(0,0,0,0.05)', color: isGraded ? undefined : vars.textSub }}>
-                        {statusText}
-                      </span>
-                    </div>
-
-                    {/* Cột 4: Mũi tên */}
-                    <div className={styles.expandIconWrap}>
-                      {expandedId === assign._id ? (
-                        <CaretUp size={20} weight="bold" />
-                      ) : (
-                        <CaretDown size={20} weight="bold" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* VÙNG MỞ RỘNG (EXPANDABLE) */}
-                  {expandedId === assign._id && (
-                    <div className={styles.expandContent}>
-                      <div className={styles.feedbackBox}>
-                        <span className={styles.feedbackLabel}>
-                          <ChatTeardropText size={16} weight="fill" color={vars.warning} />
-                          Nhận xét của Giáo viên:
-                        </span>
-                        <p className={styles.feedbackText}>
-                          {assign.submission?.feedback || "Giáo viên không để lại nhận xét riêng cho bài tập này. Bạn đã làm rất tốt, hãy phát huy ở các bài sau!"}
-                        </p>
-                      </div>
-                      <button
-                        className={styles.btnDetail}
-                        onClick={() => navigate(`/assignments/${assign._id}`)}
-                      >
-                        Xem chi tiết bài thi
-                        <ArrowRight size={16} weight="bold" />
-                      </button>
-                    </div>
-                  )}
+                <div className={styles.emptyState}>
+                  <ChartBar size={64} className={styles.emptyIcon} weight="duotone" />
+                  <p>Không tìm thấy lần đánh giá nào phù hợp với bộ lọc này.</p>
                 </div>
               );
-            })
-          )}
+            }
+
+            return (
+              <>
+                {paginatedAssignments.map((assign) => {
+                  const isGraded = assign.submission?.status === "graded";
+                  const grade = isGraded ? (assign.submission?.grade || 0) : null;
+                  const max = assign.maxScore || 10;
+                  const percentage = grade !== null ? (grade / max) * 100 : 0;
+                  const isNewlyGraded = newlyGradedIds.has(assign._id);
+
+                  let statusText = "Chưa nộp";
+                  let statusChipStyle = "bg-[#fff7ed] text-[#d97706] border-[#fde68a]";
+
+                  if (isGraded) {
+                    statusText = "Đã chấm";
+                    statusChipStyle = "bg-[#ecfdf5] text-[#059669] border-[#a7f3d0]";
+                  } else if (assign.submission) {
+                    statusText = "Chờ chấm";
+                    statusChipStyle = "bg-[#f0f9fa] text-[#2f8fa3] border-[#b2e0e8]";
+                  } else if (assign.deadline && new Date(assign.deadline).getTime() < Date.now()) {
+                    statusText = "Quá hạn";
+                    statusChipStyle = "bg-[#fff1f2] text-[#e11d48] border-[#fecdd3]";
+                  }
+
+                  return (
+                    <div key={assign._id} className={`${styles.gradeRowWrapper} ${isNewlyGraded ? styles.glowingNewRow : ""}`}>
+                      <div className={styles.gradeRow} onClick={() => toggleExpand(assign._id)}>
+                        {/* Cột 1: Tên đánh giá / Đầu điểm */}
+                        <div className={styles.rowTitle}>
+                          <Notebook size={18} color="#f47c20" weight="duotone" />
+                          <span>{assign.title}</span>
+                          {isNewlyGraded && (
+                            <span className={styles.newBadge}>
+                              <Sparkle size={12} weight="fill" /> MỚI CHẤM
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Cột 2: Loại đánh giá (Tự luận: Ocean Blue #2f8fa3, Trắc nghiệm: Primary Orange #f47c20) */}
+                        <div>
+                          {assign.type?.toLowerCase() === 'quiz' ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#fff7ed] text-[#f47c20] border border-[#fed7aa] text-[11px] font-extrabold whitespace-nowrap">
+                              Trắc nghiệm
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full bg-[#f0f9fa] text-[#2f8fa3] border border-[#b2e0e8] text-[11px] font-extrabold whitespace-nowrap">
+                              Tự luận
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Cột 4: Ngày nộp & Trễ */}
+                        <div className={styles.rowCol}>
+                          <div className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+                            <CalendarCheck size={14} className="text-slate-400" />
+                            {(assign.submission?.submittedAt || assign.deadline)
+                              ? formatDate(assign.submission?.submittedAt || assign.deadline)
+                              : "Chưa cập nhật"}
+                          </div>
+                          {assign.submission?.isLate && (
+                            <div className="flex items-center gap-1 text-[11px] font-bold text-rose-600">
+                              <Warning size={14} /> Nộp muộn
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Cột 5: Điểm số */}
+                        <div className={styles.rowScore}>
+                          {grade !== null ? (
+                            <span className="font-bold text-slate-800">{grade} <span style={{ fontSize: '0.82rem', color: vars.textSub, fontWeight: 600 }}>/ {max}</span></span>
+                          ) : (
+                            <span className="font-semibold text-slate-400">0 <span style={{ fontSize: '0.82rem', color: '#94a3b8', fontWeight: 500 }}>/ {max}</span></span>
+                          )}
+                        </div>
+
+                        {/* Cột 6: Trạng thái */}
+                        <div>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider border ${statusChipStyle}`}>
+                            {statusText}
+                          </span>
+                        </div>
+
+                        {/* Cột 7: Mũi tên mở rộng nhận xét */}
+                        <div className={styles.expandIconWrap}>
+                          {expandedId === assign._id ? (
+                            <CaretUp size={18} weight="bold" />
+                          ) : (
+                            <CaretDown size={18} weight="bold" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* VÙNG MỞ RỘNG (EXPANDABLE) */}
+                      {expandedId === assign._id && (
+                        <div className={styles.expandContent}>
+                          <div className={styles.feedbackBox}>
+                            <span className={styles.feedbackLabel}>
+                              <ChatTeardropText size={16} weight="fill" color="#f59e0b" />
+                              Nhận xét của Giáo viên:
+                            </span>
+                            <p className={styles.feedbackText}>
+                              {assign.submission?.feedback || "Giáo viên không để lại nhận xét riêng cho đầu điểm này. Bạn đã làm rất tốt, hãy phát huy ở các bài sau!"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className={styles.btnDetail}
+                            onClick={() => navigate(`/assignments/${assign._id}`)}
+                          >
+                            Xem chi tiết bài làm
+                            <ArrowRight size={16} weight="bold" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* KHU VỰC PHÂN TRANG BẢNG ĐIỂM CHI TIẾT (HEROUI STYLED) */}
+                {filteredAssignments.length > 0 && (
+                  <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-white rounded-b-2xl shadow-3xs mt-2">
+                    <Pagination.Summary className="text-sm text-slate-500 font-medium">
+                      Hiển thị {startIndex + 1} đến {Math.min(startIndex + itemsPerPage, filteredAssignments.length)} trong số {filteredAssignments.length} kết quả
+                    </Pagination.Summary>
+                    <Pagination.Content>
+                      <Pagination.Item>
+                        <Pagination.Previous
+                          isDisabled={currentPage === 1}
+                          onPress={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        >
+                          <Pagination.PreviousIcon />
+                          Trang trước
+                        </Pagination.Previous>
+                      </Pagination.Item>
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                        <Pagination.Item key={p}>
+                          <Pagination.Link
+                            isActive={p === currentPage}
+                            onPress={() => setCurrentPage(p)}
+                            className={p === currentPage ? "bg-[#f47c20] text-white font-bold border-[#f47c20]" : "text-slate-600 font-medium hover:bg-slate-100"}
+                          >
+                            {p}
+                          </Pagination.Link>
+                        </Pagination.Item>
+                      ))}
+                      <Pagination.Item>
+                        <Pagination.Next
+                          isDisabled={currentPage === totalPages}
+                          onPress={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                          Trang sau
+                          <Pagination.NextIcon />
+                        </Pagination.Next>
+                      </Pagination.Item>
+                    </Pagination.Content>
+                  </Pagination>
+                )}
+              </>
+            );
+          })()}
         </div>
       </div>
     </div>

@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Class.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Class.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Lớp học (Classrooms).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lưu trữ mã code 6 ký tự duy nhất (`code`) để học sinh gia nhập.
+ *   - Quản lý danh sách ID học sinh (`students`), Giáo viên phụ trách (`teacherId`).
+ *   - Cấu hình phê duyệt gia nhập (`requireApproval`).
+ *   - Lưu thông tin liên kết tệp Google Sheets tự động (`googleSheetId`, `googleSheetUrl`).
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 import { ClassStatus } from '../constants/enums';
 

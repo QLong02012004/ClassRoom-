@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: database.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/config/database.ts
+ * MỤC ĐÍCH:
+ *   Quản lý kết nối cơ sở dữ liệu MongoDB Atlas cho toàn bộ hệ thống Backend.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lấy chuỗi kết nối `MONGO_URI` từ biến môi trường (`.env`).
+ *   - Sử dụng `mongoose.connect()` kết nối tới MongoDB Cluster.
+ *   - Tự động thực thi migration nhẹ: Cập nhật `isEmailVerified: true` cho các tài khoản khởi tạo cũ để hiển thị nhất quán trên Admin Dashboard.
+ * ============================================================================
+ */
+
 import mongoose from 'mongoose';
 
 export const connectDB = async (): Promise<void> => {

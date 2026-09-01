@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * TÊN FILE: activity.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/activity.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp các hàm gọi API HTTP (via `AxiosCustomize`) quản lý Hoạt động học tập
+ *   (Giao bài tập, nộp bài tự luận/trắc nghiệm, lấy danh sách bài tập, xem bài nộp).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Kết nối tới các RESTful endpoints `/api/v1/activities/*` của Backend.
+ *   - Định nghĩa Interface `IClassActivity` mô tả cấu trúc bài tập/đề thi hiển thị trên UI.
+ *   - Trả về Promise chứa dữ liệu chuẩn hóa dạng `IBackendRes<T>`.
+ *
+ * THÀNH PHẦN CHÍNH:
+ *   - `assignActivityFromBank`: Giao bài tập từ ngân hàng vào lớp.
+ *   - `getClassActivities`: Lấy danh sách bài tập của 1 lớp.
+ *   - `submitActivity` & `submitActivityQuiz`: Học sinh gửi bài nộp.
+ *   - `getAssignmentSubmissions`: Giáo viên lấy danh sách học sinh nộp bài.
+ *   - `deleteActivity`: Xóa bài tập khỏi lớp học.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

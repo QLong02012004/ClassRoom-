@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: MainLayout.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/components/Layout/MainLayout.tsx
+ * MỤC ĐÍCH:
+ *   Khung bố cục chính (Global Main Layout Wrapper) cho toàn bộ ứng dụng Frontend.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Ghép nối các thành phần cố định: Thanh điều hướng `Sidebar`, Thanh tiêu đề `TopHeader`, Sub-sidebar `Header` và Hướng dẫn tương tác `OnboardingTour`.
+ *   - Hiển thị trang con nội dung thông qua `Outlet` của React Router v6.
+ * ============================================================================
+ */
+
 import React from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar/Sidebar";
@@ -7,7 +20,7 @@ import OnboardingTour from "../common/OnboardingTour/OnboardingTour";
 
 const MainLayout: React.FC = () => {
   return (
-    <div className="flex min-h-screen bg-[#f8fafc] overflow-hidden font-sans">
+    <div className="flex min-h-screen bg-[#f1f5f9] overflow-hidden font-sans">
       <OnboardingTour />
 
       {/* Global Sidebar (fixed position) */}

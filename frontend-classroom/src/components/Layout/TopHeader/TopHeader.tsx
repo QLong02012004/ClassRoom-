@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
 import { io } from "socket.io-client";
-import { gradebookService } from "../../../service/gradebook.service";
 import {
   Bell,
   Globe,
@@ -30,7 +29,7 @@ const TopHeader: React.FC = () => {
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const userRole = user?.role || "student";
+  const userRole = (user?.role || localStorage.getItem("userRole") || "student").toLowerCase();
 
   // Trích xuất classId hiện tại từ URL
   const parts = location.pathname.split("/");
@@ -76,52 +75,9 @@ const TopHeader: React.FC = () => {
     try {
       let serverNotifs: INotificationItem[] = [];
       const res = await notificationService.getNotifications();
-      if (res.data) serverNotifs = res.data;
-
-      if (userRole === "student") {
-        const assignRes = await gradebookService.getStudentAssignments();
-        const assignments = assignRes.data || [];
-        const now = Date.now();
-        const localReminders: INotificationItem[] = [];
-
-        assignments.forEach((assign: any) => {
-          if (assign.submission?.status === "graded" || assign.submission) return;
-          const deadline = new Date(assign.dueDate || assign.deadline).getTime();
-          const diff = deadline - now;
-          if (diff > 0 && diff < 3 * 24 * 60 * 60 * 1000) {
-            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-
-            let timeText = "";
-            let colorCls = "";
-
-            if (days >= 1) {
-              timeText = `Còn ${days} ngày nữa đến hạn.`;
-              colorCls = days === 1 ? "text-orange-500" : "text-amber-500";
-            } else {
-              timeText = `Còn ${hours} giờ nữa đến hạn!`;
-              colorCls = "text-red-500";
-            }
-
-            const isRead = localStorage.getItem(`read_reminder_${assign._id}`) === 'true';
-
-            localReminders.push({
-              _id: `reminder_${assign._id}`,
-              recipientRole: 'student',
-              sender: { _id: 'system', name: 'Hệ thống', email: '' },
-              title: `🔔 Nhắc hạn: ${assign.title}`,
-              message: `<span class="${colorCls} font-medium">${timeText}</span>`,
-              type: 'assignment',
-              readBy: [],
-              isRead: isRead,
-              createdAt: new Date().toISOString()
-            } as any);
-          }
-        });
-
-        serverNotifs = [...localReminders, ...serverNotifs];
+      if (res && res.data && Array.isArray(res.data)) {
+        serverNotifs = res.data;
       }
-
       setNotifications(serverNotifs);
     } catch (error) {
       console.error("Lỗi lấy thông báo:", error);
@@ -132,7 +88,7 @@ const TopHeader: React.FC = () => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000);
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
     const socket = io(backendUrl, { withCredentials: true });
 
     socket.on('notification_update', () => {
@@ -170,17 +126,10 @@ const TopHeader: React.FC = () => {
   const handleNotificationClick = async (notif: INotificationItem) => {
     if (!notif.isRead) {
       try {
-        if (notif._id.startsWith("reminder_")) {
-          localStorage.setItem(`read_${notif._id}`, "true");
-          setNotifications((prev) =>
-            prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
-          );
-        } else {
-          await notificationService.markAsRead(notif._id);
-          setNotifications((prev) =>
-            prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
-          );
-        }
+        await notificationService.markAsRead(notif._id);
+        setNotifications((prev) =>
+          prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
+        );
       } catch (error) {
         console.error("Lỗi khi đánh dấu đã đọc:", error);
       }
@@ -315,7 +264,9 @@ const TopHeader: React.FC = () => {
                     try {
                       await notificationService.markAllAsRead();
                       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-                    } catch {}
+                    } catch (err) {
+                      console.error("Lỗi đánh dấu tất cả đã đọc:", err);
+                    }
                   }}
                   className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
                   style={{ background: 'rgba(47,143,163,0.08)', color: '#2f8fa3', border: '1px solid rgba(47,143,163,0.2)' }}

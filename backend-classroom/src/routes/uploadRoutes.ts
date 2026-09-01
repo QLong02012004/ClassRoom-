@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: uploadRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/uploadRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Upload tập tin (`/api/v1/upload/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `/file`: Upload file đính kèm lên Supabase Cloud Storage.
+ *   - `/docx`: Upload file Word `.docx` trích xuất nội dung văn bản thuần.
+ *   - `/docx-ai`: Upload file Word `.docx` cho AI tự động bóc tách bộ câu hỏi trắc nghiệm.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import multer from 'multer';
 import { uploadDocx, uploadDocxAI, uploadFile } from '../controllers/uploadController';

@@ -97,6 +97,10 @@ export default function BankList() {
 
     const [filterType, setFilterType] = useState("all");
     const [filterSubject, setFilterSubject] = useState("all");
+    const [filterScope, setFilterScope] = useState("all");
+
+    const documentCount = useMemo(() => items.filter(i => i.type === 'document').length, [items]);
+    const quizCount = useMemo(() => items.filter(i => i.type === 'quiz').length, [items]);
 
     // Lọc dữ liệu
     const filteredItems = useMemo(() => {
@@ -104,9 +108,10 @@ export default function BankList() {
             const matchSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
             const matchType = filterType === "all" || item.type === filterType;
             const matchSubject = filterSubject === "all" || item.subject === filterSubject;
-            return matchSearch && matchType && matchSubject;
+            const matchScope = filterScope === "all" || item.sharingStatus === filterScope;
+            return matchSearch && matchType && matchSubject && matchScope;
         });
-    }, [items, searchTerm, filterType, filterSubject]);
+    }, [items, searchTerm, filterType, filterSubject, filterScope]);
 
     // State phân trang
     const [currentPage, setCurrentPage] = useState(1);
@@ -396,12 +401,165 @@ export default function BankList() {
                 </div>
             ) : (
                 <>
-                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                        <h1 className="text-2xl font-bold text-[#f47c20] flex items-center gap-2">
-                            <BookOpen size={28} className="text-[#f47c20]" weight="fill" />
-                            Ngân Hàng Đề & Tài Liệu
-                        </h1>
-                        <p className="text-slate-500 mt-1">Nơi soạn giảng và lưu trữ các đề trắc nghiệm, bài tập để giao cho nhiều lớp</p>
+                    {/* PAGE HEADER */}
+                    <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+                        <div>
+                            <h1 className="text-2xl font-extrabold text-[#f47c20] tracking-tight m-0">
+                                Ngân Hàng Đề & Tài Liệu
+                            </h1>
+                            <p className="text-slate-500 text-sm mt-1 mb-0">
+                                Nơi soạn giảng và lưu trữ các đề trắc nghiệm, bài tập để giao cho nhiều lớp
+                            </p>
+                        </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <PrimaryButton variant="default" className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold border-2 h-auto shrink-0">
+                                    <Plus size={18} weight="bold" />
+                                    Soạn tài nguyên mới
+                                </PrimaryButton>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-72 p-2 bg-white rounded-xl shadow-xl border border-slate-100 z-50">
+                                <DropdownMenuItem className="p-3 hover:bg-primary/10 focus:bg-primary/10 rounded-lg cursor-pointer flex items-center gap-3 transition-colors" onClick={() => setIsCreatingQuiz(true)}>
+                                    <div className="bg-orange-100 !text-orange-600 p-2 rounded-lg">
+                                        <FileText size={20} weight="fill" className="!text-orange-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold !text-slate-700">Đề Trắc nghiệm</p>
+                                        <p className="text-xs !text-slate-500">Tạo bộ câu hỏi trắc nghiệm</p>
+                                    </div>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="p-3 hover:bg-primary/10 focus:bg-primary/10 rounded-lg cursor-pointer flex items-center gap-3 mt-1 transition-colors" onClick={() => setIsCreatingAssignment(true)}>
+                                    <div className="bg-emerald-100 !text-emerald-600 p-2 rounded-lg">
+                                        <BookOpen size={20} weight="fill" className="!text-emerald-600" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold !text-slate-700">File Bài tập</p>
+                                        <p className="text-xs !text-slate-500">Tải lên file PDF, Word...</p>
+                                    </div>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    {/* CATEGORY TABS ROW */}
+                    <div className="flex items-center gap-2.5 my-3 flex-wrap">
+                        <button
+                            type="button"
+                            onClick={() => { setFilterType("all"); setCurrentPage(1); }}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                                filterType === "all"
+                                    ? "bg-[#f47c20] text-white shadow-sm"
+                                    : "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                            }`}
+                        >
+                            <BookOpen size={15} weight="bold" />
+                            <span>Tất cả tài liệu ({items.length})</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => { setFilterType("document"); setCurrentPage(1); }}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                                filterType === "document"
+                                    ? "bg-[#f47c20] text-white shadow-sm"
+                                    : "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                            }`}
+                        >
+                            <FileText size={15} weight="bold" />
+                            <span>File & Bài tập ({documentCount})</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            onClick={() => { setFilterType("quiz"); setCurrentPage(1); }}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-extrabold transition-all cursor-pointer ${
+                                filterType === "quiz"
+                                    ? "bg-[#f47c20] text-white shadow-sm"
+                                    : "bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold"
+                            }`}
+                        >
+                            <ListChecks size={15} weight="bold" />
+                            <span>Đề thi trắc nghiệm ({quizCount})</span>
+                        </button>
+                    </div>
+
+                    {/* SEARCH AND FILTER BAR CONTAINER */}
+                    <div className="bg-white border border-slate-300/80 rounded-2xl p-3.5 shadow-2xs mb-6">
+                        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                            <SmartSearchBar
+                                placeholder="Tìm kiếm theo tên tài liệu, đề thi..."
+                                value={searchTerm}
+                                onChange={(val) => {
+                                    setSearchTerm(val);
+                                    setCurrentPage(1);
+                                }}
+                                suggestions={searchSuggestions}
+                                onSelectSuggestion={(item) => {
+                                    setSelectedDetailsItem(item.rawData);
+                                    setShowDetailsDialog(true);
+                                }}
+                                recentSearchesKey="teacherBankSearches"
+                                widthClass="w-full sm:w-[320px]"
+                            />
+                            <div className="flex gap-2">
+                                <DropdownFilter
+                                    label="Tất cả loại bài"
+                                    value={filterType}
+                                    onChange={(key) => {
+                                        setFilterType(key);
+                                        setCurrentPage(1);
+                                    }}
+                                    options={[
+                                        { id: "all", label: "Tất cả loại bài" },
+                                        { id: "quiz", label: "Trắc nghiệm" },
+                                        { id: "document", label: "Bài tập" }
+                                    ]}
+                                    minWidthClass="min-w-[150px]"
+                                />
+
+                                <DropdownFilter
+                                    label="Tất cả môn học"
+                                    value={filterSubject}
+                                    onChange={(key) => {
+                                        setFilterSubject(key);
+                                        setCurrentPage(1);
+                                    }}
+                                    options={[
+                                        { id: "all", label: "Tất cả môn học" },
+                                        ...Array.from(new Set(items.map(item => item.subject).filter(Boolean) as string[])).map(subj => ({
+                                            id: subj,
+                                            label: subj
+                                        }))
+                                    ]}
+                                    icon={<BookOpen size={16} className="text-slate-400" />}
+                                    minWidthClass="min-w-[170px]"
+                                    hasCustomInput={true}
+                                    customInputLabel="Môn khác"
+                                    customInputPlaceholder="Nhập tên môn..."
+                                    customInputValue={filterSubject === 'all' ? '' : filterSubject}
+                                    onCustomInputChange={(val) => {
+                                        setFilterSubject(val.trim() === '' ? 'all' : val);
+                                        setCurrentPage(1);
+                                    }}
+                                />
+
+                                <DropdownFilter
+                                    label="Tất cả quyền hạn"
+                                    value={filterScope}
+                                    onChange={(key) => {
+                                        setFilterScope(key);
+                                        setCurrentPage(1);
+                                    }}
+                                    options={[
+                                        { id: "all", label: "Tất cả quyền hạn" },
+                                        { id: "PRIVATE", label: "Cá nhân" },
+                                        { id: "CENTER_SHARED", label: "Dùng chung" }
+                                    ]}
+                                    minWidthClass="min-w-[160px]"
+                                />
+                            </div>
+                        </div>
                     </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
@@ -417,97 +575,6 @@ export default function BankList() {
                                 </div>
                             ) : (
                                 <>
-                                    {/* SEARCH, FILTER AND ACTION BAR */}
-                                    <div className="mb-4 flex flex-col lg:flex-row gap-3 justify-between items-stretch lg:items-center">
-                                        <div className="flex flex-col sm:flex-row gap-2.5 flex-1 items-stretch sm:items-center">
-                                            <SmartSearchBar
-                                                placeholder="Tìm kiếm tài nguyên theo tiêu đề..."
-                                                value={searchTerm}
-                                                onChange={(val) => {
-                                                    setSearchTerm(val);
-                                                    setCurrentPage(1);
-                                                }}
-                                                suggestions={searchSuggestions}
-                                                onSelectSuggestion={(item) => {
-                                                    setSelectedDetailsItem(item.rawData);
-                                                    setShowDetailsDialog(true);
-                                                }}
-                                                recentSearchesKey="teacherBankSearches"
-                                                widthClass="w-full sm:w-[320px]"
-                                            />
-                                            <div className="flex gap-2">
-                                                <DropdownFilter
-                                                    label="Loại"
-                                                    value={filterType}
-                                                    onChange={(key) => {
-                                                        setFilterType(key);
-                                                        setCurrentPage(1);
-                                                    }}
-                                                    options={[
-                                                        { id: "all", label: "Tất cả loại" },
-                                                        { id: "quiz", label: "Trắc nghiệm" },
-                                                        { id: "document", label: "Bài tập" }
-                                                    ]}
-                                                    minWidthClass="min-w-[140px]"
-                                                />
-
-                                                <DropdownFilter
-                                                    label="Môn học"
-                                                    value={filterSubject}
-                                                    onChange={(key) => {
-                                                        setFilterSubject(key);
-                                                        setCurrentPage(1);
-                                                    }}
-                                                    options={[
-                                                        { id: "all", label: "Tất cả môn" },
-                                                        ...Array.from(new Set(items.map(item => item.subject).filter(Boolean) as string[])).map(subj => ({
-                                                            id: subj,
-                                                            label: subj
-                                                        }))
-                                                    ]}
-                                                    icon={<BookOpen size={16} className="text-slate-400" />}
-                                                    minWidthClass="min-w-[180px]"
-                                                    hasCustomInput={true}
-                                                    customInputLabel="Môn khác"
-                                                    customInputPlaceholder="Nhập tên môn..."
-                                                    customInputValue={filterSubject === 'all' ? '' : filterSubject}
-                                                    onCustomInputChange={(val) => {
-                                                        setFilterSubject(val.trim() === '' ? 'all' : val);
-                                                        setCurrentPage(1);
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <PrimaryButton variant="default" className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold border-2 h-auto shrink-0 self-end lg:self-auto">
-                                                    <Plus size={18} weight="bold" />
-                                                    Soạn tài nguyên mới
-                                                </PrimaryButton>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent className="w-72 p-2 bg-white rounded-xl shadow-xl border border-slate-100">
-                                                <DropdownMenuItem className="p-3 hover:bg-primary/10 focus:bg-primary/10 rounded-lg cursor-pointer flex items-center gap-3 transition-colors" onClick={() => setIsCreatingQuiz(true)}>
-                                                    <div className="bg-orange-100 !text-orange-600 p-2 rounded-lg">
-                                                        <FileText size={20} weight="fill" className="!text-orange-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold !text-slate-700">Đề Trắc nghiệm</p>
-                                                        <p className="text-xs !text-slate-500">Tạo bộ câu hỏi trắc nghiệm</p>
-                                                    </div>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="p-3 hover:bg-primary/10 focus:bg-primary/10 rounded-lg cursor-pointer flex items-center gap-3 mt-1 transition-colors" onClick={() => setIsCreatingAssignment(true)}>
-                                                    <div className="bg-emerald-100 !text-emerald-600 p-2 rounded-lg">
-                                                        <BookOpen size={20} weight="fill" className="!text-emerald-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="font-semibold !text-slate-700">File Bài tập</p>
-                                                        <p className="text-xs !text-slate-500">Tải lên file PDF, Word...</p>
-                                                    </div>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </div>
 
                                     {/* BULK ACTION TOOLBAR */}
                                     {selectedIds.length > 0 && (

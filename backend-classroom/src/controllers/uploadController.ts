@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: uploadController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/uploadController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Tải lên Tập tin (File Upload) lên đám mây Supabase Storage, trích xuất văn bản từ file Word (`.docx`) bằng `mammoth` và tự động sinh đề thi trắc nghiệm AI từ file Word qua Google Gemini.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request đính kèm Multer File (`/api/v1/upload/*`).
+ *   - `uploadFile`: Đẩy tập tin (ảnh, PDF, zip) lên Supabase Storage bucket `classroom-files`. Trả về URL công khai.
+ *   - `uploadDocx`: Đọc và trích xuất chuỗi văn bản thô từ file Microsoft Word `.docx` bằng thư viện `mammoth`.
+ *   - `uploadDocxAI`: Truyền văn bản thô trích xuất từ file Word vào AI Gemini để tự động phát sinh bộ đề trắc nghiệm JSON chuẩn (gồm `questionText`, `options`, `correctOptionIndex`).
+ * ============================================================================
+ */
+
 import { Request, Response } from 'express';
 import mammoth from 'mammoth';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -24,7 +39,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
       console.error('Lỗi khi upload lên Supabase:', error);
       // Fallback base64 data URL
       const base64 = file.buffer.toString('base64');
-      const fallbackUrl = `data:${file.mimetype || 'application/octet-stream'};name=${encodeURIComponent(file.originalname)};base64,${base64}`;
+      const fallbackUrl = `data:${file.mimetype || 'application/octet-stream'};base64,${base64}`;
       res.status(200).json({
         success: true,
         message: 'Upload file thành công',
@@ -51,7 +66,7 @@ export const uploadFile = async (req: Request, res: Response): Promise<void> => 
     if (req.file) {
       const file = req.file;
       const base64 = file.buffer.toString('base64');
-      const fallbackUrl = `data:${file.mimetype || 'application/octet-stream'};name=${encodeURIComponent(file.originalname)};base64,${base64}`;
+      const fallbackUrl = `data:${file.mimetype || 'application/octet-stream'};base64,${base64}`;
       res.status(200).json({
         success: true,
         message: 'Upload file thành công',

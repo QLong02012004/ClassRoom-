@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: authRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/authRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Xác thực (`/api/v1/auth/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định tuyến yêu cầu Đăng ký, Đăng nhập, Làm mới Token, Google OAuth, Xác thực OTP Email tới `authController.ts`.
+ *   - Áp dụng các Middleware `validateRegister`, `validateLogin`, `protect`, `authorize`.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import { login, getMe, createTeacherAccount, createStudentAccount, logout, refreshToken, registerStudentAccount, registerTeacherAccount, googleLogin, verifyEmail, resendOTP } from '../controllers/authController';
 import { validateRegister, validateLogin } from '../middlewares/validateMiddleware';

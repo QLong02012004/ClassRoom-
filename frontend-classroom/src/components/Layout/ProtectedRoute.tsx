@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: ProtectedRoute.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/components/Layout/ProtectedRoute.tsx
+ * MỤC ĐÍCH:
+ *   Bảo vệ các tuyến đường Client (Client-Side Route Guard) dựa trên trạng thái đăng nhập và vai trò người dùng.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `ProtectedRoute`: Bắt buộc phải có token hợp lệ mới được truy cập, tự động chuyển sang `MaintenancePage` nếu hệ thống bật Chế độ bảo trì.
+ *   - `AdminRoute`: Chỉ cho phép người dùng có `role === 'admin'` truy cập.
+ *   - `TeacherOrAdminRoute`: Cho phép người dùng có `role === 'admin'` hoặc `'teacher'` truy cập.
+ * ============================================================================
+ */
+
 import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';

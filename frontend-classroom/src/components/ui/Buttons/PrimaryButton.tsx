@@ -16,7 +16,7 @@ const buttonVariants = cva(
         muted:
           "group relative isolate overflow-hidden border-2 border-transparent bg-[#A9d6e5] text-slate-900 hover:text-white before:absolute before:left-0 before:top-0 before:-z-10 before:w-[300%] before:aspect-square before:-translate-x-1/2 before:-translate-y-1/2 before:rounded-full before:bg-primary before:scale-0 before:transition-transform before:duration-[800ms] before:ease-out hover:before:scale-100",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
+          "border-2 border-slate-400 bg-white text-slate-700 hover:border-primary hover:text-primary hover:bg-orange-50/70 active:scale-[0.98] transition-all shadow-2xs dark:border-slate-600 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
@@ -70,3 +70,4 @@ function PrimaryButton({
 }
 
 export { PrimaryButton, buttonVariants as primaryButtonVariants }
+export default PrimaryButton;

@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: bank.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/bank.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `bankService` gọi API HTTP quản lý Ngân hàng đề thi và bài tập mẫu.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Gọi các API `/api/v1/bank/*`.
+ *   - Hỗ trợ xem kho bài mẫu trung tâm hoặc cá nhân Giáo viên, tạo/sửa/xóa câu hỏi trắc nghiệm.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

@@ -1,7 +1,14 @@
 /**
- * SCRIPT: KHỞI TẠO HỌC SINH MẪU & ĐIỂM DANH THỬ NGHIỆM
- * Tác dụng: Tạo ra 20 học sinh mẫu, phân chia đều họ vào các lớp hiện có của giáo viên.
- * Đồng thời tự động tạo ngẫu nhiên dữ liệu điểm danh cho 3 ngày gần nhất để làm phong phú dữ liệu test.
+ * ============================================================================
+ * TÊN FILE: seedStudents.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/seedStudents.ts
+ * MỤC ĐÍCH:
+ *   Script Khởi Tạo Học Sinh Mẫu & Dữ Liệu Điểm Danh Thử Nghiệm (Student Seeding Script).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Khởi tạo 20 học sinh mẫu với thông tin cá nhân đầy đủ (email, họ tên, dob, phone, parentPhone).
+ *   - Chia học sinh vào các lớp học hiện có và tạo dữ liệu điểm danh giả lập cho 3 ngày gần nhất.
+ * ============================================================================
  */
 
 import mongoose from 'mongoose';

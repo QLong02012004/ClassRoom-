@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * TÊN FILE: userReducer.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/redux/reducer/userReducer.tsx
+ * MỤC ĐÍCH:
+ *   Legacy Redux Reducer quản lý tài khoản người dùng (File dự phòng/tham khảo cũ).
+ * ============================================================================
+ */
+
 /* import {
   FETCH_USER_LOGIN_SUCCESS,
   USER_LOGOUT_SUCCESS,

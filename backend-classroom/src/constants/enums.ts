@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * TÊN FILE: enums.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/constants/enums.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa toàn bộ các hằng số Enumeration (Enums) trung tâm được dùng trên toàn Backend.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `UserRole`: Vai trò người dùng (ADMIN, TEACHER, STUDENT).
+ *   - `UserStatus` & `ClassStatus`: Trạng thái tài khoản và lớp học (ACTIVE, PENDING, LOCKED, ARCHIVED).
+ *   - `SubmissionStatus`: Trạng thái nộp bài (PENDING, SUBMITTED, LATE, GRADED).
+ *   - `AttendanceStatus`: Trạng thái điểm danh (PRESENT, ABSENT, LATE, EXCUSED).
+ *   - `NotificationType` & `AnnouncementType`: Loại thông báo chuông & loại bài đăng bảng tin.
+ * ============================================================================
+ */
+
 export enum UserRole {
     ADMIN = 'admin',
     TEACHER = 'teacher',

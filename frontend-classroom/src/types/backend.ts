@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: backend.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/types/backend.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các TypeScript Interface chuẩn hóa cho phản hồi từ RESTful API Backend.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `IBackendRes<T>`: Dạng dữ liệu trả về tiêu chuẩn (message, data, error, statusCode).
+ *   - `IModelPaginate<T>`: Cấu trúc phân trang dữ liệu (meta, results).
+ *   - `IModelUser` & `ILoginData`: Cấu trúc dữ liệu người dùng và phản hồi sau khi đăng nhập.
+ * ============================================================================
+ */
+
 export interface IBackendRes<T> {
   error?: string | string[];
   message: string;

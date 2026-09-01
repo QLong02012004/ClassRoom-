@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: BankItem.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/BankItem.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Ngân hàng Tài nguyên Đề thi & Bài tập (Bank Items).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý danh sách câu hỏi trắc nghiệm (`quizQuestions`), mảng các lựa chọn (`options`), vị trí đáp án đúng (`correctOptionIndex`) và thẻ phân loại kiến thức (`tags`).
+ *   - Quản lý quyền chia sẻ (`sharingStatus`: `CENTER_SHARED` toàn trung tâm hoặc `PRIVATE` cá nhân GV).
+ *   - Cấu hình đảo câu hỏi (`shuffleQuestions`), đảo đáp án (`shuffleOptions`) và đính kèm file mẫu (`fileUrl`).
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export enum BankItemType {

@@ -1,3 +1,20 @@
+/**
+ * ============================================================================
+ * TÊN FILE: analyticsController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/analyticsController.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp các API Phân tích Thông minh (AI Learning Analytics): Biểu đồ Radar lỗ hổng
+ *   kiến thức cá nhân của học sinh, thống kê top các câu hỏi bị làm sai nhiều nhất trong lớp và sinh bộ đề luyện tập bù kiến thức khuyết thiếu.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/analytics`).
+ *   - Thao tác trên `QuizResultModel`, `BankItemModel`, `ClassActivityModel`.
+ *   - `getStudentWeaknessRadar`: Tổng hợp kết quả làm bài trắc nghiệm của học sinh, phân tích theo thẻ tag kiến thức (`tags`), lọc các tag có tỷ lệ sai >= 40% để vẽ biểu đồ Radar lỗ hổng kiến thức.
+ *   - `getActivityErrorInsights`: Thống kê tần suất chọn phương án sai của học sinh trong 1 bài thi để cảnh báo Giáo viên các câu hỏi học sinh bị hổng kiến thức nghiêm trọng.
+ *   - `getPracticeQuestions`: Trích xuất ngẫu nhiên các câu hỏi trắc nghiệm cùng tag chuyên đề từ `BankItemModel` (Mongo `$sample`) giúp học sinh tự luyện tập bù kiến thức khuyết thiếu.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { QuizResultModel } from '../models/QuizResult';
 import { ClassActivityModel } from '../models/ClassActivity';

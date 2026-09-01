@@ -33,3 +33,5 @@ export const AnimatedAddButton = React.forwardRef<HTMLButtonElement, AnimatedAdd
 );
 
 AnimatedAddButton.displayName = 'AnimatedAddButton';
+
+export default AnimatedAddButton;

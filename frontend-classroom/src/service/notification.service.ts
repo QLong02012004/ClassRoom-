@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: notification.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/notification.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `notificationService` gọi API HTTP quản lý Thông báo Quả Chuông.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lấy danh sách thông báo cá nhân/vai trò, đánh dấu đã đọc (`markAsRead` / `markAllAsRead`).
+ *   - Gửi cảnh báo nhắm mục tiêu cho học sinh (`sendWarning`).
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

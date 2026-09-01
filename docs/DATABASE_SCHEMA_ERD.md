@@ -1,3 +1,16 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: DATABASE_SCHEMA_ERD.md
+ĐƯỜNG DẪN: docs/DATABASE_SCHEMA_ERD.md
+MỤC ĐÍCH:
+  Sơ Đồ Cơ Sở Dữ Liệu Cốt Lõi (Database Schema & Entity Relationship Diagram - ERD).
+
+CÁCH THỨC SỬ DỤNG:
+  - Cung cấp Mermaid ERD Diagram của 10 Collections MongoDB (`User`, `Class`, `ClassActivity`, `Submission`, `QuestionBank`, `QuizSubmission`, `Gradebook`, `Attendance`, `Notification`).
+  - Giải thích chi tiết luồng RBAC, công thức tính toán Gamification XP & Level, và thuật toán phân tích Lỗ hổng Kiến thức (`weakTopicTags`).
+============================================================================
+-->
+
 # TÀI LIỆU SƠ ĐỒ CƠ SỞ DỮ LIỆU CỐT LÕI (HIGH-LEVEL DATABASE SCHEMA & ERD)
 ## Hệ thống Quản lý Học tập LMS ClassRoom
 

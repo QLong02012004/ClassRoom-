@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Attendance.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/pages/Attendance.tsx
+ * MỤC ĐÍCH:
+ *   Component Điều Hướng Điểm Danh Theo Vai Trò (Attendance Role Router).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Kiểm tra `user.role` từ `AuthContext`:
+ *     + Giáo viên/Admin: Render `TeacherAttendance` để lấy danh sách học sinh và điểm danh.
+ *     + Học sinh: Hiển thị thông báo xem lịch sử điểm danh.
+ * ============================================================================
+ */
+
 import React from "react";
 import TeacherAttendance from "./Teacher/Attendance/TeacherAttendance";
 import { useAuth } from "../context/AuthContext.tsx";

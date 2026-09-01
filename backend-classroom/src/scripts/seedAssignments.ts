@@ -1,6 +1,14 @@
 /**
- * SCRIPT: KHỞI TẠO BÀI TẬP MẪU CHO CÁC LỚP HỌC
- * Tác dụng: Tạo các đề bài tập tự luận mẫu trong ngân hàng đề (BankItem) và giao các hoạt động này (ClassActivity) cho mỗi lớp học.
+ * ============================================================================
+ * TÊN FILE: seedAssignments.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/seedAssignments.ts
+ * MỤC ĐÍCH:
+ *   Script Khởi Tạo Bài Tập Mẫu Cho Các Lớp Học (Assignment Seeding Script).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Tạo 3 đề bài tập tự luận mẫu (Bài tập về nhà, Kiểm tra định kỳ, Chuyên cần) trong `BankItemModel`.
+ *   - Giao 3 đề này vào từng lớp học qua `ClassActivityModel` với hạn nộp 7 ngày.
+ * ============================================================================
  */
 
 import mongoose from 'mongoose';

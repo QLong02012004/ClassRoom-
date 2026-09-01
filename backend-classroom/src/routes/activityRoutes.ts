@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * TÊN FILE: activityRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/activityRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Quản lý Bài tập & Đề thi (`/api/v1/activities/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Phân tuyến giao bài (`/assign`), nộp bài (`/:id/submit`), chấm bài trắc nghiệm (`/:id/submit-quiz`), lấy bài nộp (`/:id/submissions`).
+ * ============================================================================
+ */
+
 import express from 'express';
 import {
     assignActivity,

@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * TÊN FILE: settingsController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/settingsController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Cấu hình Toàn Hệ thống (System Settings) dành cho Admin: Tên trung tâm/trường học,
+ *   múi giờ, định dạng ngày tháng và bật/tắt Chế độ bảo trì (Maintenance Mode).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/settings`).
+ *   - Thao tác trên `SystemSettingsModel` (Singleton Pattern - chỉ có 1 bản ghi duy nhất).
+ *   - Khi bật `maintenanceMode`: Chặn tất cả tài khoản ngoại trừ Admin đăng nhập hoặc gửi API.
+ *   - Đẩy sự kiện Socket.IO `notifySettingsUpdate` để cập nhật cài đặt tức thì trên Frontend.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { SystemSettingsModel } from '../models/SystemSettings';
 import { notifySettingsUpdate } from '../socket';

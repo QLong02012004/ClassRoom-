@@ -41,6 +41,7 @@ export interface ResourceDetailModalProps {
   onClose: () => void;
   item: ResourceDetailItem | null;
   onViewQuizScores?: (item: ResourceDetailItem) => void;
+  onSelectToAssign?: (item: ResourceDetailItem) => void;
 }
 
 export const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({
@@ -48,6 +49,7 @@ export const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({
   onClose,
   item,
   onViewQuizScores,
+  onSelectToAssign,
 }) => {
   const [qIndex, setQIndex] = useState(0);
 
@@ -318,13 +320,27 @@ export const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({
               </button>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-sm transition-colors cursor-pointer"
-          >
-            Đóng
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-sm transition-colors cursor-pointer"
+            >
+              Đóng
+            </button>
+            {onSelectToAssign && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onSelectToAssign(item);
+                }}
+                className="px-5 py-2 bg-[#f47c20] hover:bg-orange-600 text-white font-bold rounded-xl text-sm transition-colors cursor-pointer shadow-2xs"
+              >
+                Giao bài ngay &rarr;
+              </button>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -1,7 +1,14 @@
 /**
- * SCRIPT: KHỞI TẠO TÀI KHOẢN ROOT ADMIN
- * Tác dụng: Tạo tài khoản quản trị viên tối cao (Root Admin) mặc định nếu chưa tồn tại.
- * Tài khoản: admin@gmail.com / admin123
+ * ============================================================================
+ * TÊN FILE: seedAdmin.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/seedAdmin.ts
+ * MỤC ĐÍCH:
+ *   Script Khởi Tạo Tài Khoản Root Admin Mặc Định (`admin@gmail.com` / `admin123`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Kiểm tra xem đã có tài khoản Admin nào tồn tại trong DB chưa.
+ *   - Nếu chưa có: Tạo mới với role `ADMIN`, băm mật khẩu bằng Bcrypt và set `isEmailVerified: true`.
+ * ============================================================================
  */
 
 import mongoose from 'mongoose';

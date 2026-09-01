@@ -82,7 +82,7 @@
   --nextui-primary-800: 26 91% 25%;
   --nextui-primary-900: 26 91% 15%;
 
-  --muted: #d8c3a5;
+  --muted: #F1F5F9;
 
   --muted-foreground: #64748B;
 
@@ -257,7 +257,7 @@
   --primary-foreground: oklch(0.205 0 0);
   --secondary: #2f8fa3;
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: #d8c3a5;
+  --muted: #1E293B;
   --muted-foreground: oklch(0.708 0 0);
   --accent: #A9d6e5;
   --accent-foreground: oklch(0.985 0 0);

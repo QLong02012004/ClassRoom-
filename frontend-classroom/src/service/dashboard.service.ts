@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: dashboard.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/dashboard.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `dashboardService` gọi API HTTP lấy dữ liệu thống kê tổng quan (Dashboard Analytics),
+ *   phổ điểm, học sinh có nguy cơ và Bảng xếp hạng Gamification XP.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định nghĩa TypeScript Interfaces: `IDashboardStats`, `ITeacherDashboardStats`.
+ *   - Gọi các API `/api/v1/dashboard/*`.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 
@@ -77,8 +91,9 @@ export const dashboardService = {
   getAdminStats: async (): Promise<IBackendRes<IDashboardStats>> => {
     return await api.get('/api/v1/dashboard/admin');
   },
-  getTeacherDashboardStats: async (): Promise<IBackendRes<ITeacherDashboardStats>> => {
-    return await api.get('/api/v1/dashboard/teacher');
+  getTeacherDashboardStats: async (classId?: string): Promise<IBackendRes<ITeacherDashboardStats>> => {
+    const url = classId && classId !== 'all' ? `/api/v1/dashboard/teacher?classId=${classId}` : '/api/v1/dashboard/teacher';
+    return await api.get(url);
   },
   getStudentDashboardStats: async (): Promise<IBackendRes<any>> => {
     return await api.get('/api/v1/dashboard/student');

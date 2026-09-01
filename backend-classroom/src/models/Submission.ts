@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Submission.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Submission.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Bài nộp tự luận/file của Học sinh (Submissions).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Đảm bảo tính duy nhất (Compound Index `{ assignmentId: 1, studentId: 1 }` unique): Mỗi học sinh chỉ có 1 bản ghi bài nộp cho 1 bài tập.
+ *   - Lưu giữ tệp đính kèm (`attachments`), đoạn văn bài nộp (`submissionText`), trao đổi bình luận bài nộp (`comments`).
+ *   - Lưu giữ toàn bộ lịch sử các lần nộp lại (`history`) để Giáo viên theo dõi tiến trình chỉnh sửa.
+ *   - Quản lý trạng thái bài nộp (`status`: SUBMITTED, LATE, GRADED, v.v.).
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 import { SubmissionStatus } from '../constants/enums';
 

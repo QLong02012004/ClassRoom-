@@ -1,3 +1,22 @@
+/**
+ * ============================================================================
+ * TÊN FILE: classroom.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/classroom.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `classroomService` gọi API HTTP quản lý Lớp học,
+ *   duyệt yêu cầu tham gia, liên kết Google Sheets và các thao tác Admin/Teacher/Student.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định nghĩa các TypeScript Interface: `IClassroomItem`, `ITeacherClassroom`, `IClassJoinRequestItem`, `IPendingStudentClassItem`.
+ *   - Gọi API qua `api.get`, `api.post`, `api.put`, `api.delete`.
+ *
+ * THÀNH PHẦN CHÍNH:
+ *   - Admin: `getAdminClassrooms`, `updateClassroomStatus`, `deleteClassroom`.
+ *   - Teacher: `getTeacherClassrooms`, `createClassroom`, `approveJoinRequest`, `approveAllJoinRequests`, `generateGoogleSheet`, `linkGoogleSheet`.
+ *   - Student: `getStudentClassrooms`, `joinClassByCode`, `getStudentPendingClasses`.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

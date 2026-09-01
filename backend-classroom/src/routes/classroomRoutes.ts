@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: classroomRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/classroomRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Quản lý Lớp học (`/api/v1/classrooms/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Route Admin: Lấy danh sách lớp toàn hệ thống (`/admin`), duyệt/khóa lớp (`/:id/status`), xóa lớp (`/:id`).
+ *   - Route Student: Tham gia lớp bằng mã code (`/join`), danh sách lớp đang học (`/student`).
+ *   - Route Teacher: Tạo lớp mới, duyệt yêu cầu học sinh, khởi tạo Google Sheet, điểm danh và mời học sinh ra khỏi lớp.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import {
     getAdminClassrooms,

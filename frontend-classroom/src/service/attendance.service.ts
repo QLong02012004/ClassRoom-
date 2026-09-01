@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: attendance.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/attendance.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `attendanceService` gọi API HTTP quản lý Điểm danh học sinh.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Gọi các API `/api/v1/attendance` và `/api/v1/classrooms/:classId/students`.
+ *   - Lấy danh sách học sinh, kiểm tra trạng thái điểm danh ngày hiện tại và lưu lịch sử.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

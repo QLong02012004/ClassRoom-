@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { Pagination } from "@heroui/react";
 import {
   ArrowRight,
   Fire,
@@ -84,6 +85,11 @@ export default function StudentDashboard() {
     streak: 0
   });
   const [todoList, setTodoList] = useState<any[]>([]);
+  // Phân trang danh sách Việc cần làm hôm nay (tối đa 4 item / trang)
+  const [todoPage, setTodoPage] = useState(1);
+  const todoItemsPerPage = 4;
+  const totalTodoPages = Math.ceil(todoList.length / todoItemsPerPage);
+  const paginatedTodoList = todoList.slice((todoPage - 1) * todoItemsPerPage, todoPage * todoItemsPerPage);
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
   const [learningProgress, setLearningProgress] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
@@ -156,8 +162,8 @@ export default function StudentDashboard() {
     if (selectedClassId) {
       dashboardService.getLeaderboard(selectedClassId).then(res => {
         if (res && res.data) {
-          // Trả về tối đa top 10
-          setLeaderboard(res.data.slice(0, 10));
+          // Trả về tối đa top 6
+          setLeaderboard(res.data.slice(0, 6));
         }
       }).catch(err => {
         console.error("Lỗi tải leaderboard:", err);
@@ -268,7 +274,7 @@ export default function StudentDashboard() {
           const level = gamification.level || levelInfo.level;
           const progressPercent = gamification.progressPercent !== undefined ? gamification.progressPercent : levelInfo.progressPercent;
           return (
-            <div className={styles.statCard}>
+            <div className={`${styles.statCard} ${styles.cardYellow}`}>
               <div className={`${styles.statIcon} ${styles.yellowBg}`}>
                 <Star size={28} weight="fill" />
               </div>
@@ -295,7 +301,7 @@ export default function StudentDashboard() {
             streak >= 3 ? 'Tốt lắm! 👍' :
               streak > 0 ? 'Tiếp tục nhé! 💪' : 'Hãy bắt đầu! 🚀';
           return (
-            <div className={styles.statCard}>
+            <div className={`${styles.statCard} ${styles.cardOrange}`}>
               <div className={`${styles.statIcon} ${styles.orangeBg}`}>
                 <Fire size={28} weight="fill" />
               </div>
@@ -323,7 +329,7 @@ export default function StudentDashboard() {
           const rateClass = rate >= 90 ? styles.success :
             rate >= 70 ? styles.warning : styles.danger;
           return (
-            <div className={styles.statCard}>
+            <div className={`${styles.statCard} ${styles.cardGreen}`}>
               <div className={`${styles.statIcon} ${styles.greenBg}`}>
                 <Target size={28} weight="fill" />
               </div>
@@ -349,7 +355,7 @@ export default function StudentDashboard() {
           const attClass = attendance >= 90 ? styles.success :
             attendance >= 70 ? styles.warning : styles.danger;
           return (
-            <div className={styles.statCard}>
+            <div className={`${styles.statCard} ${styles.cardBlue}`}>
               <div className={`${styles.statIcon} ${styles.blueBg}`}>
                 <Lightning size={28} weight="fill" />
               </div>
@@ -385,33 +391,72 @@ export default function StudentDashboard() {
               </div>
               <div className={styles.todoList}>
                 {todoList.length > 0 ? (
-                  todoList.map((task) => {
-                    const urgency = getUrgency(task.dueDate);
-                    return (
-                      <div
-                        key={task._id}
-                        className={styles.todoItem}
-                        style={{ cursor: 'pointer' }}
-                        onClick={() => navigate(`/assignments/${task._id}`)}
-                        title="Nhấn để xem và làm bài tập"
-                      >
-                        <div className={styles.checkbox}>
-                          <div className={styles.circle}></div>
+                  <>
+                    {paginatedTodoList.map((task) => {
+                      const urgency = getUrgency(task.dueDate);
+                      return (
+                        <div
+                          key={task._id}
+                          className={styles.todoItem}
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => navigate(`/assignments/${task._id}`)}
+                          title="Nhấn để xem và làm bài tập"
+                        >
+                          <div className={styles.checkbox}>
+                            <div className={styles.circle}></div>
+                          </div>
+                          <div className={styles.itemInfo}>
+                            <h4 className={styles.itemTitle}>{task.title}</h4>
+                            <span className={styles.itemMeta}>
+                              {task.className} • Hạn: {formatDate(task.dueDate)}
+                            </span>
+                          </div>
+                          <div className={styles.itemRight}>
+                            <span className={`${styles.urgencyBadge} ${urgency.styleClass}`}>
+                              {urgency.label}
+                            </span>
+                          </div>
                         </div>
-                        <div className={styles.itemInfo}>
-                          <h4 className={styles.itemTitle}>{task.title}</h4>
-                          <span className={styles.itemMeta}>
-                            {task.className} • Hạn: {formatDate(task.dueDate)}
-                          </span>
-                        </div>
-                        <div className={styles.itemRight}>
-                          <span className={`${styles.urgencyBadge} ${urgency.styleClass}`}>
-                            {urgency.label}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })
+                      );
+                    })}
+
+                    {totalTodoPages > 1 && (
+                      <Pagination size="sm" className="flex items-center justify-between w-full pt-3 mt-1 border-t border-slate-200/80 bg-transparent">
+                        <Pagination.Summary className="text-xs text-slate-500 font-medium">
+                          {(todoPage - 1) * todoItemsPerPage + 1} - {Math.min(todoPage * todoItemsPerPage, todoList.length)} / {todoList.length} nhiệm vụ
+                        </Pagination.Summary>
+                        <Pagination.Content>
+                          <Pagination.Item>
+                            <Pagination.Previous
+                              isDisabled={todoPage === 1}
+                              onPress={() => setTodoPage((p) => Math.max(1, p - 1))}
+                            >
+                              <Pagination.PreviousIcon />
+                            </Pagination.Previous>
+                          </Pagination.Item>
+                          {Array.from({ length: totalTodoPages }, (_, i) => i + 1).map((p) => (
+                            <Pagination.Item key={p}>
+                              <Pagination.Link
+                                isActive={p === todoPage}
+                                onPress={() => setTodoPage(p)}
+                                className={p === todoPage ? "bg-[#f47c20] text-white font-bold border-[#f47c20]" : "text-slate-600 font-medium hover:bg-slate-100"}
+                              >
+                                {p}
+                              </Pagination.Link>
+                            </Pagination.Item>
+                          ))}
+                          <Pagination.Item>
+                            <Pagination.Next
+                              isDisabled={todoPage === totalTodoPages}
+                              onPress={() => setTodoPage((p) => Math.min(totalTodoPages, p + 1))}
+                            >
+                              <Pagination.NextIcon />
+                            </Pagination.Next>
+                          </Pagination.Item>
+                        </Pagination.Content>
+                      </Pagination>
+                    )}
+                  </>
                 ) : (
                   <div className={styles.emptyState}>
                     <img src="/empty_tasks_illustration_1784358523914.png" alt="All done" className={styles.emptyImg} />
@@ -583,7 +628,7 @@ export default function StudentDashboard() {
               )}
             </div>
             <div className={styles.leaderboardList}>
-              {leaderboard.length > 0 ? leaderboard.map((student, idx) => (
+              {leaderboard.length > 0 ? leaderboard.slice(0, 6).map((student, idx) => (
                 <div key={student.id} className={`${styles.leaderboardItem} ${student.name === username ? styles.currentUser : ''}`}>
                   <div className={styles.rankBadge}>{idx + 1}</div>
                   <div className={styles.avatarPlaceholder} style={{ overflow: 'hidden' }}>

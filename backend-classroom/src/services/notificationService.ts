@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: notificationService.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/services/notificationService.ts
+ * MỤC ĐÍCH:
+ *   Dịch vụ phụ trợ khởi tạo và gửi thông báo chuông (Notification Helper Services).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `createAdminNotification`: Tạo thông báo gửi cho Ban Quản trị Admin và phát tín hiệu WebSockets `admin_stats_update`.
+ *   - `createUserNotification`: Gửi thông báo tới người dùng cụ thể và phát tín hiệu `notification_update`.
+ * ============================================================================
+ */
+
 import { NotificationModel } from '../models/Notification';
 import mongoose from 'mongoose';
 import { UserRole, NotificationType } from '../constants/enums';

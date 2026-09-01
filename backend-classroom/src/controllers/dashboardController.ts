@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * TÊN FILE: dashboardController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/dashboardController.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp API số liệu thống kê tổng quan (Dashboard Analytics), tỷ lệ chuyên cần,
+ *   phổ điểm, tiến độ học tập, cảnh báo học sinh nguy cơ và hệ thống Gamification (XP/Level/Streak/Leaderboard).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Tiếp nhận request từ các vai trò Admin, Giáo viên, Học sinh (`/api/v1/dashboard/*`).
+ *   - Truy vấn song song dữ liệu từ nhiều Mongoose Models (`ClassModel`, `UserModel`, `SubmissionModel`, `GradeModel`, `AttendanceModel`, `ScheduleModel`).
+ *   - Xử lý thuật toán Gamification (`calculateLevelAndProgress`): Quy đổi điểm số, bài nộp đúng hạn, điểm danh thành điểm kinh nghiệm (XP), tính Level & Chuỗi ngày học liên tục (Streak).
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getAdminStats`: Thống kê tổng quan Admin (Tỷ lệ tương tác, tăng trưởng người dùng 12 tháng, lịch sử hoạt động hệ thống).
+ *   - `getTeacherDashboardStats`: Thống kê Giáo viên (Phổ điểm, tỷ lệ điểm danh, học sinh cần lưu ý At-Risk).
+ *   - `getStudentDashboardStats`: Thống kê Học sinh (Điểm XP, Level, Chuỗi Streak, Lịch học hôm nay, Việc cần làm).
+ *   - `getLeaderboard`: Bảng xếp hạng vinh danh Học sinh theo điểm XP (Lớp học hoặc Toàn hệ thống).
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { ClassModel } from '../models/Class';
@@ -365,6 +386,9 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
 
         const attendanceRate = totalRecords === 0 ? 0 : Math.round((presentCount / totalRecords) * 100);
 
+        const targetClassId = req.query.classId as string;
+        const targetClassIds = (targetClassId && targetClassId !== 'all') ? [targetClassId] : classIds;
+
         // 4 & 5. Phổ điểm và Bài tập cần chấm
         const assignments = await ClassActivityModel.find({ classId: { $in: classIds } });
         const assignmentIds = assignments.map(a => a._id);
@@ -386,9 +410,16 @@ export const getTeacherDashboardStats = async (req: Request, res: Response, next
         });
         const totalSubmitted = allSubmissions.length;
 
+        // TÍNH PHỔ ĐIỂM THEO LỚP ĐƯỢC LỌC (Target Class hoặc Tất cả)
+        const targetAssignments = (targetClassId && targetClassId !== 'all')
+            ? assignments.filter(a => a.classId.toString() === targetClassId)
+            : assignments;
+        const targetAssignmentIds = targetAssignments.map(a => a._id.toString());
+        const targetGrades = grades.filter(g => targetAssignmentIds.includes(g.assignmentId.toString()));
+
         let gioi = 0, kha = 0, trungBinh = 0, yeuKem = 0;
-        if (grades.length > 0) {
-            grades.forEach(g => {
+        if (targetGrades.length > 0) {
+            targetGrades.forEach(g => {
                 if (g.score >= 8) gioi++;
                 else if (g.score >= 6.5) kha++;
                 else if (g.score >= 5.0) trungBinh++;

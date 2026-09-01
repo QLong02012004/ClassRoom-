@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: profileChecker.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/utils/profileChecker.ts
+ * MỤC ĐÍCH:
+ *   Tiện ích kiểm tra độ hoàn thiện Hồ sơ Cá nhân của Giáo viên (`checkTeacherProfileComplete`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Kiểm tra các trường thông tin bắt buộc: Giới tính, Ngày sinh, SĐT/Zalo, Bằng cấp/Trình độ, Môn học giảng dạy.
+ *   - Trả về đối tượng `ProfileCheckResult` (isComplete, missingFields).
+ * ============================================================================
+ */
+
 export interface ProfileCheckResult {
   isComplete: boolean;
   missingFields: string[];

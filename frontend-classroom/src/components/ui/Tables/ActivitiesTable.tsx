@@ -25,6 +25,8 @@ export interface ActivityItem {
 export interface ActivitiesTableProps {
   activities: ActivityItem[];
   totalStudents?: number;
+  userRole?: string;
+  onItemClick?: (activity: ActivityItem) => void;
   onViewResults?: (activity: ActivityItem) => void;
   onViewDetails?: (activity: ActivityItem) => void;
   onEdit?: (activity: ActivityItem) => void;
@@ -70,6 +72,8 @@ const TableCheckbox = ({
 export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
   activities,
   totalStudents = 0,
+  userRole,
+  onItemClick,
   onViewResults,
   onViewDetails,
   onEdit,
@@ -223,7 +227,8 @@ export const ActivitiesTable: React.FC<ActivitiesTableProps> = ({
                   const fileCount = act.attachments?.length || 1;
                   const isChecked = selectedIds.includes(act._id) || selectedIds.includes(rowId);
                   const handleRowClick = () => {
-                    if (onViewDetails) onViewDetails(act);
+                    if (onItemClick) onItemClick(act);
+                    else if (onViewDetails) onViewDetails(act);
                     else if (onViewResults) onViewResults(act);
                   };
 

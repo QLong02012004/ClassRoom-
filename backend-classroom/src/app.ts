@@ -1,3 +1,21 @@
+/**
+ * ============================================================================
+ * TÊN FILE: app.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/app.ts
+ * MỤC ĐÍCH:
+ *   Điểm khởi chạy chính (Main Entry Point) của ứng dụng Backend Node.js / Express.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Khởi tạo kết nối MongoDB via `connectDB()`.
+ *   - Đăng ký Middleware CORS (cho phép gửi cookie với credentials), `express.json()`, `cookieParser()`.
+ *   - Phục vụ tĩnh các tệp tải lên (`/uploads`).
+ *   - Định tuyến tập trung API versioning `/api/v1` thông qua `routes/index.ts`.
+ *   - Tích hợp máy chủ HTTP và lắng nghe sự kiện WebSockets thời gian thực qua `initSocket(server)`.
+ *   - Bắt và xử lý lỗi tập trung qua `errorHandler`.
+ * ============================================================================
+ */
+
+import path from 'path';
 import express, { Request, Response, Application } from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
@@ -17,6 +35,16 @@ app.use(cors({
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true, // Cho phép gửi cookie qua CORS
 }));
+
+// Serve static uploads with CORS headers & logger
+app.use('/uploads', (req, res, next) => {
+    console.log(`[Backend File Request] 📁 ${req.method} ${req.originalUrl}`);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+}, express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 
 // 2. Các Middleware giải mã dữ liệu
 app.use(express.json());

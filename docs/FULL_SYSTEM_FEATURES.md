@@ -1,3 +1,16 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: FULL_SYSTEM_FEATURES.md
+ĐƯỜNG DẪN: docs/FULL_SYSTEM_FEATURES.md
+MỤC ĐÍCH:
+  Tài Liệu Tổng Hợp Toàn Bộ Chức Năng & Kịch Bản Kiểm Thử Hệ Thống (Full System Features & Test Checklist).
+
+CÁCH THỨC SỬ DỤNG:
+  - Thống nhất các đặc tả chức năng, quy định phân quyền RBAC, logic nghiệp vụ cho 3 vai trò (Admin, Teacher, Student).
+  - Cung cấp danh sách checklist tính năng chi tiết theo từng phân hệ giao diện và các đường dẫn liên kết đến bộ kịch bản kiểm thử riêng.
+============================================================================
+-->
+
 # TÀI LIỆU TỔNG HỢP TOÀN BỘ CHỨC NĂNG & KỊCH BẢN KIỂM THỬ HỆ THỐNG (LMS CLASSROOM)
 
 > **Mục đích:** Tài liệu này thống nhất toàn bộ các đặc tả chức năng, quy định phân quyền (RBAC), logic nghiệp vụ, danh sách REST API và kịch bản kiểm thử (Test Checklist) của hệ thống Quản lý Lớp học (ClassRoom). Sử dụng làm căn cứ cho bước kiểm thử sản phẩm cuối cùng (Final Product Testing).

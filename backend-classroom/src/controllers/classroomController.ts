@@ -1,3 +1,28 @@
+/**
+ * ============================================================================
+ * TÊN FILE: classroomController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/classroomController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý toàn bộ thông tin Lớp học trong hệ thống ClassRoom (Quản lý tạo lớp, mã gia nhập,
+ *   duyệt học sinh, đồng bộ danh sách học sinh & liên kết Google Sheets tự động).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/classrooms`).
+ *   - Quản lý các Model: `ClassModel`, `ClassJoinRequestModel`, `UserModel`, `AttendanceModel`.
+ *   - Khi Giáo viên tạo lớp: Tự động sinh mã 6 ký tự ngẫu nhiên duy nhất & khởi tạo Google Sheet trong background (`GoogleSheetsService`).
+ *   - Khi Học sinh nhập mã code: Tạo yêu cầu `ClassJoinRequestModel` gửi thông báo cho Giáo viên duyệt.
+ *   - Tương tác với WebSockets (`socket.ts`) để đẩy thông báo thời gian thực khi Admin duyệt lớp hoặc Học sinh gửi yêu cầu gia nhập.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `createClassroom`: Giáo viên tạo lớp học mới (Pending duyệt từ Admin).
+ *   - `getTeacherClassrooms`: Lấy danh sách lớp của giáo viên (kèm bài tập mới nhất & số yêu cầu chờ duyệt).
+ *   - `getStudentClassrooms`: Học sinh lấy danh sách lớp đang học (kèm tỷ lệ điểm danh).
+ *   - `joinClassroomByCode`: Học sinh tham gia lớp bằng mã code 6 ký tự.
+ *   - `generateClassroomGoogleSheet` & `linkClassroomGoogleSheet`: Khởi tạo / liên kết Google Sheets lưu trữ thông tin lớp.
+ *   - `updateClassroomStatus`: Admin duyệt/khóa/mở khóa lớp học.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { ClassModel } from '../models/Class';
 import { UserModel } from '../models/User';

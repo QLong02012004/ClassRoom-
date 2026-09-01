@@ -16,6 +16,8 @@ export const SecondaryButton: React.FC<SecondaryButtonProps> = ({ children, clas
   );
 }
 
+export default SecondaryButton;
+
 const StyledWrapper = styled.div<{ $size?: 'sm' | 'md' | 'lg' }>`
   display: inline-block;
 

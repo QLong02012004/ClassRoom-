@@ -1,3 +1,15 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: ADMIN_TESTING_GUIDE.md
+ĐƯỜNG DẪN: docs/ADMIN_TESTING_GUIDE.md
+MỤC ĐÍCH:
+  Bộ Kịch Bản Kiểm Thử Chi Tiết Toàn Diện Dành Cho Quản Trị Viên (Admin Test Cases).
+
+CÁCH THỨC SỬ DỤNG:
+  - Cung cấp danh sách các Test Cases (Positive, Negative, Boundary, Security, Edge Cases) để kiểm thử giao diện Admin Dashboard, Quản lý tài khoản người dùng, Duyệt giáo viên, Quản lý lớp học và Cấu hình bảo trì hệ thống.
+============================================================================
+-->
+
 # BỘ KỊCH BẢN KIỂM THỬ CHI TIẾT TOÀN DIỆN DÀNH CHO QUẢN TRỊ VIÊN (ADMIN DETAILED TEST CASES)
 
 > **Mục đích:** Danh sách kịch bản kiểm thử (Test Cases) chi tiết với đầy đủ các trường hợp kiểm thử (Positive, Negative, Boundary, Security, Edge Cases) cho từng tính năng dành riêng cho Quản trị viên (Admin).

@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: SystemSettings.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/SystemSettings.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Cấu hình Hệ thống (System Settings Singleton).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lưu giữ các thiết lập toàn cục: Tên trường/trung tâm (`systemName`), múi giờ (`timezone`), định dạng hiển thị ngày (`dateFormat`).
+ *   - Quản lý công tắc Chế độ Bảo trì (`maintenanceMode`: true/false).
+ * ============================================================================
+ */
+
 import { Schema, model, Document } from 'mongoose';
 
 export interface ISystemSettings extends Document {

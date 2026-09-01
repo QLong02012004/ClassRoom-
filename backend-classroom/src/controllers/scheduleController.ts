@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * TÊN FILE: scheduleController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/scheduleController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Thời khóa biểu & Lịch giảng dạy của Giáo viên/Học sinh, tự động kiểm tra
+ *   trùng lịch (Conflict Detection) và gợi ý khung giờ giảng dạy tối ưu (Optimal Slot Finder).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/schedule`).
+ *   - Thao tác trên `ScheduleModel` và `ClassModel`.
+ *   - Khi thêm mới/cập nhật lịch dạy (`createSchedule` / `updateSchedule`):
+ *     + So sánh khung giờ `startTime` và `endTime` với các lớp cùng thứ (`dayOfWeek`).
+ *     + Nếu trùng lịch: Trả về mã lỗi HTTP 409 Conflict kèm mảng `suggestions` gợi ý 3 khung giờ rảnh tối ưu dựa trên thuật toán `findOptimalSlots`.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getTeacherSchedule`: Lấy danh sách thời khóa biểu của Giáo viên (sắp xếp theo thứ và giờ bắt đầu).
+ *   - `createSchedule`: Xếp lịch giảng dạy mới cho lớp học (có kiểm tra trùng giờ).
+ *   - `updateSchedule` & `deleteSchedule`: Chỉnh sửa chương/chủ đề dạy hoặc xóa ca học.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { ScheduleModel } from '../models/Schedule';
 import { ClassModel } from '../models/Class';

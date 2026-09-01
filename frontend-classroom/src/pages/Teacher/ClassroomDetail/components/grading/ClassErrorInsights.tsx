@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 import { AlertTriangle, Users } from 'lucide-react';
-import { analyticsService } from '../../../../service/analytics.service';
-import { useToast } from '../../../../components/Styles/ToastContext';
+import { analyticsService } from '@/service/analytics.service';
+import { useToast } from '@/components/Styles/ToastContext';
 
 interface ErrorInsight {
   questionIndex: number;

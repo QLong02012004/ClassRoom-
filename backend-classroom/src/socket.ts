@@ -1,3 +1,23 @@
+/**
+ * ============================================================================
+ * TÊN FILE: socket.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/socket.ts
+ * MỤC ĐÍCH:
+ *   Quản lý kết nối WebSockets thời gian thực (Real-time Socket.IO Server).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Khởi tạo máy chủ Socket.IO đính kèm vào HTTP Server (`initSocket`).
+ *   - Cung cấp các hàm phát tín hiệu (Event Emitter) thông báo dữ liệu thay đổi tức thì tới Frontend:
+ *     + `notifyAdminStatsUpdate`: Cập nhật biểu đồ thống kê Admin khi có user/lớp mới.
+ *     + `notifyTeacherClassroomsUpdate`: Cập nhật danh sách lớp học của Giáo viên.
+ *     + `notifyStudentClassroomsUpdate`: Cập nhật danh sách lớp của Học sinh.
+ *     + `notifyClassroomFeedUpdate`: Cập nhật Bảng tin stream feed khi có bài viết/bình luận mới.
+ *     + `notifySubmissionUpdate`: Cập nhật Sổ điểm & trạng thái bài nộp thời gian thực.
+ *     + `notifyNotificationUpdate`: Cập nhật badge quả chuông thông báo.
+ *     + `notifySettingsUpdate`: Cập nhật cấu hình hệ thống khi Admin thay đổi.
+ * ============================================================================
+ */
+
 import { Server } from 'socket.io';
 import { Server as HttpServer } from 'http';
 
@@ -36,9 +56,9 @@ export const notifyAdminStatsUpdate = () => {
   }
 };
 
-export const notifyTeacherClassroomsUpdate = (teacherId: string) => {
+export const notifyTeacherClassroomsUpdate = (teacherId?: string) => {
   if (io) {
-    console.log(`📡 [Socket.io] Phát tín hiệu teacher_classrooms_update cho teacher: ${teacherId}`);
+    console.log(`📡 [Socket.io] Phát tín hiệu teacher_classrooms_update cho teacher: ${teacherId || 'all'}`);
     io.emit('teacher_classrooms_update', teacherId);
   }
 };

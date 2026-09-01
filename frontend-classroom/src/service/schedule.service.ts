@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * TÊN FILE: schedule.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/schedule.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `scheduleService` gọi API HTTP quản lý Thời khóa biểu và Lịch dạy.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lấy lịch dạy (`getSchedule`), tạo ca học (`createSchedule`), cập nhật tiến độ (`updateSchedule`), xóa ca học (`deleteSchedule`).
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

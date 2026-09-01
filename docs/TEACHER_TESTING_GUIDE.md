@@ -1,3 +1,15 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: TEACHER_TESTING_GUIDE.md
+ĐƯỜNG DẪN: docs/TEACHER_TESTING_GUIDE.md
+MỤC ĐÍCH:
+  Bộ Kịch Bản Kiểm Thử Chi Tiết Toàn Diện Dành Cho Giáo Viên (Teacher Test Cases).
+
+CÁCH THỨC SỬ DỤNG:
+  - Cung cấp danh sách các Test Cases đầy đủ cho các chức năng Giáo viên: Tạo và quản lý lớp học, Duyệt học sinh, Giao bài tự luận & chấm điểm, Tạo đề thi trắc nghiệm AI Gemini, Điểm danh tự động sync Google Sheets, Nhập/Xuất Sổ điểm Excel.
+============================================================================
+-->
+
 # BỘ KỊCH BẢN KIỂM THỬ CHI TIẾT TOÀN DIỆN DÀNH CHO GIÁO VIÊN (TEACHER DETAILED TEST CASES)
 
 > **Mục đích:** Danh sách kịch bản kiểm thử (Test Cases) chi tiết với đầy đủ các trường hợp kiểm thử (Positive, Negative, Boundary, Security, Edge Cases) cho từng tính năng dành riêng cho Giáo viên (Teacher) trên hệ thống Quản lý Học tập ClassRoom.

@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: authMiddleware.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/middlewares/authMiddleware.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp các Middleware xác thực JWT Token (`protect`) và phân quyền người dùng (`authorize`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `protect`: Trích xuất `Bearer <token>` từ header `Authorization`, giải mã JWT bằng `JWT_SECRET`, gắn đối tượng `user` vào `req.user`.
+ *   - `authorize(...roles)`: Middleware Phân quyền Role-Based Access Control (RBAC). Kiểm tra `req.user.role` có nằm trong mảng quyền cho phép hay không.
+ * ============================================================================
+ */
+
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/User';

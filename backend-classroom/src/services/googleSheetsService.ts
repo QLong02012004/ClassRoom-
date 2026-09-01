@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: googleSheetsService.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/services/googleSheetsService.ts
+ * MỤC ĐÍCH:
+ *   Dịch vụ tích hợp Google Sheets API (v4) & Google Drive API (v3) bằng Service Account credentials (`google-key.json`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nạp Service Account Key từ biến môi trường `GOOGLE_SERVICE_ACCOUNT_KEY` hoặc file `google-key.json`.
+ *   - `createSheetForClassroom`: Tự động tạo bảng Google Sheet điểm danh mới và phân quyền ghi cho email Giáo viên.
+ *   - `syncAttendanceToSheet`: Tự động ghi nối các dòng bản ghi điểm danh (Ngày, Mã HS, Họ Tên, Email, Trạng Thái, Ghi Chú) lên Google Sheet thời gian thực.
+ * ============================================================================
+ */
+
 import { google } from 'googleapis';
 import path from 'path';
 import fs from 'fs';

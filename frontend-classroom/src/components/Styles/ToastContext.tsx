@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: ToastContext.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/components/Styles/ToastContext.tsx
+ * MỤC ĐÍCH:
+ *   Quản lý Thông báo Toast Toàn cục (Global Toast Notification Context).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý danh sách hàng đợi các thông báo `toasts` (success, error, warning, info).
+ *   - Tự động xóa toast theo thời gian `duration` hiển thị.
+ *   - Cung cấp Custom Hook `useToast()` cho các component gọi trực tiếp (ví dụ: `toast.success('Lưu thành công!')`).
+ * ============================================================================
+ */
+
 import React, { createContext, useContext, useState, useCallback } from "react";
 import ToastContainer from "./Toast.tsx";
 

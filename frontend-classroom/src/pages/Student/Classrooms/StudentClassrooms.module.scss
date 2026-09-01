@@ -63,6 +63,28 @@
   }
 }
 
+.headerStats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  white-space: nowrap;
+}
+
 /* --- 2. CLASSES GRID --- */
 .classesGrid {
   display: grid;

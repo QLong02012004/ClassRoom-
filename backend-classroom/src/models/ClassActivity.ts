@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: ClassActivity.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/ClassActivity.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Hoạt động học tập (Class Activities) được Giáo viên giao cho lớp.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Liên kết tới lớp học (`classId`) và bài gốc trong ngân hàng (`bankItemId`).
+ *   - Phân loại theo loại hình (`type`: 'quiz' trắc nghiệm hoặc 'document' tự luận).
+ *   - Quản lý hạn nộp (`dueDate`), điểm tối đa (`maxScore`), danh mục (`category`) và thời gian làm bài trắc nghiệm (`durationMinutes`).
+ *   - Lưu trạng thái đóng/mở làm bài (`status`: QuizStatus).
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 import { QuizStatus } from '../constants/enums';
 import { BankItemType } from './BankItem';
@@ -12,6 +27,7 @@ export interface IClassActivity extends Document {
     maxScore: number;
     category: string;
     allowMultipleSubmissions: boolean;
+    startDate?: Date;
 
     // For quizzes
     durationMinutes?: number;
@@ -30,6 +46,7 @@ const ClassActivitySchema = new Schema<IClassActivity>({
     maxScore: { type: Number, default: 10 },
     category: { type: String, default: 'homework' },
     allowMultipleSubmissions: { type: Boolean, default: true },
+    startDate: { type: Date, default: Date.now },
 
     durationMinutes: { type: Number },
     status: { type: String, enum: Object.values(QuizStatus) },

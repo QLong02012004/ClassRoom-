@@ -1,7 +1,14 @@
 /**
- * SCRIPT: DỌN SẠCH & SEED DỮ LIỆU TỔNG HỢP
- * Tác dụng: Xóa sạch toàn bộ dữ liệu cũ và tiến hành tạo lại mới toàn bộ các tài khoản Admin,
- * Giáo viên mẫu, 5 Lớp học mẫu và 20 Học sinh mẫu được chia đều vào các lớp.
+ * ============================================================================
+ * TÊN FILE: cleanAndSeedAll.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/scripts/cleanAndSeedAll.ts
+ * MỤC ĐÍCH:
+ *   Script Dọn Dẹp Sạch & Khởi Tạo Dữ Liệu Mẫu Môi Trường Phát Triển (Full Clean & Seed).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Xóa sạch toàn bộ dữ liệu trong MongoDB Collections (`Users`, `Classes`, `Activities`, `Grades`, `Submissions`, `Attendance`, `Announcements`, `Schedules`).
+ *   - Tạo mới tài khoản Admin (`admin@gmail.com`), Giáo viên mẫu (`teacher@gmail.com`), 5 Lớp học mẫu và 20 Học sinh mẫu với mật khẩu mặc định.
+ * ============================================================================
  */
 
 import mongoose from 'mongoose';

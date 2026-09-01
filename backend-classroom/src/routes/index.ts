@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * TÊN FILE: index.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/index.ts
+ * MỤC ĐÍCH:
+ *   Router Tổng (Master API Router) hợp nhất toàn bộ các đường dẫn phụ thành tiền tố API `/api/v1`.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Gom các sub-routers: Auth, Users, Dashboard, Classrooms, Attendance, Grades, Schedule, Announcements, Notifications, Bank, Analytics, Chat, Material, Settings, Upload.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import authRoutes from './authRoutes';
 import userRoutes from './userRoutes';

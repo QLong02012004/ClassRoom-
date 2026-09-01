@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Material.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Material.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Kho Tài liệu Tham khảo Công khai (Materials).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lưu trữ tên tài liệu (`title`), môn học (`subject`), khối lớp (`grade`), mô tả (`description`).
+ *   - Phân loại tệp (`type`: 'pdf', 'doc', 'video', 'link'), dung lượng (`size`), đường dẫn tệp (`fileUrl`).
+ *   - Định danh người tải lên (`uploaderId`) và cờ công khai (`isPublic`).
+ * ============================================================================
+ */
+
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IMaterial extends Document {

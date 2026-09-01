@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Announcement.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Announcement.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Bài đăng Bảng tin Lớp học (Announcements).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý bài đăng của lớp học (`classId`), tác giả đăng (`authorId`), loại thông báo (`type`).
+ *   - Hỗ trợ danh sách tệp đính kèm (`attachments`), ghim bài viết (`isPinned`), mảng lượt thích (`likes`).
+ *   - Nhúng mảng bình luận (`comments`) kèm lượt thích bình luận và liên kết người bình luận.
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 import { AnnouncementType } from '../constants/enums';
 

@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: MaintenancePage.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/pages/MaintenancePage.tsx
+ * MỤC ĐÍCH:
+ *   Giao diện Chế độ Bảo trì Hệ thống (System Maintenance Screen).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Hiển thị khi Admin bật cờ `maintenanceMode: true` trong cài đặt hệ thống.
+ *   - Khóa quyền truy cập của Học sinh và Giáo viên, hiển thị nút "Kiểm tra lại" và nút "Đăng xuất".
+ * ============================================================================
+ */
+
 import React from 'react';
 import { Wrench, ShieldWarning, ArrowClockwise, SignOut } from 'phosphor-react';
 import { useAuth } from '@/context/AuthContext';

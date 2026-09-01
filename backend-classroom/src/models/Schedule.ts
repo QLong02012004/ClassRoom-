@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Schedule.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Schedule.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Thời khóa biểu giảng dạy (Schedules).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lưu trữ ca học theo ngày trong tuần (`dayOfWeek`: 1 thứ 2 -> 7 Chủ nhật).
+ *   - Giờ bắt đầu (`startTime`), giờ kết thúc (`endTime`), tên bài/chương (`chapter`) và tỷ lệ tiến độ bài giảng (`progress`: 0-100%).
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface ISchedule extends Document {

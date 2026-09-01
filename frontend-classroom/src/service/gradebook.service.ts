@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * TÊN FILE: gradebook.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/gradebook.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `gradebookService` gọi API HTTP lấy Sổ điểm, lưu điểm số,
+ *   lấy danh sách bài nộp và trao đổi bình luận bài tập.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định nghĩa TypeScript Interfaces: `IAssignment`, `IGrade`, `IGradebookData`, `ISubmission`.
+ *   - Kết nối với RESTful API Backend qua `api.get` và `api.post`.
+ *
+ * THÀNH PHẦN CHÍNH:
+ *   - `getClassroomGrades`: Lấy toàn bộ Sổ điểm của lớp học.
+ *   - `saveGrades`: Lưu điểm hàng loạt cho học sinh trong bài tập.
+ *   - `getStudentGrades`: Học sinh xem bảng tổng hợp điểm cá nhân.
+ *   - `submitAssignment`: Học sinh gửi file nộp bài tự luận.
+ *   - `getAssignmentSubmissions`: Giáo viên lấy toàn bộ danh sách nộp bài để chấm điểm.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 

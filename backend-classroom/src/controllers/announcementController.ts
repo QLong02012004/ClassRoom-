@@ -1,3 +1,26 @@
+/**
+ * ============================================================================
+ * TÊN FILE: announcementController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/announcementController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Bảng tin (Stream Feed) của Lớp học: Tạo thông báo, ghim bài viết,
+ *   bình luận, trả lời bình luận, thích bài viết/bình luận và gửi thông báo chuông.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/announcements`).
+ *   - Truy vấn `AnnouncementModel`, `ClassModel`, `UserModel`.
+ *   - Khi có bài đăng hoặc bình luận mới: Tự động gửi thông báo chuông (`createUserNotification`) tới các thành viên được tag hoặc tác giả bài đăng.
+ *   - Gọi `notifyClassroomFeedUpdate` qua WebSockets để cập nhật Bảng tin thời gian thực cho toàn bộ lớp học.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getAnnouncements`: Lấy danh sách thông báo bảng tin của lớp học.
+ *   - `createAnnouncement`: Giáo viên/Học sinh tạo bài đăng thông báo mới.
+ *   - `addComment` & `deleteComment`: Thêm/Xóa bình luận bài đăng (hỗ trợ tag reply `@Name`).
+ *   - `togglePin`: Ghim hoặc bỏ ghim bài đăng quan trọng lên đầu bảng tin.
+ *   - `likeAnnouncement` & `likeComment`: Thích / Bỏ thích bài đăng hoặc bình luận.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { AnnouncementModel } from '../models/Announcement';
 import { UserModel } from '../models/User';

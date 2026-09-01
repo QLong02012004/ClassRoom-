@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * TÊN FILE: material.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/material.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `materialService` gọi API HTTP quản lý Thư viện Tài liệu Tham khảo công khai.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lấy danh sách tài liệu (`getPublicMaterials`), tạo mới (`createMaterial`), xóa (`deleteMaterial`).
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 
 export interface IMaterialData {

@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: materialRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/materialRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Kho Tài liệu Tham khảo (`/api/v1/materials/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `GET /`: Lấy danh sách tài liệu công khai cho học sinh/giáo viên.
+ *   - `POST /` & `DELETE /:id`: Admin tạo hoặc xóa tài liệu học tập.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import { getPublicMaterials, createMaterial, deleteMaterial } from '../controllers/materialController';
 import { protect, authorize } from '../middlewares/authMiddleware';

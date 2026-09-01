@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: announcement.service.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/service/announcement.service.ts
+ * MỤC ĐÍCH:
+ *   Cung cấp đối tượng `announcementService` gọi API HTTP quản lý Bảng tin lớp học
+ *   (Tạo bài đăng, bình luận, ghim bài viết, thích bài viết/bình luận).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Kết nối tới các endpoints `/api/v1/announcements/*`.
+ *   - Định nghĩa các TypeScript Interface: `IAnnouncement`, `IComment`, `IAttachment`.
+ * ============================================================================
+ */
+
 import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 
@@ -48,6 +62,14 @@ export const announcementService = {
     attachments?: IAttachment[];
   }): Promise<IBackendRes<IAnnouncement>> => {
     return await api.post('/api/v1/announcements', data);
+  },
+
+  // Chỉnh sửa thông báo
+  updateAnnouncement: async (
+    announcementId: string,
+    data: { content?: string; attachments?: IAttachment[] }
+  ): Promise<IBackendRes<IAnnouncement>> => {
+    return await api.put(`/api/v1/announcements/${announcementId}`, data);
   },
 
   // Gửi bình luận

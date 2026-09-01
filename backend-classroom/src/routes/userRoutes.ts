@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: userRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/userRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Quản lý Người dùng (`/api/v1/users/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định tuyến yêu cầu cập nhật Profile, đổi mật khẩu, đổi role, tạo mật khẩu Google sang `userController.ts`.
+ *   - Bảo mật qua Middleware `protect` và kiểm tra quyền `authorize('admin', 'teacher')`.
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import { getUsers, updateUserStatus, updateUserRole, resetUserPassword, deleteUser, updateProfile, changePassword, updateUser, sendPasswordOTP, setupGooglePassword } from '../controllers/userController';
 import { protect, authorize } from '../middlewares/authMiddleware';

@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * TÊN FILE: authService.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/services/authService.ts
+ * MỤC ĐÍCH:
+ *   Dịch vụ xử lý Logic Nghiệp vụ Xác thực (Authentication Business Logic Services).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `createAccountService`: Tạo tài khoản mới, kiểm tra Email hợp lệ tránh Spam/Domain rác, băm mật khẩu bằng Bcrypt.
+ *   - `registerTeacherService`: Đăng ký Giáo viên, tạo mã OTP xác nhận Email 10 phút.
+ *   - `generateTokens` & `verifyAccessToken` & `verifyRefreshToken`: Khởi tạo và giải mã cặp JWT Access/Refresh Token.
+ *   - `loginService`: Đăng nhập bằng Email/Password, xác thực trạng thái PENDING/LOCKED.
+ *   - `googleAuthService`: Đăng nhập/Đăng ký siêu tốc bằng Google OAuth 2.0 (Google One-Tap ID Token).
+ * ============================================================================
+ */
+
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserModel } from '../models/User';

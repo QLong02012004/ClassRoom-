@@ -66,6 +66,7 @@ export default function TeacherClassrooms() {
   const navigate = useNavigate();
   const [classrooms, setClassrooms] = useState<ITeacherClassroom[]>([]);
   const [schedules, setSchedules] = useState<ISchedule[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -261,6 +262,7 @@ export default function TeacherClassrooms() {
   };
 
   const loadData = async () => {
+    setLoading(true);
     try {
       const [classRes, schedRes] = await Promise.all([
         classroomService.getTeacherClassrooms(),
@@ -274,6 +276,8 @@ export default function TeacherClassrooms() {
       }
     } catch (error) {
       toast.error("Không thể tải danh sách lớp học");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -573,190 +577,215 @@ export default function TeacherClassrooms() {
       )}
 
       {viewMode === 'grid' ? (
-        <div className={styles.classesGrid}>
-          {filteredClassrooms.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-slate-500 font-medium flex justify-center items-center w-full">
-              <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
-                <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
-                <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy lớp học</p>
-                <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy lớp học nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
+        loading ? (
+          <div className={styles.classesGrid}>
+            {Array.from({ length: 6 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="bg-white border-2 border-slate-200 rounded-[20px] p-5 flex flex-col justify-between gap-4 animate-pulse min-h-[230px] shadow-2xs"
+              >
+                <div className="flex justify-between items-center">
+                  <div className="h-5 w-24 bg-slate-200 rounded-lg" />
+                  <div className="h-5 w-16 bg-slate-200 rounded-full" />
+                </div>
+                <div className="flex flex-col gap-2 mt-2">
+                  <div className="h-6 w-3/4 bg-slate-200 rounded-lg" />
+                  <div className="h-4 w-1/2 bg-slate-100 rounded-md" />
+                </div>
+                <div className="h-10 w-full bg-slate-100/90 rounded-xl mt-2 border border-slate-100" />
+                <div className="flex gap-2 pt-3 border-t border-slate-100 mt-auto">
+                  <div className="h-8 flex-1 bg-slate-100 rounded-xl" />
+                  <div className="h-8 flex-1 bg-slate-100 rounded-xl" />
+                  <div className="h-8 flex-1 bg-slate-100 rounded-xl" />
+                </div>
               </div>
+            ))}
+          </div>
+        ) : filteredClassrooms.length === 0 ? (
+          <div className="col-span-full py-16 text-center text-slate-500 font-medium flex justify-center items-center w-full">
+            <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+              <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+              <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy lớp học</p>
+              <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy lớp học nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
             </div>
-          ) : paginatedClassrooms.map((cls) => (
-            <div
-              key={cls._id}
-              className={styles.classCard}
-            >
-              <div className={styles.cardTop}>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className={styles.subjectTag}>{cls.subject || 'Môn học chung'}</span>
-                  {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPendingRequestsModal(cls);
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#2f8fa3] text-white font-extrabold text-[10px] shadow-xs hover:bg-[#257385] cursor-pointer transition-all hover:scale-105 active:scale-95 animate-pulse"
-                      title="Nhấn để duyệt học sinh đang chờ gia nhập lớp"
-                    >
-                      <UserPlus size={12} weight="bold" />
-                      <span>Duyệt ({cls.pendingRequestsCount})</span>
-                    </button>
-                  )}
-                  {cls.status === 'Pending' ? (
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f47c20]/10 border border-[#f47c20]/30 text-[#d66b1a] font-bold text-[10px] shadow-[0_0_8px_rgba(244,124,32,0.25)]">
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f47c20] opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-[#f47c20]"></span>
-                      </span>
-                      <span className="uppercase tracking-wider whitespace-nowrap">Chờ duyệt</span>
-                    </div>
-                  ) : cls.status === 'Locked' ? (
-                    <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200 uppercase whitespace-nowrap">Đã khóa</span>
-                  ) : cls.status === 'Closed' ? (
-                    <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-300 uppercase whitespace-nowrap">Đã đóng</span>
-                  ) : (
-                    <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200 uppercase whitespace-nowrap">Hoạt động</span>
-                  )}
-                </div>
-                <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
-                  <ClassroomActionMenu
-                    isPinned={pinnedIds.includes(cls._id)}
-                    onTogglePin={() => togglePin(null, cls._id)}
-                    isGridView
-                    onViewDetail={() => {
-                      if (cls.status === 'Pending') {
-                        toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
-                      } else if (cls.status === 'Locked') {
-                        toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
-                      } else if (cls.status === 'Closed') {
-                        toast.warning('Lớp học đã bị đóng, không thể truy cập.');
-                      } else {
-                        navigate(`/classrooms/${cls._id}`);
-                      }
-                    }}
-                    onEdit={() => handleEditClick(null, cls)}
-                    onAddStudent={() => openPendingRequestsModal(cls)}
-                    onArchive={() => handleArchiveClick(null, cls)}
-                    onToggleClose={cls.status !== 'Locked' && cls.status !== 'Pending' && cls.status !== 'Archived' ? () => handleToggleCloseClick(null, cls) : undefined}
-                    isClosed={cls.status === 'Closed'}
-                  />
-                </div>
-              </div>
-
+          </div>
+        ) : (
+          <div className={styles.classesGrid}>
+            {paginatedClassrooms.map((cls) => (
               <div
-                className="block flex-1 transition-opacity"
-                onClick={(e) => {
-                  if (cls.status === 'Pending') {
-                    e.preventDefault();
-                    toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
-                  } else if (cls.status === 'Locked') {
-                    e.preventDefault();
-                    toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
-                  } else if (cls.status === 'Closed') {
-                    e.preventDefault();
-                    toast.warning('Lớp học đã bị đóng, không thể truy cập.');
-                  } else {
-                    navigate(`/classrooms/${cls._id}`);
-                  }
-                }}
-                style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 'not-allowed' : 'pointer', opacity: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 0.6 : 1 }}
+                key={cls._id}
+                className={styles.classCard}
               >
-                <div className={styles.cardMiddle}>
-                  <div className="flex justify-between items-center gap-3">
-                    <h3 className={`${styles.classTitle} truncate flex-1`} title={cls.name}>
-                      {cls.name}
-                    </h3>
-                    <button
-                      onClick={(e) => handleCopyCode(e, cls.code)}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold text-[#2f8fa3] bg-[#2f8fa3]/8 hover:bg-[#2f8fa3]/15 border border-[#2f8fa3]/20 rounded-md transition-all cursor-pointer select-none shadow-3xs shrink-0"
-                      title="Nhấn để sao chép mã lớp"
-                    >
-                      <span className="font-mono uppercase tracking-wider">{cls.code || 'N/A'}</span>
-                      <ClipboardText size={12} className="text-[#2f8fa3]/70" />
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-2.5 text-slate-500 text-[13px] font-medium">
-                    <Clock size={14} weight="duotone" className="text-orange-500" />
-                    <span>Tiết tiếp theo: {getNextScheduleText(cls._id)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* ACTIONABLE INFO STRIP */}
-              <div
-                onClick={(e) => {
-                  if (cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0) {
-                    e.stopPropagation();
-                    openPendingRequestsModal(cls);
-                  } else if (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') {
-                    e.preventDefault();
-                  } else {
-                    navigate(`/classrooms/${cls._id}?tab=activities`);
-                  }
-                }}
-                style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') && !(cls.pendingRequestsCount && cls.pendingRequestsCount > 0) ? 'not-allowed' : 'pointer' }}
-              >
-                <div className={styles.actionableStrip}>
-                  {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 ? (
-                    <div className={styles.actionBadgePending} style={{ backgroundColor: '#e0f2fe', color: '#0284c7', borderColor: '#7dd3fc' }}>
-                      <UserPlus size={14} weight="bold" />
-                      <span>Có {cls.pendingRequestsCount} học sinh chờ duyệt</span>
-                    </div>
-                  ) : cls.pendingGrades !== undefined && cls.pendingGrades > 0 ? (
-                    <div className={styles.actionBadgePending}>
-                      <ClipboardText size={14} weight="bold" />
-                      <span>{cls.pendingGrades} bài cần chấm</span>
-                    </div>
-                  ) : cls.latestAssignmentTitle ? (
-                    <div className={styles.actionBadgeInfo}>
-                      <BookOpen size={14} weight="duotone" />
-                      <span className={styles.truncate}>BT: {cls.latestAssignmentTitle}</span>
-                      {cls.latestAssignmentDue && (
-                        <span className={styles.dueDate}>
-                          &bull; {new Date(cls.latestAssignmentDue).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                <div className={styles.cardTop}>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={styles.subjectTag}>{cls.subject || 'Môn học chung'}</span>
+                    {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openPendingRequestsModal(cls);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#2f8fa3] text-white font-extrabold text-[10px] shadow-xs hover:bg-[#257385] cursor-pointer transition-all hover:scale-105 active:scale-95 animate-pulse"
+                        title="Nhấn để duyệt học sinh đang chờ gia nhập lớp"
+                      >
+                        <UserPlus size={12} weight="bold" />
+                        <span>Duyệt ({cls.pendingRequestsCount})</span>
+                      </button>
+                    )}
+                    {cls.status === 'Pending' ? (
+                      <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f47c20]/10 border border-[#f47c20]/30 text-[#d66b1a] font-bold text-[10px] shadow-[0_0_8px_rgba(244,124,32,0.25)]">
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f47c20] opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-[#f47c20]"></span>
                         </span>
-                      )}
+                        <span className="uppercase tracking-wider whitespace-nowrap">Chờ duyệt</span>
+                      </div>
+                    ) : cls.status === 'Locked' ? (
+                      <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded text-[10px] font-bold border border-red-200 uppercase whitespace-nowrap">Đã khóa</span>
+                    ) : cls.status === 'Closed' ? (
+                      <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-300 uppercase whitespace-nowrap">Đã đóng</span>
+                    ) : (
+                      <span className="bg-emerald-100 text-emerald-600 px-2 py-0.5 rounded text-[10px] font-bold border border-emerald-200 uppercase whitespace-nowrap">Hoạt động</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2 items-center" onClick={(e) => e.stopPropagation()}>
+                    <ClassroomActionMenu
+                      isPinned={pinnedIds.includes(cls._id)}
+                      onTogglePin={() => togglePin(null, cls._id)}
+                      isGridView
+                      onViewDetail={() => {
+                        if (cls.status === 'Pending') {
+                          toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+                        } else if (cls.status === 'Locked') {
+                          toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                        } else if (cls.status === 'Closed') {
+                          toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                        } else {
+                          navigate(`/classrooms/${cls._id}`);
+                        }
+                      }}
+                      onEdit={() => handleEditClick(null, cls)}
+                      onAddStudent={() => openPendingRequestsModal(cls)}
+                      onArchive={() => handleArchiveClick(null, cls)}
+                      onToggleClose={cls.status !== 'Locked' && cls.status !== 'Pending' && cls.status !== 'Archived' ? () => handleToggleCloseClick(null, cls) : undefined}
+                      isClosed={cls.status === 'Closed'}
+                    />
+                  </div>
+                </div>
+
+                <div
+                  className="block flex-1 transition-opacity"
+                  onClick={(e) => {
+                    if (cls.status === 'Pending') {
+                      e.preventDefault();
+                      toast.info('Lớp học đang chờ Admin duyệt, chưa thể truy cập.');
+                    } else if (cls.status === 'Locked') {
+                      e.preventDefault();
+                      toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                    } else if (cls.status === 'Closed') {
+                      e.preventDefault();
+                      toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                    } else {
+                      navigate(`/classrooms/${cls._id}`);
+                    }
+                  }}
+                  style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 'not-allowed' : 'pointer', opacity: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') ? 0.6 : 1 }}
+                >
+                  <div className={styles.cardMiddle}>
+                    <div className="flex justify-between items-center gap-3">
+                      <h3 className={`${styles.classTitle} truncate flex-1`} title={cls.name}>
+                        {cls.name}
+                      </h3>
+                      <button
+                        onClick={(e) => handleCopyCode(e, cls.code)}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-bold text-[#2f8fa3] bg-[#2f8fa3]/8 hover:bg-[#2f8fa3]/15 border border-[#2f8fa3]/20 rounded-md transition-all cursor-pointer select-none shadow-3xs shrink-0"
+                        title="Nhấn để sao chép mã lớp"
+                      >
+                        <span className="font-mono uppercase tracking-wider">{cls.code || 'N/A'}</span>
+                        <ClipboardText size={12} className="text-[#2f8fa3]/70" />
+                      </button>
                     </div>
-                  ) : (
-                    <div className={styles.actionBadgeGood}>
-                      <span>✔ Chưa có bài tập nào</span>
+                    <div className="flex items-center gap-1.5 mt-2.5 text-slate-500 text-[13px] font-medium">
+                      <Clock size={14} weight="duotone" className="text-orange-500" />
+                      <span>Tiết tiếp theo: {getNextScheduleText(cls._id)}</span>
                     </div>
-                  )}
+                  </div>
+                </div>
+
+                {/* ACTIONABLE INFO STRIP */}
+                <div
+                  onClick={(e) => {
+                    if (cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0) {
+                      e.stopPropagation();
+                      openPendingRequestsModal(cls);
+                    } else if (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') {
+                      e.preventDefault();
+                    } else {
+                      navigate(`/classrooms/${cls._id}?tab=activities`);
+                    }
+                  }}
+                  style={{ cursor: (cls.status === 'Pending' || cls.status === 'Locked' || cls.status === 'Closed') && !(cls.pendingRequestsCount && cls.pendingRequestsCount > 0) ? 'not-allowed' : 'pointer' }}
+                >
+                  <div className={styles.actionableStrip}>
+                    {cls.pendingRequestsCount !== undefined && cls.pendingRequestsCount > 0 ? (
+                      <div className={styles.actionBadgePending} style={{ backgroundColor: '#e0f2fe', color: '#0284c7', borderColor: '#7dd3fc' }}>
+                        <UserPlus size={14} weight="bold" />
+                        <span>Có {cls.pendingRequestsCount} học sinh chờ duyệt</span>
+                      </div>
+                    ) : cls.pendingGrades !== undefined && cls.pendingGrades > 0 ? (
+                      <div className={styles.actionBadgePending}>
+                        <ClipboardText size={14} weight="bold" />
+                        <span>{cls.pendingGrades} bài cần chấm</span>
+                      </div>
+                    ) : cls.latestAssignmentTitle ? (
+                      <div className={styles.actionBadgeInfo}>
+                        <BookOpen size={14} weight="duotone" />
+                        <span className={styles.truncate}>BT: {cls.latestAssignmentTitle}</span>
+                        {cls.latestAssignmentDue && (
+                          <span className={styles.dueDate}>
+                            &bull; {new Date(cls.latestAssignmentDue).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className={styles.actionBadgeGood}>
+                        <span>✔ Chưa có bài tập nào</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.cardFooter}>
+                  <Link
+                    to={`/classrooms/${cls._id}/students`}
+                    className={styles.quickActionBtn}
+                    title="Học sinh"
+                  >
+                    <Users size={16} weight="bold" />
+                    <span>Học sinh ({cls.students?.length || 0})</span>
+                  </Link>
+                  <Link
+                    to={`/attendance?classId=${cls._id}`}
+                    className={styles.attendanceBtn}
+                    title="Điểm danh"
+                  >
+                    <CheckSquare size={16} weight="bold" />
+                    <span>Điểm danh</span>
+                  </Link>
+                  <Link
+                    to={`/gradebook?classId=${cls._id}`}
+                    className={styles.quickActionBtn}
+                    title="Sổ điểm"
+                  >
+                    <ClipboardText size={16} weight="bold" />
+                    <span>Sổ điểm</span>
+                  </Link>
                 </div>
               </div>
-
-              <div className={styles.cardFooter}>
-                <Link
-                  to={`/classrooms/${cls._id}/students`}
-                  className={styles.quickActionBtn}
-                  title="Học sinh"
-                >
-                  <Users size={16} weight="bold" />
-                  <span>Học sinh ({cls.students?.length || 0})</span>
-                </Link>
-                <Link
-                  to={`/attendance?classId=${cls._id}`}
-                  className={styles.attendanceBtn}
-                  title="Điểm danh"
-                >
-                  <CheckSquare size={16} weight="bold" />
-                  <span>Điểm danh</span>
-                </Link>
-                <Link
-                  to={`/gradebook?classId=${cls._id}`}
-                  className={styles.quickActionBtn}
-                  title="Sổ điểm"
-                >
-                  <ClipboardText size={16} weight="bold" />
-                  <span>Sổ điểm</span>
-                </Link>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
+            ))}
+          </div>
+        )) : (
         /* TABLE VIEW - SYNCHRONIZED WITH ActivitiesTable & HeroUI Table */
         <div className="mt-2 flex flex-col gap-4">
           <Table>

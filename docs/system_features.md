@@ -1,3 +1,16 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: system_features.md
+ĐƯỜNG DẪN: docs/system_features.md
+MỤC ĐÍCH:
+  Tổng Quan Chức Năng & Phân Quyền Hệ Thống (System Features & Roles Overview).
+
+CÁCH THỨC SỬ DỤNG:
+  - Cung cấp tóm tắt chức năng theo các vai trò (Common, Student, Teacher, Admin).
+  - Giải thích chi tiết các Widget Phân tích Dashboard Học sinh và cơ chế thưởng điểm XP Gamification.
+============================================================================
+-->
+
 # Tổng quan Chức năng & Phân quyền Hệ thống (ClassRoom)
 
 Tài liệu này hệ thống hóa toàn bộ các chức năng và logic nghiệp vụ của trang web, được phân chia theo từng nhóm quyền (Role) cụ thể.

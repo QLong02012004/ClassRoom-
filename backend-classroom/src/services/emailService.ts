@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: emailService.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/services/emailService.ts
+ * MỤC ĐÍCH:
+ *   Dịch vụ gửi Email tự động bằng Nodemailer (Xác thực OTP Email & Thiết lập mật khẩu mới).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Khởi tạo Nodemailer Transporter với SMTP Gmail credentials.
+ *   - `generateOTP`: Sinh chuỗi 6 chữ số ngẫu nhiên.
+ *   - `sendVerificationEmail`: Gửi email xác nhận đăng ký tài khoản với HTML Template đẹp mắt.
+ *   - `sendPasswordSetupEmail`: Gửi email OTP xác nhận tạo mật khẩu mới cho tài khoản Google.
+ * ============================================================================
+ */
+
 import nodemailer from 'nodemailer';
 
 // Cấu hình transporter (sử dụng Gmail làm ví dụ, nhưng có thể dùng Ethereal cho test)

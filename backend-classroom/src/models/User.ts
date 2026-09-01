@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * TÊN FILE: User.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/User.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Mongoose Schema & TypeScript Interface cho Người dùng (Users) trong hệ thống:
+ *   Admin, Giáo viên (Teacher) và Học sinh (Student).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý các trường thông tin tài khoản: Email, băm mật khẩu (`passwordHash`), vai trò (`role`), trạng thái (`status`).
+ *   - Lưu giữ hồ sơ cá nhân: Họ tên, ảnh đại diện, ngày sinh, giới tính, môn dạy (nếu là GV), SĐT phụ huynh (nếu là HS).
+ *   - Lưu thông số Gamification: Điểm XP, Cấp độ Level, Chuỗi Streak đăng nhập/học tập.
+ *   - Quản lý xác thực OTP Email và cờ `isGoogleAccount` cho đăng nhập Google.
+ * ============================================================================
+ */
+
 import { Schema, model, Document } from 'mongoose';
 import { UserRole, UserStatus } from '../constants/enums';
 

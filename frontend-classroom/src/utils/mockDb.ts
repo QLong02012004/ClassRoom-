@@ -1,8 +1,15 @@
-// -------------------------------------------------------------
-// HỆ THỐNG CƠ SỞ DỮ LIỆU GIẢ LẬP (MOCK DATABASE) CHO FRONTEND
-// Lưu trữ trực tiếp trong LocalStorage để duy trì dữ liệu khi F5
-// Cung cấp các hàm CRUD để xử lý dữ liệu dễ dàng.
-// -------------------------------------------------------------
+/**
+ * ============================================================================
+ * TÊN FILE: mockDb.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/utils/mockDb.ts
+ * MỤC ĐÍCH:
+ *   Hệ thống Cơ sở dữ liệu giả lập (Mock Database System) cho ứng dụng Frontend.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lưu trữ dữ liệu mẫu (Users, Classrooms, Students, Attendances, Announcements, Assignments, Quizzes) trong LocalStorage (`classroom_mock_db`).
+ *   - Cung cấp toàn bộ các hàm CRUD xử lý dữ liệu chạy độc lập không phụ thuộc Backend khi thử nghiệm giao diện.
+ * ============================================================================
+ */
 
 export interface User {
   _id: string;
@@ -301,7 +308,7 @@ const INITIAL_DATABASE: DbSchema = {
       ],
       type: "reminder",
       files: [
-        { name: "BT_Dao_Ham_Tuan_4.pdf", size: "2.4 MB", url: "#" }
+        { name: "BT_Dao_Ham_Tuan_4.pdf", size: "2.4 MB", url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" }
       ],
       likes: 12
     },
@@ -347,7 +354,7 @@ const INITIAL_DATABASE: DbSchema = {
           studentId: "student-1",
           studentName: "Học sinh A",
           submittedAt: "2026-06-03T10:00:00.000Z",
-          fileUrl: "/bai_lam_binh.pdf",
+          fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
           textAnswer: "Em đã hoàn thành đầy đủ bài tập tự luận thầy giao ạ.",
           grade: 9.0,
           feedback: "Trình bày bài sạch sẽ, lập luận chặt chẽ. Cần chú ý thêm điều kiện xác định ở câu 4.",
@@ -357,7 +364,7 @@ const INITIAL_DATABASE: DbSchema = {
           studentId: "student-2",
           studentName: "Lê Thị Chi",
           submittedAt: "2026-06-03T14:20:00.000Z",
-          fileUrl: "/bai_lam_chi.pdf",
+          fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
           grade: null,
           feedback: null,
           status: "submitted"
@@ -419,7 +426,7 @@ export const initMockDb = (): DbSchema => {
 
   const needsReset = !parsedDb ||
     !parsedDb.classrooms ||
-    parsedDb.students.some(s => s.name === "Trần Văn Bình");
+    parsedDb.assignments?.some(a => a.submissions?.some(s => s.fileUrl?.includes(".pdf") && !s.fileUrl?.startsWith("http")));
 
   if (needsReset) {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_DATABASE));

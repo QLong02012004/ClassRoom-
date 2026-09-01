@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: index.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/routes/index.tsx
+ * MỤC ĐÍCH:
+ *   Cấu hình Hệ thống Định tuyến Client (React Router v6 - Data Router API).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Định nghĩa tất cả các routes: `/login`, `/dashboard`, `/classrooms`, `/gradebook`, `/bank`, `/admin/*`, `/practice`, `/materials`, `/chat`.
+ *   - Phân tuyến thông minh theo vai trò: `RoleRedirect` (định hướng trang chủ thích hợp cho Admin/Teacher/Student), `ClassroomDetailRouter` (hiển thị trang chi tiết theo vai trò).
+ *   - Bảo mật theo từng cấp độ: `ProtectedRoute`, `AdminRoute`, `TeacherOrAdminRoute`.
+ * ============================================================================
+ */
+
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Login from "../pages/Auth/Login/Login";
 import Dashboard from "../pages/Dashboard";

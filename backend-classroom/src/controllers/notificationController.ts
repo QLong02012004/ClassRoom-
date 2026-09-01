@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * TÊN FILE: notificationController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/notificationController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Thông báo Chuông (Notification Popover) của người dùng: Thông báo chấm điểm,
+ *   thông báo gia nhập lớp, thông báo bài đăng bảng tin, đánh dấu đã đọc & xóa thông báo.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/notifications`).
+ *   - Truy vấn `NotificationModel` theo người nhận (`recipientId` hoặc `recipientRole`).
+ *   - Trả về số lượng chưa đọc (`unreadCount`) cho badge quả chuông trên thanh TopHeader.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getNotifications`: Lấy danh sách thông báo và số lượng chưa đọc của tài khoản hiện tại.
+ *   - `markAsRead`: Đánh dấu 1 thông báo cụ thể là đã đọc.
+ *   - `markAllAsRead`: Đánh dấu tất cả thông báo của người dùng là đã đọc.
+ *   - `deleteNotification`: Xóa 1 thông báo khỏi danh sách.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { NotificationModel } from '../models/Notification';
 import mongoose from 'mongoose';

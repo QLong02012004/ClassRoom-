@@ -1,3 +1,25 @@
+/**
+ * ============================================================================
+ * TÊN FILE: attendanceController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/attendanceController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Điểm danh (Attendance) học sinh theo ngày, lưu trữ lịch sử điểm danh
+ *   và tự động đồng bộ bất đồng bộ dữ liệu điểm danh sang file Google Sheets của lớp học.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/attendance`).
+ *   - Thao tác trên `AttendanceModel`.
+ *   - Khi Giáo viên lưu điểm danh (`saveAttendance`): Sử dụng cơ chế Upsert (tạo mới hoặc cập nhật bản ghi cùng ngày).
+ *   - Khởi chạy tiến trình nền `GoogleSheetsService.syncAttendanceToSheet` để tự động đẩy trạng thái điểm danh (Present/Late/Absent) sang Google Sheet của lớp.
+ *   - Đẩy sự kiện WebSockets `notifyAdminStatsUpdate` cập nhật tỷ lệ chuyên cần thời gian thực trên Admin Dashboard.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getAttendance`: Lấy danh sách trạng thái điểm danh học sinh của 1 ngày cụ thể.
+ *   - `saveAttendance`: Lưu hoặc cập nhật trạng thái điểm danh lớp học (kèm đồng bộ Google Sheet).
+ *   - `getAttendanceHistory`: Lấy danh sách 30 buổi điểm danh gần nhất của lớp học.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { AttendanceModel } from '../models/Attendance';
 import { GoogleSheetsService } from '../services/googleSheetsService';

@@ -371,7 +371,7 @@ export default function StudentClassrooms() {
 
       {/* SEARCH BAR & DROPDOWN FILTER */}
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap mt-4">
-        <div className="flex items-center gap-3 flex-wrap w-full md:w-auto">
+        <div className="flex items-center gap-3 flex-wrap">
           <SmartSearchBar
             placeholder="Tìm theo tên lớp, môn học, mã lớp... (Ấn /)"
             value={searchQuery}
@@ -406,6 +406,19 @@ export default function StudentClassrooms() {
             ]}
             minWidthClass="min-w-[170px]"
           />
+        </div>
+
+        <div className={styles.headerStats}>
+          <div className={styles.statPill}>
+            <Chalkboard size={16} weight="duotone" className="text-[#f47c20]" />
+            <span>{classrooms.length} Lớp học</span>
+          </div>
+          {pendingClasses.length > 0 && (
+            <div className={styles.statPill}>
+              <Clock size={16} weight="duotone" className="text-[#f47c20]" />
+              <span>{pendingClasses.length} Chờ duyệt</span>
+            </div>
+          )}
         </div>
       </div>
 

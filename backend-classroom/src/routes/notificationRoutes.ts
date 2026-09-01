@@ -1,3 +1,15 @@
+/**
+ * ============================================================================
+ * TÊN FILE: notificationRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/notificationRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API Thông báo Quả Chuông (`/api/v1/notifications/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lấy danh sách thông báo (`GET /`), đánh dấu đã đọc (`POST /:id/read`, `POST /read-all`), gửi cảnh báo cho học sinh (`POST /warn`).
+ * ============================================================================
+ */
+
 import { Router } from 'express';
 import {
     getNotifications,

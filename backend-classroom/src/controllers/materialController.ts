@@ -1,3 +1,18 @@
+/**
+ * ============================================================================
+ * TÊN FILE: materialController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/materialController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Kho tài liệu học tập tham khảo công khai (E-Books, Bài giảng PDF, File mẫu).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/materials`).
+ *   - Thao tác trên `MaterialModel`.
+ *   - `getPublicMaterials`: Lấy danh sách toàn bộ tài liệu có trạng thái `isPublic: true` để chia sẻ cho Học sinh.
+ *   - `createMaterial` & `deleteMaterial`: Đăng tải hoặc xóa tài liệu học tập khỏi thư viện công khai.
+ * ============================================================================
+ */
+
 import { Request, Response } from 'express';
 import Material from '../models/Material';
 

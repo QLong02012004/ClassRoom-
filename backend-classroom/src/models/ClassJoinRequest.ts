@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: ClassJoinRequest.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/ClassJoinRequest.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Yêu cầu tham gia lớp học (Class Join Requests) của Học sinh.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý học sinh gửi yêu cầu (`studentId`), lớp học muốn gia nhập (`classId`).
+ *   - Trạng thái yêu cầu (`status`: 'pending' chờ duyệt, 'approved' đã duyệt, 'rejected' từ chối).
+ *   - Tạo index kép `{ classId: 1, studentId: 1, status: 1 }` giúp tra cứu nhanh yêu cầu chờ duyệt của Giáo viên.
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IClassJoinRequest extends Document {

@@ -16,7 +16,7 @@ export interface CommentType {
 interface AnnouncementCommentsProps {
   announcementId: string;
   comments?: any[];
-  user: {
+  user?: {
     id?: string;
     _id?: string;
     name?: string;
@@ -24,9 +24,9 @@ interface AnnouncementCommentsProps {
     avatar?: string;
   } | null;
   classroomStatus?: string;
-  onAddComment: (announcementId: string, content: string) => Promise<void> | void;
-  onLikeComment: (announcementId: string, commentId: string) => Promise<void> | void;
-  onDeleteComment: (announcementId: string, commentId: string) => Promise<void> | void;
+  onAddComment?: (announcementId: string, content: string) => Promise<void> | void;
+  onLikeComment?: (announcementId: string, commentId: string) => Promise<void> | void;
+  onDeleteComment?: (announcementId: string, commentId: string) => Promise<void> | void;
 }
 
 const formatTime = (dateStr: string | Date): string => {

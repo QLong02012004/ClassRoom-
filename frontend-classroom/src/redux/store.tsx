@@ -1,3 +1,12 @@
+/**
+ * ============================================================================
+ * TÊN FILE: store.tsx
+ * ĐƯỜNG DẪN: frontend-classroom/src/redux/store.tsx
+ * MỤC ĐÍCH:
+ *   Cấu hình Legacy Redux + Redux Persist Store (File dự phòng/tham khảo cũ).
+ * ============================================================================
+ */
+
 /* import { createStore, applyMiddleware } from "redux";
 import { thunk } from "redux-thunk";
 import rootReducer from "./reducer/rootReducer";

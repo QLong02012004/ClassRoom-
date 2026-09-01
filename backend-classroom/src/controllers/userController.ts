@@ -1,3 +1,27 @@
+/**
+ * ============================================================================
+ * TÊN FILE: userController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/userController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý danh sách Người dùng, cập nhật Hồ sơ cá nhân (Profile), Phân quyền Admin/Giáo viên/Học sinh,
+ *   Khóa/Mở khóa tài khoản, Đổi mật khẩu và Thiết lập mật khẩu cho tài khoản Google.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận request từ Express Router (`/api/v1/users`).
+ *   - Thao tác trên `UserModel`.
+ *   - Kiểm tra định dạng Regex nghiêm ngặt cho Họ tên, Số điện thoại Việt Nam (03, 05, 07, 08, 09),
+ *     Ngày sinh (1900 -> Năm hiện tại) và Mật khẩu mạnh (chữ hoa, chữ thường, số, ký tự đặc biệt).
+ *   - Hỗ trợ tài khoản Google One-Tap tạo mật khẩu riêng bằng cách gửi mã OTP xác nhận tới Email (`setupGooglePassword`).
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getUsers`: Admin lấy danh sách người dùng kèm bộ lọc (role, status, search).
+ *   - `updateProfile`: Người dùng cập nhật thông tin cá nhân (ảnh đại diện, ngày sinh, bằng cấp, sđt phụ huynh).
+ *   - `updateUserStatus` & `updateUserRole`: Admin phê duyệt, đổi vai trò hoặc khóa tài khoản.
+ *   - `changePassword`: Đổi mật khẩu (yêu cầu mật khẩu hiện tại).
+ *   - `sendPasswordOTP` & `setupGooglePassword`: Thiết lập mật khẩu cho tài khoản Google qua Email OTP.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { UserModel } from '../models/User';
 import bcrypt from 'bcrypt';

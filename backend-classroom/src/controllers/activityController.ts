@@ -1,3 +1,29 @@
+/**
+ * ============================================================================
+ * TÊN FILE: activityController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/activityController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý toàn bộ vòng đời của Hoạt động học tập (Bài tập về nhà, Bài tập tự luận,
+ *   Bài thi trắc nghiệm) trong các lớp học thuộc hệ thống ClassRoom.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Tiếp nhận request từ Client (Giáo viên / Học sinh) thông qua express router (`/api/v1/activities`).
+ *   - Truy vấn và thao tác dữ liệu trên các Mongoose Models: `ClassActivityModel`, `BankItemModel`,
+ *     `SubmissionModel`, `GradeModel`, `QuizResultModel`, `ClassModel`.
+ *   - Phát thông báo thời gian thực qua WebSockets (`socket.ts`): `notifySubmissionUpdate`,
+ *     `notifyAdminStatsUpdate`, `notifyTeacherClassroomsUpdate` khi có hoạt động mới hoặc bài nộp mới.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `assignActivity`: Giao bài tập/đề thi mới cho lớp từ ngân hàng câu hỏi.
+ *   - `getClassActivities`: Lấy danh sách bài tập của 1 lớp (kèm số lượng bài đã nộp/đã chấm/chờ chấm).
+ *   - `getStudentActivities`: Học sinh lấy danh sách tất cả bài tập thuộc các lớp đang tham gia.
+ *   - `submitActivity` & `submitActivityQuiz`: Xử lý nộp bài tự luận/file hoặc chấm tự động bài trắc nghiệm.
+ *   - `getAssignmentSubmissions`: Giáo viên lấy danh sách bài nộp của tất cả học sinh trong lớp.
+ *   - `updateActivity` & `deleteActivity`: Cập nhật hạn nộp/trạng thái (đóng/mở) hoặc xóa bài tập.
+ *   - `addComment`: Gửi bình luận/trao đổi trực tiếp vào bài nộp cá nhân.
+ * ============================================================================
+ */
+
 import { Request, Response } from 'express';
 import { ClassActivityModel } from '../models/ClassActivity';
 import { BankItemModel } from '../models/BankItem';
@@ -5,8 +31,9 @@ import { QuizResultModel } from '../models/QuizResult';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { ClassModel } from '../models/Class';
-import { SubmissionStatus } from '../constants/enums';
-import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate } from '../socket';
+import { SubmissionStatus, UserRole, NotificationType } from '../constants/enums';
+import { createUserNotification } from '../services/notificationService';
+import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate, notifyClassroomFeedUpdate, notifyStudentClassroomsUpdate } from '../socket';
 
 // Lấy toàn bộ bài tập của học sinh
 export const getStudentActivities = async (req: Request, res: Response): Promise<any> => {
@@ -18,8 +45,16 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
         const classes = await ClassModel.find({ students: studentId }).lean();
         const classIds = classes.map(c => c._id);
 
-        // Lấy tất cả bài tập thuộc các lớp đó
-        const activities = await ClassActivityModel.find({ classId: { $in: classIds } }).lean();
+        // Lấy tất cả bài tập thuộc các lớp đó (học sinh chỉ thấy bài đã đến/qua thời gian bắt đầu)
+        const now = new Date();
+        const activities = await ClassActivityModel.find({
+            classId: { $in: classIds },
+            $or: [
+                { startDate: { $exists: false } },
+                { startDate: null },
+                { startDate: { $lte: now } }
+            ]
+        }).lean();
 
         // Lấy tất cả bài nộp và điểm của học sinh này
         const submissions = await SubmissionModel.find({ studentId }).lean();
@@ -43,7 +78,9 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
                 finalSubmission = {
                     ...submission,
                     status: grade ? 'graded' : submission.status,
-                    grade: grade ? grade.score : null
+                    grade: grade ? grade.score : null,
+                    feedback: grade ? grade.feedback : null,
+                    gradedAt: grade ? grade.gradedAt : null
                 };
             }
 
@@ -65,7 +102,7 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
 export const assignActivity = async (req: Request, res: Response) => {
     try {
         const { classId } = req.params;
-        const { bankItemId, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
+        const { bankItemId, startDate, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
 
         if (dueDate) {
             const dueTime = new Date(dueDate).getTime();
@@ -83,6 +120,7 @@ export const assignActivity = async (req: Request, res: Response) => {
             type: bankItem.type,
             title: title || bankItem.title,
             description: description !== undefined ? description : bankItem.description,
+            startDate: startDate ? new Date(startDate) : new Date(),
             dueDate,
             category,
             maxScore: maxScore || bankItem.maxScore,
@@ -92,7 +130,34 @@ export const assignActivity = async (req: Request, res: Response) => {
         });
 
         await newActivity.save();
+
+        // Gửi thông báo chuông tới tất cả Học sinh thuộc lớp này
+        try {
+            const cls = await ClassModel.findById(classId).lean();
+            if (cls && cls.students && cls.students.length > 0) {
+                const isQuiz = newActivity.type === 'quiz';
+                const notifType = isQuiz ? NotificationType.QUIZ : NotificationType.ASSIGNMENT;
+                const notifTitle = isQuiz ? 'Đề thi trắc nghiệm mới' : 'Bài tập mới trong lớp học';
+                const notifMsg = `Giáo viên vừa giao bài "${newActivity.title}" trong lớp ${cls.name}`;
+
+                for (const stId of cls.students) {
+                    await createUserNotification(
+                        stId.toString(),
+                        UserRole.STUDENT,
+                        (req as any).user?.id || '',
+                        notifTitle,
+                        notifMsg,
+                        notifType
+                    );
+                }
+            }
+        } catch (errNotif) {
+            console.error('❌ Lỗi khi gửi thông báo cho học sinh:', errNotif);
+        }
+
         notifyAdminStatsUpdate();
+        notifyClassroomFeedUpdate(classId);
+        notifyStudentClassroomsUpdate();
         res.status(201).json(newActivity);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi giao hoạt động', error });
@@ -103,7 +168,18 @@ export const assignActivity = async (req: Request, res: Response) => {
 export const getClassActivities = async (req: Request, res: Response) => {
     try {
         const classId = req.params.classId as string;
-        const activities = await ClassActivityModel.find({ classId })
+        const userRole = (req as any).user?.role;
+        const filterQuery: any = { classId };
+
+        if (userRole === 'student') {
+            filterQuery.$or = [
+                { startDate: { $exists: false } },
+                { startDate: null },
+                { startDate: { $lte: new Date() } }
+            ];
+        }
+
+        const activities = await ClassActivityModel.find(filterQuery)
             .populate('bankItemId')
             .sort({ createdAt: -1 })
             .lean();
@@ -169,20 +245,33 @@ export const updateActivity = async (req: Request, res: Response) => {
             if (!isNaN(dueTime) && dueTime < Date.now() - 60000) {
                 return res.status(400).json({ message: 'Hạn nộp bài không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.' });
             }
+            // Nếu gia hạn sang mốc thời gian tương lai mới, tự động mở lại bài tập (status = 'open')
+            if (!updateData.status) {
+                updateData.status = 'open';
+            }
         }
 
         const updated = await ClassActivityModel.findByIdAndUpdate(id, updateData, { new: true });
-        if (!updated) return res.status(404).json({ message: 'Không tìm thấy' });
+        if (!updated) return res.status(404).json({ message: 'Không tìm thấy bài tập' });
+
+        notifyAdminStatsUpdate();
+        notifyTeacherClassroomsUpdate();
+        notifyClassroomFeedUpdate(updated.classId?.toString());
+        notifyStudentClassroomsUpdate();
         res.json(updated);
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi cập nhật', error });
+        res.status(500).json({ message: 'Lỗi cập nhật bài tập', error });
     }
 };
 
 export const deleteActivity = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        await ClassActivityModel.findByIdAndDelete(id);
+        const deleted = await ClassActivityModel.findByIdAndDelete(id);
+        if (deleted) {
+            notifyClassroomFeedUpdate(deleted.classId?.toString());
+            notifyStudentClassroomsUpdate();
+        }
         res.json({ message: 'Xóa thành công' });
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi xóa', error });
@@ -201,6 +290,13 @@ export const submitActivityQuiz = async (req: Request, res: Response): Promise<a
 
         const activity = await ClassActivityModel.findById(activityId).populate('bankItemId');
         if (!activity) return res.status(404).json({ message: 'Không tìm thấy hoạt động' });
+        if (activity.status === 'closed' || (activity.dueDate && new Date(activity.dueDate).getTime() < Date.now())) {
+            return res.status(403).json({ message: 'Bài thi đã quá hạn nộp và đã bị đóng, không thể tiếp tục nộp bài!' });
+        }
+        if (activity.startDate && new Date(activity.startDate).getTime() > Date.now()) {
+            const formattedStart = new Date(activity.startDate).toLocaleString('vi-VN');
+            return res.status(403).json({ message: `Bài thi chưa đến thời gian mở! Vui lòng quay lại lúc ${formattedStart}` });
+        }
         if (activity.type !== 'quiz') return res.status(400).json({ message: 'Hoạt động này không phải bài trắc nghiệm' });
 
         const bankItem: any = activity.bankItemId;
@@ -284,6 +380,14 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
 
         const activity = await ClassActivityModel.findById(activityId);
         if (!activity) return res.status(404).json({ message: 'Không tìm thấy hoạt động' });
+
+        if (activity.status === 'closed' || (activity.dueDate && new Date(activity.dueDate).getTime() < Date.now())) {
+            return res.status(403).json({ message: 'Bài tập đã quá hạn nộp và đã bị đóng, không thể tiếp tục nộp bài!' });
+        }
+        if (activity.startDate && new Date(activity.startDate).getTime() > Date.now()) {
+            const formattedStart = new Date(activity.startDate).toLocaleString('vi-VN');
+            return res.status(403).json({ message: `Bài tập chưa đến thời gian mở! Vui lòng quay lại lúc ${formattedStart}` });
+        }
 
         // Nếu là bài trắc nghiệm thì chuyển sang hàm chấm trắc nghiệm
         if (activity.type === 'quiz') {

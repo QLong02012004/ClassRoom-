@@ -1,3 +1,16 @@
+/**
+ * ============================================================================
+ * TÊN FILE: Grade.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/Grade.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Điểm số Sổ điểm (Grades).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Lưu trữ điểm số (`score`), lời phê của giáo viên (`feedback`), thời điểm chấm (`gradedAt`).
+ *   - Tạo chỉ mục duy nhất (`assignmentId: 1, studentId: 1` unique) đảm bảo mỗi bài tập/học sinh chỉ tồn tại 1 con điểm trong Sổ điểm.
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IGrade extends Document {

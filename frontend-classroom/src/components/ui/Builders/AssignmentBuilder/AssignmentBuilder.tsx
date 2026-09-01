@@ -44,17 +44,25 @@ export default function AssignmentBuilder({
         setFileUrl(uploadedUrl);
         toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
       } else {
-        // Fallback local URL if response is unexpected
-        const localUrl = URL.createObjectURL(file);
-        setFileUrl(localUrl);
-        toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
+        // Fallback Base64 URL if response is unexpected
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const b64 = (evt.target?.result as string) || "";
+          setFileUrl(b64);
+          toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
+        };
+        reader.readAsDataURL(file);
       }
     } catch (error: any) {
       console.error('Lỗi khi tải file lên:', error);
-      // Local fallback so user is never blocked
-      const localUrl = URL.createObjectURL(file);
-      setFileUrl(localUrl);
-      toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
+      // Fallback Base64 URL so user is never blocked
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const b64 = (evt.target?.result as string) || "";
+        setFileUrl(b64);
+        toast.success(`Đã tải file "${file.name}" lên thành công!`, 3000);
+      };
+      reader.readAsDataURL(file);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {

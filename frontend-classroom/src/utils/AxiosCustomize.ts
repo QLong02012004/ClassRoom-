@@ -1,3 +1,19 @@
+/**
+ * ============================================================================
+ * TÊN FILE: AxiosCustomize.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/utils/AxiosCustomize.ts
+ * MỤC ĐÍCH:
+ *   Khởi tạo và cấu hình Axios Instance trung tâm cho toàn bộ ứng dụng Frontend.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `withCredentials: true`: Cho phép gửi Cookie HTTP-Only chứa Refresh Token qua các yêu cầu API.
+ *   - Request Interceptor: Tự động đính kèm `Bearer <accessToken>` vào header `Authorization`.
+ *   - Response Interceptor:
+ *     + Xử lý thành công: Trả về `response.data`.
+ *     + Xử lý lỗi 401 Unauthorized: Tự động xếp hàng các request bị lỗi, gọi `/api/v1/auth/refresh-token` cấp Access Token mới, rồi thực thi lại tất cả các request trong hàng đợi (Avoid Race Condition).
+ * ============================================================================
+ */
+
 import axios from 'axios';
 import type { AxiosError, AxiosRequestConfig } from 'axios';
 

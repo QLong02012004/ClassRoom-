@@ -1,3 +1,24 @@
+/**
+ * ============================================================================
+ * TÊN FILE: gradeController.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/controllers/gradeController.ts
+ * MỤC ĐÍCH:
+ *   Quản lý Sổ điểm (Gradebook) của các lớp học, lưu điểm số, lời phê cá nhân,
+ *   tự động gửi thông báo chấm điểm cho học sinh và hỗ trợ xuất/nhập Sổ điểm từ Excel.
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Nhận yêu cầu từ Giáo viên/Học sinh qua router `/api/v1/grades`.
+ *   - Cập nhật điểm vào `GradeModel` và `SubmissionModel`.
+ *   - Khi Giáo viên lưu điểm: Gọi `createUserNotification` để đẩy thông báo chuông về tài khoản Học sinh.
+ *   - Phát tín hiệu WebSockets (`notifySubmissionUpdate`) để cập nhật Sổ điểm thời gian thực.
+ *
+ * THÀNH PHẦN & API CHÍNH:
+ *   - `getClassroomGrades`: Lấy toàn bộ danh sách điểm số, bài tập và học sinh trong lớp.
+ *   - `saveGrades`: Lưu điểm hàng loạt kèm lời phê cho học sinh của 1 bài tập.
+ *   - `getStudentGrades`: Học sinh xem tổng hợp điểm số các môn của bản thân.
+ * ============================================================================
+ */
+
 import { Request, Response, NextFunction } from 'express';
 import { GradeModel } from '../models/Grade';
 import { ClassActivityModel } from '../models/ClassActivity';
@@ -5,8 +26,8 @@ import { ClassModel } from '../models/Class';
 import { UserModel } from '../models/User';
 import { SubmissionModel } from '../models/Submission';
 import { QuizResultModel } from '../models/QuizResult';
-import { SubmissionStatus } from '../constants/enums';
-
+import { SubmissionStatus, UserRole, NotificationType } from '../constants/enums';
+import { createUserNotification } from '../services/notificationService';
 import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate } from '../socket';
 
 // Lấy danh sách bảng điểm của một lớp
@@ -53,12 +74,18 @@ export const getClassroomGrades = async (req: Request, res: Response, next: Next
             })
         );
 
+        // Lấy toàn bộ bài nộp (submissions) thực tế của các bài tập trong lớp này
+        const submissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } })
+            .populate('studentId', 'name email avatar')
+            .lean();
+
         res.status(200).json({
             message: 'Lấy bảng điểm thành công',
             data: {
                 students: classroom.students,
                 assignments: enrichedAssignments,
-                grades
+                grades,
+                submissions
             }
         });
     } catch (error) {
@@ -113,10 +140,25 @@ export const saveGrades = async (req: Request, res: Response, next: NextFunction
             );
         }
 
+        // Tạo thông báo cho từng học sinh được chấm điểm
+        for (const g of grades) {
+            if (g.studentId && g.score !== undefined && g.score !== null) {
+                const feedbackText = g.feedback ? ` Lời phê: "${g.feedback}"` : '';
+                await createUserNotification(
+                    g.studentId,
+                    UserRole.STUDENT,
+                    teacherId,
+                    `Bài tập "${assignment.title}" đã được chấm điểm!`,
+                    `Giáo viên đã chấm bài tập "${assignment.title}" của bạn: ${g.score}/10 điểm.${feedbackText}`,
+                    NotificationType.ASSIGNMENT
+                );
+            }
+        }
+
         // Phát tín hiệu Real-time cho Admin Dashboard & Giáo viên/Học sinh
         notifyAdminStatsUpdate();
         notifySubmissionUpdate({ assignmentId, classId: assignment.classId.toString() });
-        notifyTeacherClassroomsUpdate();
+        notifyTeacherClassroomsUpdate(teacherId);
 
         res.status(200).json({
             message: 'Cập nhật điểm số thành công'

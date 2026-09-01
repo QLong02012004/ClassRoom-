@@ -20,6 +20,8 @@ export const BackButton: React.FC<BackButtonProps> = ({ children, onClick, class
   );
 };
 
+export default BackButton;
+
 const StyledWrapper = styled.div`
   display: inline-block;
   

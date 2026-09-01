@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: userSlice.ts
+ * ĐƯỜNG DẪN: frontend-classroom/src/redux/slices/userSlice.ts
+ * MỤC ĐÍCH:
+ *   Redux Slice quản lý Trạng thái Người dùng (User State Management).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý state: `userInfo`, `isAuthenticated`, `loading`, `error`.
+ *   - Reducers: `loginStart`, `loginSuccess`, `loginFailure`, `logout`, `updateUserInfo`.
+ *   - Tự động đồng bộ thông tin `userInfo` vào LocalStorage khi trạng thái thay đổi.
+ * ============================================================================
+ */
+
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import type { IModelUser } from "../../types/backend";

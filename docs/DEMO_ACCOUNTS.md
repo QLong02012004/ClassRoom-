@@ -1,3 +1,16 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: DEMO_ACCOUNTS.md
+ĐƯỜNG DẪN: docs/DEMO_ACCOUNTS.md
+MỤC ĐÍCH:
+  Banner Tài Khoản Demo Dùng Thử Ngay (Ready-to-Use Demo Accounts & Quick Guides).
+
+CÁCH THỨC SỬ DỤNG:
+  - Cung cấp danh sách tài khoản thử nghiệm có sẵn cho 3 vai trò (Admin, Teacher, Student) kèm mật khẩu chuẩn.
+  - Hướng dẫn các quy trình trải nghiệm nhanh trong 2-3 phút cho từng vai trò trên hệ thống ClassRoom.
+============================================================================
+-->
+
 # BANNER TÀI KHOẢN DEMO DÙNG THỬ NGAY (READY-TO-USE DEMO ACCOUNTS)
 ## Hệ thống Quản lý Học tập LMS ClassRoom
 

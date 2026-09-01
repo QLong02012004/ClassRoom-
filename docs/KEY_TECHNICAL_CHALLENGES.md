@@ -1,3 +1,20 @@
+<!--
+============================================================================
+TÊN TÀI LIỆU: KEY_TECHNICAL_CHALLENGES.md
+ĐƯỜNG DẪN: docs/KEY_TECHNICAL_CHALLENGES.md
+MỤC ĐÍCH:
+  Tài Liệu Các Thách Thức Kỹ Thuật & Giải Pháp Tối Ưu Kiến Trúc (Key Technical Challenges & Solutions).
+
+CÁCH THỨC SỬ DỤNG:
+  - Tổng hợp 5 thách thức kỹ thuật lớn đã được giải quyết thành công trên hệ thống ClassRoom:
+    1. Xử lý Chuyên cần & XP Realtime chống Race Condition bằng MongoDB Atomic `$inc` & công thức O(1).
+    2. Bóc tách đề thi .docx độ chính xác 99% bằng luồng lai Gemini AI + Fallback Regex.
+    3. Xác thực OTP & Re-Registration sạch CSDL với Redis Temporary Store.
+    4. Tích hợp Socket.io Real-time & cô lập trạng thái Lớp học (Active/Closed/Locked).
+    5. Khắc phục triệt để lỗi Crash Bảng HeroUI với Synchronized Colspan Pattern.
+============================================================================
+-->
+
 # TÀI LIỆU CÁC THÁCH THỨC KỸ THUẬT & GIẢI PHÁP TỐI ƯU (KEY TECHNICAL CHALLENGES & SOLUTIONS)
 ## Hệ thống Quản lý Học tập LMS ClassRoom
 

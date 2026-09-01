@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: QuizResult.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/models/QuizResult.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa Schema & TypeScript Interface cho Kết quả Bài thi Trắc nghiệm (Quiz Results).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - Quản lý bài thi (`quizId`), học sinh (`studentId`), mảng lựa chọn của học sinh (`answers`).
+ *   - Lưu điểm tự động tính toán (`score`), tổng số câu hỏi (`totalQuestions`) và thời điểm nộp bài (`submittedAt`).
+ *   - Chỉ mục duy nhất (`quizId: 1, studentId: 1` unique) ngăn chặn việc làm bài nhiều lần nếu không được phép.
+ * ============================================================================
+ */
+
 import { Schema, model, Document, Types } from 'mongoose';
 
 export interface IQuizResult extends Document {

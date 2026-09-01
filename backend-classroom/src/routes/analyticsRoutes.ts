@@ -1,3 +1,17 @@
+/**
+ * ============================================================================
+ * TÊN FILE: analyticsRoutes.ts
+ * ĐƯỜNG DẪN: backend-classroom/src/routes/analyticsRoutes.ts
+ * MỤC ĐÍCH:
+ *   Định nghĩa các Endpoints API AI Learning Analytics (`/api/v1/analytics/*`).
+ *
+ * CÁCH THỨC HOẠT ĐỘNG:
+ *   - `/student/weakness`: Lấy dữ liệu biểu đồ Radar phân tích lỗ hổng kiến thức.
+ *   - `/practice`: Sinh bộ câu hỏi trắc nghiệm tự luyện tập ôn bù khuyết thiếu theo tag.
+ *   - `/class/:id/errors`: Phân tích thống kê các câu hỏi bị học sinh làm sai nhiều nhất.
+ * ============================================================================
+ */
+
 import express from 'express';
 import { protect, authorize } from '../middlewares/authMiddleware';
 import { UserRole } from '../constants/enums';
