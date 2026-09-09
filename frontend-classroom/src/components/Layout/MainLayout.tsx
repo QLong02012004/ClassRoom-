@@ -12,33 +12,36 @@
  */
 
 import React from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar/Sidebar";
 import TopHeader from "./TopHeader/TopHeader";
 import Header from "./Header/Header";
 import OnboardingTour from "../common/OnboardingTour/OnboardingTour";
 
 const MainLayout: React.FC = () => {
+  const location = useLocation();
+  const isExamRoute = location.pathname.startsWith("/exams/");
+
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] overflow-hidden font-sans">
-      <OnboardingTour />
+      {!isExamRoute && <OnboardingTour />}
 
-      {/* Global Sidebar (fixed position) */}
-      <Sidebar />
+      {/* Global Sidebar (fixed position) - Ẩn hoàn toàn khi đang thi */}
+      {!isExamRoute && <Sidebar />}
 
-      {/* Main Content Area - offset by 72px for the fixed sidebar */}
-      <div className="flex flex-col flex-1 pl-[72px] w-full h-screen">
-        {/* Top Header */}
-        <TopHeader />
+      {/* Main Content Area - offset by 72px for the fixed sidebar, 0px khi đang thi */}
+      <div className={`flex flex-col flex-1 ${isExamRoute ? "pl-0" : "pl-[72px]"} w-full h-screen`}>
+        {/* Top Header - Ẩn khi đang thi để trang thi dùng Header chuyên biệt */}
+        {!isExamRoute && <TopHeader />}
 
         {/* Content Wrapper */}
         <div className="flex flex-1 overflow-hidden">
-          {/* Sub-Sidebar (for class details, etc.) */}
-          <Header />
+          {/* Sub-Sidebar */}
+          {!isExamRoute && <Header />}
 
           {/* Actual Page Content */}
-          <main className="flex-1 overflow-y-auto p-4 md:p-8">
-            <div className="w-full max-w-7xl mx-auto h-full">
+          <main className={`flex-1 overflow-y-auto ${isExamRoute ? "p-0" : "p-4 md:p-8"}`}>
+            <div className={`w-full ${isExamRoute ? "max-w-none" : "max-w-7xl mx-auto"} h-full`}>
               <Outlet />
             </div>
           </main>

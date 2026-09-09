@@ -7,6 +7,7 @@ interface SearchInputProps {
   value: string;
   onChange: (val: string) => void;
   className?: string;
+  inputClassName?: string;
 }
 
 export const SearchInput: React.FC<SearchInputProps> = ({
@@ -15,6 +16,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   value,
   onChange,
   className = "",
+  inputClassName = "",
 }) => {
   return (
     <div className={`relative w-full ${className}`}>
@@ -28,7 +30,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-9 pl-9 pr-8 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-full outline-none text-slate-700 placeholder:text-slate-400/80 text-xs font-medium"
+        className={`w-full h-9 pl-9 pr-8 bg-white border border-slate-200/80 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-xl outline-none text-slate-700 placeholder:text-slate-400/80 text-xs font-medium shadow-2xs ${inputClassName}`}
       />
       {value && (
         <button

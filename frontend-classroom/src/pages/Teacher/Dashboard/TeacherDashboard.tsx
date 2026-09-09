@@ -261,7 +261,7 @@ export default function TeacherDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[#f47c20]">
-            Tổng quan giảng dạy
+            Bảng điều khiển giảng dạy
           </h2>
           <p className="text-sm text-slate-500 font-medium mt-1">
             Báo cáo chi tiết hoạt động lớp học, tình hình chấm điểm và tiến độ học tập của học sinh.

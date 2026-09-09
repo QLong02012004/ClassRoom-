@@ -26,7 +26,22 @@ let io: Server | null = null;
 export const initSocket = (httpServer: HttpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        const allowed = [
+          process.env.CLIENT_URL,
+          'http://localhost:5173',
+          'http://127.0.0.1:5173',
+        ].filter(Boolean);
+        if (
+          process.env.NODE_ENV !== 'production' ||
+          allowed.includes(origin) ||
+          /^http:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+)(:\d+)?$/.test(origin)
+        ) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      },
       credentials: true
     }
   });

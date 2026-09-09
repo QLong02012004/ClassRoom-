@@ -41,6 +41,22 @@ export const connectDB = async (): Promise<void> => {
         } catch (dbErr) {
             console.error('⚠️ Lỗi đồng bộ isEmailVerified cho người dùng cũ:', dbErr);
         }
+
+        // Tự động làm tròn maxScore bị lỗi dấu phẩy động (vd: 9.999999999999996 -> 10)
+        try {
+            const { ClassActivityModel } = require('../models/ClassActivity');
+            const { BankItemModel } = require('../models/BankItem');
+            await ClassActivityModel.updateMany(
+                { maxScore: { $gt: 9.99, $lt: 10.01 } },
+                { $set: { maxScore: 10 } }
+            );
+            await BankItemModel.updateMany(
+                { maxScore: { $gt: 9.99, $lt: 10.01 } },
+                { $set: { maxScore: 10 } }
+            );
+        } catch (scoreErr) {
+            console.error('⚠️ Lỗi đồng bộ maxScore:', scoreErr);
+        }
     } catch (error) {
         console.error(`❌ Thất bại! Lỗi kết nối: ${(error as Error).message}`);
         process.exit(1);

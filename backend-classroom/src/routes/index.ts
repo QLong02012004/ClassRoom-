@@ -27,6 +27,7 @@ import analyticsRoutes from './analyticsRoutes';
 import chatRoutes from './chatRoutes';
 import materialRoutes from './materialRoutes';
 import settingsRoutes from './settingsRoutes';
+import ttsRoutes from './ttsRoutes';
 
 const apiRouter = Router();
 
@@ -46,6 +47,7 @@ apiRouter.use('/upload', uploadRoutes);
 apiRouter.use('/bank', bankRoutes);
 apiRouter.use('/analytics', analyticsRoutes);
 apiRouter.use('/materials', materialRoutes);
+apiRouter.use('/tts', ttsRoutes);
 apiRouter.use('/', activityRoutes);
 
 export default apiRouter;

@@ -13,6 +13,7 @@
 import express from 'express';
 import {
     assignActivity,
+    assignActivityToMultipleClasses,
     getClassActivities,
     getActivityById,
     updateActivity,
@@ -23,7 +24,9 @@ import {
     getMyQuizResult,
     getQuizResults,
     getStudentActivities,
-    addComment
+    addComment,
+    saveQuizDraft,
+    getQuizDraft
 } from '../controllers/activityController';
 import { protect } from '../middlewares/authMiddleware';
 
@@ -36,6 +39,9 @@ router.use(protect);
 router.post('/classes/:classId/activities', assignActivity);
 router.get('/classes/:classId/activities', getClassActivities);
 
+// Giao bài thi/bài tập cho nhiều lớp cùng lúc
+router.post('/activities/assign-multiple', assignActivityToMultipleClasses);
+
 // Lấy toàn bộ bài tập của học sinh
 router.get('/activities/student', getStudentActivities);
 
@@ -43,6 +49,10 @@ router.get('/activities/student', getStudentActivities);
 router.get('/activities/:id', getActivityById);
 router.put('/activities/:id', updateActivity);
 router.delete('/activities/:id', deleteActivity);
+
+// Các endpoint bản nháp trắc nghiệm (Autosave server)
+router.post('/activities/:id/draft', saveQuizDraft);
+router.get('/activities/:id/draft', getQuizDraft);
 
 // Các endpoint nộp bài tập & trắc nghiệm
 router.post('/activities/:id/submit', submitActivity);

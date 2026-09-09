@@ -19,6 +19,7 @@ interface SmartSearchBarProps {
   enableShortcut?: boolean;
   className?: string;
   widthClass?: string;
+  inputClassName?: string;
 }
 
 export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
@@ -30,7 +31,8 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
   recentSearchesKey,
   enableShortcut = true,
   className = "",
-  widthClass = "w-full md:w-[420px]"
+  widthClass = "w-full md:w-[420px]",
+  inputClassName
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -98,7 +100,7 @@ export const SmartSearchBar: React.FC<SmartSearchBarProps> = ({
         onFocus={() => setIsFocused(true)}
         onBlur={() => setTimeout(() => setIsFocused(false), 200)}
         onKeyDown={handleKeyDown}
-        className="w-full h-10 pl-9 pr-8 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-xl shadow-2xs outline-none text-slate-700 placeholder:text-slate-400/80 text-sm font-medium"
+        className={inputClassName || "w-full h-10 pl-9 pr-8 bg-white border border-slate-200 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-xl shadow-2xs outline-none text-slate-700 placeholder:text-slate-400/80 text-sm font-medium"}
       />
       {value && (
         <button

@@ -189,11 +189,11 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
         )}
       </div>
 
-      {/* ROW 2: FILTERS & VIEW MODE TOOLBAR */}
-      <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
+      {/* ROW 2: FILTERS & VIEW MODE TOOLBAR (WRAPPED LIKE GRADEBOOK) */}
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-5 p-2 bg-slate-50/70 border border-slate-200/80 rounded-2xl">
         <div className="flex items-center gap-3 flex-wrap">
           {/* 1. SEARCH INPUT AT FRONT */}
-          <div className="w-64">
+          <div className="w-64 min-w-[200px]">
             <SearchInput
               id="teacherActivitiesSearch"
               placeholder="Tìm theo tên bài tập..."
@@ -207,10 +207,10 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-full text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/80 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs transition-all cursor-pointer outline-none whitespace-nowrap"
               >
                 <span>{getTypeFilterLabel(filterType)}</span>
-                <CaretDown size={13} className="text-slate-400" weight="bold" />
+                <CaretDown size={12} className="text-slate-400" weight="bold" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
@@ -246,10 +246,10 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-full text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/80 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs transition-all cursor-pointer outline-none whitespace-nowrap"
               >
                 <span>{getCategoryLabel(filterCategory)}</span>
-                <CaretDown size={13} className="text-slate-400" weight="bold" />
+                <CaretDown size={12} className="text-slate-400" weight="bold" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-52 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
@@ -298,10 +298,10 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex items-center gap-2 px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-full text-xs font-bold text-slate-700 shadow-2xs transition-all cursor-pointer"
+                className="flex items-center gap-2 px-3.5 py-2 bg-white border border-slate-200/80 hover:border-slate-300 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs transition-all cursor-pointer outline-none whitespace-nowrap"
               >
                 <span>{getStatusFilterLabel(filterStatus, totalPendingCount)}</span>
-                <CaretDown size={13} className="text-slate-400" weight="bold" />
+                <CaretDown size={12} className="text-slate-400" weight="bold" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
@@ -350,7 +350,9 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
         </div>
 
         {/* VIEW MODE TOGGLE SWITCH */}
-        <ViewModeSwitch id="teacherActivitiesViewMode" viewMode={viewMode} onViewModeChange={setViewMode} />
+        <div className="pr-1">
+          <ViewModeSwitch id="teacherActivitiesViewMode" viewMode={viewMode} onViewModeChange={setViewMode} />
+        </div>
       </div>
 
       {loadingActivities ? (
@@ -373,7 +375,7 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
               {currentActivities.map((act) => {
                 const isQuiz = act.type === "quiz";
                 const statusObj = getQuizStatus(act);
-                const qCount = isQuiz ? act.questions?.length || act.bankItemId?.quizQuestions?.length || 0 : 0;
+                const qCount = isQuiz ? act.questionCount || act.questions?.length || act.bankItemId?.quizQuestions?.length || 0 : 0;
                 const totalStudents = classroom?.studentCount || 0;
                 const subCount = act.submissionCount || 0;
                 const percent = totalStudents > 0 ? Math.min(100, Math.round((subCount / totalStudents) * 100)) : 0;

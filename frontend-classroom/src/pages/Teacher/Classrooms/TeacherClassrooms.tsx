@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Users, PencilSimple, CaretDown, Check, ClipboardText, BookOpen, MagnifyingGlass, Funnel, CheckSquare, Clock, SquaresFour, List, PushPin, Archive, Trash, UserPlus, XCircle, CheckCircle } from "phosphor-react";
+import { Plus, Users, PencilSimple, CaretDown, Check, ClipboardText, BookOpen, MagnifyingGlass, Funnel, CheckSquare, Clock, SquaresFour, List, PushPin, Archive, Trash, UserPlus, XCircle, CheckCircle, ListChecks, Lock, LockKey } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { io } from "socket.io-client";
 import { useNavigate, Link } from "react-router-dom";
@@ -14,6 +14,12 @@ import styles from "./TeacherClassrooms.module.scss";
 import { Table, Pagination, Checkbox, Button } from "@heroui/react";
 import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
 import { DropdownFilter } from "../../../components/ui/Dropdowns/DropdownFilter";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "../../../components/ui/dropdown-menu";
 import type { Selection } from "@heroui/react";
 import { ClassroomActionMenu } from "../../../components/ui/ActionMenus/ClassroomActionMenu";
 import { ManageStudentsModal } from "../../../components/ui/Dialogs/ManageStudentsModal";
@@ -189,6 +195,26 @@ export default function TeacherClassrooms() {
         rawData: cls
       }));
   }, [classrooms, searchQuery]);
+
+  const statusCounts = useMemo(() => {
+    return {
+      all: classrooms.length,
+      Active: classrooms.filter(c => c.status === "Active").length,
+      Pending: classrooms.filter(c => c.status === "Pending").length,
+      Closed: classrooms.filter(c => c.status === "Closed").length,
+      Locked: classrooms.filter(c => c.status === "Locked").length,
+    };
+  }, [classrooms]);
+
+  const statusOptions = useMemo(() => [
+    { id: "all", label: "Tất cả trạng thái", icon: <ListChecks size={15} weight="duotone" className="text-[#f47c20]" />, count: statusCounts.all },
+    { id: "Active", label: "Đang hoạt động", icon: <CheckCircle size={15} weight="duotone" className="text-emerald-500" />, count: statusCounts.Active },
+    { id: "Pending", label: "Chờ duyệt", icon: <Clock size={15} weight="duotone" className="text-amber-500" />, count: statusCounts.Pending },
+    { id: "Closed", label: "Đã đóng", icon: <Lock size={15} weight="duotone" className="text-slate-500" />, count: statusCounts.Closed },
+    { id: "Locked", label: "Đã khóa", icon: <LockKey size={15} weight="duotone" className="text-red-500" />, count: statusCounts.Locked },
+  ], [statusCounts]);
+
+  const activeStatusOpt = statusOptions.find(o => o.id === statusFilter) || statusOptions[0];
 
   const filteredClassrooms = useMemo(() => {
     const qNormalized = removeAccents(searchQuery.toLowerCase().trim());
@@ -516,9 +542,9 @@ export default function TeacherClassrooms() {
         </div>
       </div>
 
-      {/* VIEW CONTROLS & SEARCH BAR */}
-      <div className="flex justify-between items-center mb-6 px-1 gap-4">
-        <div className="flex items-center gap-3">
+      {/* VIEW CONTROLS & SEARCH BAR (Card Toolbar matching Image 2) */}
+      <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-3 mb-6 p-2.5 md:px-4 md:py-3 bg-white border-2 border-slate-200/90 rounded-[20px] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+        <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-0">
           <SmartSearchBar
             placeholder="Tìm theo tên, mã lớp... (Ấn /)"
             value={searchQuery}
@@ -537,26 +563,51 @@ export default function TeacherClassrooms() {
               }
             }}
             recentSearchesKey="teacherClassroomSearches"
-            widthClass="w-full md:w-[380px]"
+            widthClass="w-full sm:w-[280px] md:w-[320px]"
+            inputClassName="w-full h-[36px] pl-9 pr-8 bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200/90 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-all rounded-xl outline-none text-slate-700 placeholder:text-slate-400 text-xs font-medium"
           />
 
-          <DropdownFilter
-            label="Trạng thái"
-            value={statusFilter}
-            onChange={setStatusFilter}
-            options={[
-              { id: "all", label: "Tất cả trạng thái" },
-              { id: "Active", label: "Đang hoạt động" },
-              { id: "Pending", label: "Chờ duyệt" },
-              { id: "Closed", label: "Đã đóng" },
-              { id: "Locked", label: "Đã khóa" }
-            ]}
-            minWidthClass="min-w-[170px]"
-          />
+          {/* Status Dropdown Pill matching Image 2 */}
+          <DropdownMenu>
+            <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-orange-50 border border-orange-200 text-[#f47c20] text-xs font-extrabold rounded-lg px-3.5 py-2 outline-none hover:bg-orange-100/80 transition-colors min-w-[175px] h-[36px] cursor-pointer whitespace-nowrap">
+              <div className="flex items-center gap-1.5 whitespace-nowrap">
+                {activeStatusOpt.icon}
+                <span className="whitespace-nowrap font-extrabold">{activeStatusOpt.label}</span>
+              </div>
+              <CaretDown size={13} className="text-[#f47c20] flex-shrink-0" weight="bold" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[200px] p-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50">
+              {statusOptions.map((opt) => (
+                <DropdownMenuItem
+                  key={opt.id}
+                  onClick={() => setStatusFilter(opt.id)}
+                  className={`flex items-center justify-between cursor-pointer py-2 px-2.5 text-xs rounded-lg transition-colors whitespace-nowrap ${
+                    statusFilter === opt.id
+                      ? "bg-orange-50 text-[#f47c20] font-bold"
+                      : "text-slate-700 hover:bg-slate-50 font-medium"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 whitespace-nowrap">
+                    {opt.icon}
+                    <span>{opt.label}</span>
+                  </div>
+                  {opt.count !== undefined && (
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      statusFilter === opt.id ? "bg-orange-100 text-[#f47c20]" : "bg-slate-100 text-slate-500"
+                    }`}>
+                      {opt.count}
+                    </span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* VIEW MODE TOGGLE */}
-        <ViewModeSwitch viewMode={viewMode} onViewModeChange={setViewMode} />
+        <div className="shrink-0">
+          <ViewModeSwitch viewMode={viewMode} onViewModeChange={setViewMode} />
+        </div>
       </div>
 
       {/* BULK ACTION TOOLBAR (Synchronized with ActivitiesTable design) */}

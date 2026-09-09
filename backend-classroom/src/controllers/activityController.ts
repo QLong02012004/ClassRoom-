@@ -28,6 +28,7 @@ import { Request, Response } from 'express';
 import { ClassActivityModel } from '../models/ClassActivity';
 import { BankItemModel } from '../models/BankItem';
 import { QuizResultModel } from '../models/QuizResult';
+import { QuizDraftModel } from '../models/QuizDraft';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { ClassModel } from '../models/Class';
@@ -54,7 +55,7 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
                 { startDate: null },
                 { startDate: { $lte: now } }
             ]
-        }).lean();
+        }).populate('bankItemId').lean();
 
         // Lấy tất cả bài nộp và điểm của học sinh này
         const submissions = await SubmissionModel.find({ studentId }).lean();
@@ -84,8 +85,12 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
                 };
             }
 
+            const questionCount = (activity.bankItemId as any)?.quizQuestions?.length || ((activity as any).questions?.length) || 0;
+
             return {
                 ...activity,
+                questionCount,
+                maxScore: Math.round((activity.maxScore || 10) * 100) / 100,
                 className: classInfo ? classInfo.name : 'Không xác định',
                 subject: classInfo ? classInfo.subject : '',
                 submission: finalSubmission
@@ -101,7 +106,7 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
 // Giao một hoạt động mới từ ngân hàng cho lớp
 export const assignActivity = async (req: Request, res: Response) => {
     try {
-        const { classId } = req.params;
+        const classId = req.params.classId as string;
         const { bankItemId, startDate, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
 
         if (dueDate) {
@@ -123,7 +128,7 @@ export const assignActivity = async (req: Request, res: Response) => {
             startDate: startDate ? new Date(startDate) : new Date(),
             dueDate,
             category,
-            maxScore: maxScore || bankItem.maxScore,
+            maxScore: Math.round(Number(maxScore || bankItem.maxScore || 10) * 100) / 100,
             durationMinutes: durationMinutes || bankItem.durationMinutes,
             status: status || 'open',
             allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true
@@ -161,6 +166,86 @@ export const assignActivity = async (req: Request, res: Response) => {
         res.status(201).json(newActivity);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi giao hoạt động', error });
+    }
+};
+
+// Giao một hoạt động mới từ ngân hàng cho nhiều lớp cùng lúc
+export const assignActivityToMultipleClasses = async (req: Request, res: Response) => {
+    try {
+        const { classIds, bankItemId, startDate, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
+
+        if (!Array.isArray(classIds) || classIds.length === 0) {
+            return res.status(400).json({ message: 'Vui lòng chọn ít nhất một lớp học để giao bài!' });
+        }
+
+        if (dueDate) {
+            const dueTime = new Date(dueDate).getTime();
+            if (!isNaN(dueTime) && dueTime < Date.now() - 60000) {
+                return res.status(400).json({ message: 'Hạn nộp bài không được ở trong quá khứ! Vui lòng chọn thời gian trong tương lai.' });
+            }
+        }
+
+        const bankItem = await BankItemModel.findById(bankItemId);
+        if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
+
+        const createdActivities = [];
+
+        for (const classId of classIds) {
+            const newActivity = new ClassActivityModel({
+                classId,
+                bankItemId,
+                type: bankItem.type,
+                title: title || bankItem.title,
+                description: description !== undefined ? description : bankItem.description,
+                startDate: startDate ? new Date(startDate) : new Date(),
+                dueDate,
+                category: category || 'homework',
+                maxScore: Math.round(Number(maxScore || bankItem.maxScore || 10) * 100) / 100,
+                durationMinutes: durationMinutes || bankItem.durationMinutes,
+                status: status || 'open',
+                allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true
+            });
+
+            await newActivity.save();
+            createdActivities.push(newActivity);
+
+            // Gửi thông báo chuông tới tất cả Học sinh thuộc lớp này
+            try {
+                const cls = await ClassModel.findById(classId).lean();
+                if (cls && cls.students && cls.students.length > 0) {
+                    const isQuiz = newActivity.type === 'quiz';
+                    const notifType = isQuiz ? NotificationType.QUIZ : NotificationType.ASSIGNMENT;
+                    const notifTitle = isQuiz ? 'Đề thi trắc nghiệm mới' : 'Bài tập mới trong lớp học';
+                    const notifMsg = `Giáo viên vừa giao bài "${newActivity.title}" trong lớp ${cls.name}`;
+
+                    for (const stId of cls.students) {
+                        await createUserNotification(
+                            stId.toString(),
+                            UserRole.STUDENT,
+                            (req as any).user?.id || '',
+                            notifTitle,
+                            notifMsg,
+                            notifType
+                        );
+                    }
+                }
+            } catch (errNotif) {
+                console.error('❌ Lỗi khi gửi thông báo cho học sinh:', errNotif);
+            }
+
+            notifyClassroomFeedUpdate(classId);
+        }
+
+        notifyAdminStatsUpdate();
+        notifyStudentClassroomsUpdate();
+
+        res.status(201).json({
+            message: `Đã giao bài thành công cho ${createdActivities.length} lớp học!`,
+            count: createdActivities.length,
+            activities: createdActivities
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Lỗi khi giao hoạt động cho nhiều lớp', error });
     }
 };
 
@@ -208,8 +293,12 @@ export const getClassActivities = async (req: Request, res: Response) => {
                     pendingGradeCount = Math.max(0, submissionCount - gradedCount);
                 }
 
+                const questionCount = act.bankItemId?.quizQuestions?.length || (Array.isArray(act.questions) ? act.questions.length : 0);
+
                 return {
                     ...act,
+                    questionCount,
+                    maxScore: Math.round((act.maxScore || 10) * 100) / 100,
                     submissionCount,
                     gradedCount,
                     pendingGradeCount
@@ -556,3 +645,76 @@ export const addComment = async (req: Request, res: Response): Promise<any> => {
         res.status(500).json({ message: 'Lỗi khi gửi bình luận', error });
     }
 };
+
+// ============================================================================
+// AUTOSAVE BẢN NHÁP BÀI THI TRẮC NGHIỆM
+// ============================================================================
+export const saveQuizDraft = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const studentId = (req as any).user?.id;
+        const { answers, flagged, questionOrder, optionOrders, currentQIndex } = req.body;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        const updateData: any = {
+            answers: answers || {},
+            flagged: flagged || {},
+            updatedAt: new Date()
+        };
+        if (Array.isArray(questionOrder) && questionOrder.length > 0) {
+            updateData.questionOrder = questionOrder;
+        }
+        if (optionOrders && typeof optionOrders === 'object') {
+            updateData.optionOrders = optionOrders;
+        }
+        if (typeof currentQIndex === 'number') {
+            updateData.currentQIndex = currentQIndex;
+        }
+
+        const draft = await QuizDraftModel.findOneAndUpdate(
+            { quizId: activityId, studentId },
+            {
+                $set: updateData,
+                $setOnInsert: { startedAt: new Date() }
+            },
+            { upsert: true, new: true }
+        );
+
+        return res.status(200).json({
+            message: 'Đã lưu bản nháp',
+            data: draft,
+            serverTime: new Date().toISOString()
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi khi lưu bản nháp', error });
+    }
+};
+
+export const getQuizDraft = async (req: Request, res: Response): Promise<any> => {
+    try {
+        const activityId = req.params.id as string;
+        const studentId = (req as any).user?.id;
+
+        if (!activityId) return res.status(400).json({ message: 'Thiếu ID hoạt động' });
+        if (!studentId) return res.status(401).json({ message: 'Chưa đăng nhập' });
+
+        let draft: any = await QuizDraftModel.findOne({ quizId: activityId, studentId });
+        if (!draft) {
+            draft = await QuizDraftModel.create({
+                quizId: activityId,
+                studentId,
+                startedAt: new Date()
+            });
+        }
+
+        return res.status(200).json({
+            data: draft,
+            serverTime: new Date().toISOString()
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Lỗi khi lấy bản nháp', error });
+    }
+};
+

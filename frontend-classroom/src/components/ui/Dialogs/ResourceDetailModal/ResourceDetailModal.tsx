@@ -44,6 +44,13 @@ export interface ResourceDetailModalProps {
   onSelectToAssign?: (item: ResourceDetailItem) => void;
 }
 
+const formatScore = (val: any) => {
+  if (val === undefined || val === null || val === '') return 10;
+  const num = Number(val);
+  if (isNaN(num)) return val;
+  return parseFloat(num.toFixed(2));
+};
+
 export const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({
   isOpen,
   onClose,
@@ -150,7 +157,7 @@ export const ResourceDetailModal: React.FC<ResourceDetailModalProps> = ({
 
                 <div className="flex items-center justify-between border-b border-orange-100 pb-2">
                   <span className="font-medium text-slate-500 text-sm">Điểm tối đa:</span>
-                  <span className="font-bold text-slate-800 text-sm">{item.maxScore || 10} điểm</span>
+                  <span className="font-bold text-slate-800 text-sm">{formatScore(item.maxScore ?? 10)} điểm</span>
                 </div>
 
                 {isQuiz && item.durationMinutes && (

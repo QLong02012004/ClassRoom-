@@ -4,6 +4,7 @@ import { CheckCircle } from 'phosphor-react';
 
 interface SaveButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children?: React.ReactNode;
+  fullWidth?: boolean;
 }
 
 export const SaveButton: React.FC<SaveButtonProps> = ({
@@ -12,15 +13,17 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
   disabled,
   className,
   type = 'button',
+  fullWidth = false,
   ...props
 }) => {
   return (
-    <StyledWrapper>
+    <StyledWrapper $fullWidth={fullWidth} style={fullWidth ? { width: '100%' } : undefined}>
       <button
         type={type}
         className={`save-btn ${className || ''}`}
         onClick={onClick}
         disabled={disabled}
+        style={fullWidth ? { width: '100%', ...props.style } : props.style}
         {...props}
       >
         <span className="circle circle1" />
@@ -43,10 +46,12 @@ export const SaveButton: React.FC<SaveButtonProps> = ({
 
 export default SaveButton;
 
-const StyledWrapper = styled.div`
-  display: inline-block;
+const StyledWrapper = styled.div<{ $fullWidth?: boolean }>`
+  display: ${props => props.$fullWidth ? 'block' : 'inline-block'};
+  width: ${props => props.$fullWidth ? '100%' : 'auto'};
 
   button {
+    width: ${props => props.$fullWidth ? '100%' : 'auto'};
     font-family: inherit;
     font-weight: 750;
     font-size: 0.9rem;

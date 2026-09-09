@@ -281,7 +281,13 @@
   font-size: 0.78rem;
   color: vars.$text-sub;
   font-weight: 500;
-  white-space: nowrap;
+  min-width: 0;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
   svg {
     flex-shrink: 0;

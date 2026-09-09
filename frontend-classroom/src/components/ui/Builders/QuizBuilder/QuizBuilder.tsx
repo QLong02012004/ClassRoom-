@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X, Question } from "phosphor-react";
+import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X, Question, FloppyDisk } from "phosphor-react";
 import { useToast } from "../../../Styles/ToastContext";
 import NumberStepper from "../../FormControls/NumberStepper";
 import Checkbox from "../../FormControls/Checkbox/Checkbox";
@@ -12,6 +12,7 @@ import TemplateGuideModal from "../../Dialogs/TemplateGuideModal/TemplateGuideMo
 import * as XLSX from "xlsx";
 import styles from "./QuizBuilder.module.scss";
 import { SecondaryButton } from "../../Buttons/SecondaryButton";
+import { SaveButton } from "../../Buttons/SaveButton";
 
 export interface QuizBuilderProps {
   initialData?: any;
@@ -71,7 +72,16 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       setShuffleOptions(!!initialData.shuffleOptions);
       setAllowMultipleSubmissions(!!initialData.allowMultipleSubmissions);
       if (initialData.questions && initialData.questions.length > 0) {
-        setQuizQuestions(initialData.questions);
+        const sanitized = initialData.questions.map((q: any) => ({
+          ...q,
+          questionText: String(q.questionText || ""),
+          options: Array.isArray(q.options)
+            ? q.options.map((opt: any) => (typeof opt === 'object' && opt !== null ? String(opt.text || opt.content || '') : String(opt ?? "")))
+            : ["", "", "", ""],
+          correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
+          points: typeof q.points === 'number' ? q.points : 1,
+        }));
+        setQuizQuestions(sanitized);
       }
     }
   }, [initialData]);
@@ -102,7 +112,8 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       const formData = new FormData();
       formData.append("file", file);
       const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:5000/api/v1/upload/docx", {
+      const backendApiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+      const response = await fetch(`${backendApiUrl}/upload/docx`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
@@ -113,37 +124,73 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       const rawText = data.text;
       const parsedQuestions: any[] = [];
       const questionBlocks = rawText.split(/Câu\s*\d+[:.\s-]/i).filter((b: string) => b.trim().length > 0);
+      const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
       for (const block of questionBlocks) {
-        const optionsMatch = block.match(/([A-D][.:\)])/ig);
-        if (!optionsMatch || optionsMatch.length < 2) continue;
-        const firstOptionIndex = block.indexOf(optionsMatch[0]);
-        const questionText = block.substring(0, firstOptionIndex).trim();
-        const options = [];
+        // 1. Tìm phần đáp án đúng ở cuối câu hỏi (nếu có)
+        let contentToParse = block;
         let correctOptionIndex = 0;
-        for (let i = 0; i < optionsMatch.length; i++) {
-          const optStart = block.indexOf(optionsMatch[i]);
-          let optEnd = block.length;
-          if (i < optionsMatch.length - 1) {
-            optEnd = block.indexOf(optionsMatch[i + 1], optStart + 1);
-          } else {
-            const answerMatch = block.match(/Đáp\s*án\s*[:\s]*([A-D])/i);
-            if (answerMatch && answerMatch.index !== undefined && answerMatch.index > optStart) {
-              optEnd = answerMatch.index;
-              const correctLetter = answerMatch[1].toUpperCase();
-              if (correctLetter === 'A') correctOptionIndex = 0;
-              else if (correctLetter === 'B') correctOptionIndex = 1;
-              else if (correctLetter === 'C') correctOptionIndex = 2;
-              else if (correctLetter === 'D') correctOptionIndex = 3;
-            }
+        const answerMatch = block.match(/(?:Đáp\s*án|Đ\/A|ĐA|Answer)\s*[:\s]*([A-F])/i);
+        if (answerMatch && answerMatch.index !== undefined) {
+          const correctLetter = answerMatch[1].toUpperCase();
+          const foundIdx = OPTION_LETTERS.indexOf(correctLetter);
+          if (foundIdx !== -1) {
+            correctOptionIndex = foundIdx;
           }
-          let optText = block.substring(optStart + optionsMatch[i].length, optEnd).trim();
-          optText = optText.replace(/Đáp\s*án\s*[:\s]*[A-D]/i, '').trim();
+          contentToParse = block.substring(0, answerMatch.index);
+        }
+
+        // 2. Tìm tuần tự các vị trí bắt đầu của các đáp án: A -> B -> C -> D -> E -> F
+        const optionMarkers: Array<{ letter: string; start: number; end: number }> = [];
+        let searchPos = 0;
+
+        for (let lIdx = 0; lIdx < OPTION_LETTERS.length; lIdx++) {
+          const letter = OPTION_LETTERS[lIdx];
+          const remainingText = contentToParse.substring(searchPos);
+
+          // Regex tìm chữ cái đáp án:
+          // - Phải là A rồi đến B rồi đến C... (theo thứ tự tuần tự)
+          // - Không được có dấu mở ngoặc '(' ngay trước chữ cái (tránh nhận nhầm đơn vị như 'Ampere (A)')
+          // - Theo sau bởi dấu '.', ':', ')' hoặc dạng '(A)'
+          const regex = new RegExp(`(?:^|[\\r\\n\\t]|(?<!\\()\\s+)(?:(${letter})[.:\\)]|\\((${letter})\\))\\s*`, 'i');
+          const match = remainingText.match(regex);
+
+          if (match && match.index !== undefined) {
+            const markerStartInContent = searchPos + match.index + (match[0].length - match[0].trimStart().length);
+            const markerEndInContent = searchPos + match.index + match[0].length;
+            optionMarkers.push({
+              letter,
+              start: markerStartInContent,
+              end: markerEndInContent
+            });
+            searchPos = markerEndInContent;
+          } else {
+            // Dừng lại nếu câu hỏi chỉ có 4 đáp án (A, B, C, D) mà không có E, F
+            if (lIdx >= 2) break;
+          }
+        }
+
+        // Cần ít nhất 2 đáp án A và B
+        if (optionMarkers.length < 2) continue;
+
+        // Nội dung câu hỏi là đoạn từ đầu block đến vị trí bắt đầu của đáp án A
+        const questionText = contentToParse.substring(0, optionMarkers[0].start).trim();
+        if (!questionText) continue;
+
+        // Trích xuất nội dung từng phương án
+        const options: string[] = [];
+        for (let i = 0; i < optionMarkers.length; i++) {
+          const optStart = optionMarkers[i].end;
+          const optEnd = (i < optionMarkers.length - 1) ? optionMarkers[i + 1].start : contentToParse.length;
+          let optText = contentToParse.substring(optStart, optEnd).trim();
+          optText = optText.replace(/(?:Đáp\s*án|Đ\/A|ĐA|Answer)\s*[:\s]*[A-F]/i, '').trim();
           options.push(optText);
         }
+
         parsedQuestions.push({
           questionText: questionText.replace(/\n/g, ' '),
-          options: options.slice(0, 6),
-          correctOptionIndex,
+          options: options.slice(0, 6).map(opt => String(opt ?? "").trim()),
+          correctOptionIndex: correctOptionIndex < options.length ? correctOptionIndex : 0,
           points: 1,
           imageUrl: ""
         });
@@ -172,7 +219,8 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       const formData = new FormData();
       formData.append("file", file);
       const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
-      const response = await fetch("http://localhost:5000/api/v1/upload/docx-ai", {
+      const backendApiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+      const response = await fetch(`${backendApiUrl}/upload/docx-ai`, {
         method: "POST",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData
@@ -218,12 +266,12 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
         for (let i = 1; i < data.length; i++) {
           const row = data[i];
           if (!row || row.length < 2) continue;
-          const questionText = row[0] || "";
-          const optA = row[1] || "";
-          const optB = row[2] || "";
-          const optC = row[3] || "";
-          const optD = row[4] || "";
-          const correctLetter = (row[5] || "").toString().trim().toUpperCase();
+          const questionText = String(row[0] || "").trim();
+          const optA = String(row[1] ?? "").trim();
+          const optB = String(row[2] ?? "").trim();
+          const optC = String(row[3] ?? "").trim();
+          const optD = String(row[4] ?? "").trim();
+          const correctLetter = String(row[5] ?? "").trim().toUpperCase();
           if (!questionText) continue;
           let correctOptionIndex = 0;
           if (correctLetter === 'A' || correctLetter === '1') correctOptionIndex = 0;
@@ -366,25 +414,52 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
 
   const handleSaveQuiz = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!quizTitle.trim()) { toast.error("Vui lòng nhập tiêu đề đề thi!"); return; }
+    const cleanTitle = String(quizTitle || "").trim();
+    if (!cleanTitle) {
+      toast.error("Vui lòng nhập tiêu đề đề thi!");
+      const titleInput = document.getElementById("quiz-title");
+      if (titleInput) titleInput.focus();
+      return;
+    }
     for (let i = 0; i < quizQuestions.length; i++) {
       const q = quizQuestions[i];
-      if (!q.questionText.trim()) { toast.error(`Vui lòng nhập nội dung câu hỏi số ${i + 1}!`); return; }
-      for (let j = 0; j < q.options.length; j++) {
-        if (!q.options[j].trim()) { toast.error(`Vui lòng nhập phương án trả lời ${String.fromCharCode(65 + j)} của câu hỏi ${i + 1}!`); return; }
+      const qText = String(q.questionText || "").trim();
+      if (!qText) {
+        toast.error(`Vui lòng nhập nội dung câu hỏi số ${i + 1}!`);
+        setErrorQuestionIndex(i);
+        scrollToQuestion(i);
+        return;
       }
-      if (q.correctOptionIndex === -1) {
+      for (let j = 0; j < q.options.length; j++) {
+        const optText = String(q.options[j] ?? "").trim();
+        if (!optText) {
+          toast.error(`Vui lòng nhập phương án trả lời ${String.fromCharCode(65 + j)} của câu hỏi ${i + 1}!`);
+          setErrorQuestionIndex(i);
+          scrollToQuestion(i);
+          return;
+        }
+      }
+      if (q.correctOptionIndex === -1 || q.correctOptionIndex === undefined || q.correctOptionIndex === null) {
         toast.error(`Vui lòng chọn đáp án đúng cho câu hỏi ${i + 1}!`);
         setErrorQuestionIndex(i);
         scrollToQuestion(i);
         return;
       }
     }
+
+    const sanitizedQuestions = quizQuestions.map(q => ({
+      ...q,
+      questionText: String(q.questionText || "").trim(),
+      options: q.options.map((opt: any) => String(opt ?? "").trim()),
+      correctOptionIndex: Number(q.correctOptionIndex),
+      points: Number(q.points) || 1,
+    }));
+
     try {
       await onSubmit({
-        title: quizTitle.trim(),
-        durationMinutes: quizDuration,
-        questions: quizQuestions,
+        title: cleanTitle,
+        durationMinutes: Number(quizDuration) || 15,
+        questions: sanitizedQuestions,
         shuffleQuestions,
         shuffleOptions,
         allowMultipleSubmissions
@@ -395,7 +470,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
   };
 
   const handleOpenPreview = () => {
-    if (!quizTitle.trim()) {
+    if (!String(quizTitle || "").trim()) {
       toast.warning("Vui lòng nhập tiêu đề đề thi để xem trước!");
       return;
     }
@@ -407,7 +482,16 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     <div className={styles.createQuizView}>
       <div className={styles.formHeader}>
         <h3>Tạo đề thi trắc nghiệm mới</h3>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={handleOpenPreview}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl transition-colors cursor-pointer border border-slate-200 shadow-2xs"
+            title="Xem trước toàn bộ đề thi"
+          >
+            <Eye size={16} weight="bold" className="text-slate-600" />
+            <span>Xem trước</span>
+          </button>
           <button
             type="button"
             onClick={() => setIsTemplateGuideOpen(true)}
@@ -424,7 +508,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
       <input type="file" accept=".xlsx, .xls, .docx" ref={fileCombinedImportRef} style={{ display: "none" }} onChange={handleCombinedImport} />
       <input type="file" accept=".docx" ref={fileDocxAIImportRef} style={{ display: "none" }} onChange={handleImportDocxAI} />
 
-      <form onSubmit={handleSaveQuiz}>
+      <form onSubmit={handleSaveQuiz} noValidate>
         {/* THÔNG TIN CHUNG ĐỀ THI */}
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
@@ -563,7 +647,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                               <input type="text" style={{ flex: 1 }} placeholder={`Nhập phương án ${String.fromCharCode(65 + optIndex)}`} value={opt} onChange={(e) => handleOptionTextChange(qIndex, optIndex, e.target.value)} required />
                             </div>
-                            <CustomRadio name={`correct-opt-${qIndex}`} checked={q.correctOptionIndex === optIndex} onChange={() => handleCorrectOptionChange(qIndex, optIndex)} title="Chọn làm đáp án đúng" required />
+                            <CustomRadio name={`correct-opt-${qIndex}`} checked={q.correctOptionIndex === optIndex} onChange={() => handleCorrectOptionChange(qIndex, optIndex)} title="Chọn làm đáp án đúng" />
                             <button type="button" className={styles.optionRemoveBtn} onClick={() => handleRemoveOption(qIndex, optIndex)} title="Xóa phương án này" disabled={q.options.length <= 2}>×</button>
                           </div>
                         ))}
@@ -577,40 +661,51 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
             </div>
           </div>
 
-          {/* CỘT PHẢI: SIDEBAR MỤC LỤC CÂU HỎI */}
+          {/* CỘT PHẢI: SIDEBAR MỤC LỤC CÂU HỎI & NÚT HÀNH ĐỘNG */}
           <div style={{
-            width: "220px",
+            width: "260px",
             position: "sticky",
-            top: "100px",
+            top: "85px",
             backgroundColor: "#f8fafc",
             border: "1.5px solid #e2e8f0",
-            borderRadius: "14px",
-            padding: "18px",
+            borderRadius: "16px",
+            padding: "16px",
             display: "flex",
             flexDirection: "column",
-            gap: "14px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
+            gap: "12px",
+            boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
+            maxHeight: "calc(100vh - 110px)",
+            overflowY: "auto",
+            flexShrink: 0
           }}>
-            <h5 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#1e293b" }}>Mục lục câu hỏi</h5>
+            {/* Header mục lục */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <h5 style={{ margin: 0, fontSize: "0.9rem", fontWeight: 700, color: "#1e293b" }}>Mục lục câu hỏi</h5>
+              <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "#64748b", backgroundColor: "#e2e8f0", padding: "2px 8px", borderRadius: "999px" }}>
+                {quizQuestions.length} câu
+              </span>
+            </div>
+
+            {/* Lưới câu hỏi */}
             <div style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: "8px"
+              gridTemplateColumns: "repeat(5, 1fr)",
+              gap: "6px"
             }}>
               {quizQuestions.map((q, idx) => {
                 const isCurrent = expandedQuestionIndex === idx;
-                const hasContent = q.questionText.trim() !== "";
+                const hasContent = String(q.questionText || "").trim() !== "";
                 const hasCorrectAns = q.correctOptionIndex !== -1;
                 const isDone = hasContent && hasCorrectAns;
 
                 let btnStyle: React.CSSProperties = {
-                  height: "36px",
+                  height: "34px",
                   borderRadius: "8px",
                   border: "1.5px solid #cbd5e1",
                   backgroundColor: "white",
                   color: "#475569",
                   fontWeight: 700,
-                  fontSize: "0.85rem",
+                  fontSize: "0.8rem",
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
@@ -619,9 +714,9 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
                 };
 
                 if (isCurrent) {
-                  btnStyle.borderColor = "#2f8fa3";
-                  btnStyle.backgroundColor = "rgba(47, 143, 163, 0.1)";
-                  btnStyle.color = "#2f8fa3";
+                  btnStyle.borderColor = "#f47c20";
+                  btnStyle.backgroundColor = "rgba(244, 124, 32, 0.1)";
+                  btnStyle.color = "#f47c20";
                 } else if (isDone) {
                   btnStyle.borderColor = "#10b981";
                   btnStyle.backgroundColor = "#ecfdf5";
@@ -645,29 +740,84 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
                 );
               })}
             </div>
+
+            {/* Chú thích trạng thái */}
             <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "10px", fontSize: "0.75rem", color: "#64748b", display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: "#ecfdf5", border: "1.5px solid #10b981" }} />
+                <span style={{ width: "10px", height: "10px", borderRadius: "3px", backgroundColor: "#ecfdf5", border: "1.5px solid #10b981" }} />
                 <span>Đã hoàn thành</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ width: "12px", height: "12px", borderRadius: "3px", backgroundColor: "#fffbeb", border: "1.5px solid #f59e0b" }} />
+                <span style={{ width: "10px", height: "10px", borderRadius: "3px", backgroundColor: "#fffbeb", border: "1.5px solid #f59e0b" }} />
                 <span>Thiếu đáp án đúng</span>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* BOTTOM FIXED ACTIONS (STICKY) */}
-        <div className={styles.formActions}>
-          <button type="button" className={styles.btnCancel} onClick={onCancel} disabled={isSaving}>Hủy bỏ</button>
-          <button type="button" className={styles.btnPreview} onClick={handleOpenPreview}>
-            <Eye size={18} weight="bold" />
-            Xem trước
-          </button>
-          <SecondaryButton type="submit" className={styles.btnSave} disabled={isSaving}>
-            {isSaving ? "Đang lưu..." : "Lưu đề thi"}
-          </SecondaryButton>
+            {/* KHỐI 3 NÚT HÀNH ĐỘNG GỌN GÀNG TRONG SIDEBAR */}
+            <div style={{ borderTop: "1.5px solid #e2e8f0", paddingTop: "12px", display: "flex", flexDirection: "column", gap: "8px" }}>
+              <SaveButton
+                type="submit"
+                disabled={isSaving}
+                fullWidth
+              >
+                <FloppyDisk size={18} weight="bold" />
+                <span>{isSaving ? "Đang lưu..." : "Lưu đề thi"}</span>
+              </SaveButton>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px" }}>
+                <button
+                  type="button"
+                  onClick={handleOpenPreview}
+                  style={{
+                    height: "28px",
+                    padding: "0 6px",
+                    backgroundColor: "white",
+                    border: "1px solid #e2e8f0",
+                    color: "#64748b",
+                    borderRadius: "6px",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "4px",
+                    transition: "all 0.15s"
+                  }}
+                  className="hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300"
+                  title="Xem trước đề thi"
+                >
+                  <Eye size={13} weight="bold" />
+                  <span>Xem trước</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={onCancel}
+                  disabled={isSaving}
+                  style={{
+                    height: "28px",
+                    padding: "0 6px",
+                    backgroundColor: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    color: "#94a3b8",
+                    borderRadius: "6px",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    transition: "all 0.15s"
+                  }}
+                  className="hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                  title="Hủy bỏ soạn đề"
+                >
+                  <span>Hủy bỏ</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </form>
 

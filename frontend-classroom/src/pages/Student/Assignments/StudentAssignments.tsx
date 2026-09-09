@@ -17,7 +17,8 @@ import {
   Hourglass,
   XCircle,
   NotePencil,
-  Star
+  Star,
+  ListNumbers
 } from "phosphor-react";
 import {
   DropdownMenu,
@@ -96,6 +97,13 @@ export default function StudentAssignments() {
     }
   };
 
+  const formatScore = (val: number | string | undefined | null): string => {
+    if (val === undefined || val === null || val === "") return "0";
+    const num = typeof val === "number" ? val : parseFloat(String(val));
+    if (isNaN(num)) return String(val);
+    return String(parseFloat(num.toFixed(2)));
+  };
+
   const getTimeLeft = (deadline: string) => {
     const diff = new Date(deadline).getTime() - Date.now();
     if (diff <= 0) return null;
@@ -132,6 +140,15 @@ export default function StudentAssignments() {
     const timeLeft = getTimeLeft(assign.deadline);
     const isDone = status === "submitted" || status === "graded";
     const isQuiz = (assign.type || "").toLowerCase() === "quiz";
+    const qCount =
+      assign.questionCount ||
+      assign.bankItemId?.quizQuestions?.length ||
+      assign.questions?.length ||
+      assign.quizQuestions?.length ||
+      (assign.title ? (() => {
+        const m = assign.title.match(/(\d+)\s*câu/i);
+        return m ? parseInt(m[1], 10) : 0;
+      })() : 0);
 
     return (
       <div
@@ -175,8 +192,8 @@ export default function StudentAssignments() {
                 Điểm:{" "}
                 <strong>
                   {status === "graded" && assign.submission?.grade !== undefined && assign.submission?.grade !== null
-                    ? `${assign.submission.grade}/${assign.maxScore || 10} đ`
-                    : `0/${assign.maxScore || 10} đ`}
+                    ? `${formatScore(assign.submission.grade)}/${formatScore(assign.maxScore || 10)} đ`
+                    : `0/${formatScore(assign.maxScore || 10)} đ`}
                 </strong>
               </span>
             </div>
@@ -185,6 +202,13 @@ export default function StudentAssignments() {
               <Timer size={14} weight="bold" />
               <span>Thời gian: <strong>{assign.durationMinutes ? `${assign.durationMinutes} phút` : "Tự do"}</strong></span>
             </div>
+
+            {qCount > 0 && (
+              <div className={styles.metaItem}>
+                <ListNumbers size={14} weight="bold" />
+                <span>Số câu: <strong>{qCount} câu</strong></span>
+              </div>
+            )}
           </div>
         </div>
 

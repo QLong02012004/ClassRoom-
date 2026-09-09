@@ -31,7 +31,18 @@ import {
   List,
   CheckCircle,
   Eye,
-  PencilSimple
+  PencilSimple,
+  Notebook,
+  NotePencil,
+  MagnifyingGlass,
+  ListChecks,
+  Hourglass,
+  XCircle,
+  Star,
+  Target,
+  Timer,
+  ArrowRight,
+  ListNumbers
 } from "phosphor-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../components/ui/dropdown-menu";
 import ActivitiesTable from "../../../components/ui/Tables/ActivitiesTable";
@@ -51,6 +62,7 @@ import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButto
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
 import { Pagination } from "@heroui/react";
 import styles from "./StudentClassroomDetail.module.scss";
+import stylesAssign from "../Assignments/StudentAssignments.module.scss";
 
 const MediaContentRenderer: React.FC<{ content: string }> = ({ content }) => {
   if (!content) return null;
@@ -126,6 +138,13 @@ const deadlineUrgency = (dueDate?: string) => {
   return { text: "Còn hạn", cls: styles.urgencyLow };
 };
 
+const formatScore = (val: number | string | undefined | null): string => {
+  if (val === undefined || val === null || val === "") return "0";
+  const num = typeof val === "number" ? val : parseFloat(String(val));
+  if (isNaN(num)) return String(val);
+  return String(parseFloat(num.toFixed(2)));
+};
+
 export default function StudentClassroomDetail() {
   const { id: classId } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -142,17 +161,55 @@ export default function StudentClassroomDetail() {
   const [loadingData, setLoadingData] = useState(true);
   const [allActivities, setAllActivities] = useState<any[]>([]);
   const [activityTypeFilter, setActivityTypeFilter] = useState<"all" | "quiz" | "document">("all");
-  const [activityCategoryFilter, setActivityCategoryFilter] = useState<"all" | "homework" | "periodic">("all");
+  const [activityCategoryFilter, setActivityCategoryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [feedPage, setFeedPage] = useState(1);
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
   const [replyToMap, setReplyToMap] = useState<Record<string, string>>({});
 
-  const filteredActivities = allActivities.filter((item: any) => {
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activityTypeFilter, activityCategoryFilter, statusFilter, searchQuery]);
+
+  const getStatus = (act: any) => {
+    const sub = act.submission || act.result;
+    if (sub?.status === "graded" || (sub?.grade !== undefined && sub?.grade !== null)) return "graded";
+    if (sub !== null && sub !== undefined) return "submitted";
+    const deadline = act.dueDate || act.deadline;
+    if (deadline) {
+      const diff = new Date(deadline).getTime() - Date.now();
+      if (diff < 0) return "late";
+    }
+    return "pending";
+  };
+
+  const formatDeadline = (iso?: string) => {
+    if (!iso) return "Không giới hạn";
+    try {
+      const d = new Date(iso);
+      const timeStr = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const dateStr = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      return `${timeStr} - ${dateStr}`;
+    } catch {
+      return iso;
+    }
+  };
+
+  const statusOptions = [
+    { id: "all", label: "Tất cả trạng thái", icon: <ListChecks size={15} weight="duotone" className="text-slate-600" /> },
+    { id: "late", label: "Quá hạn", icon: <XCircle size={15} weight="duotone" className="text-red-500" /> },
+    { id: "pending", label: "Chưa nộp", icon: <NotePencil size={15} weight="duotone" className="text-orange-500" /> },
+    { id: "submitted", label: "Đã nộp", icon: <CheckCircle size={15} weight="duotone" className="text-teal-600" /> },
+    { id: "graded", label: "Đã chấm điểm", icon: <Star size={15} weight="fill" className="text-amber-400" /> },
+  ];
+
+  const activitiesForStatusCount = allActivities.filter((item: any) => {
+    if (searchQuery && !item.title?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (activityTypeFilter === "quiz" && item.type !== "quiz") return false;
     if (activityTypeFilter === "document" && item.type === "quiz") return false;
-
     if (activityCategoryFilter !== "all") {
       if (activityCategoryFilter === "homework") {
         if (item.category !== "homework") return false;
@@ -165,7 +222,24 @@ export default function StudentClassroomDetail() {
     return true;
   });
 
-  const itemsPerPage = 6;
+  const pendingCount = activitiesForStatusCount.filter((a) => getStatus(a) === "pending").length;
+  const lateCount = activitiesForStatusCount.filter((a) => getStatus(a) === "late").length;
+  const submittedCount = activitiesForStatusCount.filter((a) => getStatus(a) === "submitted").length;
+  const gradedCount = activitiesForStatusCount.filter((a) => getStatus(a) === "graded").length;
+
+  const filteredActivities = activitiesForStatusCount.filter((item: any) => {
+    if (statusFilter !== "all") {
+      if (getStatus(item) !== statusFilter) return false;
+    }
+    return true;
+  });
+
+  const allPendingCount = allActivities.filter((a) => {
+    const s = getStatus(a);
+    return s === "pending" || s === "late";
+  }).length;
+
+  const itemsPerPage = 12;
   const totalPages = Math.ceil(filteredActivities.length / itemsPerPage);
   const currentActivities = filteredActivities.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
   const [filterType, setFilterType] = useState<"all" | "announcement" | "reminder" | "material">("all");
@@ -667,87 +741,90 @@ export default function StudentClassroomDetail() {
 
           {/* ===== TAB: BÀI TẬP & BÀI THI ===== */}
           {isActivitiesTab && (
-            <div className={styles.assignmentsTab}>
-              <div className="mb-4">
+            <div className="flex flex-col gap-5 pb-12">
+              <div className="mb-1">
                 <BackButton onClick={() => navigate("/classrooms")}>Quay lại danh sách lớp</BackButton>
               </div>
-              {/* ROW 1: TITLE & SUBTITLE */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+
+              {/* Header matching StudentAssignments */}
+              <div className={stylesAssign.pageHeader}>
                 <div>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f47c20', margin: 0 }}>Danh Sách Bài Tập & Đề Thi</h3>
-                  <p className="text-sm text-slate-500 mt-0.5">
-                    Theo dõi tiến độ và hoạt động của lớp học
-                  </p>
+                  <h2>Danh Sách Bài Tập & Đề Thi</h2>
+                  <p>Theo dõi tiến độ và hoạt động của lớp học</p>
+                </div>
+
+                <div className={stylesAssign.headerStats}>
+                  <div className={stylesAssign.statPill}>
+                    <Notebook size={16} weight="duotone" className="text-[#f47c20]" />
+                    <span>{allActivities.length} Bài tập</span>
+                  </div>
+                  {allPendingCount > 0 && (
+                    <div className={stylesAssign.statPill}>
+                      <NotePencil size={16} weight="duotone" className="text-[#f47c20]" />
+                      <span>{allPendingCount} Chưa nộp</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* ROW 2: FILTERS & VIEW MODE TOOLBAR */}
-              <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-                <div className="flex items-center gap-3 flex-wrap">
-                  {/* TYPE PILL TABS */}
-                  <div className="flex items-center gap-1 bg-slate-100/90 p-1 rounded-full border border-slate-200/80 shadow-inner">
-                    <button
-                      type="button"
-                      onClick={() => setActivityTypeFilter("all")}
-                      className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${activityTypeFilter === "all" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-                    >
-                      Tất cả loại
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActivityTypeFilter("quiz")}
-                      className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${activityTypeFilter === "quiz" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-                    >
-                      <CheckCircle size={14} weight="bold" /> Trắc nghiệm
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActivityTypeFilter("document")}
-                      className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 ${activityTypeFilter === "document" ? "bg-white text-[#f47c20] shadow-sm" : "text-slate-600 hover:text-slate-900"}`}
-                    >
-                      <FilePdf size={14} weight="bold" /> Tự luận / File
-                    </button>
-                  </div>
+              {/* Advanced Filter Toolbar matching StudentAssignments */}
+              <div className={stylesAssign.filterBar}>
+                <div className={stylesAssign.searchInput}>
+                  <MagnifyingGlass size={16} className="text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm theo tên bài tập..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
 
-                  {/* CATEGORY SELECT COMBOBOX */}
+                <div className="flex flex-wrap md:flex-nowrap gap-2.5">
+                  {/* Dropdown Type */}
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="px-3.5 py-1.5 bg-white border border-slate-200 rounded-full text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-2 shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                      >
-                        <Funnel size={14} className="text-slate-500" weight="bold" />
-                        <span>
-                          {activityCategoryFilter === "all"
-                            ? "Tất cả mục đích"
-                            : {
-                                homework: "Bài tập về nhà",
-                                periodic: "Kiểm tra / Thi thử",
-                                mock_exam: "Thi thử",
-                                attitude: "Chuyên cần / Thái độ"
-                              }[activityCategoryFilter] || activityCategoryFilter}
-                        </span>
-                        <CaretDown size={13} className="text-slate-400" weight="bold" />
-                      </button>
+                    <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-3.5 py-2 outline-none hover:bg-orange-50 hover:text-[#f47c20] hover:border-orange-200 transition-colors min-w-[140px] h-[36px] cursor-pointer whitespace-nowrap">
+                      <span className="whitespace-nowrap">
+                        {activityTypeFilter === "all" ? "Tất cả loại bài" : (activityTypeFilter === "quiz" ? "Trắc nghiệm" : "Tự luận")}
+                      </span>
+                      <CaretDown size={13} className="text-slate-400" weight="bold" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
-                      <DropdownMenuItem
-                        onClick={() => setActivityCategoryFilter("all")}
-                        className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${activityCategoryFilter === "all" ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
-                      >
+                    <DropdownMenuContent align="end" className="w-[170px] bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
+                      <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setActivityTypeFilter("all")}>
+                        Tất cả loại bài
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setActivityTypeFilter("quiz")}>
+                        Trắc nghiệm
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setActivityTypeFilter("document")}>
+                        Tự luận
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  {/* Dropdown Purpose / Category */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-xs font-semibold rounded-lg px-3.5 py-2 outline-none hover:bg-orange-50 hover:text-[#f47c20] hover:border-orange-200 transition-colors min-w-[145px] h-[36px] cursor-pointer whitespace-nowrap">
+                      <span className="truncate max-w-[115px] whitespace-nowrap">
+                        {activityCategoryFilter === "all"
+                          ? "Tất cả mục đích"
+                          : {
+                              homework: "Bài tập về nhà",
+                              periodic: "Kiểm tra định kỳ",
+                              mock_exam: "Thi thử",
+                              attitude: "Chuyên cần / Thái độ"
+                            }[activityCategoryFilter] || activityCategoryFilter}
+                      </span>
+                      <CaretDown size={13} className="text-slate-400 flex-shrink-0" weight="bold" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[190px] bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
+                      <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setActivityCategoryFilter("all")}>
                         Tất cả mục đích
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setActivityCategoryFilter("homework")}
-                        className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${activityCategoryFilter === "homework" ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
-                      >
+                      <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setActivityCategoryFilter("homework")}>
                         Bài tập về nhà
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => setActivityCategoryFilter("periodic")}
-                        className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${activityCategoryFilter === "periodic" ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
-                      >
-                        Kiểm tra / Thi thử
+                      <DropdownMenuItem className="cursor-pointer font-medium whitespace-nowrap" onClick={() => setActivityCategoryFilter("periodic")}>
+                        Kiểm tra định kỳ
                       </DropdownMenuItem>
                       {Array.from(new Set(allActivities.map((a: any) => a.category).filter(Boolean)))
                         .filter((cat: any) => !["homework", "periodic", "mock_exam"].includes(cat))
@@ -755,181 +832,203 @@ export default function StudentClassroomDetail() {
                           <DropdownMenuItem
                             key={cat}
                             onClick={() => setActivityCategoryFilter(cat)}
-                            className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${activityCategoryFilter === cat ? "bg-orange-50 text-[#f47c20] font-bold" : "text-slate-700 hover:bg-slate-50"}`}
+                            className="cursor-pointer font-medium whitespace-nowrap"
                           >
-                            {
-                              {
-                                attitude: "Chuyên cần / Thái độ"
-                              }[cat] || cat
-                            }
+                            {cat === "attitude" ? "Chuyên cần / Thái độ" : cat}
                           </DropdownMenuItem>
                         ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                </div>
 
-              {/* END FILTERS */}
+                  {/* Dropdown Status (with active icon and count) */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="flex items-center justify-between gap-2 bg-orange-50 border border-orange-200 text-[#f47c20] text-xs font-extrabold rounded-lg px-3.5 py-2 outline-none hover:bg-orange-100 transition-colors min-w-[175px] h-[36px] cursor-pointer whitespace-nowrap">
+                      {(() => {
+                        const activeOpt = statusOptions.find(o => o.id === statusFilter) || statusOptions[0];
+                        return (
+                          <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            {activeOpt.icon}
+                            <span className="whitespace-nowrap font-extrabold">{activeOpt.label}</span>
+                          </div>
+                        );
+                      })()}
+                      <CaretDown size={13} className="text-[#f47c20] flex-shrink-0" weight="bold" />
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-[230px] p-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-50">
+                      {statusOptions.map(opt => {
+                        const count = opt.id === "all" ? activitiesForStatusCount.length
+                          : opt.id === "late" ? lateCount
+                            : opt.id === "pending" ? pendingCount
+                              : opt.id === "submitted" ? submittedCount
+                                : gradedCount;
+
+                        return (
+                          <DropdownMenuItem
+                            key={opt.id}
+                            onClick={() => setStatusFilter(opt.id)}
+                            className="flex justify-between items-center cursor-pointer font-semibold py-1.5 px-2.5 whitespace-nowrap"
+                          >
+                            <div className="flex items-center gap-2 whitespace-nowrap">
+                              {opt.icon}
+                              <span className={`whitespace-nowrap ${statusFilter === opt.id ? "font-bold text-[#f47c20]" : "text-slate-700"}`}>
+                                {opt.label}
+                              </span>
+                            </div>
+                            {count > 0 && (
+                              <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-0.5 rounded-full font-bold">{count}</span>
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
 
+              {/* Activities Cards Grid */}
               {filteredActivities.length === 0 ? (
-                <div className={styles.emptyFeed}>
-                  <ClipboardText size={36} weight="light" />
-                  <p>Chưa có bài tập hoặc đề thi nào được giao.</p>
+                <div className={stylesAssign.emptyState}>
+                  <BookOpen size={44} className={stylesAssign.emptyIcon} />
+                  <h4>Không tìm thấy bài tập</h4>
+                  <p>Chưa có bài tập hoặc đề thi nào phù hợp với bộ lọc tìm kiếm.</p>
                 </div>
               ) : (
                 <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pb-6">
-                  {currentActivities.map((act: any) => {
-                    const isQuiz = act.type === "quiz";
-                    const sub = act.submission || act.result;
-                    const isSubmitted = sub !== null && sub !== undefined;
-                    const isGraded = sub?.status === 'graded' || (sub?.grade !== null && sub?.grade !== undefined);
-                    const score = sub?.grade ?? sub?.score;
-                    const qCount = isQuiz ? (act.questions?.length || act.bankItemId?.quizQuestions?.length || 0) : 0;
-                    const statusObj = act.status === 'closed'
-                      ? { label: "Đã đóng", class: "bg-rose-50 text-rose-700 border border-rose-200/90 shadow-2xs" }
-                      : { label: "Đang mở", class: "bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-2xs" };
+                  <div className={stylesAssign.assignmentList}>
+                    {currentActivities.map((act: any) => {
+                      const isQuiz = act.type === "quiz";
+                      const sub = act.submission || act.result;
+                      const isSubmitted = sub !== null && sub !== undefined;
+                      const isGraded = sub?.status === 'graded' || (sub?.grade !== null && sub?.grade !== undefined);
+                      const score = sub?.grade ?? sub?.score;
+                      const status = getStatus(act);
+                      const isDone = status === "submitted" || status === "graded";
+                      const qCount =
+                        act.questionCount ||
+                        act.bankItemId?.quizQuestions?.length ||
+                        act.questions?.length ||
+                        act.quizQuestions?.length ||
+                        (act.title ? (() => {
+                          const m = act.title.match(/(\d+)\s*câu/i);
+                          return m ? parseInt(m[1], 10) : 0;
+                        })() : 0);
 
-                    return (
-                      <div
-                        key={act._id}
-                        className="bg-white rounded-3xl p-5 border-2 border-slate-300 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between gap-3.5 text-left group"
-                      >
-                        {/* ROW 1: BADGES (TYPE + CATEGORY) */}
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {/* Type Tag */}
-                            <span className={`px-3 py-1 font-bold text-xs rounded-lg border ${
-                              isQuiz
-                                ? "bg-[#f47c20]/10 text-[#f47c20] border-[#f47c20]/25"
-                                : "bg-[#2f8fa3]/10 text-[#2f8fa3] border-[#2f8fa3]/25"
-                            }`}>
-                              {isQuiz ? "Trắc nghiệm" : "Tự luận"}
-                            </span>
-                            {/* Category Badge */}
-                            {act.category && (
-                              <span className={`px-2.5 py-1 rounded-lg text-[11px] font-bold whitespace-nowrap shrink-0 border ${
-                                isQuiz
-                                  ? "bg-[#2f8fa3]/10 text-[#2f8fa3] border-[#2f8fa3]/25"
-                                  : "bg-[#f47c20]/10 text-[#f47c20] border-[#f47c20]/25"
-                              }`}>
-                                {
-                                  {
-                                    homework: "Bài tập về nhà",
-                                    periodic: "Kiểm tra định kỳ",
-                                    mock_exam: "Thi thử",
-                                    attitude: "Chuyên cần / Thái độ"
-                                  }[act.category] || act.category
-                                }
-                              </span>
-                            )}
+                      return (
+                        <div
+                          key={act._id}
+                          className={`${stylesAssign.assignCard} ${status === "late" ? stylesAssign.lateCard : ""} ${isDone ? stylesAssign.doneCard : ""}`}
+                          onClick={() => {
+                            if (isQuiz) navigate(`/exams/${act._id}`);
+                            else navigate(`/assignments/${act._id}`);
+                          }}
+                        >
+                          <div className={stylesAssign.cardMain}>
+                            {/* Card Top Badges Header */}
+                            <div className={stylesAssign.cardHeaderRow}>
+                              <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                                <span className={stylesAssign.classBadge}>
+                                  {classroom?.name || "Lớp học"}
+                                </span>
+                                <span className={stylesAssign.typeBadge}>
+                                  {isQuiz ? "Trắc nghiệm" : "Tự luận"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Title and Description */}
+                            <h4 className={stylesAssign.cardTitle} title={act.title}>{act.title}</h4>
+                            <p className={stylesAssign.cardDesc} title={classroom?.subject || act.description}>
+                              {classroom?.subject ? `Môn: ${classroom.subject}` : (act.description || "Hoàn thành đúng hạn để nhận điểm XP.")}
+                            </p>
+
+                            {/* Detailed Info Pills Box */}
+                            <div className={stylesAssign.metaGrid}>
+                              <div className={stylesAssign.metaItem}>
+                                <Clock size={14} weight="bold" />
+                                <span>Hạn: <strong>{formatDeadline(act.dueDate || act.deadline)}</strong></span>
+                              </div>
+
+                              <div className={stylesAssign.metaItem}>
+                                <Target size={14} weight="bold" />
+                                <span>
+                                  Điểm:{" "}
+                                  <strong>
+                                    {isGraded && score !== undefined && score !== null
+                                      ? `${formatScore(score)}/${formatScore(act.maxScore || 10)} đ`
+                                      : `0/${formatScore(act.maxScore || 10)} đ`}
+                                  </strong>
+                                </span>
+                              </div>
+
+                              <div className={stylesAssign.metaItem}>
+                                <Timer size={14} weight="bold" />
+                                <span>Thời gian: <strong>{act.durationMinutes ? `${act.durationMinutes} phút` : "Tự do"}</strong></span>
+                              </div>
+
+                              {qCount > 0 && (
+                                <div className={stylesAssign.metaItem}>
+                                  <ListNumbers size={14} weight="bold" />
+                                  <span>Số câu: <strong>{qCount} câu</strong></span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
 
-                        {/* ROW 2: TITLE */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <h4
-                              onClick={() => {
+                          {/* Card Footer Action Block */}
+                          <div className={stylesAssign.cardFooter}>
+                            <div className="whitespace-nowrap">
+                              {status === "graded" && (
+                                <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2.5 py-1 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                                  <CheckCircle size={12} weight="fill" className="text-emerald-600" /> Đã chấm
+                                </span>
+                              )}
+                              {status === "submitted" && (
+                                <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                                  <CheckCircle size={11} weight="fill" className="text-teal-600" /> Đã nộp
+                                </span>
+                              )}
+                              {status === "late" && (
+                                <span className="text-[11px] font-bold text-red-600 bg-red-50 border border-red-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                                  <XCircle size={11} weight="fill" className="text-red-500" /> Hết hạn
+                                </span>
+                              )}
+                              {status === "pending" && (
+                                <span className="text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-md inline-flex items-center gap-1 whitespace-nowrap">
+                                  <Hourglass size={11} weight="fill" className="text-amber-500" /> Chưa nộp
+                                </span>
+                              )}
+                            </div>
+
+                            <PrimaryButton
+                              variant={isDone ? "outline" : "default"}
+                              size="sm"
+                              className="!text-xs font-extrabold ml-auto"
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 if (isQuiz) navigate(`/exams/${act._id}`);
                                 else navigate(`/assignments/${act._id}`);
                               }}
-                              className="text-lg font-medium text-[#f47c20] hover:text-[#d96814] cursor-pointer transition-colors leading-snug line-clamp-2"
-                              title={act.title}
+                              disabled={classroom?.status === 'Closed' && !isDone}
                             >
-                              {act.title}
-                            </h4>
-                            {act.description && (
-                              <p className="text-xs text-[#64748b] mt-1 line-clamp-2 leading-relaxed" title={act.description}>
-                                {act.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* ROW 3: SUB-INFO (DEADLINE / DURATION / FILES) */}
-                        <div className="flex items-center gap-1.5 text-xs text-[#64748b] font-semibold">
-                          <Clock size={15} className="text-[#f47c20] shrink-0" />
-                          <span>
-                            Hạn nộp: <span className="text-[#64748b] font-normal">{act.dueDate || act.deadline ? new Date(act.dueDate || act.deadline).toLocaleDateString("vi-VN") : "Không giới hạn"}</span>
-                          </span>
-                          <span className="ml-1">{isQuiz ? `${act.durationMinutes || 15}p (${qCount} câu)` : `${act.attachments?.length || 1} file đính kèm`}</span>
-                        </div>
-
-                        {/* ROW 4: HIGHLIGHTED MIDDLE RESULT / STATUS BOX */}
-                        <div className={`rounded-2xl p-3 flex items-center justify-between text-xs transition-colors ${
-                          isGraded || isSubmitted
-                            ? "bg-[#f0fdf4] border border-[#bbf7d0]"
-                            : "bg-[#2f8fa3]/10 border border-[#2f8fa3]/25"
-                        }`}>
-                          <div className={`flex items-center gap-2 font-semibold truncate ${
-                            isGraded || isSubmitted ? "text-[#16a34a]" : "text-[#2f8fa3]"
-                          }`}>
-                            {isGraded || isSubmitted ? (
-                              <CheckCircle size={16} weight="bold" className="shrink-0 text-[#16a34a]" />
-                            ) : (
-                              <BookOpen size={16} weight="duotone" className="shrink-0 text-[#2f8fa3]" />
-                            )}
-                            <span className="truncate">
-                              {isGraded
-                                ? `Đã chấm điểm: ${score}/${act.maxScore || 10}`
-                                : isSubmitted
-                                ? "Đã nộp bài"
-                                : "Chưa hoàn thành"}
-                            </span>
-                          </div>
-                          {isGraded && (
-                            <span className="px-2 py-0.5 rounded-md bg-white text-[#16a34a] font-extrabold shrink-0 border border-[#bbf7d0]">
-                              {score}/{act.maxScore || 10}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* ROW 5: BOTTOM ACTION BUTTON */}
-                        <div className="pt-2 border-t border-slate-100">
-                          {isQuiz ? (
-                            isSubmitted ? (
-                              <button
-                                type="button"
-                                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-[#0f172a] font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer border-none"
-                                onClick={() => navigate(`/exams/${act._id}`)}
-                              >
-                                <Eye size={15} weight="bold" />
-                                <span>Xem kết quả</span>
-                              </button>
-                            ) : (
-                              <PrimaryButton
-                                type="button"
-                                variant="default"
-                                className="w-full py-2.5 rounded-xl font-bold text-xs shadow-xs"
-                                onClick={() => navigate(`/exams/${act._id}`)}
-                                disabled={classroom?.status === 'Closed'}
-                                style={{ opacity: classroom?.status === 'Closed' ? 0.5 : 1 }}
-                              >
-                                <CheckCircle size={15} weight="bold" />
-                                <span>Làm bài thi</span>
-                              </PrimaryButton>
-                            )
-                          ) : (
-                            <PrimaryButton
-                              type="button"
-                              variant="default"
-                              className="w-full py-2.5 rounded-xl font-bold text-xs shadow-xs"
-                              onClick={() => navigate(`/assignments/${act._id}`)}
-                            >
-                              <PencilSimple size={15} weight="bold" />
-                              <span>{isSubmitted ? 'Xem bài nộp' : classroom?.status === 'Closed' ? 'Xem bài' : 'Làm bài'}</span>
+                              {status === "graded" ? (
+                                <>
+                                  Xem kết quả <ArrowRight size={13} weight="bold" />
+                                </>
+                              ) : (
+                                <>
+                                  {isDone ? "Xem bài làm" : "Làm bài ngay"} <ArrowRight size={13} weight="bold" />
+                                </>
+                              )}
                             </PrimaryButton>
-                          )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
 
-                  {/* PAGINATION CONTROLS */}
+                  {/* Pagination */}
                   {filteredActivities.length > 0 && (
-                    <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200/80 bg-white rounded-2xl shadow-3xs mt-4 mb-6">
+                    <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-white rounded-2xl shadow-3xs mt-2 mb-6">
                       <Pagination.Summary className="text-sm text-slate-500 font-medium">
                         Hiển thị {(currentPage - 1) * itemsPerPage + 1} đến {Math.min(currentPage * itemsPerPage, filteredActivities.length)} trong số {filteredActivities.length} kết quả
                       </Pagination.Summary>

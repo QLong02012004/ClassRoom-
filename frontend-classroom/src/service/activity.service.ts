@@ -44,6 +44,23 @@ export const activityService = {
     return await api.post(`/api/v1/classes/${classId}/activities`, data);
   },
 
+  // Giao bài tập / đề thi cho nhiều lớp cùng lúc
+  assignActivityToMultipleClasses: async (data: {
+    classIds: string[];
+    bankItemId: string;
+    title?: string;
+    description?: string;
+    startDate?: string;
+    dueDate?: string;
+    category?: string;
+    maxScore?: number;
+    durationMinutes?: number;
+    status?: string;
+    allowMultipleSubmissions?: boolean;
+  }): Promise<IBackendRes<any>> => {
+    return await api.post('/api/v1/activities/assign-multiple', data);
+  },
+
   // Lấy danh sách hoạt động của lớp
   getClassActivities: async (classId: string): Promise<IBackendRes<IClassActivity[]>> => {
     return await api.get(`/api/v1/classes/${classId}/activities`);
@@ -77,5 +94,15 @@ export const activityService = {
   // Lấy tất cả điểm (dành cho giáo viên)
   getQuizResults: async (id: string): Promise<IBackendRes<any>> => {
     return await api.get(`/api/v1/activities/${id}/results`);
+  },
+
+  // Lưu bản nháp bài thi trắc nghiệm (Autosave server)
+  saveQuizDraft: async (id: string, data: { answers: Record<number, number>; flagged?: Record<number, boolean> }): Promise<IBackendRes<any>> => {
+    return await api.post(`/api/v1/activities/${id}/draft`, data);
+  },
+
+  // Lấy bản nháp bài thi trắc nghiệm
+  getQuizDraft: async (id: string): Promise<IBackendRes<any>> => {
+    return await api.get(`/api/v1/activities/${id}/draft`);
   }
 };

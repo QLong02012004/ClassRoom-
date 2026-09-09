@@ -87,4 +87,10 @@ const BankItemSchema = new Schema<IBankItem>({
     updatedAt: { type: Date, default: Date.now }
 });
 
+BankItemSchema.pre('save', function (this: any) {
+    if (this.maxScore !== undefined && this.maxScore !== null) {
+        this.maxScore = Math.round((Number(this.maxScore) + Number.EPSILON) * 100) / 100;
+    }
+});
+
 export const BankItemModel = model<IBankItem>('BankItem', BankItemSchema);

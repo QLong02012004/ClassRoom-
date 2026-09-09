@@ -281,7 +281,8 @@ export function useQuizBuilder({ classId, quizzes, loadQuizzes }: UseQuizBuilder
 
       const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
 
-      const response = await fetch("http://localhost:5000/api/v1/upload/docx", {
+      const backendApiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+      const response = await fetch(`${backendApiUrl}/upload/docx`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -369,7 +370,8 @@ export function useQuizBuilder({ classId, quizzes, loadQuizzes }: UseQuizBuilder
 
       const token = localStorage.getItem("accessToken") || sessionStorage.getItem("accessToken");
 
-      const response = await fetch("http://localhost:5000/api/v1/upload/docx-ai", {
+      const backendApiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api/v1";
+      const response = await fetch(`${backendApiUrl}/upload/docx-ai`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
