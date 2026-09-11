@@ -43,7 +43,8 @@ export enum AttendanceStatus {
 export enum SubmissionStatus {
     SUBMITTED = 'submitted',
     LATE = 'late',
-    PENDING = 'pending'
+    PENDING = 'pending',
+    GRADED = 'graded'
 }
 
 export enum QuizStatus {

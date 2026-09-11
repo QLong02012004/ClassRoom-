@@ -95,10 +95,12 @@ export const dashboardService = {
     const url = classId && classId !== 'all' ? `/api/v1/dashboard/teacher?classId=${classId}` : '/api/v1/dashboard/teacher';
     return await api.get(url);
   },
-  getStudentDashboardStats: async (): Promise<IBackendRes<any>> => {
-    return await api.get('/api/v1/dashboard/student');
+  getStudentDashboardStats: async (classId?: string): Promise<IBackendRes<any>> => {
+    const url = classId && classId !== 'all' ? `/api/v1/dashboard/student?classId=${classId}` : '/api/v1/dashboard/student';
+    return await api.get(url);
   },
-  getLeaderboard: async (classId: string): Promise<IBackendRes<any>> => {
-    return await api.get(`/api/v1/dashboard/student/leaderboard?classId=${classId}`);
+  getLeaderboard: async (classId?: string): Promise<IBackendRes<any>> => {
+    const url = classId && classId !== 'all' ? `/api/v1/dashboard/student/leaderboard?classId=${classId}` : '/api/v1/dashboard/student/leaderboard?classId=all';
+    return await api.get(url);
   }
 };

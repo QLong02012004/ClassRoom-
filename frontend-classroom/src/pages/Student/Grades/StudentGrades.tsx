@@ -24,6 +24,7 @@ import {
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService, type ITeacherClassroom } from "../../../service/classroom.service.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -414,6 +415,12 @@ export default function StudentGrades() {
 
   return (
     <div className={styles.page}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate(selectedClassId && selectedClassId !== "all" ? `/classrooms/${selectedClassId}` : "/classrooms")}>
+          {selectedClassId && selectedClassId !== "all" ? "Quay lại lớp học" : "Quay lại danh sách lớp"}
+        </BackButton>
+      </div>
+
       {/* HEADER BANNER CÓ BỘ LỌC NẰM BÊN PHẢI */}
       <div className={styles.pageHeader}>
         <div className="flex flex-col gap-1">

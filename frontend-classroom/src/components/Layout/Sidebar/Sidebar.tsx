@@ -13,6 +13,8 @@ import {
   ChartLineUp,
   Users,
   Gear,
+  CalendarCheck,
+  ClipboardText,
 } from "phosphor-react";
 import styles from "./Sidebar.module.scss";
 
@@ -22,7 +24,9 @@ const Sidebar: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const userRole = user?.role || "student";
-  const isActive = (path: string) => location.pathname === path || (path === "/classrooms" && location.pathname.startsWith("/classrooms"));
+  const isActive = (path: string) =>
+    location.pathname === path ||
+    (path !== "/dashboard" && location.pathname.startsWith(path));
 
   const getNavLinks = (role: string) => {
     const baseLinks = [
@@ -41,6 +45,8 @@ const Sidebar: React.FC = () => {
     } else if (role === "teacher") {
       return [
         ...baseLinks,
+        { name: "Điểm danh", path: "/attendance", icon: CalendarCheck },
+        { name: "Sổ điểm", path: "/gradebook", icon: ClipboardText },
         { name: "Lịch dạy", path: "/schedule", icon: BookOpen },
         { name: "Ngân hàng", path: "/bank", icon: Bookmark },
       ];

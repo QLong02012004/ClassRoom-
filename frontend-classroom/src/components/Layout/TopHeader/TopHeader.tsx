@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
+import { useToast } from "../../Styles/ToastContext";
 import { io } from "socket.io-client";
 import {
   Bell,
@@ -22,6 +23,7 @@ const TopHeader: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, logout } = useAuth();
+  const toast = useToast();
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
@@ -96,6 +98,11 @@ const TopHeader: React.FC = () => {
       fetchNotifications();
     });
 
+    socket.on('submission_update', () => {
+      console.log('⚡ [Socket.io] Có bài nộp mới, đang cập nhật thông báo...');
+      fetchNotifications();
+    });
+
     socket.on('admin_stats_update', () => {
       fetchNotifications();
     });
@@ -104,11 +111,31 @@ const TopHeader: React.FC = () => {
       fetchNotifications();
     });
 
+    socket.on('attendance_update', (data?: any) => {
+      fetchNotifications();
+      if (userRole === 'student' && data?.records && Array.isArray(data.records)) {
+        const studentId = (user as any)?._id || (user as any)?.id;
+        const myRecord = data.records.find((r: any) => {
+          const rid = typeof r.studentId === 'object' ? (r.studentId?._id || r.studentId) : r.studentId;
+          return String(rid) === String(studentId);
+        });
+        if (myRecord) {
+          if (myRecord.status === 'present') {
+            toast.success("🎉 Bạn đã được điểm danh: Có mặt (+5 XP)!");
+          } else if (myRecord.status === 'late') {
+            toast.info("⏰ Bạn đã được điểm danh: Đi muộn (+2 XP)!");
+          } else if (myRecord.status === 'absent') {
+            toast.warning("⚠️ Bạn đã được điểm danh: Vắng mặt (-5 XP)!");
+          }
+        }
+      }
+    });
+
     return () => {
       clearInterval(interval);
       socket.disconnect();
     };
-  }, [userRole]);
+  }, [userRole, user]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -140,6 +167,9 @@ const TopHeader: React.FC = () => {
     if (userRole === "admin" && (text.includes("duyệt") || text.includes("phê duyệt") || text.includes("pending"))) {
       setIsNotifOpen(false);
       navigate("/admin/users?status=Pending");
+    } else if (userRole === "teacher" && (text.includes("nộp bài") || text.includes("bài nộp") || text.includes("hoàn thành đề thi"))) {
+      setIsNotifOpen(false);
+      navigate("/gradebook");
     }
   };
 

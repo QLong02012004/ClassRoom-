@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "../../../components/ui/dropdown-menu";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton.tsx";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import styles from "./StudentAssignments.module.scss";
 
@@ -353,6 +354,12 @@ export default function StudentAssignments() {
 
   return (
     <div className={styles.page}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate("/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
+
       {/* Page Header */}
       <div className={styles.pageHeader}>
         <div>

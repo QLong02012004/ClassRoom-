@@ -1,4 +1,6 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import BackButton from "@/components/ui/Buttons/BackButton";
 import styles from "../TeacherClassroomDetail.module.scss";
 
 interface ClassroomScheduleTabProps {
@@ -6,8 +8,13 @@ interface ClassroomScheduleTabProps {
 }
 
 export const ClassroomScheduleTab: React.FC<ClassroomScheduleTabProps> = ({ classroom }) => {
+  const navigate = useNavigate();
+
   return (
     <div className={styles.tabContentPanel}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate("/classrooms")}>Quay lại danh sách lớp</BackButton>
+      </div>
       <div className={styles.reportCard}>
         <h3>Lịch trình học tập</h3>
         <p>Lịch dạy và các buổi học thêm được xếp lịch cho lớp {classroom?.className}.</p>

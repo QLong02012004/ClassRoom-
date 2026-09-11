@@ -30,6 +30,7 @@ import {
 import AnimatedCounter from "@/components/ui/Counters/AnimatedCounter";
 import FolderUpload from "@/components/ui/Uploads/FolderUpload/FolderUpload";
 import AnimatedAddButton from "@/components/ui/Buttons/AnimatedAddButton";
+import BackButton from "@/components/ui/Buttons/BackButton";
 import AnnouncementComments from "@/components/Classroom/AnnouncementComments";
 import { handleDownloadOrOpenFile } from "@/utils/downloadHelper";
 import { formatFileUrl, getFileExt, formatFileSize, formatCleanFileName } from "../utils/classroomUtils";
@@ -104,6 +105,12 @@ export default function ClassroomStreamTab(props: ClassroomStreamTabProps) {
 
   return (
     <div className={styles.feedLayout}>
+      <div className="col-span-full mb-1">
+        <BackButton onClick={() => navigate("/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
+
       {/* THÔNG BÁO LỚP ĐÓNG */}
       {classroom?.status === "Closed" && (
         <div className="col-span-full mb-4 w-full bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-4 shadow-sm items-start">

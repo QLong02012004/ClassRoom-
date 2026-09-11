@@ -19,6 +19,7 @@ import {
   DropdownMenuItem,
 } from "../../../components/ui/dropdown-menu";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import { bankService } from "../../../service/bank.service";
 import styles from "../Assignments/StudentAssignments.module.scss";
 
@@ -80,6 +81,12 @@ export default function StudentMaterials() {
 
   return (
     <div className={styles.page}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate("/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
+
       {/* HEADER BANNER */}
       <div className={styles.pageHeader}>
         <div>

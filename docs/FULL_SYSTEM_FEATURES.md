@@ -169,7 +169,7 @@ Hệ thống Quản lý Học tập (LMS ClassRoom) phân chia thành 3 vai trò
   - **Điểm danh hàng ngày:** Chọn ngày, tích chọn trạng thái từng HS (`Có mặt`, `Đi muộn`, `Vắng mặt`), nhập ghi chú lý do vắng. Nút "Lưu điểm danh" dùng `AnimatedAddButton`.
 - [ ] **Tab Sổ điểm (`/gradebook`):**
   - Giao diện dạng bảng tính (Spreadsheet Grid).
-  - Cho phép click trực tiếp vào ô để nhập/sửa điểm (Miệng, 15 phút, Giữa kỳ, Cuối kỳ).
+  - Cho phép click trực tiếp vào ô để xem bài làm, chấm điểm bài tập online (Bài tập, Kiểm tra định kỳ, Thi thử, Chuyên cần), hiển thị cảnh báo khi học sinh chưa nộp bài.
   - Hệ thống tự động tính Điểm Trung Bình (ĐTB) theo công thức hệ số và xếp loại học sinh (Giỏi/Khá/TB/Yếu). Nút "Lưu sổ điểm" sử dụng `SaveButton`.
 
 #### 2.4 Ngân hàng Câu hỏi & Tạo Đề Thi Trắc nghiệm (`/bank`)

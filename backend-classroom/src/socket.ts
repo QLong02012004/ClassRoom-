@@ -112,3 +112,10 @@ export const notifySubmissionUpdate = (data?: { assignmentId?: string; classId?:
     io.emit('submission_update', data);
   }
 };
+
+export const notifyAttendanceUpdate = (data?: { classId?: string; date?: string | Date; records?: any[] }) => {
+  if (io) {
+    console.log(`📡 [Socket.io] Phát tín hiệu attendance_update cho classId: ${data?.classId || 'all'}`);
+    io.emit('attendance_update', data);
+  }
+};

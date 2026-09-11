@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { analyticsService } from '../../../service/analytics.service';
 import { useToast } from '../../../components/Styles/ToastContext';
-import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
+import BackButton from '@/components/ui/Buttons/BackButton';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface PracticeQuestion {
@@ -99,12 +100,7 @@ export default function Practice() {
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-8">
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" /> Quay lại Dashboard
-          </button>
+          <BackButton onClick={() => navigate('/dashboard')}>Quay lại Dashboard</BackButton>
           <div className="text-right">
             <h1 className="text-2xl font-bold text-slate-800">Luyện tập: {tag}</h1>
             <p className="text-sm text-slate-500 mt-1">Đang làm {questions.length} câu hỏi ngẫu nhiên</p>

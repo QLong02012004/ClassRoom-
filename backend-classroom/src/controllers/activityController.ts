@@ -119,6 +119,8 @@ export const assignActivity = async (req: Request, res: Response) => {
         const bankItem = await BankItemModel.findById(bankItemId);
         if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
 
+        const isScheduledFuture = startDate && new Date(startDate).getTime() > Date.now();
+
         const newActivity = new ClassActivityModel({
             classId,
             bankItemId,
@@ -131,38 +133,43 @@ export const assignActivity = async (req: Request, res: Response) => {
             maxScore: Math.round(Number(maxScore || bankItem.maxScore || 10) * 100) / 100,
             durationMinutes: durationMinutes || bankItem.durationMinutes,
             status: status || 'open',
-            allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true
+            allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true,
+            isNotified: !isScheduledFuture
         });
 
         await newActivity.save();
 
-        // Gửi thông báo chuông tới tất cả Học sinh thuộc lớp này
-        try {
-            const cls = await ClassModel.findById(classId).lean();
-            if (cls && cls.students && cls.students.length > 0) {
-                const isQuiz = newActivity.type === 'quiz';
-                const notifType = isQuiz ? NotificationType.QUIZ : NotificationType.ASSIGNMENT;
-                const notifTitle = isQuiz ? 'Đề thi trắc nghiệm mới' : 'Bài tập mới trong lớp học';
-                const notifMsg = `Giáo viên vừa giao bài "${newActivity.title}" trong lớp ${cls.name}`;
+        // Chỉ gửi thông báo chuông và socket update tới Học sinh nếu bài tập mở NGAY (không phải bài hẹn giờ trong tương lai)
+        if (!isScheduledFuture) {
+            try {
+                const cls = await ClassModel.findById(classId).lean();
+                if (cls && cls.students && cls.students.length > 0) {
+                    const isQuiz = newActivity.type === 'quiz';
+                    const notifType = isQuiz ? NotificationType.QUIZ : NotificationType.ASSIGNMENT;
+                    const notifTitle = isQuiz ? 'Đề thi trắc nghiệm mới' : 'Bài tập mới trong lớp học';
+                    const notifMsg = `Giáo viên vừa giao bài "${newActivity.title}" trong lớp ${cls.name}`;
 
-                for (const stId of cls.students) {
-                    await createUserNotification(
-                        stId.toString(),
-                        UserRole.STUDENT,
-                        (req as any).user?.id || '',
-                        notifTitle,
-                        notifMsg,
-                        notifType
-                    );
+                    for (const stId of cls.students) {
+                        await createUserNotification(
+                            stId.toString(),
+                            UserRole.STUDENT,
+                            (req as any).user?.id || '',
+                            notifTitle,
+                            notifMsg,
+                            notifType
+                        );
+                    }
                 }
+            } catch (errNotif) {
+                console.error('❌ Lỗi khi gửi thông báo cho học sinh:', errNotif);
             }
-        } catch (errNotif) {
-            console.error('❌ Lỗi khi gửi thông báo cho học sinh:', errNotif);
+
+            notifyClassroomFeedUpdate(classId);
+            notifyStudentClassroomsUpdate();
         }
 
         notifyAdminStatsUpdate();
-        notifyClassroomFeedUpdate(classId);
-        notifyStudentClassroomsUpdate();
+        notifyTeacherClassroomsUpdate();
         res.status(201).json(newActivity);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi khi giao hoạt động', error });
@@ -188,6 +195,8 @@ export const assignActivityToMultipleClasses = async (req: Request, res: Respons
         const bankItem = await BankItemModel.findById(bankItemId);
         if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
 
+        const isScheduledFuture = startDate && new Date(startDate).getTime() > Date.now();
+
         const createdActivities = [];
 
         for (const classId of classIds) {
@@ -203,41 +212,47 @@ export const assignActivityToMultipleClasses = async (req: Request, res: Respons
                 maxScore: Math.round(Number(maxScore || bankItem.maxScore || 10) * 100) / 100,
                 durationMinutes: durationMinutes || bankItem.durationMinutes,
                 status: status || 'open',
-                allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true
+                allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true,
+                isNotified: !isScheduledFuture
             });
 
             await newActivity.save();
             createdActivities.push(newActivity);
 
-            // Gửi thông báo chuông tới tất cả Học sinh thuộc lớp này
-            try {
-                const cls = await ClassModel.findById(classId).lean();
-                if (cls && cls.students && cls.students.length > 0) {
-                    const isQuiz = newActivity.type === 'quiz';
-                    const notifType = isQuiz ? NotificationType.QUIZ : NotificationType.ASSIGNMENT;
-                    const notifTitle = isQuiz ? 'Đề thi trắc nghiệm mới' : 'Bài tập mới trong lớp học';
-                    const notifMsg = `Giáo viên vừa giao bài "${newActivity.title}" trong lớp ${cls.name}`;
+            // Chỉ gửi thông báo chuông tới Học sinh nếu bài tập mở NGAY
+            if (!isScheduledFuture) {
+                try {
+                    const cls = await ClassModel.findById(classId).lean();
+                    if (cls && cls.students && cls.students.length > 0) {
+                        const isQuiz = newActivity.type === 'quiz';
+                        const notifType = isQuiz ? NotificationType.QUIZ : NotificationType.ASSIGNMENT;
+                        const notifTitle = isQuiz ? 'Đề thi trắc nghiệm mới' : 'Bài tập mới trong lớp học';
+                        const notifMsg = `Giáo viên vừa giao bài "${newActivity.title}" trong lớp ${cls.name}`;
 
-                    for (const stId of cls.students) {
-                        await createUserNotification(
-                            stId.toString(),
-                            UserRole.STUDENT,
-                            (req as any).user?.id || '',
-                            notifTitle,
-                            notifMsg,
-                            notifType
-                        );
+                        for (const stId of cls.students) {
+                            await createUserNotification(
+                                stId.toString(),
+                                UserRole.STUDENT,
+                                (req as any).user?.id || '',
+                                notifTitle,
+                                notifMsg,
+                                notifType
+                            );
+                        }
                     }
+                } catch (errNotif) {
+                    console.error('❌ Lỗi khi gửi thông báo cho học sinh:', errNotif);
                 }
-            } catch (errNotif) {
-                console.error('❌ Lỗi khi gửi thông báo cho học sinh:', errNotif);
-            }
 
-            notifyClassroomFeedUpdate(classId);
+                notifyClassroomFeedUpdate(classId);
+            }
         }
 
         notifyAdminStatsUpdate();
-        notifyStudentClassroomsUpdate();
+        notifyTeacherClassroomsUpdate();
+        if (!isScheduledFuture) {
+            notifyStudentClassroomsUpdate();
+        }
 
         res.status(201).json({
             message: `Đã giao bài thành công cho ${createdActivities.length} lớp học!`,
@@ -313,11 +328,19 @@ export const getClassActivities = async (req: Request, res: Response) => {
 };
 
 // Xem chi tiết một hoạt động
-export const getActivityById = async (req: Request, res: Response) => {
+export const getActivityById = async (req: Request, res: Response): Promise<any> => {
     try {
         const { id } = req.params;
+        const userRole = (req as any).user?.role;
         const activity = await ClassActivityModel.findById(id).populate('bankItemId');
         if (!activity) return res.status(404).json({ message: 'Không tìm thấy hoạt động' });
+
+        // Học sinh không thể truy cập bài tập khi chưa đến thời gian mở (hẹn giờ trong tương lai)
+        if (userRole === 'student' && activity.startDate && new Date(activity.startDate).getTime() > Date.now()) {
+            const formattedStart = new Date(activity.startDate).toLocaleString('vi-VN');
+            return res.status(403).json({ message: `Bài tập/đề thi đang ở trạng thái hẹn giờ! Vui lòng quay lại lúc ${formattedStart}` });
+        }
+
         res.json(activity);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi', error });
@@ -340,13 +363,24 @@ export const updateActivity = async (req: Request, res: Response) => {
             }
         }
 
+        if (updateData.startDate) {
+            const startTime = new Date(updateData.startDate).getTime();
+            if (startTime > Date.now()) {
+                updateData.isNotified = false;
+            } else {
+                updateData.isNotified = true;
+            }
+        }
+
         const updated = await ClassActivityModel.findByIdAndUpdate(id, updateData, { new: true });
         if (!updated) return res.status(404).json({ message: 'Không tìm thấy bài tập' });
 
         notifyAdminStatsUpdate();
         notifyTeacherClassroomsUpdate();
         notifyClassroomFeedUpdate(updated.classId?.toString());
-        notifyStudentClassroomsUpdate();
+        if (updated.startDate && new Date(updated.startDate).getTime() <= Date.now()) {
+            notifyStudentClassroomsUpdate();
+        }
         res.json(updated);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi cập nhật bài tập', error });
@@ -418,6 +452,26 @@ export const submitActivityQuiz = async (req: Request, res: Response): Promise<a
             { upsert: true, new: true }
         );
 
+        // Gửi thông báo chuông Real-time tới Giáo viên phụ trách khi học sinh nộp bài thi trắc nghiệm
+        try {
+            const cls = await ClassModel.findById(activity.classId).lean();
+            if (cls && cls.teacherId) {
+                const studentName = (req as any).user?.name || 'Một học sinh';
+                const notifTitle = 'Bài thi trắc nghiệm mới từ Học sinh';
+                const notifMsg = `Học sinh <strong>${studentName}</strong> vừa hoàn thành đề thi <strong>"${activity.title}"</strong> trong lớp <strong>${cls.name}</strong> (Điểm: <strong>${normalizedScore.toFixed(1)}/${activity.maxScore || 10}</strong>).`;
+                await createUserNotification(
+                    cls.teacherId.toString(),
+                    UserRole.TEACHER,
+                    studentId,
+                    notifTitle,
+                    notifMsg,
+                    NotificationType.QUIZ
+                );
+            }
+        } catch (notifErr) {
+            console.error('❌ Lỗi khi gửi thông báo nộp bài thi cho giáo viên:', notifErr);
+        }
+
         notifyAdminStatsUpdate();
         notifySubmissionUpdate({ assignmentId: activityId, classId: activity.classId.toString() });
         notifyTeacherClassroomsUpdate();
@@ -470,8 +524,8 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
         const activity = await ClassActivityModel.findById(activityId);
         if (!activity) return res.status(404).json({ message: 'Không tìm thấy hoạt động' });
 
-        if (activity.status === 'closed' || (activity.dueDate && new Date(activity.dueDate).getTime() < Date.now())) {
-            return res.status(403).json({ message: 'Bài tập đã quá hạn nộp và đã bị đóng, không thể tiếp tục nộp bài!' });
+        if (activity.status === 'closed') {
+            return res.status(403).json({ message: 'Bài tập đã bị đóng bởi giáo viên, không thể tiếp tục nộp bài!' });
         }
         if (activity.startDate && new Date(activity.startDate).getTime() > Date.now()) {
             const formattedStart = new Date(activity.startDate).toLocaleString('vi-VN');
@@ -518,6 +572,26 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
             },
             { upsert: true, new: true }
         );
+
+        // Gửi thông báo chuông Real-time tới Giáo viên phụ trách lớp học này
+        try {
+            const cls = await ClassModel.findById(activity.classId).lean();
+            if (cls && cls.teacherId) {
+                const studentName = (req as any).user?.name || 'Một học sinh';
+                const notifTitle = isLate ? 'Bài nộp mới (Nộp muộn)' : 'Bài nộp mới từ Học sinh';
+                const notifMsg = `Học sinh <strong>${studentName}</strong> vừa nộp bài <strong>"${activity.title}"</strong> trong lớp <strong>${cls.name}</strong>${isLate ? ' <span style="color:#f59e0b;">(Nộp muộn)</span>' : ''}.`;
+                await createUserNotification(
+                    cls.teacherId.toString(),
+                    UserRole.TEACHER,
+                    studentId,
+                    notifTitle,
+                    notifMsg,
+                    NotificationType.ASSIGNMENT
+                );
+            }
+        } catch (notifErr) {
+            console.error('❌ Lỗi khi gửi thông báo nộp bài cho giáo viên:', notifErr);
+        }
 
         notifyAdminStatsUpdate();
         notifySubmissionUpdate({ assignmentId: activityId, classId: activity.classId.toString() });
@@ -573,8 +647,13 @@ export const getAssignmentSubmissions = async (req: Request, res: Response): Pro
             .populate('studentId', 'name email avatar')
             .lean();
 
-        // Lấy tất cả điểm số cho hoạt động này
-        const grades = await GradeModel.find({ assignmentId: activityId });
+        // Lấy tất cả điểm số cho hoạt động này (tương thích cả ObjectId và chuỗi)
+        const grades = await GradeModel.find({
+            $or: [
+                { assignmentId: activityId },
+                { assignmentId: activityId.length === 24 ? new (await import('mongoose')).Types.ObjectId(activityId) : activityId }
+            ]
+        }).lean();
 
         // Ghép điểm và feedback vào bài nộp tương ứng
         const mappedSubmissions = submissions.map(sub => {

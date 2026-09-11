@@ -135,9 +135,9 @@ CÁCH THỨC SỬ DỤNG:
 ## 📊 PHẦN 5: SỔ ĐIỂM, ĐIỂM DANH VÀ BẢNG TÍNH SPREADSHEET
 
 ### 16. Nghiệp vụ Sổ điểm Bảng tính & Tự động Tính Điểm Trung Bình
-- **Giao diện bảng tính Spreadsheet:** Trang Sổ điểm (`/gradebook`) hiển thị ma trận danh sách tất cả học sinh trong lớp cùng các cột điểm (*Điểm Miệng, Điểm 15 phút, Điểm Giữa kỳ, Điểm Cuối kỳ*).
-- **Nhập điểm trực tiếp:** Giáo viên chỉ cần nhấp chuột trực tiếp vào ô điểm tương ứng của học sinh trên bảng để nhập hoặc chỉnh sửa điểm.
-- **Tự động tính Điểm Trung Bình (ĐTB):** Ngay khi nhập điểm, hệ thống tự động tính toán Điểm trung bình môn theo công thức hệ số quy định và tự động xếp loại học lực (*Giỏi, Khá, Trung bình, Yếu*) cho học sinh mà giáo viên không cần tính thủ công.
+- **Giao diện bảng tính Spreadsheet:** Trang Sổ điểm (`/gradebook`) hiển thị ma trận danh sách tất cả học sinh trong lớp cùng các cột bài tập online theo danh mục của Trung tâm (*Bài tập về nhà, Kiểm tra định kỳ, Thi thử, Chuyên cần*).
+- **Trạng thái nộp bài & Tự động ghi nhận 0 điểm khi quá hạn:** Hệ thống hiển thị rõ ràng các trạng thái của học sinh: *Chưa nộp* (còn hạn), *Chưa chấm* (đã nộp chờ chấm) và *Điểm số*. Với các bài tập trực tuyến **chưa nộp và đã quá hạn (Deadline)**, hệ thống tự động ghi nhận **`0` điểm với viền đỏ cảnh báo** (`border-2 border-rose-300 bg-rose-50 text-rose-600 font-black`), đồng thời tự động tính điểm 0 này vào Điểm Trung Bình (ĐTB) môn để phản ánh đúng học lực thực tế mà giáo viên không cần phải chấm thủ công từng học sinh. Giáo viên vẫn có thể click vào ô để sửa lại điểm nếu học sinh xin phép nộp bù.
+- **Tự động tính Điểm Trung Bình (ĐTB):** Ngay khi có điểm hoặc quá hạn nộp bài, hệ thống tự động quy đổi điểm về thang 10, tính toán Điểm trung bình môn theo trọng số danh mục và tự động xếp loại học lực (*Giỏi, Khá, Trung bình, Yếu*) cho học sinh.
 - **Xuất / Nhập file Excel:** Giáo viên có thể xuất toàn bộ Sổ điểm của lớp ra file Excel (`.xlsx`) để lưu trữ, hoặc nhập dữ liệu điểm từ file Excel có sẵn vào hệ thống.
 
 ---

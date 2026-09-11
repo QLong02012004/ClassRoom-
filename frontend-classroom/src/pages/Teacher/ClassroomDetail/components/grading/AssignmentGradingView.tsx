@@ -15,6 +15,7 @@ import {
 } from "phosphor-react";
 import FocusGradingModal from "./FocusGradingModal";
 import { formatFileUrl, getFileExt, formatFileSize, formatCleanFileName, exportAssignmentToExcel } from "../../utils/classroomUtils";
+import { format4DigitScore } from "@/utils/scoreFormatter";
 
 interface AssignmentGradingViewProps {
   assignmentGrading?: any;
@@ -189,7 +190,7 @@ export const AssignmentGradingView: React.FC<AssignmentGradingViewProps> = (prop
                   Nội dung / File nộp
                 </Table.Column>
                 <Table.Column id="score" className="after:hidden min-w-[140px] text-center py-3 text-xs font-bold uppercase text-slate-600 tracking-wider">
-                  Điểm số ({selectedAssignment.maxScore || 10})
+                  Điểm số (10.00)
                 </Table.Column>
                 <Table.Column id="actions" className="after:hidden min-w-[130px] text-end py-3 text-xs font-bold uppercase text-slate-600 tracking-wider">
                   Hành động
@@ -290,7 +291,7 @@ export const AssignmentGradingView: React.FC<AssignmentGradingViewProps> = (prop
                       <Table.Cell className="text-center">
                         {currentScore !== "" && currentScore !== null && currentScore !== undefined ? (
                           <span className="inline-flex items-center gap-1 px-3 py-1 text-sm font-black rounded-full bg-[#2f8fa3]/10 text-[#2f8fa3] border border-[#2f8fa3]/30 shadow-2xs">
-                            {currentScore} / {selectedAssignment.maxScore || 10}
+                            {format4DigitScore(currentScore)} / 10.00
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full bg-[#f47c20]/10 text-[#f47c20] border border-[#f47c20]/30 shadow-2xs">

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pagination } from "@heroui/react";
+import { io } from "socket.io-client";
 import {
   ArrowRight,
   Fire,
@@ -114,12 +115,14 @@ export default function StudentDashboard() {
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
 
-  const loadData = async () => {
+  const loadData = async (classId?: string) => {
     const currentUsername = user?.name || localStorage.getItem("username") || "Học sinh A";
     setUsername(currentUsername);
 
+    const targetClassId = classId !== undefined ? classId : selectedClassIdRef.current;
+
     try {
-      const res = await dashboardService.getStudentDashboardStats();
+      const res = await dashboardService.getStudentDashboardStats(targetClassId);
       if (res && res.data) {
         setStats(res.data.stats || {});
         setGamification(res.data.gamification || {});
@@ -130,7 +133,7 @@ export default function StudentDashboard() {
         setLearningStats(res.data.learningStats || []);
         const cls = res.data.classes || [];
         setClasses(cls);
-        if (cls.length > 0 && !selectedClassId) {
+        if (cls.length > 0 && !selectedClassIdRef.current) {
           setSelectedClassId(cls[0]._id);
         }
       }
@@ -148,28 +151,67 @@ export default function StudentDashboard() {
     } catch (err: any) {
       toast.error(err.message || "Lỗi tải thông tin dashboard từ server!");
     }
+  };
 
-    // Mock load announcements from old logic or API.
-    // Assuming backend returns it or we just use empty array for now since we focused on Gamification.
-    // For now we'll fetch announcements from timeline API if we had one.
+  const selectedClassIdRef = useRef(selectedClassId);
+  useEffect(() => {
+    selectedClassIdRef.current = selectedClassId;
+  }, [selectedClassId]);
+
+  const fetchLeaderboard = (classId?: string) => {
+    const targetClassId = classId !== undefined ? classId : selectedClassIdRef.current;
+    dashboardService.getLeaderboard(targetClassId).then(res => {
+      if (res && res.data) {
+        // Trả về tối đa top 6
+        setLeaderboard(res.data.slice(0, 6));
+      }
+    }).catch(err => {
+      console.error("Lỗi tải leaderboard:", err);
+    });
   };
 
   useEffect(() => {
-    loadData();
+    loadData(selectedClassIdRef.current);
+    fetchLeaderboard(selectedClassIdRef.current);
   }, [username, user]);
 
   useEffect(() => {
     if (selectedClassId) {
-      dashboardService.getLeaderboard(selectedClassId).then(res => {
-        if (res && res.data) {
-          // Trả về tối đa top 6
-          setLeaderboard(res.data.slice(0, 6));
-        }
-      }).catch(err => {
-        console.error("Lỗi tải leaderboard:", err);
-      });
+      loadData(selectedClassId);
+      fetchLeaderboard(selectedClassId);
     }
   }, [selectedClassId]);
+
+  // Lắng nghe Socket.IO cập nhật realtime điểm XP, chuyên cần, bảng xếp hạng
+  useEffect(() => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    const handleRefresh = () => {
+      console.log("⚡ [StudentDashboard] Đồng bộ dữ liệu realtime từ Socket...");
+      loadData(selectedClassIdRef.current);
+      fetchLeaderboard(selectedClassIdRef.current);
+    };
+
+    const handleAttendanceUpdate = (data?: any) => {
+      console.log("⚡ [StudentDashboard] Nhận thông báo điểm danh realtime:", data);
+      loadData(selectedClassIdRef.current);
+      fetchLeaderboard(selectedClassIdRef.current);
+    };
+
+    socket.on("attendance_update", handleAttendanceUpdate);
+    socket.on("student_classrooms_update", handleRefresh);
+    socket.on("submission_update", handleRefresh);
+    socket.on("classroom_feed_update", handleRefresh);
+
+    return () => {
+      socket.off("attendance_update", handleAttendanceUpdate);
+      socket.off("student_classrooms_update", handleRefresh);
+      socket.off("submission_update", handleRefresh);
+      socket.off("classroom_feed_update", handleRefresh);
+      socket.disconnect();
+    };
+  }, []);
 
   const formatDate = (isoString: string) => {
     try {
@@ -264,6 +306,99 @@ export default function StudentDashboard() {
           <span>Hỏi bài giáo viên</span>
         </button>
       </section>
+
+      {/* 1.8 THANH ĐỒNG BỘ CHỌN LỚP HỌC */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        margin: '1rem 0 0.75rem 0',
+        padding: '0.75rem 1.25rem',
+        background: '#ffffff',
+        borderRadius: '16px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
+        flexWrap: 'wrap',
+        gap: '0.75rem'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            width: '36px',
+            height: '36px',
+            borderRadius: '10px',
+            background: '#ffedd5',
+            color: '#ea580c',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <GraduationCap size={22} weight="duotone" />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Dữ liệu hiển thị thống nhất theo lớp
+            </div>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: '#1e293b' }}>
+              {selectedClassId === 'all'
+                ? '🌐 Tất cả các lớp học'
+                : (classes.find(c => c._id === selectedClassId)?.name || 'Đang chọn lớp...')}
+            </h4>
+          </div>
+        </div>
+
+        {classes.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 500 }}>Chọn lớp:</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 14px',
+                    borderRadius: '12px',
+                    border: '1px solid #cbd5e1',
+                    background: '#f8fafc',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: '#334155',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {selectedClassId === 'all'
+                      ? '🌐 Tất cả các lớp'
+                      : (classes.find(c => c._id === selectedClassId)?.name || 'Chọn lớp')}
+                  </span>
+                  <CaretDown size={14} weight="bold" style={{ color: '#64748b' }} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-white border border-slate-200 rounded-xl shadow-xl p-1 z-50">
+                <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold px-2.5 py-1.5 uppercase">Lọc dữ liệu theo lớp</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onClick={() => setSelectedClassId("all")}
+                  className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-between ${selectedClassId === "all" ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-orange-50 hover:text-orange-600"}`}
+                >
+                  <span>🌐 Tất cả các lớp học</span>
+                  {selectedClassId === "all" && <CheckIcon className="w-3.5 h-3.5 text-orange-600" />}
+                </DropdownMenuItem>
+                {classes.map(c => (
+                  <DropdownMenuItem
+                    key={c._id}
+                    onClick={() => setSelectedClassId(c._id)}
+                    className={`px-3 py-2 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-between ${selectedClassId === c._id ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-orange-50 hover:text-orange-600"}`}
+                  >
+                    <span className="truncate">{c.name}</span>
+                    {selectedClassId === c._id && <CheckIcon className="w-3.5 h-3.5 text-orange-600" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      </div>
 
       {/* 2. STAT CARDS WITH PROGRESS */}
       <section className={`${styles.statsGrid} tour-step-stats`}>
@@ -605,14 +740,21 @@ export default function StudentDashboard() {
                       type="button"
                       className="text-xs px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 font-semibold text-slate-700 flex items-center gap-1.5 focus:outline-none transition-colors cursor-pointer"
                     >
-                      <span className="max-w-[90px] truncate">
-                        {classes.find(c => c._id === selectedClassId)?.name || "Chọn lớp"}
+                      <span className="max-w-[110px] truncate">
+                        {selectedClassId === "all" ? "Tất cả các lớp" : (classes.find(c => c._id === selectedClassId)?.name || "Chọn lớp")}
                       </span>
                       <CaretDown size={12} weight="bold" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-44 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
+                  <DropdownMenuContent align="end" className="w-52 bg-white border border-slate-200 rounded-xl shadow-lg p-1 z-50">
                     <DropdownMenuLabel className="text-[11px] text-slate-400 font-bold px-2 py-1 uppercase">Chọn lớp học</DropdownMenuLabel>
+                    <DropdownMenuItem
+                      onClick={() => setSelectedClassId("all")}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-between ${selectedClassId === "all" ? "bg-orange-50 text-orange-600 font-bold" : "text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600"}`}
+                    >
+                      <span>🌐 Tất cả các lớp</span>
+                      {selectedClassId === "all" && <CheckIcon className="w-3.5 h-3.5 text-orange-600" />}
+                    </DropdownMenuItem>
                     {classes.map(c => (
                       <DropdownMenuItem
                         key={c._id}

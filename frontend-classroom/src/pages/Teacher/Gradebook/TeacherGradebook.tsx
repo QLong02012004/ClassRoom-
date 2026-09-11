@@ -41,7 +41,9 @@ import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent } from "../../../service/gradebook.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { format4DigitScore } from "../../../utils/scoreFormatter";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import { Table, Avatar as HeroAvatar } from "@heroui/react";
 import {
   Dialog,
@@ -136,23 +138,46 @@ export default function TeacherGradebook() {
     return map;
   }, [submissions]);
 
-  // Hiển thị trạng thái ô khi chưa có điểm trong Sổ điểm (Chưa chấm / Chưa nhập)
+  // Hiển thị trạng thái ô khi chưa có điểm trong Sổ điểm (Chưa chấm / Chưa nộp / Tự động 0 điểm quá hạn)
   const getNoScoreDisplay = (student: IGradebookStudent, assignment: IAssignment) => {
     const cellKey = `${student._id}_${assignment._id}`;
     const sub = submissionsMap[cellKey];
 
-    // Nếu học sinh đã nộp bài làm/file nhưng chưa được chấm điểm
-    if (sub && (sub.submissionText || (sub.attachments && sub.attachments.length > 0) || sub.status === 'submitted' || sub.status === 'late')) {
+    // 1. Học sinh đã nộp bài làm/file nhưng giáo viên chưa chấm điểm
+    if (
+      sub &&
+      (sub.submissionText ||
+        (sub.attachments && sub.attachments.length > 0) ||
+        sub.status === "submitted" ||
+        sub.status === "late")
+    ) {
       return {
         text: "Chưa chấm",
-        cls: "text-amber-700 bg-amber-50 border-amber-200/90 hover:bg-amber-100"
+        isAutoZero: false,
+        cls: "text-amber-700 bg-amber-50 border-amber-200/90 hover:bg-amber-100 font-semibold",
+        title: "Học sinh đã nộp bài. Click để chấm bài chi tiết",
       };
     }
 
-    // Trạng thái mặc định khi chưa có điểm
+    // 2. Học sinh chưa nộp bài và ĐÃ QUÁ HẠN (Deadline)
+    // -> Tự động hiển thị điểm 00.00 kèm viền đỏ và hiệu ứng cảnh báo
+    const isOverdue = assignment.dueDate ? new Date().getTime() > new Date(assignment.dueDate).getTime() : false;
+
+    if (isOverdue) {
+      return {
+        text: "00.00",
+        isAutoZero: true,
+        cls: "text-rose-600 bg-rose-50/90 border-2 border-rose-300 font-black shadow-2xs hover:bg-rose-100 hover:border-rose-400 hover:scale-105 transition-all",
+        title: "Quá hạn nộp bài: Tự động ghi nhận 00.00 điểm (Click để xem bài hoặc sửa điểm)",
+      };
+    }
+
+    // 3. Chưa nộp (vẫn trong hạn làm bài)
     return {
-      text: "Chưa nhập",
-      cls: "text-slate-400 bg-slate-50 border-slate-200/70 hover:bg-slate-100 hover:text-slate-600"
+      text: "Chưa nộp",
+      isAutoZero: false,
+      cls: "text-slate-400 bg-slate-50 border-slate-200/70 hover:bg-slate-100 hover:text-slate-600 font-medium",
+      title: "Học sinh chưa nộp bài (Còn thời gian làm bài)",
     };
   };
 
@@ -222,18 +247,39 @@ export default function TeacherGradebook() {
 
     // Khởi tạo gradingData cho tất cả học sinh trong lớp
     const initialGradingData: Record<string, { score: number | string; feedback: string }> = {};
+    const now = new Date().getTime();
+    const isPastDue = assignment.dueDate ? now > new Date(assignment.dueDate).getTime() : false;
+
     students.forEach((s) => {
       const sKey = `${s._id}_${assignment._id}`;
       const sSub = submissionsMap[sKey];
       const sScore = editingScores[sKey] ?? "";
+      const hasSub = sSub && (sSub.submissionText || (sSub.attachments && sSub.attachments.length > 0) || sSub.status === "submitted" || sSub.status === "late");
+
+      let initialScore = sScore !== "" ? sScore : sSub?.score !== undefined && sSub?.score !== null ? String(sSub.score) : "";
+      let initialFeedback = sSub?.feedback || "";
+
+      // Nếu chưa có điểm và quá hạn không nộp bài: Tự động đề xuất 00.00 điểm kèm nhận xét
+      if (initialScore === "" && !hasSub && isPastDue) {
+        initialScore = "00.00";
+        initialFeedback = "Học sinh không nộp bài tập trực tuyến quá thời hạn quy định.";
+      } else if (initialScore !== "") {
+        initialScore = format4DigitScore(initialScore);
+      }
+
       initialGradingData[s._id] = {
-        score: sScore !== "" ? sScore : sSub?.score !== undefined && sSub?.score !== null ? String(sSub.score) : "",
-        feedback: sSub?.feedback || ""
+        score: initialScore,
+        feedback: initialFeedback,
       };
     });
 
+    const normalizedAssignment = {
+      ...assignment,
+      maxScore: 10,
+    };
+
     setGradingData(initialGradingData);
-    setFocusGradingAssignment(assignment);
+    setFocusGradingAssignment(normalizedAssignment);
     setFocusGradingSubmissions(allSubsForAssignment);
     setFocusGradingSub(activeSub);
   };
@@ -258,8 +304,8 @@ export default function TeacherGradebook() {
     }
 
     const scoreNum = Number(rawScore);
-    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > focusGradingAssignment.maxScore) {
-      toast.error(`Điểm số phải nằm trong khoảng từ 0 đến ${focusGradingAssignment.maxScore}!`);
+    if (isNaN(scoreNum) || scoreNum < 0 || scoreNum > 10) {
+      toast.error("Điểm số phải nằm trong thang điểm từ 00.00 đến 10.00!");
       return;
     }
 
@@ -276,15 +322,39 @@ export default function TeacherGradebook() {
         ]
       });
 
-      toast.success(`Đã lưu điểm ${scoreNum} cho học sinh ${studentObj.name || ""}!`);
+      const formattedScore = format4DigitScore(scoreNum);
+      toast.success(`Đã lưu điểm ${formattedScore} cho học sinh ${studentObj.name || ""}!`);
 
-      // Cập nhật state hiển thị trực tiếp trên Sổ điểm
+      const cellKey = `${studentIdStr}_${focusGradingAssignment._id}`;
+
+      // Cập nhật state hiển thị trực tiếp trên Sổ điểm với chuẩn 4 số XX.XX ngay lập tức
       setEditingScores((prev) => ({
         ...prev,
-        [`${studentIdStr}_${focusGradingAssignment._id}`]: String(scoreNum)
+        [cellKey]: formattedScore
       }));
 
-      loadGradebook();
+      // Cập nhật ngay danh sách grades trong state để các thống kê (ĐTB, Xếp loại) nhảy số ngay
+      setGrades((prev) => {
+        const next = prev.filter(g => {
+          const sId = typeof g.studentId === 'object' && g.studentId !== null ? (g.studentId as any)._id : String(g.studentId);
+          const aId = typeof g.assignmentId === 'object' && g.assignmentId !== null ? (g.assignmentId as any)._id : String(g.assignmentId);
+          return !(sId === studentIdStr && aId === focusGradingAssignment._id);
+        });
+        return [
+          ...next,
+          {
+            _id: `grade_${Date.now()}`,
+            assignmentId: focusGradingAssignment._id as any,
+            studentId: studentIdStr as any,
+            score: scoreNum,
+            feedback: currentGrade.feedback || "",
+            gradedAt: new Date()
+          }
+        ];
+      });
+
+      // Tự động đồng bộ ngầm (silent = true) không kích hoạt spinner làm đơ/chậm bảng điểm
+      loadGradebook(true);
     } catch {
       toast.error("Lưu điểm thất bại, vui lòng thử lại!");
     } finally {
@@ -316,6 +386,7 @@ export default function TeacherGradebook() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Tính điểm trung bình của học sinh dựa theo các điểm số nhập vào (quy đổi về thang điểm 10)
+  // Tự động tính 0 điểm cho các bài tập online quá hạn chưa nộp bài
   const calculateStudentAvg = useCallback((studentId: string) => {
     let sumWeightedScores = 0;
     let sumWeights = 0;
@@ -327,20 +398,35 @@ export default function TeacherGradebook() {
       mock_exam: 1,
     };
 
+    const now = new Date().getTime();
+
     assignments.forEach(a => {
-      const val = editingScores[`${studentId}_${a._id}`];
+      const cellKey = `${studentId}_${a._id}`;
+      const val = editingScores[cellKey];
+      const weight = categoryWeights[a.category] || 1;
+
       if (val !== undefined && val !== "") {
         const score = Number(val);
-        const weight = categoryWeights[a.category] || 1;
         // Quy đổi điểm về thang 10 nếu maxScore khác 10
         const normalizedScore = a.maxScore > 0 ? (score / a.maxScore) * 10 : score;
         sumWeightedScores += normalizedScore * weight;
         sumWeights += weight;
+      } else {
+        // Nếu chưa có điểm thủ công, kiểm tra xem đã quá hạn nộp bài chưa
+        const sub = submissionsMap[cellKey];
+        const hasSub = sub && (sub.submissionText || (sub.attachments && sub.attachments.length > 0) || sub.status === "submitted" || sub.status === "late");
+        const isOverdue = a.dueDate ? now > new Date(a.dueDate).getTime() : false;
+
+        // Nếu quá hạn và chưa nộp bài -> Tự động tính 0 điểm vào ĐTB
+        if (!hasSub && isOverdue) {
+          sumWeightedScores += 0 * weight;
+          sumWeights += weight;
+        }
       }
     });
 
     return sumWeights > 0 ? sumWeightedScores / sumWeights : null;
-  }, [assignments, editingScores]);
+  }, [assignments, editingScores, submissionsMap]);
 
   const filteredStudents = useMemo(() => {
     return students.filter(student => {
@@ -390,33 +476,51 @@ export default function TeacherGradebook() {
     fetchClasses();
   }, [stateClassId]);
 
-  // Tải bảng điểm của lớp được chọn
-  const loadGradebook = useCallback(async () => {
+  // Tải bảng điểm của lớp được chọn (hỗ trợ silent update mượt mà không nhấp nháy spinner)
+  const loadGradebook = useCallback(async (isSilent = false) => {
     if (!selectedClassId) return;
-    setLoadingData(true);
+    if (!isSilent) {
+      setLoadingData(true);
+    }
     try {
       const res = await gradebookService.getClassroomGrades(selectedClassId);
       if (res.data) {
         setStudents(res.data.students || []);
         const order: Record<string, number> = { attitude: 1, homework: 2, periodic: 3, mock_exam: 4 };
-        const sortedAssignments = (res.data.assignments || []).sort((a, b) => (order[a.category] || 9) - (order[b.category] || 9));
+        const sortedAssignments = (res.data.assignments || [])
+          .map((a: IAssignment) => ({
+            ...a,
+            maxScore: Math.max(10, Number(a.maxScore) || 10),
+          }))
+          .sort((a, b) => (order[a.category] || 9) - (order[b.category] || 9));
         setAssignments(sortedAssignments);
         setGrades(res.data.grades || []);
         if ((res.data as any).submissions) {
           setSubmissions((res.data as any).submissions || []);
         }
 
-        // Khởi tạo các ô nhập điểm từ DB
+        // Khởi tạo các ô nhập điểm từ DB với chuẩn 4 số XX.XX
         const initialScores: { [key: string]: string } = {};
         (res.data.grades || []).forEach(g => {
-          initialScores[`${g.studentId}_${g.assignmentId}`] = String(g.score);
+          const sId = typeof g.studentId === 'object' && g.studentId !== null ? (g.studentId as any)._id : String(g.studentId);
+          const aId = typeof g.assignmentId === 'object' && g.assignmentId !== null ? (g.assignmentId as any)._id : String(g.assignmentId);
+          if (sId && aId) {
+            initialScores[`${sId}_${aId}`] = format4DigitScore(g.score);
+          }
         });
-        setEditingScores(initialScores);
+        setEditingScores((prev) => ({
+          ...prev,
+          ...initialScores,
+        }));
       }
     } catch {
-      toast.error("Không thể tải dữ liệu sổ điểm");
+      if (!isSilent) {
+        toast.error("Không thể tải dữ liệu sổ điểm");
+      }
     } finally {
-      setLoadingData(false);
+      if (!isSilent) {
+        setLoadingData(false);
+      }
     }
   }, [selectedClassId]);
 
@@ -428,8 +532,8 @@ export default function TeacherGradebook() {
 
     socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
       if (!data?.classId || data.classId === selectedClassId) {
-        console.log("⚡ [Socket.io Realtime] Sổ điểm có bài nộp/cập nhật điểm mới, tự động làm mới...");
-        loadGradebook();
+        console.log("⚡ [Socket.io Realtime] Sổ điểm có bài nộp/cập nhật điểm mới, tự động đồng bộ ngầm...");
+        loadGradebook(true);
       }
     });
 
@@ -450,9 +554,11 @@ export default function TeacherGradebook() {
     if (assignments.length === 0 || students.length === 0) return;
     setSaving(true);
     try {
+      const now = new Date().getTime();
       // Lưu điểm cho từng bài tập
       await Promise.all(
         assignments.map(async (assignment) => {
+          const isOverdue = assignment.dueDate ? now > new Date(assignment.dueDate).getTime() : false;
           const assignmentGrades = students
             .map(student => {
               const val = editingScores[`${student._id}_${assignment._id}`];
@@ -460,6 +566,27 @@ export default function TeacherGradebook() {
                 return {
                   studentId: student._id,
                   score: Number(val),
+                };
+              }
+              // Kiểm tra xem học sinh đã có điểm lưu trong DB chưa
+              const existingGrade = grades.find(g => {
+                const sId = typeof g.studentId === 'object' && g.studentId !== null ? (g.studentId as any)._id : String(g.studentId);
+                const aId = typeof g.assignmentId === 'object' && g.assignmentId !== null ? (g.assignmentId as any)._id : String(g.assignmentId);
+                return sId === student._id && aId === assignment._id;
+              });
+              if (existingGrade && existingGrade.score !== undefined && existingGrade.score !== null) {
+                return {
+                  studentId: student._id,
+                  score: existingGrade.score,
+                };
+              }
+              // Nếu quá hạn và chưa nộp bài -> Tự động lưu điểm 0 vào DB
+              const sub = submissionsMap[`${student._id}_${assignment._id}`];
+              const hasSub = sub && (sub.submissionText || (sub.attachments && sub.attachments.length > 0) || sub.status === "submitted" || sub.status === "late");
+              if (!hasSub && isOverdue) {
+                return {
+                  studentId: student._id,
+                  score: 0,
                 };
               }
               return null;
@@ -475,7 +602,7 @@ export default function TeacherGradebook() {
         })
       );
       toast.success("Đã lưu điểm số thành công!");
-      loadGradebook();
+      loadGradebook(true);
     } catch {
       toast.error("Lưu điểm số thất bại!");
     } finally {
@@ -492,6 +619,7 @@ export default function TeacherGradebook() {
 
     // Tạo headers: Email, Học sinh, sau đó là tên các bài tập
     const headers = ["Email", "Học sinh", ...assignments.map(a => `${a.title} (Max: ${a.maxScore})`)];
+    const now = new Date().getTime();
 
     // Tạo dữ liệu cho từng hàng
     const rows = students.map(student => {
@@ -502,7 +630,18 @@ export default function TeacherGradebook() {
 
       assignments.forEach(a => {
         const scoreVal = editingScores[`${student._id}_${a._id}`];
-        rowData[`${a.title} (Max: ${a.maxScore})`] = scoreVal !== undefined && scoreVal !== "" ? Number(scoreVal) : "";
+        if (scoreVal !== undefined && scoreVal !== "") {
+          rowData[`${a.title} (Max: ${a.maxScore})`] = Number(scoreVal);
+        } else {
+          const sub = submissionsMap[`${student._id}_${a._id}`];
+          const hasSub = sub && (sub.submissionText || (sub.attachments && sub.attachments.length > 0) || sub.status === "submitted" || sub.status === "late");
+          const isOverdue = a.dueDate ? now > new Date(a.dueDate).getTime() : false;
+          if (!hasSub && isOverdue) {
+            rowData[`${a.title} (Max: ${a.maxScore})`] = 0;
+          } else {
+            rowData[`${a.title} (Max: ${a.maxScore})`] = "";
+          }
+        }
       });
 
       return rowData;
@@ -749,6 +888,11 @@ export default function TeacherGradebook() {
 
   return (
     <div className={styles.gradebookContainer}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate("/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
 
       {/* 1. CHI TIẾT SỔ ĐIỂM (TOP TABLE) */}
       <section className={styles.topSection}>
@@ -1030,20 +1174,26 @@ export default function TeacherGradebook() {
                             };
                             const bgClass = categoryBgs[a.category] || "";
 
+                            const noScoreInfo = getNoScoreDisplay(student, a);
+                            const hasManualScore = val !== undefined && val !== "";
+
                             return (
                               <Table.Cell
                                 className={`py-2 px-3 border-b border-slate-100 ${bgClass} transition-colors text-center align-middle cursor-pointer`}
                                 key={a._id}
                                 onClick={() => handleOpenFocusGradingModal(student, a)}
                               >
-                                <div
-                                  className={`h-8 min-w-[64px] max-w-[85px] mx-auto flex items-center justify-center font-bold rounded-lg border select-none cursor-pointer hover:border-[#f47c20] hover:ring-2 hover:ring-[#f47c20]/25 transition-all ${val !== undefined && val !== ""
-                                    ? "text-[14px] font-extrabold text-slate-800 bg-white/95 border-slate-200/90 shadow-2xs hover:bg-orange-50/50"
-                                    : `text-[11px] ${getNoScoreDisplay(student, a).cls}`
-                                    }`}
-                                  title="Click để chấm bài chi tiết hoặc sửa điểm nhanh"
+                                  <div
+                                  className={`h-8 min-w-[64px] max-w-[85px] mx-auto flex items-center justify-center font-bold rounded-lg border select-none cursor-pointer hover:border-[#f47c20] hover:ring-2 hover:ring-[#f47c20]/25 transition-all ${
+                                    hasManualScore
+                                      ? "text-[14px] font-extrabold text-slate-800 bg-white/95 border-slate-200/90 shadow-2xs hover:bg-orange-50/50"
+                                      : noScoreInfo.isAutoZero
+                                      ? `text-[14px] ${noScoreInfo.cls}`
+                                      : `text-[11px] ${noScoreInfo.cls}`
+                                  }`}
+                                  title={hasManualScore ? "Click để xem hoặc sửa điểm" : noScoreInfo.title}
                                 >
-                                  {val !== undefined && val !== "" ? val : getNoScoreDisplay(student, a).text}
+                                  {hasManualScore ? format4DigitScore(val) : noScoreInfo.text}
                                 </div>
                               </Table.Cell>
                             );
@@ -1144,7 +1294,7 @@ export default function TeacherGradebook() {
                             </span>
                           </td>
                           <td className="px-4 py-3.5 text-center font-bold text-slate-700">
-                            {val !== undefined && val !== "" ? `${val} / ${a.maxScore}` : <span className="text-slate-300 italic">Chưa nhập</span>}
+                            {val !== undefined && val !== "" ? `${format4DigitScore(val)} / 10.00` : <span className="text-slate-300 italic">Chưa nhập</span>}
                           </td>
                         </tr>
                       );

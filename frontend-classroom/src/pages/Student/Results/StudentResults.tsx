@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DownloadSimple, ShareNetwork, TrendUp, Medal, GraduationCap, Calendar, FunnelSimple, DotsThreeVertical, Atom, BookOpen, Clock } from 'phosphor-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts';
 import { useToast } from '../../../components/Styles/ToastContext.tsx';
+import { BackButton } from '../../../components/ui/Buttons/BackButton';
 import { classroomService } from '../../../service/classroom.service.ts';
 import { gradebookService } from '../../../service/gradebook.service.ts';
 import styles from './StudentResults.module.scss';
@@ -34,6 +36,7 @@ const getSubjectIconClass = (category: string) => {
 };
 
 const StudentResults: React.FC = () => {
+  const navigate = useNavigate();
   const toast = useToast();
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>('');
@@ -208,10 +211,17 @@ const StudentResults: React.FC = () => {
 
   if (classrooms.length === 0) {
     return (
-      <div className={styles.emptyState}>
-        <GraduationCap size={48} weight="light" />
-        <h3>Bạn chưa tham gia lớp học nào!</h3>
-        <p>Vui lòng tham gia vào một lớp học bằng mã lớp từ Giáo viên cung cấp để xem điểm số.</p>
+      <div className={styles.container}>
+        <div className="mb-4">
+          <BackButton onClick={() => navigate("/classrooms")}>
+            Quay lại danh sách lớp
+          </BackButton>
+        </div>
+        <div className={styles.emptyState}>
+          <GraduationCap size={48} weight="light" />
+          <h3>Bạn chưa tham gia lớp học nào!</h3>
+          <p>Vui lòng tham gia vào một lớp học bằng mã lớp từ Giáo viên cung cấp để xem điểm số.</p>
+        </div>
       </div>
     );
   }
@@ -223,6 +233,12 @@ const StudentResults: React.FC = () => {
 
   return (
     <div className={styles.container}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate(selectedClassId ? `/classrooms/${selectedClassId}` : "/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
+
       {/* Header Section */}
       <div className={styles.header}>
         <div className={styles.titleInfo}>

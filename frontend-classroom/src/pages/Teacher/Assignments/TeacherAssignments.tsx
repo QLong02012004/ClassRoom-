@@ -23,8 +23,10 @@ import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
 import { gradebookService } from "../../../service/gradebook.service";
 import type { IAssignment, IGrade, IGradebookStudent, ISubmission } from "../../../service/gradebook.service";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
 import { io } from "socket.io-client";
 import styles from "./TeacherAssignments.module.scss";
@@ -48,6 +50,7 @@ const chartData = [
 
 export default function TeacherAssignments() {
   const toast = useToast();
+  const navigate = useNavigate();
 
   const [classes, setClasses] = useState<ITeacherClassroom[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
@@ -274,6 +277,12 @@ export default function TeacherAssignments() {
 
   return (
     <div className={styles.container}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate("/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
+
       {/* ── TOP HEADER ── */}
       <div className={styles.topHeader}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

@@ -32,6 +32,7 @@ export interface IClassActivity extends Document {
     // For quizzes
     durationMinutes?: number;
     status?: QuizStatus; // OPEN, CLOSED, etc.
+    isNotified?: boolean; // Track whether students have been notified for this activity
 
     createdAt: Date;
 }
@@ -50,6 +51,7 @@ const ClassActivitySchema = new Schema<IClassActivity>({
 
     durationMinutes: { type: Number },
     status: { type: String, enum: Object.values(QuizStatus) },
+    isNotified: { type: Boolean, default: false },
 
     createdAt: { type: Date, default: Date.now }
 });

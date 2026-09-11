@@ -79,6 +79,7 @@ app.use(errorHandler);
 
 import http from 'http';
 import { initSocket } from './socket';
+import { startActivityScheduler } from './services/activityScheduler';
 
 const server = http.createServer(app);
 initSocket(server);
@@ -86,4 +87,5 @@ initSocket(server);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`🚀 Server đang chạy tại: http://localhost:${PORT}`);
+    startActivityScheduler();
 });

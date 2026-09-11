@@ -31,6 +31,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
 import { gradebookService } from "../../../service/gradebook.service";
+import { io } from "socket.io-client";
 
 const NavBar: React.FC = () => {
   const location = useLocation();
@@ -139,7 +140,22 @@ const NavBar: React.FC = () => {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 15000);
-    return () => clearInterval(interval);
+
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on('notification_update', () => {
+      fetchNotifications();
+    });
+
+    socket.on('submission_update', () => {
+      fetchNotifications();
+    });
+
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, [userRole]);
 
   const handleNotificationClick = async (notif: INotificationItem) => {
@@ -160,6 +176,12 @@ const NavBar: React.FC = () => {
       } catch (error) {
         console.error("Lỗi khi đánh dấu đã đọc:", error);
       }
+    }
+
+    const text = (notif.title + " " + (notif.message || "")).toLowerCase();
+    if (userRole === "teacher" && (text.includes("nộp bài") || text.includes("bài nộp") || text.includes("hoàn thành đề thi"))) {
+      setIsNotifOpen(false);
+      navigate("/gradebook");
     }
   };
 
@@ -189,8 +211,10 @@ const NavBar: React.FC = () => {
       return [
         ...commonLinks,
         { name: "Lớp học", path: "/classrooms", icon: <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} /> },
-        { name: "Ngân hàng", path: "/bank", icon: <BookOpen size={20} weight={isActive("/bank") ? "fill" : "regular"} /> },
+        { name: "Điểm danh", path: "/attendance", icon: <CalendarCheck size={20} weight={isActive("/attendance") ? "fill" : "regular"} /> },
+        { name: "Sổ điểm", path: "/gradebook", icon: <ClipboardText size={20} weight={isActive("/gradebook") ? "fill" : "regular"} /> },
         { name: "Lịch dạy", path: "/schedule", icon: <CalendarBlank size={20} weight={isActive("/schedule") ? "fill" : "regular"} /> },
+        { name: "Ngân hàng", path: "/bank", icon: <BookOpen size={20} weight={isActive("/bank") ? "fill" : "regular"} /> },
       ];
     }
   };

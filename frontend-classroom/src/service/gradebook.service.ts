@@ -157,20 +157,12 @@ export const gradebookService = {
     id: string,
     data: { submissionText?: string; attachments?: ISubmissionAttachment[] }
   ): Promise<IBackendRes<ISubmission>> => {
-    try {
-      return await api.post(`/api/v1/activities/${id}/submit`, data);
-    } catch {
-      return { data: null } as any;
-    }
+    return await api.post(`/api/v1/activities/${id}/submit`, data);
   },
 
   // Học sinh lấy bài đã nộp cá nhân
   getMySubmission: async (id: string): Promise<IBackendRes<ISubmission | null>> => {
-    try {
-      return await api.get(`/api/v1/activities/${id}/my-submission`);
-    } catch {
-      return { data: null } as any;
-    }
+    return await api.get(`/api/v1/activities/${id}/my-submission`);
   },
 
   // Học sinh thêm bình luận vào bài nộp

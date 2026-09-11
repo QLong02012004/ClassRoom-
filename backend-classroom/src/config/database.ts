@@ -42,16 +42,16 @@ export const connectDB = async (): Promise<void> => {
             console.error('⚠️ Lỗi đồng bộ isEmailVerified cho người dùng cũ:', dbErr);
         }
 
-        // Tự động làm tròn maxScore bị lỗi dấu phẩy động (vd: 9.999999999999996 -> 10)
+        // Tự động làm tròn maxScore bị lỗi dấu phẩy động hoặc bị gán nhầm <= 1
         try {
             const { ClassActivityModel } = require('../models/ClassActivity');
             const { BankItemModel } = require('../models/BankItem');
             await ClassActivityModel.updateMany(
-                { maxScore: { $gt: 9.99, $lt: 10.01 } },
+                { $or: [{ maxScore: { $gt: 9.99, $lt: 10.01 } }, { maxScore: { $lte: 1 } }, { maxScore: null }] },
                 { $set: { maxScore: 10 } }
             );
             await BankItemModel.updateMany(
-                { maxScore: { $gt: 9.99, $lt: 10.01 } },
+                { $or: [{ maxScore: { $gt: 9.99, $lt: 10.01 } }, { maxScore: { $lte: 1 } }, { maxScore: null }] },
                 { $set: { maxScore: 10 } }
             );
         } catch (scoreErr) {

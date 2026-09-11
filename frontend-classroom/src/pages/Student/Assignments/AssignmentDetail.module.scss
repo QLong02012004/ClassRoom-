@@ -122,6 +122,12 @@
     border: 1px solid mix(white, vars.$secondary, 75%);
   }
 
+  &.submittedLate {
+    background: mix(white, #f59e0b, 90%);
+    color: #b45309;
+    border: 1px solid mix(white, #f59e0b, 75%);
+  }
+
   &.graded {
     background: mix(white, #10b981, 90%);
     color: #059669;
@@ -132,6 +138,12 @@
     background: mix(white, vars.$danger, 90%);
     color: vars.$danger;
     border: 1px solid mix(white, vars.$danger, 75%);
+  }
+
+  &.closed {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
   }
 }
 
@@ -804,26 +816,153 @@
 .submittedBox {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
+  align-items: stretch;
+  gap: 12px;
   padding: 20px;
-  background: mix(white, #10b981, 93%);
-  border-radius: 14px;
-  border: 1px solid mix(white, #10b981, 80%);
-  text-align: center;
+  background: mix(white, #10b981, 94%);
+  border-radius: 16px;
+  border: 1px solid mix(white, #10b981, 75%);
+  text-align: left;
 
-  p {
-    font-size: 0.875rem;
-    color: vars.$dark-text;
-    font-weight: 600;
-    margin: 0;
+  &.lateBox {
+    background: mix(white, #f59e0b, 94%);
+    border-color: mix(white, #f59e0b, 75%);
+  }
+
+  &.gradedBoxVariant {
+    background: mix(white, vars.$secondary, 94%);
+    border-color: mix(white, vars.$secondary, 75%);
   }
 }
 
+.submittedHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed mix(white, vars.$sidebar-border, 40%);
+}
+
+.submittedIconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.submittedTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.submittedTitleText {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+  margin: 0;
+}
+
+.submittedDateText {
+  font-size: 0.78rem;
+  color: vars.$text-sub;
+  margin: 0;
+}
+
 .subNote {
-  font-size: 0.78rem !important;
+  font-size: 0.82rem !important;
   color: vars.$text-sub !important;
   font-weight: 500 !important;
+  margin: 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.submittedScoreCard {
+  background: white;
+  border-radius: 12px;
+  padding: 14px 16px;
+  border: 1px solid mix(white, vars.$secondary, 75%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scoreRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+
+  span {
+    font-size: 0.85rem;
+    color: vars.$text-sub;
+    font-weight: 600;
+  }
+
+  strong {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: vars.$primary;
+  }
+}
+
+.feedbackBox {
+  font-size: 0.84rem;
+  color: vars.$dark-text;
+  background: mix(white, vars.$secondary, 94%);
+  border-left: 3px solid vars.$secondary;
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+  margin: 4px 0 0 0;
+  font-style: italic;
+}
+
+.submittedNoteBox {
+  background: white;
+  border: 1px solid vars.$sidebar-border;
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.submittedNoteLabel {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: vars.$text-sub;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.submittedNoteContent {
+  font-size: 0.85rem;
+  color: vars.$dark-text;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0;
+}
+
+.closedCard {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 /* --- LOADING STATE --- */

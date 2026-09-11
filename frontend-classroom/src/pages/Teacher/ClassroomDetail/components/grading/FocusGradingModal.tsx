@@ -17,6 +17,8 @@ import {
   PencilSimple,
   X,
   Check,
+  WarningCircle,
+  Clock,
 } from "phosphor-react";
 import {
   Dialog,
@@ -27,6 +29,8 @@ import {
 } from "@/components/ui/dialog";
 import { SecondaryButton } from "@/components/ui/Buttons/SecondaryButton";
 import { handleDownloadOrOpenFile } from "@/utils/downloadHelper";
+import { useToast } from "@/components/Styles/ToastContext";
+import { format4DigitScore } from "@/utils/scoreFormatter";
 
 export const QUICK_FEEDBACK_TAGS = [
   "Bài làm xuất sắc! ",
@@ -68,6 +72,7 @@ export default function FocusGradingModal({
   formatFileSize,
   formatFileUrl,
 }: FocusGradingModalProps) {
+  const toast = useToast();
   const [previewModalFile, setPreviewModalFile] = React.useState<{
     name: string;
     url: string;
@@ -90,45 +95,99 @@ export default function FocusGradingModal({
   const fCurrentFeedback = gradingData[fStudentIdStr]?.feedback ?? "";
   const currentSubIdx = assignmentSubmissions.findIndex((s) => s._id === focusGradingSub._id);
 
-  const maxScore = selectedAssignment?.maxScore || 10;
-  const isScoreSelected = (pts: number) => parseFloat(String(fCurrentScore)) === pts;
+  // Thang điểm tối đa (chuẩn 10.00 của trung tâm)
+  const maxScore = 10;
+  const isScoreSelected = (pts: number) => {
+    if (fCurrentScore === "") return false;
+    const num = parseFloat(String(fCurrentScore).replace(/,/g, "."));
+    return !isNaN(num) && num === pts;
+  };
 
   const handleScoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let val = e.target.value.replace(/,/g, ".");
-    if (val === "") {
+    let raw = e.target.value.replace(/,/g, ".").trim();
+
+    // 1. Cho phép xóa trống để nhập lại điểm từ đầu
+    if (raw === "") {
       setGradingData((prev) => ({
         ...prev,
         [fStudentIdStr]: { ...prev[fStudentIdStr], score: "" },
       }));
       return;
     }
-    if (!/^\d*\.?\d{0,2}$/.test(val)) {
+
+    // 2. Phát hiện và cảnh báo ngay khi nhập số âm
+    if (raw.includes("-") || raw.startsWith("-")) {
+      toast.error("Điểm số không được là số âm! Thang điểm quy định từ 00.00 đến 10.00.");
+      setGradingData((prev) => ({
+        ...prev,
+        [fStudentIdStr]: { ...prev[fStudentIdStr], score: "00.00" },
+      }));
       return;
     }
-    let num = parseFloat(val);
-    if (!isNaN(num) && num > maxScore) {
-      val = maxScore.toString();
+
+    // 3. Hỗ trợ bắt đầu bằng dấu chấm (ví dụ: ".5" -> "0.5")
+    if (raw === ".") raw = "0.";
+
+    // 4. Chỉ cho phép nhập số và tối đa 1 dấu chấm
+    if (!/^\d*\.?\d*$/.test(raw)) {
+      toast.warning("Vui lòng chỉ nhập ký tự số và dấu chấm (ví dụ: 08.50, 10.00)!");
+      return;
     }
+
+    // 5. Giới hạn tối đa 2 chữ số thập phân
+    const parts = raw.split(".");
+    if (parts.length === 2 && parts[1].length > 2) {
+      toast.warning("Điểm số chỉ được tối đa 2 chữ số thập phân sau dấu chấm (XX.XX)!");
+      raw = `${parts[0]}.${parts[1].slice(0, 2)}`;
+    }
+
+    // 6. Phát hiện và cảnh báo ngay nếu nhập vượt quá 10.00
+    const num = parseFloat(raw);
+    if (!isNaN(num) && num > 10) {
+      toast.error("Điểm số không được vượt quá 10.00! Hệ thống đã tự động điều chỉnh về 10.00.");
+      raw = "10.00";
+    }
+
     setGradingData((prev) => ({
       ...prev,
-      [fStudentIdStr]: { ...prev[fStudentIdStr], score: val },
+      [fStudentIdStr]: { ...prev[fStudentIdStr], score: raw },
     }));
   };
 
   const handleScoreBlur = () => {
-    const curr = parseFloat(String(fCurrentScore));
-    if (isNaN(curr) || String(fCurrentScore).trim() === "") {
+    const raw = String(fCurrentScore).trim();
+    if (raw === "" || isNaN(parseFloat(raw))) {
       setGradingData((prev) => ({
         ...prev,
-        [fStudentIdStr]: { ...prev[fStudentIdStr], score: "0.00" },
+        [fStudentIdStr]: { ...prev[fStudentIdStr], score: "00.00" },
       }));
     } else {
-      const formatted = Math.min(maxScore, Math.max(0, curr)).toFixed(2);
+      const formatted = format4DigitScore(raw);
       setGradingData((prev) => ({
         ...prev,
         [fStudentIdStr]: { ...prev[fStudentIdStr], score: formatted },
       }));
     }
+  };
+
+  const handleStepScore = (step: number) => {
+    const raw = String(fCurrentScore).trim();
+    const curr = raw === "" || isNaN(parseFloat(raw)) ? 0 : parseFloat(raw);
+
+    if (step > 0 && curr >= 10) {
+      toast.warning("Điểm tối đa là 10.00, không thể tăng thêm!");
+      return;
+    }
+    if (step < 0 && curr <= 0) {
+      toast.warning("Điểm tối thiểu là 00.00, không thể giảm thêm!");
+      return;
+    }
+
+    const next = Math.min(10, Math.max(0, Math.round((curr + step) * 100) / 100));
+    setGradingData((prev) => ({
+      ...prev,
+      [fStudentIdStr]: { ...prev[fStudentIdStr], score: format4DigitScore(next) },
+    }));
   };
 
   const handleScoreKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -137,6 +196,15 @@ export default function FocusGradingModal({
       (e.target as HTMLInputElement).blur();
     }
   };
+
+  const isVirtual = String(focusGradingSub._id || "").startsWith("virtual_");
+  const hasAttachments = Boolean(focusGradingSub.attachments && focusGradingSub.attachments.length > 0);
+  const hasText = Boolean(focusGradingSub.submissionText && focusGradingSub.submissionText.trim().length > 0);
+  const hasSubmitted = !isVirtual && (Boolean(focusGradingSub.submittedAt) || hasAttachments || hasText || focusGradingSub.status === "submitted" || focusGradingSub.status === "late");
+
+  const isPastDue = selectedAssignment?.dueDate
+    ? new Date().getTime() > new Date(selectedAssignment.dueDate).getTime()
+    : false;
 
   let isLateSub = focusGradingSub.status === "late";
   let lateText = "";
@@ -165,9 +233,9 @@ export default function FocusGradingModal({
 
   return (
     <Dialog open={!!focusGradingSub} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[1040px] max-h-[82vh] my-auto flex flex-col p-0 overflow-hidden rounded-[28px] gap-0 border border-slate-200/80 shadow-2xl bg-white">
+      <DialogContent showCloseButton={false} className="w-[96vw] max-w-[1440px] sm:max-w-[1440px] h-[92vh] max-h-[92vh] my-auto flex flex-col p-0 overflow-hidden rounded-[28px] gap-0 border border-slate-200/80 shadow-2xl bg-white">
         {/* HEADER MODAL */}
-        <DialogHeader className="px-6 py-4 bg-gradient-to-r from-slate-50 via-orange-50/30 to-slate-50 border-b border-slate-100 flex flex-row items-center justify-between gap-4 shrink-0">
+        <DialogHeader className="px-7 py-4 bg-gradient-to-r from-slate-50 via-orange-50/30 to-slate-50 border-b border-slate-100 flex flex-row items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <img
               src={
@@ -183,7 +251,7 @@ export default function FocusGradingModal({
               </DialogTitle>
               <DialogDescription className="text-xs text-slate-500 font-medium flex items-center gap-2 mt-0.5 flex-wrap">
                 <span className="text-slate-600 font-semibold truncate max-w-[200px] sm:max-w-none">{fStudentObj.email}</span>
-                {focusGradingSub.submittedAt && (
+                {hasSubmitted && focusGradingSub.submittedAt ? (
                   <>
                     <span>•</span>
                     <span className="text-slate-500 whitespace-nowrap">
@@ -198,6 +266,21 @@ export default function FocusGradingModal({
                       <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200/90 shadow-3xs flex items-center gap-1 whitespace-nowrap">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         Đúng hạn
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <span>•</span>
+                    {isPastDue ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 shadow-3xs flex items-center gap-1 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                        Quá hạn • Chưa nộp bài
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200 shadow-3xs flex items-center gap-1 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        Chưa nộp bài (Đang làm)
                       </span>
                     )}
                   </>
@@ -241,9 +324,9 @@ export default function FocusGradingModal({
         </DialogHeader>
 
         {/* BODY MODAL */}
-        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5 max-h-[58vh] flex-1 overflow-y-auto bg-slate-50/60">
-          {/* CỘT TRÁI: BÀI LÀM CỦA HỌC SINH */}
-          <div className="flex flex-col gap-4 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-3xs">
+        <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-12 gap-5 flex-1 overflow-y-auto md:overflow-hidden bg-slate-50/60 min-h-0">
+          {/* CỘT TRÁI: BÀI LÀM CỦA HỌC SINH (Chiếm 7/12 không gian, cuộn độc lập) */}
+          <div className="md:col-span-7 flex flex-col gap-4 bg-white p-5 md:p-6 rounded-2xl border border-slate-200/90 shadow-3xs overflow-y-auto min-h-0">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider flex items-center gap-2">
                 <FileText size={17} className="text-[#2f8fa3]" weight="bold" />
@@ -251,107 +334,146 @@ export default function FocusGradingModal({
               </h4>
             </div>
 
-            {focusGradingSub.submissionText ? (
-              <div className="bg-[#fffbf5] p-4 rounded-2xl text-xs text-slate-800 font-semibold leading-relaxed border border-[#fde8d3] whitespace-pre-wrap shadow-3xs">
-                "{focusGradingSub.submissionText}"
-              </div>
-            ) : (
-              <div className="text-xs text-slate-400 font-medium italic bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-center">
-                Học sinh không nhập văn bản bài làm.
-              </div>
-            )}
+            {hasSubmitted ? (
+              <>
+                {focusGradingSub.submissionText ? (
+                  <div className="bg-[#fffbf5] p-4 rounded-2xl text-xs text-slate-800 font-semibold leading-relaxed border border-[#fde8d3] whitespace-pre-wrap shadow-3xs">
+                    "{focusGradingSub.submissionText}"
+                  </div>
+                ) : (
+                  <div className="text-xs text-slate-400 font-medium italic bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-center">
+                    Học sinh không nhập văn bản bài làm (chỉ nộp tệp đính kèm).
+                  </div>
+                )}
 
-            {focusGradingSub.attachments && focusGradingSub.attachments.length > 0 && (
-              <div className="flex flex-col gap-3 mt-1">
-                <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
-                  <Paperclip size={16} className="text-[#f47c20]" weight="bold" />
-                  File đính kèm ({focusGradingSub.attachments.length}):
-                </span>
+                {focusGradingSub.attachments && focusGradingSub.attachments.length > 0 && (
+                  <div className="flex flex-col gap-3 mt-1">
+                    <span className="text-xs font-black text-slate-700 flex items-center gap-1.5">
+                      <Paperclip size={16} className="text-[#f47c20]" weight="bold" />
+                      File đính kèm ({focusGradingSub.attachments.length}):
+                    </span>
 
-                <div className="flex flex-col gap-2.5">
-                  {focusGradingSub.attachments.map((att: any, aIdx: number) => {
-                    const ext = getFileExt(att.name || att.url);
-                    const isImg = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext || "");
-                    const isPdf = ext === "pdf";
-                    const cleanName = formatCleanFileName(att.name, att.url);
-                    const sizeStr = formatFileSize(att.size);
-                    const fileUrl = formatFileUrl(att.url);
+                    <div className="flex flex-col gap-2.5">
+                      {focusGradingSub.attachments.map((att: any, aIdx: number) => {
+                        const ext = getFileExt(att.name || att.url);
+                        const isImg = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext || "");
+                        const isPdf = ext === "pdf";
+                        const cleanName = formatCleanFileName(att.name, att.url);
+                        const sizeStr = formatFileSize(att.size);
+                        const fileUrl = formatFileUrl(att.url);
 
-                    return (
-                      <div
-                        key={aIdx}
-                        className="flex items-center justify-between gap-3 p-3.5 bg-slate-50/90 hover:bg-orange-50/40 border border-slate-200/90 hover:border-[#f47c20]/50 rounded-2xl transition-all shadow-3xs group"
-                      >
-                        <div className="flex items-center gap-3 truncate min-w-0">
+                        return (
                           <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${isPdf ? "bg-rose-50 text-rose-500" : isImg ? "bg-blue-50 text-blue-500" : "bg-orange-50 text-[#f47c20]"
-                              }`}
+                            key={aIdx}
+                            className="flex items-center justify-between gap-3 p-3.5 bg-slate-50/90 hover:bg-orange-50/40 border border-slate-200/90 hover:border-[#f47c20]/50 rounded-2xl transition-all shadow-3xs group"
                           >
-                            {isPdf ? (
-                              <FilePdf size={22} weight="fill" />
-                            ) : isImg ? (
-                              <Eye size={22} weight="bold" />
-                            ) : (
-                              <Paperclip size={22} weight="bold" />
-                            )}
-                          </div>
-                          <div className="flex flex-col truncate min-w-0">
-                            <span className="text-xs font-black text-slate-800 truncate group-hover:text-[#f47c20] transition-colors" title={cleanName}>
-                              {cleanName}
-                            </span>
-                            <span className="text-[11px] font-semibold text-slate-400">
-                              {ext ? ext.toUpperCase() : "FILE"} {sizeStr ? `• ${sizeStr}` : ""}
-                            </span>
-                          </div>
-                        </div>
+                            <div className="flex items-center gap-3 truncate min-w-0">
+                              <div
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${isPdf ? "bg-rose-50 text-rose-500" : isImg ? "bg-blue-50 text-blue-500" : "bg-orange-50 text-[#f47c20]"
+                                  }`}
+                              >
+                                {isPdf ? (
+                                  <FilePdf size={22} weight="fill" />
+                                ) : isImg ? (
+                                  <Eye size={22} weight="bold" />
+                                ) : (
+                                  <Paperclip size={22} weight="bold" />
+                                )}
+                              </div>
+                              <div className="flex flex-col truncate min-w-0">
+                                <span className="text-xs font-black text-slate-800 truncate group-hover:text-[#f47c20] transition-colors" title={cleanName}>
+                                  {cleanName}
+                                </span>
+                                <span className="text-[11px] font-semibold text-slate-400">
+                                  {ext ? ext.toUpperCase() : "FILE"} {sizeStr ? `• ${sizeStr}` : ""}
+                                </span>
+                              </div>
+                            </div>
 
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              let isExpired = false;
-                              if (fileUrl.startsWith("blob:")) {
-                                try {
-                                  const res = await fetch(fileUrl);
-                                  if (!res.ok) isExpired = true;
-                                } catch {
-                                  isExpired = true;
-                                }
-                              }
-                              setPreviewModalFile({
-                                name: cleanName,
-                                url: fileUrl,
-                                ext: ext ? ext.toUpperCase() : "FILE",
-                                size: sizeStr || "",
-                                isExpiredBlob: isExpired,
-                              });
-                            }}
-                            className="px-3 py-1.5 text-xs font-extrabold text-slate-700 hover:text-[#2f8fa3] bg-white hover:bg-cyan-50 border border-slate-200 hover:border-[#2f8fa3]/40 rounded-xl transition-all inline-flex items-center gap-1 shadow-3xs cursor-pointer"
-                            title="Xem chi tiết thông tin tệp"
-                          >
-                            <Eye size={15} weight="bold" />
-                            Xem trực tiếp
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDownloadOrOpenFile(fileUrl, cleanName)}
-                            className="px-3 py-1.5 text-xs font-extrabold text-[#f47c20] hover:text-white bg-orange-50 hover:bg-[#f47c20] border border-orange-200 hover:border-[#f47c20] rounded-xl transition-all inline-flex items-center gap-1 shadow-3xs cursor-pointer"
-                            title="Tải về máy"
-                          >
-                            <DownloadSimple size={15} weight="bold" />
-                            Tải file
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  let isExpired = false;
+                                  if (fileUrl.startsWith("blob:")) {
+                                    try {
+                                      const res = await fetch(fileUrl);
+                                      if (!res.ok) isExpired = true;
+                                    } catch {
+                                      isExpired = true;
+                                    }
+                                  }
+                                  setPreviewModalFile({
+                                    name: cleanName,
+                                    url: fileUrl,
+                                    ext: ext ? ext.toUpperCase() : "FILE",
+                                    size: sizeStr || "",
+                                    isExpiredBlob: isExpired,
+                                  });
+                                }}
+                                className="px-3 py-1.5 text-xs font-extrabold text-slate-700 hover:text-[#2f8fa3] bg-white hover:bg-cyan-50 border border-slate-200 hover:border-[#2f8fa3]/40 rounded-xl transition-all inline-flex items-center gap-1 shadow-3xs cursor-pointer"
+                                title="Xem chi tiết thông tin tệp"
+                              >
+                                <Eye size={15} weight="bold" />
+                                Xem trực tiếp
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDownloadOrOpenFile(fileUrl, cleanName)}
+                                className="px-3 py-1.5 text-xs font-extrabold text-[#f47c20] hover:text-white bg-orange-50 hover:bg-[#f47c20] border border-orange-200 hover:border-[#f47c20] rounded-xl transition-all inline-flex items-center gap-1 shadow-3xs cursor-pointer"
+                                title="Tải về máy"
+                              >
+                                <DownloadSimple size={15} weight="bold" />
+                                Tải file
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 bg-gradient-to-b from-rose-50/70 to-orange-50/30 border border-rose-200/70 rounded-2xl text-center gap-3.5 my-auto">
+                <div className="w-14 h-14 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center shadow-xs">
+                  <WarningCircle size={32} weight="fill" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-black text-rose-900 mb-1">Học sinh chưa nộp bài làm</h5>
+                  <p className="text-xs text-rose-700/90 max-w-sm leading-relaxed">
+                    Học sinh <strong>{fStudentObj.name}</strong> chưa gửi bài làm hoặc bất kỳ tệp đính kèm nào trên hệ thống cho bài tập trực tuyến này.
+                  </p>
+                </div>
+
+                {selectedAssignment?.dueDate && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 bg-white px-3.5 py-2 rounded-xl border border-rose-100 shadow-3xs">
+                    <Clock size={15} className="text-slate-400 shrink-0" />
+                    <span>Hạn nộp: <strong>{new Date(selectedAssignment.dueDate).toLocaleString("vi-VN")}</strong></span>
+                    {isPastDue ? (
+                      <span className="text-rose-600 font-bold ml-1">(Đã hết hạn nộp)</span>
+                    ) : (
+                      <span className="text-emerald-600 font-bold ml-1">(Còn hạn làm bài)</span>
+                    )}
+                  </div>
+                )}
+
+                <div className="w-full text-left bg-white/90 border border-amber-200/80 rounded-xl p-3 text-[11px] text-amber-900 leading-relaxed shadow-3xs flex items-start gap-2">
+                  <span className="text-amber-500 font-bold text-sm leading-none shrink-0 mt-0.5">⚠️</span>
+                  <div>
+                    <strong>Quyền hạn chấm & sửa điểm của Giáo viên:</strong>
+                    <ul className="list-disc list-inside mt-1 space-y-0.5 text-slate-600">
+                      <li>Nếu học sinh chưa nộp và <strong>còn hạn</strong>: Khuyến nghị chờ học sinh gửi bài trước khi cho điểm.</li>
+                      <li>Nếu <strong>đã quá hạn nộp</strong>: Hệ thống tạm ghi nhận <strong>00.00 điểm</strong>. Giáo viên <strong>hoàn toàn có quyền sửa lại điểm số</strong> (ví dụ: cho nộp bù, thi lại) bất cứ khi nào.</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* CỘT PHẢI: CHẤM ĐIỂM & NHẬN XÉT */}
-          <div className="flex flex-col gap-5 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-3xs">
+          {/* CỘT PHẢI: CHẤM ĐIỂM & NHẬN XÉT (Chiếm 5/12 không gian, cuộn độc lập) */}
+          <div className="md:col-span-5 flex flex-col gap-5 bg-white p-5 md:p-6 rounded-2xl border border-slate-200/90 shadow-3xs overflow-y-auto min-h-0">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h4 className="text-xs font-black uppercase text-slate-500 tracking-wider flex items-center gap-2">
                 <PencilSimple size={17} className="text-[#f47c20]" weight="bold" />
@@ -359,11 +481,48 @@ export default function FocusGradingModal({
               </h4>
             </div>
 
+            {!hasSubmitted && (
+              <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                isPastDue
+                  ? "bg-rose-50/85 border-rose-200 text-rose-900"
+                  : "bg-amber-50/85 border-amber-200 text-amber-900"
+              }`}>
+                <WarningCircle size={18} className={isPastDue ? "text-rose-600 shrink-0 mt-0.5" : "text-amber-600 shrink-0 mt-0.5"} weight="fill" />
+                <div className="flex-1">
+                  <p className="font-extrabold text-[12px]">
+                    {isPastDue ? "Học sinh quá hạn nộp bài (Tạm ghi nhận 00.00 điểm)" : "Học sinh chưa nộp bài tập (Đang trong hạn làm bài)"}
+                  </p>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                    {isPastDue
+                      ? "Giáo viên hoàn toàn có quyền nhập điểm hoặc sửa lại điểm số bất kỳ lúc nào (ví dụ: học sinh nộp bù hoặc làm bài bổ sung)."
+                      : "Bài tập vẫn đang trong thời gian làm bài. Không nên cho điểm khi học sinh chưa gửi bài."}
+                  </p>
+                  {isPastDue && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGradingData((prev) => ({
+                          ...prev,
+                          [fStudentIdStr]: {
+                            score: "00.00",
+                            feedback: "Học sinh không nộp bài tập trực tuyến quá thời hạn quy định.",
+                          },
+                        }));
+                      }}
+                      className="mt-2 px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-bold text-[11px] shadow-3xs cursor-pointer inline-flex items-center gap-1 transition-colors"
+                    >
+                      <Check size={13} weight="bold" /> Gán nhanh 00.00 điểm (Quá hạn)
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Ô CHỌN ĐIỂM SỐ */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-extrabold text-slate-700">Điểm số (Thang điểm {maxScore}):</label>
-                <span className="text-[11px] font-semibold text-slate-400">Click hoặc gõ phím để nhập</span>
+                <label className="text-xs font-extrabold text-slate-700">Điểm số (Thang điểm 00.00 - 10.00):</label>
+                <span className="text-[11px] font-semibold text-slate-400">Luôn gồm 4 số (XX.XX) • Click hoặc gõ phím</span>
               </div>
 
               <div className="flex items-center gap-3">
@@ -372,45 +531,31 @@ export default function FocusGradingModal({
                     type="text"
                     inputMode="decimal"
                     value={fCurrentScore}
-                    placeholder="0.00"
+                    placeholder="00.00"
                     onFocus={(e) => e.target.select()}
                     onKeyDown={handleScoreKeyDown}
                     onChange={handleScoreChange}
                     onBlur={handleScoreBlur}
-                    className="w-32 h-13 text-center font-black text-2xl text-[#f47c20] bg-orange-50/70 border-2 border-[#f47c20] focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/25 rounded-2xl outline-none transition-all shadow-sm cursor-text"
+                    className="w-36 h-13 text-center font-black text-2xl text-[#f47c20] bg-orange-50/70 border-2 border-[#f47c20] focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/25 rounded-2xl outline-none transition-all shadow-sm cursor-text tracking-wider"
                   />
                 </div>
-                <span className="text-base font-black text-slate-600">/ {maxScore} điểm</span>
+                <span className="text-base font-black text-slate-600">/ 10.00 điểm</span>
 
                 {/* STEPPER THAY ĐỔI ĐIỂM SỐ */}
                 <div className="flex items-center gap-1 ml-auto">
                   <button
                     type="button"
                     title="Giảm 0.5 điểm"
-                    onClick={() => {
-                      const curr = parseFloat(String(fCurrentScore)) || 0;
-                      const next = Math.max(0, curr - 0.5);
-                      setGradingData((prev) => ({
-                        ...prev,
-                        [fStudentIdStr]: { ...prev[fStudentIdStr], score: next.toFixed(2) },
-                      }));
-                    }}
-                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-[#f47c20] font-black text-xs border border-slate-200 flex items-center justify-center transition-all cursor-pointer shadow-3xs"
+                    onClick={() => handleStepScore(-0.5)}
+                    className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-[#f47c20] font-black text-xs border border-slate-200 flex items-center justify-center transition-all cursor-pointer shadow-3xs"
                   >
                     -0.5
                   </button>
                   <button
                     type="button"
                     title="Tăng 0.5 điểm"
-                    onClick={() => {
-                      const curr = parseFloat(String(fCurrentScore)) || 0;
-                      const next = Math.min(maxScore, curr + 0.5);
-                      setGradingData((prev) => ({
-                        ...prev,
-                        [fStudentIdStr]: { ...prev[fStudentIdStr], score: next.toFixed(2) },
-                      }));
-                    }}
-                    className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-[#f47c20] font-black text-xs border border-slate-200 flex items-center justify-center transition-all cursor-pointer shadow-3xs"
+                    onClick={() => handleStepScore(+0.5)}
+                    className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-orange-50 text-slate-700 hover:text-[#f47c20] font-black text-xs border border-slate-200 flex items-center justify-center transition-all cursor-pointer shadow-3xs"
                   >
                     +0.5
                   </button>
@@ -420,6 +565,7 @@ export default function FocusGradingModal({
               {/* CHIPS ĐIỂM NHANH GỌN */}
               <div className="grid grid-cols-5 gap-1.5 mt-1 p-1.5 bg-slate-50/60 rounded-2xl border border-slate-200/80">
                 {[10, 9.5, 9, 8.5, 8, 7.5, 7, 6, 5, 0].map((pts) => {
+                  const formattedVal = format4DigitScore(pts);
                   const active = isScoreSelected(pts);
                   return (
                     <button
@@ -430,7 +576,7 @@ export default function FocusGradingModal({
                           ...prev,
                           [fStudentIdStr]: {
                             ...prev[fStudentIdStr],
-                            score: pts.toFixed(2),
+                            score: formattedVal,
                           },
                         }));
                       }}
@@ -439,7 +585,7 @@ export default function FocusGradingModal({
                         : "bg-white hover:bg-orange-50 text-slate-500 hover:text-[#f47c20] border border-slate-200/90"
                         }`}
                     >
-                      {pts.toFixed(2)} đ
+                      {formattedVal} đ
                     </button>
                   );
                 })}
@@ -453,7 +599,7 @@ export default function FocusGradingModal({
                 <span className="text-[11px] font-normal text-slate-400">Click thẻ bên dưới để chèn nhanh</span>
               </label>
               <textarea
-                rows={3}
+                rows={4}
                 placeholder="Nhập lời khen hoặc nhận xét góp ý chi tiết cho học sinh..."
                 value={fCurrentFeedback}
                 onChange={(e) => {
@@ -465,11 +611,11 @@ export default function FocusGradingModal({
                     },
                   }));
                 }}
-                className="w-full p-3.5 bg-slate-50/80 border border-slate-200 focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/15 focus:bg-white rounded-2xl text-xs font-semibold text-slate-800 outline-none leading-relaxed transition-all shadow-3xs"
+                className="w-full p-4 bg-slate-50/80 border border-slate-200 focus:border-[#f47c20] focus:ring-4 focus:ring-[#f47c20]/15 focus:bg-white rounded-2xl text-xs font-semibold text-slate-800 outline-none leading-relaxed transition-all shadow-3xs resize-none"
               />
 
               {/* GỢI Ý NHẬN XÉT THÔNG MINH */}
-              <div className="flex flex-wrap gap-1.5 p-1.5 max-h-[110px] overflow-y-auto bg-slate-50/60 border border-slate-200/80 rounded-2xl">
+              <div className="flex flex-wrap gap-1.5 p-2 max-h-[140px] overflow-y-auto bg-slate-50/60 border border-slate-200/80 rounded-2xl">
                 {QUICK_FEEDBACK_TAGS.map((tag, tIdx) => {
                   const isIncluded = fCurrentFeedback.includes(tag);
                   return (
@@ -555,7 +701,7 @@ export default function FocusGradingModal({
       {/* IN-APP FILE PREVIEW DIALOG */}
       {previewModalFile && (
         <Dialog open={!!previewModalFile} onOpenChange={(open) => !open && setPreviewModalFile(null)}>
-          <DialogContent showCloseButton className="sm:max-w-[780px] max-h-[85vh] p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl z-50">
+          <DialogContent showCloseButton className="w-[94vw] max-w-[1150px] sm:max-w-[1150px] max-h-[88vh] p-6 rounded-3xl bg-white border border-slate-200 shadow-2xl z-50">
             <DialogHeader className="border-b border-slate-100 pb-3">
               <DialogTitle className="text-base font-black text-slate-900 flex items-center gap-2">
                 <FileText size={20} className="text-[#f47c20]" weight="bold" />

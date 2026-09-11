@@ -11,7 +11,10 @@ import {
   UploadSimple,
   X,
   Bell,
-  Info
+  Info,
+  ArrowSquareOut,
+  WarningCircle,
+  ChatCircleDots
 } from "phosphor-react";
 import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
 import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton.tsx";
@@ -188,17 +191,19 @@ export default function AssignmentDetail() {
 
       const attachments = await Promise.all(attachmentPromises);
 
-      await gradebookService.submitAssignment(assignment._id, {
+      const res: any = await gradebookService.submitAssignment(assignment._id, {
         submissionText: note,
         attachments
       });
 
-      toast.success("Nộp bài thành công! 🎉", 3000);
+      toast.success(res?.message || "Nộp bài thành công! 🎉", 3000);
       setSelectedFiles([]);
+      setNote("");
       setIsResubmitting(false);
-      loadData();
+      await loadData();
     } catch (err: any) {
-      toast.error(err.message || "Gặp lỗi khi nộp bài tập!");
+      const errMsg = err?.response?.data?.message || err?.message || "Gặp lỗi khi nộp bài tập!";
+      toast.error(errMsg);
     } finally {
       setIsSubmitting(false);
     }
@@ -214,8 +219,10 @@ export default function AssignmentDetail() {
   }
 
   const isGraded = mySubmission?.status === "graded";
-  const isSubmitted = mySubmission !== null;
-  const isPastDeadline = new Date(assignment.deadline).getTime() < Date.now();
+  const isSubmittedLate = mySubmission?.status === "late";
+  const isSubmitted = mySubmission !== null && mySubmission !== undefined;
+  const isPastDeadline = assignment.deadline ? new Date(assignment.deadline).getTime() < Date.now() : false;
+  const isClosed = assignment.status === "closed";
 
   return (
     <div className={styles.page}>
@@ -231,8 +238,32 @@ export default function AssignmentDetail() {
             {/* Class + Status */}
             <div className={styles.cardTopRow}>
               <span className={styles.subjectTag}>{className.toUpperCase()}</span>
-              <span className={`${styles.statusBadge} ${isGraded ? styles.graded : isSubmitted ? styles.submitted : isPastDeadline ? styles.late : styles.pending}`}>
-                {isGraded ? "Đã chấm điểm" : isSubmitted ? "Đã nộp bài" : isPastDeadline ? "Quá hạn" : <><Clock size={14} weight="bold" className={styles.statusIcon} /> Đang chờ nộp</>}
+              <span className={`${styles.statusBadge} ${
+                isGraded 
+                  ? styles.graded 
+                  : isSubmittedLate 
+                  ? styles.submittedLate 
+                  : isSubmitted 
+                  ? styles.submitted 
+                  : isClosed
+                  ? styles.closed
+                  : isPastDeadline 
+                  ? styles.late 
+                  : styles.pending
+              }`}>
+                {isGraded ? (
+                  <><CheckCircle size={14} weight="bold" className={styles.statusIcon} /> Đã chấm điểm</>
+                ) : isSubmittedLate ? (
+                  <><Clock size={14} weight="bold" className={styles.statusIcon} /> Đã nộp muộn</>
+                ) : isSubmitted ? (
+                  <><CheckCircle size={14} weight="bold" className={styles.statusIcon} /> Đã nộp bài</>
+                ) : isClosed ? (
+                  "Đã đóng"
+                ) : isPastDeadline ? (
+                  "Quá hạn"
+                ) : (
+                  <><Clock size={14} weight="bold" className={styles.statusIcon} /> Đang chờ nộp</>
+                )}
               </span>
             </div>
 
@@ -271,7 +302,11 @@ export default function AssignmentDetail() {
                   </span>
                   {isSubmitted && (
                     <span className={styles.metaSubValue}>
-                      {isGraded ? `Đã chấm: ${mySubmission.grade}/10` : `Đã nộp ${formatRelativeTime(mySubmission.submittedAt)}`}
+                      {isGraded 
+                        ? `Đã chấm: ${mySubmission.grade}/${assignment.maxScore || 10}` 
+                        : isSubmittedLate 
+                        ? `Đã nộp muộn (${formatRelativeTime(mySubmission.submittedAt)})`
+                        : `Đã nộp (${formatRelativeTime(mySubmission.submittedAt)})`}
                     </span>
                   )}
                 </div>
@@ -338,40 +373,111 @@ export default function AssignmentDetail() {
               Nộp bài của bạn
             </h3>
 
-            {isGraded ? (
-              <div className={styles.gradedBox}>
-                <CheckCircle size={40} weight="fill" className={styles.checkIcon} />
-                <p className={styles.gradedScore}>Điểm: <strong>{mySubmission.grade}/10</strong></p>
+            {(isSubmitted && !isResubmitting) ? (
+              <div className={`${styles.submittedBox} ${isSubmittedLate ? styles.lateBox : ''} ${isGraded ? styles.gradedBoxVariant : ''}`}>
+                <div className={styles.submittedHeader}>
+                  <div className={styles.submittedIconWrap}>
+                    {isGraded ? (
+                      <CheckCircle size={28} weight="fill" style={{ color: "#059669" }} />
+                    ) : isSubmittedLate ? (
+                      <Clock size={28} weight="fill" style={{ color: "#b45309" }} />
+                    ) : (
+                      <CheckCircle size={28} weight="fill" style={{ color: "#10B981" }} />
+                    )}
+                  </div>
+                  <div className={styles.submittedTitleGroup}>
+                    <h4 className={styles.submittedTitleText}>
+                      {isGraded ? "Bài đã được chấm điểm" : isSubmittedLate ? "Đã nộp bài (Nộp muộn)" : "Đã nộp bài thành công"}
+                    </h4>
+                    <p className={styles.submittedDateText}>
+                      Thời gian nộp: {new Date(mySubmission.submittedAt).toLocaleString("vi-VN")}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Graded Info Card */}
+                {isGraded && (
+                  <div className={styles.submittedScoreCard}>
+                    <div className={styles.scoreRow}>
+                      <span>Điểm số:</span>
+                      <strong>{mySubmission.grade}/{assignment.maxScore || 10}</strong>
+                    </div>
+                    {mySubmission.feedback && (
+                      <p className={styles.feedbackBox}>
+                        💬 Lời phê: &ldquo;{mySubmission.feedback}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Waiting for grading notice */}
+                {!isGraded && (
+                  <p className={styles.subNote}>
+                    <Clock size={16} weight="bold" /> Đang chờ giáo viên chấm điểm và nhận xét...
+                  </p>
+                )}
+
+                {/* Student's submitted note if any */}
+                {mySubmission.submissionText && (
+                  <div className={styles.submittedNoteBox}>
+                    <span className={styles.submittedNoteLabel}>Ghi chú gửi giáo viên:</span>
+                    <p className={styles.submittedNoteContent}>{mySubmission.submissionText}</p>
+                  </div>
+                )}
+
+                {/* Submitted Files List */}
+                {mySubmission.attachments && mySubmission.attachments.length > 0 && (
+                  <div className={styles.submittedFilesList}>
+                    <p className={styles.submittedFilesTitle}>
+                      Các file đã nộp ({mySubmission.attachments.length}):
+                    </p>
+                    {mySubmission.attachments.map((att: any, idx: number) => {
+                      const ext = att.name?.split('.').pop()?.toLowerCase();
+                      return (
+                        <a
+                          key={idx}
+                          href={att.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.submittedFileItem}
+                          title="Bấm để xem hoặc tải file"
+                        >
+                          {ext === 'pdf' ? (
+                            <FilePdf size={20} weight="fill" className="text-[#EF4444] flex-shrink-0" />
+                          ) : ext === 'doc' || ext === 'docx' ? (
+                            <FileDoc size={20} weight="fill" className="text-[#2563EB] flex-shrink-0" />
+                          ) : (
+                            <CloudArrowUp size={20} weight="bold" className="text-[#10B981] flex-shrink-0" />
+                          )}
+                          <span className={styles.submittedFileName} title={att.name}>
+                            {formatCleanFileName(att.name)}
+                          </span>
+                          {att.size && <span className={styles.submittedFileSize}>{att.size}</span>}
+                          <ArrowSquareOut size={16} weight="bold" className="text-slate-400 flex-shrink-0 ml-1" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Quiz Review */}
                 {assignment.type === 'quiz' && (
                   <AnimatedSendButton
                     onClick={() => navigate(`/exams/${assignment._id}`)}
                     text="Xem chi tiết bài làm"
-                    className="w-full"
+                    className="w-full mt-2"
                   />
                 )}
-                {mySubmission.feedback && (
-                  <p className={styles.feedback}>💬 &ldquo;{mySubmission.feedback}&rdquo;</p>
-                )}
-              </div>
-            ) : (isSubmitted && !isResubmitting) ? (
-              <div className={styles.submittedBox}>
-                <CheckCircle size={32} weight="fill" style={{ color: "#10B981" }} />
-                <p>Đã nộp lúc {new Date(mySubmission.submittedAt).toLocaleString("vi-VN")}</p>
-                <p className={styles.subNote}>Đang chờ giáo viên chấm điểm...</p>
-                {mySubmission.attachments && mySubmission.attachments.length > 0 && (
-                  <div className={styles.submittedFilesList}>
-                    <p className={styles.submittedFilesTitle}>Các file đã nộp ({mySubmission.attachments.length}):</p>
-                    {mySubmission.attachments.map((att: any, idx: number) => (
-                      <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className={styles.submittedFileItem}>
-                        <FilePdf size={18} weight="fill" className="text-[#EF4444]" />
-                        <span className={styles.submittedFileName} title={att.name}>{formatCleanFileName(att.name)}</span>
-                        {att.size && <span className={styles.submittedFileSize}>{att.size}</span>}
-                      </a>
-                    ))}
-                  </div>
-                )}
-                {assignment.allowMultipleSubmissions !== false && !isPastDeadline && (
-                  <button className={styles.resubmitBtn} onClick={() => setIsResubmitting(true)}>Nộp lại bài</button>
+
+                {/* Resubmit button if allowed */}
+                {assignment.allowMultipleSubmissions !== false && !isClosed && (
+                  <button
+                    type="button"
+                    className={styles.resubmitBtn}
+                    onClick={() => setIsResubmitting(true)}
+                  >
+                    Nộp lại bài
+                  </button>
                 )}
               </div>
             ) : assignment.type === 'quiz' ? (
@@ -384,6 +490,13 @@ export default function AssignmentDetail() {
                   text="Bắt đầu làm bài"
                   className="w-full"
                 />
+              </div>
+            ) : isClosed ? (
+              <div className={styles.closedCard}>
+                <WarningCircle size={24} weight="fill" className="text-slate-500 flex-shrink-0" />
+                <p style={{ margin: 0 }}>
+                  Bài tập này đã bị giáo viên đóng. Bạn không thể tiếp tục nộp bài.
+                </p>
               </div>
             ) : (
               <>

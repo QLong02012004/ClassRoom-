@@ -16,6 +16,7 @@ import { useState } from "react";
 import { useToast } from "@/components/Styles/ToastContext";
 import { activityService } from "@/service/activity.service";
 import { gradebookService } from "@/service/gradebook.service";
+import { format4DigitScore } from "@/utils/scoreFormatter";
 
 interface UseAssignmentGradingProps {
   loadAllActivities: () => Promise<void>;
@@ -50,7 +51,7 @@ export function useAssignmentGrading({
         res.data.forEach((sub: any) => {
           const studentIdStr = typeof sub.studentId === "object" ? sub.studentId._id : sub.studentId;
           initialGrading[studentIdStr] = {
-            score: sub.grade !== undefined && sub.grade !== null ? sub.grade : "",
+            score: sub.grade !== undefined && sub.grade !== null ? format4DigitScore(sub.grade) : "",
             feedback: sub.feedback || "",
           };
         });
@@ -92,15 +93,21 @@ export function useAssignmentGrading({
     setIsSavingGrades(true);
     try {
       const gradesPayload: { studentId: string; score: number; feedback?: string }[] = [];
-      Object.entries(gradingData).forEach(([studentId, data]: [string, any]) => {
+      for (const [studentId, data] of Object.entries(gradingData) as [string, any][]) {
         if (data.score !== "" && !isNaN(Number(data.score))) {
+          const scoreNum = Number(data.score);
+          if (scoreNum < 0 || scoreNum > 10) {
+            toast.error("Điểm số phải nằm trong thang điểm từ 00.00 đến 10.00!");
+            setIsSavingGrades(false);
+            return;
+          }
           gradesPayload.push({
             studentId,
-            score: Number(data.score),
+            score: scoreNum,
             feedback: data.feedback,
           });
         }
-      });
+      }
 
       if (gradesPayload.length === 0) {
         toast.warning("Vui lòng nhập điểm số cho ít nhất 1 học sinh trước khi lưu!");

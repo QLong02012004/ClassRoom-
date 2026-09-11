@@ -190,11 +190,19 @@ export default function StudentClassrooms() {
       loadData();
     });
 
+    socket.on('attendance_update', () => {
+      console.log('📡 [Socket.io] Cập nhật chuyên cần lớp học sinh realtime...');
+      loadData();
+    });
+
     socket.on('notification_update', () => {
       loadData();
     });
 
     return () => {
+      socket.off('student_classrooms_update');
+      socket.off('attendance_update');
+      socket.off('notification_update');
       socket.disconnect();
     };
   }, [username, user]);

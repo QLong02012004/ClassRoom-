@@ -14,6 +14,10 @@ import {
   ClockClockwise,
   Check,
   FileText,
+  ChartPieSlice,
+  ChartLineUp,
+  TrendUp,
+  BookOpen,
 } from "phosphor-react";
 import {
   DropdownMenu,
@@ -36,6 +40,7 @@ import type { IStudent, IAttendanceRecord, IAttendance } from "../../../service/
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import { Table, Avatar as HeroAvatar, Checkbox } from "@heroui/react";
 import type { Selection } from "@heroui/react";
 import styles from "./TeacherAttendance.module.scss";
@@ -277,9 +282,47 @@ export default function TeacherAttendance() {
     }
   };
 
+  const totalStudents = students.length;
   const presentCount = students.filter((s) => s.status === "present").length;
   const lateCount = students.filter((s) => s.status === "late").length;
   const absentCount = students.filter((s) => s.status === "absent").length;
+  const presentPercent = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
+  const latePercent = totalStudents > 0 ? Math.round((lateCount / totalStudents) * 100) : 0;
+  const absentPercent = totalStudents > 0 ? Math.max(0, 100 - presentPercent - latePercent) : 0;
+
+  const historyStats = useMemo(() => {
+    if (!attendanceHistory || attendanceHistory.length === 0) return null;
+    let totalRecords = 0;
+    let totalPresent = 0;
+    let totalLate = 0;
+    let totalAbsent = 0;
+
+    attendanceHistory.forEach((att) => {
+      if (att.records && Array.isArray(att.records)) {
+        att.records.forEach((r) => {
+          totalRecords++;
+          if (r.status === "present") totalPresent++;
+          else if (r.status === "late") totalLate++;
+          else if (r.status === "absent") totalAbsent++;
+        });
+      }
+    });
+
+    if (totalRecords === 0) return null;
+
+    return {
+      sessionCount: attendanceHistory.length,
+      totalRecords,
+      totalPresent,
+      totalLate,
+      totalAbsent,
+      avgPresentPercent: Math.round((totalPresent / totalRecords) * 100),
+      avgLatePercent: Math.round((totalLate / totalRecords) * 100),
+      avgAbsentPercent: Math.round((totalAbsent / totalRecords) * 100),
+      overallScore: Math.round(((totalPresent + totalLate * 0.5) / totalRecords) * 100)
+    };
+  }, [attendanceHistory]);
+
   const selectedClass = classes.find((c) => c._id === selectedClassId);
 
   const now = new Date();
@@ -287,32 +330,46 @@ export default function TeacherAttendance() {
 
   return (
     <div className={styles.attendanceContainer}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate("/classrooms")}>
+          Quay lại danh sách lớp
+        </BackButton>
+      </div>
 
       {/* CLASS INFO & CONTROLS BAR */}
       <div className={styles.classInfoBar} style={{ flexDirection: 'column', gap: '12px' }}>
         {/* ROW 1: Header Status & Action (Tên lớp + Thống kê + Nút Lưu) */}
         <div className="flex items-center justify-between w-full flex-wrap gap-4">
-          {/* Tên Lớp */}
-          <div className={styles.classInfoLeft}>
-            <div className={styles.classInfoIcon}>
-              <Student size={20} weight="duotone" />
+          {/* Tên Lớp (ở trên) & Môn học (ở dưới) */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 text-[#f47c20] flex items-center justify-center shrink-0 shadow-2xs">
+              <Student size={22} weight="duotone" />
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex flex-col items-start min-w-0">
               {loadingClasses ? (
-                <div className="w-32 h-6 bg-slate-100 rounded animate-pulse" />
+                <div className="flex flex-col gap-1.5">
+                  <div className="w-32 h-5 bg-slate-100 rounded animate-pulse" />
+                  <div className="w-16 h-3.5 bg-slate-100 rounded animate-pulse" />
+                </div>
               ) : (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button style={{ background: 'transparent', border: 'none', padding: 0, fontWeight: 700, fontSize: '0.95rem', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontFamily: 'inherit', outline: 'none' }}>
-                      <span>
-                        {selectedClass
-                          ? selectedClass.name
-                          : "Chọn lớp học..."}
+                    <button
+                      type="button"
+                      className="group flex items-center gap-1.5 p-0 bg-transparent border-0 cursor-pointer outline-none text-left"
+                      title="Click để đổi lớp học"
+                    >
+                      <span className="font-extrabold text-[1.05rem] text-slate-800 tracking-tight group-hover:text-orange-600 transition-colors line-clamp-1 max-w-[260px] sm:max-w-[340px]">
+                        {selectedClass ? selectedClass.name : "Chọn lớp học..."}
                       </span>
-                      <CaretDown size={14} weight="bold" color="#64748b" />
+                      <CaretDown size={14} weight="bold" className="text-slate-400 group-hover:text-orange-600 transition-colors shrink-0" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-auto min-w-[280px] max-w-[450px] bg-white border border-slate-200 shadow-lg rounded-xl p-1 z-50">
+                  <DropdownMenuContent className="w-auto min-w-[280px] max-w-[450px] bg-white border border-slate-200 shadow-xl rounded-xl p-1.5 z-50">
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                      Danh sách lớp học của bạn
+                    </div>
                     {classes.length === 0 ? (
                       <div className="p-3 text-sm text-slate-500 text-center">Chưa có lớp nào</div>
                     ) : (
@@ -323,16 +380,31 @@ export default function TeacherAttendance() {
                             setSelectedClassId(cls._id);
                             setSearchParams({ classId: cls._id }, { replace: true });
                           }}
-                          className={`px-3 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600 outline-none rounded-lg cursor-pointer flex justify-between items-center transition-colors ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-semibold" : ""}`}
+                          className={`px-3 py-2 text-sm text-slate-700 hover:bg-orange-50 hover:text-orange-600 focus:bg-orange-50 focus:text-orange-600 outline-none rounded-lg cursor-pointer flex justify-between items-center transition-colors my-0.5 ${selectedClassId === cls._id ? "bg-orange-50 text-orange-600 font-bold" : ""}`}
                         >
-                          {cls.name} {cls.subject ? `(${cls.subject})` : ""}
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm">{cls.name}</span>
+                            {cls.subject && <span className="text-[11px] text-slate-400 font-medium">Môn: {cls.subject}</span>}
+                          </div>
+                          {selectedClassId === cls._id && <Check size={14} weight="bold" className="text-orange-600" />}
                         </DropdownMenuItem>
                       ))
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
-              {selectedClass?.subject && <span className={styles.subjectBadge}>{selectedClass.subject}</span>}
+
+              {/* Môn học ở bên dưới */}
+              {selectedClass?.subject ? (
+                <div className="mt-1">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold text-orange-600 bg-orange-50 border border-orange-200/70 shadow-2xs">
+                    <BookOpen size={12} weight="bold" />
+                    Môn {selectedClass.subject}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[11px] text-slate-400 font-medium mt-0.5">Chưa phân môn</span>
+              )}
             </div>
           </div>
 
@@ -344,18 +416,24 @@ export default function TeacherAttendance() {
                 <span className={styles.statLabel}>SĨ SỐ</span>
               </div>
               <div className={styles.statDivider} />
-              <div className={styles.statItem}>
-                <span className={`${styles.statNum} ${styles.present}`}>{presentCount}</span>
+              <div className={styles.statItem} title={`Tỷ lệ có mặt: ${presentPercent}%`}>
+                <span className={`${styles.statNum} ${styles.present}`}>
+                  {presentCount} <span className="text-[11px] font-bold text-emerald-600 font-sans">({presentPercent}%)</span>
+                </span>
                 <span className={styles.statLabel}>CÓ MẶT</span>
               </div>
               <div className={styles.statDivider} />
-              <div className={styles.statItem}>
-                <span className={`${styles.statNum} ${styles.late}`}>{lateCount}</span>
+              <div className={styles.statItem} title={`Tỷ lệ đi muộn: ${latePercent}%`}>
+                <span className={`${styles.statNum} ${styles.late}`}>
+                  {lateCount} <span className="text-[11px] font-bold text-amber-600 font-sans">({latePercent}%)</span>
+                </span>
                 <span className={styles.statLabel}>MUỘN</span>
               </div>
               <div className={styles.statDivider} />
-              <div className={styles.statItem}>
-                <span className={`${styles.statNum} ${styles.absent}`}>{absentCount}</span>
+              <div className={styles.statItem} title={`Tỷ lệ vắng mặt: ${absentPercent}%`}>
+                <span className={`${styles.statNum} ${styles.absent}`}>
+                  {absentCount} <span className="text-[11px] font-bold text-rose-600 font-sans">({absentPercent}%)</span>
+                </span>
                 <span className={styles.statLabel}>VẮNG</span>
               </div>
             </div>
@@ -723,6 +801,211 @@ export default function TeacherAttendance() {
           </Table>
         )}
       </section>
+
+      {/* =========================================================================
+          BẢNG TỔNG KẾT TỶ LỆ CHUYÊN CẦN CẢ LỚP (STATS VIEW - TC-TCH-25.4)
+          Hiển thị tỷ lệ Có mặt, Đi muộn, Vắng mặt dạng phần trăm và biểu đồ phân bổ
+         ========================================================================= */}
+      {!loadingStudents && students.length > 0 && selectedClass && (
+        <section className="bg-white rounded-2xl border border-slate-200 p-5 md:p-6 shadow-sm flex flex-col gap-5 animate-in fade-in duration-300">
+          {/* Header của bảng thống kê */}
+          <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
+                <ChartPieSlice size={20} weight="duotone" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-800 m-0">
+                  Bảng thống kê tỷ lệ chuyên cần cả lớp (Stats View)
+                </h3>
+                <p className="text-xs text-slate-500 m-0 mt-0.5">
+                  Lớp: <strong className="text-slate-700">{selectedClass.name}</strong> • Ngày điểm danh: <strong className="text-slate-700">{formatDateVN(selectedDate)}</strong> • Sĩ số: <strong className="text-slate-700">{totalStudents}</strong> học sinh
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-slate-500">Đánh giá ngày này:</span>
+              <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
+                presentPercent >= 90
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  : presentPercent >= 75
+                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                  : "bg-rose-50 text-rose-700 border-rose-200"
+              }`}>
+                {presentPercent >= 90 ? "🌟 Chuyên cần Xuất sắc" : presentPercent >= 75 ? "👍 Chuyên cần Khá tốt" : "⚠️ Cần nhắc nhở chuyên cần"} ({presentPercent}%)
+              </span>
+            </div>
+          </div>
+
+          {/* 3 Thẻ tỷ lệ phần trăm trực quan */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Thẻ 1: Có mặt */}
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle size={18} weight="fill" className="text-emerald-600" />
+                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Tỷ lệ Có mặt</span>
+                </div>
+                <span className="text-xs font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md font-mono">
+                  {presentCount}/{totalStudents} HS
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold text-emerald-700 font-mono tracking-tight">
+                  {presentPercent}%
+                </span>
+                <span className="text-xs text-emerald-600 font-medium">học sinh tham gia đầy đủ</span>
+              </div>
+              <div className="w-full h-2.5 bg-emerald-200/70 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${presentPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Thẻ 2: Đi muộn */}
+            <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock size={18} weight="fill" className="text-amber-600" />
+                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">Tỷ lệ Đi muộn</span>
+                </div>
+                <span className="text-xs font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md font-mono">
+                  {lateCount}/{totalStudents} HS
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold text-amber-700 font-mono tracking-tight">
+                  {latePercent}%
+                </span>
+                <span className="text-xs text-amber-600 font-medium">học sinh vào lớp chậm</span>
+              </div>
+              <div className="w-full h-2.5 bg-amber-200/70 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                  style={{ width: `${latePercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Thẻ 3: Vắng mặt */}
+            <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-4 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <XCircle size={18} weight="fill" className="text-rose-600" />
+                  <span className="text-xs font-bold text-rose-800 uppercase tracking-wide">Tỷ lệ Vắng mặt</span>
+                </div>
+                <span className="text-xs font-extrabold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md font-mono">
+                  {absentCount}/{totalStudents} HS
+                </span>
+              </div>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-extrabold text-rose-700 font-mono tracking-tight">
+                  {absentPercent}%
+                </span>
+                <span className="text-xs text-rose-600 font-medium">học sinh không tham gia</span>
+              </div>
+              <div className="w-full h-2.5 bg-rose-200/70 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                  style={{ width: `${absentPercent}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Biểu đồ thanh phân bổ 100% tỷ lệ chuyên cần */}
+          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
+              <span className="flex items-center gap-1.5">
+                <ChartLineUp size={16} className="text-orange-500" weight="bold" />
+                Biểu đồ thanh phân bổ chuyên cần ngày {formatDateVN(selectedDate)}
+              </span>
+              <span className="text-[11px] font-semibold text-slate-500">Tổng quy mô: 100%</span>
+            </div>
+
+            {/* Segmented Progress Bar */}
+            <div className="w-full h-5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+              {presentPercent > 0 && (
+                <div
+                  className="bg-emerald-500 h-full flex items-center justify-center text-[10px] text-white font-extrabold transition-all duration-500"
+                  style={{ width: `${presentPercent}%` }}
+                  title={`Có mặt: ${presentPercent}% (${presentCount} học sinh)`}
+                >
+                  {presentPercent >= 12 ? `${presentPercent}%` : ""}
+                </div>
+              )}
+              {latePercent > 0 && (
+                <div
+                  className="bg-amber-500 h-full flex items-center justify-center text-[10px] text-white font-extrabold transition-all duration-500"
+                  style={{ width: `${latePercent}%` }}
+                  title={`Đi muộn: ${latePercent}% (${lateCount} học sinh)`}
+                >
+                  {latePercent >= 12 ? `${latePercent}%` : ""}
+                </div>
+              )}
+              {absentPercent > 0 && (
+                <div
+                  className="bg-rose-500 h-full flex items-center justify-center text-[10px] text-white font-extrabold transition-all duration-500"
+                  style={{ width: `${absentPercent}%` }}
+                  title={`Vắng mặt: ${absentPercent}% (${absentCount} học sinh)`}
+                >
+                  {absentPercent >= 12 ? `${absentPercent}%` : ""}
+                </div>
+              )}
+            </div>
+
+            {/* Chú thích chi tiết bên dưới thanh biểu đồ */}
+            <div className="flex items-center justify-between text-xs text-slate-600 flex-wrap gap-3 pt-1">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-xs" />
+                <span>Có mặt: <strong className="text-emerald-700 font-mono">{presentCount} HS ({presentPercent}%)</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-xs" />
+                <span>Đi muộn: <strong className="text-amber-700 font-mono">{lateCount} HS ({latePercent}%)</strong></span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-xs" />
+                <span>Vắng mặt: <strong className="text-rose-700 font-mono">{absentCount} HS ({absentPercent}%)</strong></span>
+              </div>
+            </div>
+          </div>
+
+          {/* Thống kê tích lũy lịch sử các buổi (nếu có lịch sử) */}
+          {historyStats && (
+            <div className="bg-gradient-to-r from-orange-50/60 to-amber-50/40 border border-orange-200/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shrink-0">
+                  <TrendUp size={22} weight="bold" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-800 m-0 uppercase tracking-wide">
+                    Thống kê chuyên cần tích lũy cả lớp ({historyStats.sessionCount} buổi đã lưu)
+                  </h4>
+                  <p className="text-xs text-slate-600 m-0 mt-0.5">
+                    Tổng: <strong>{historyStats.totalRecords}</strong> lượt điểm danh • Có mặt: <strong className="text-emerald-700">{historyStats.totalPresent}</strong> lượt • Đi muộn: <strong className="text-amber-700">{historyStats.totalLate}</strong> lượt • Vắng: <strong className="text-rose-700">{historyStats.totalAbsent}</strong> lượt
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 shrink-0">
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Tỷ lệ có mặt TB</span>
+                  <span className="text-xl font-extrabold text-emerald-700 font-mono">{historyStats.avgPresentPercent}%</span>
+                </div>
+                <div className="w-px h-8 bg-orange-200" />
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Chỉ số chuyên cần TB</span>
+                  <span className="text-xl font-extrabold text-orange-600 font-mono">{historyStats.overallScore}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* FOOTER */}
       <footer className={styles.footerSection}>

@@ -594,10 +594,19 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
 
 
 
-        const classes = await ClassModel.find({ students: studentId, status: ClassStatus.ACTIVE }).populate('teacherId', 'name avatar');
-        const classIds = classes.map(c => c._id);
+        const classIdFilter = req.query.classId as string | undefined;
 
-        const recentAnnouncements = await AnnouncementModel.find({ classId: { $in: classIds } })
+        const classes = await ClassModel.find({ students: studentId, status: ClassStatus.ACTIVE }).populate('teacherId', 'name avatar');
+        
+        let targetClassIds = classes.map(c => c._id);
+        if (classIdFilter && classIdFilter !== 'all') {
+            const matched = classes.find(c => c._id.toString() === classIdFilter.toString());
+            if (matched) {
+                targetClassIds = [matched._id];
+            }
+        }
+
+        const recentAnnouncements = await AnnouncementModel.find({ classId: { $in: targetClassIds } })
             .sort({ createdAt: -1 })
             .limit(5)
             .populate('authorId', 'name avatar')
@@ -612,7 +621,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             time: formatTimeAgo(ann.createdAt)
         }));
 
-        const attendances = await AttendanceModel.find({ classId: { $in: classIds } });
+        const attendances = await AttendanceModel.find({ classId: { $in: targetClassIds } });
         let totalRecords = 0;
         let presentCount = 0;
         let lateCount = 0;
@@ -631,7 +640,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         });
         const attendanceRate = totalRecords === 0 ? 100 : Math.round((presentCount / totalRecords) * 100);
 
-        const assignments = await ClassActivityModel.find({ classId: { $in: classIds } });
+        const assignments = await ClassActivityModel.find({ classId: { $in: targetClassIds } });
         const assignmentIds = assignments.map(a => a._id);
         const submissions = await SubmissionModel.find({ studentId, assignmentId: { $in: assignmentIds } });
 
@@ -669,7 +678,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         const schemaDayOfWeek = jsDay === 0 ? 7 : jsDay; // 0 -> 7, 1->1, 2->2, ...
 
         const todayScheduleRaw = await ScheduleModel.find({
-            classId: { $in: classIds },
+            classId: { $in: targetClassIds },
             dayOfWeek: schemaDayOfWeek
         })
             .populate('classId', 'name subject')
@@ -781,7 +790,10 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         };
 
         // Tính tiến độ nộp bài theo từng lớp (dùng cho card "Tiến độ học tập" ở Dashboard)
-        const learningStats = (classes as any[]).map(cls => {
+        const targetClasses = (classIdFilter && classIdFilter !== 'all')
+            ? classes.filter(c => c._id.toString() === classIdFilter.toString())
+            : classes;
+        const learningStats = (targetClasses as any[]).map(cls => {
             const classAssignments = assignments.filter(a => a.classId.toString() === cls._id.toString());
             const classSubmissions = submissions.filter(s =>
                 classAssignments.some(a => a._id.toString() === s.assignmentId.toString())
@@ -827,9 +839,71 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
 
 export const getLeaderboard = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const classIdQuery = req.query.classId;
-        if (!classIdQuery) {
-            return res.status(400).json({ message: "Thiếu classId" });
+        const studentId = (req as any).user?.id;
+        const classIdQuery = req.query.classId as string | undefined;
+
+        if (!classIdQuery || classIdQuery === 'all') {
+            const studentClasses = await ClassModel.find({ students: studentId, status: ClassStatus.ACTIVE }).populate('students', 'name avatar');
+            const classIds = studentClasses.map(c => c._id);
+
+            const studentMap = new Map<string, any>();
+            studentClasses.forEach(c => {
+                if (c.students && Array.isArray(c.students)) {
+                    c.students.forEach((st: any) => {
+                        if (st && st._id) {
+                            studentMap.set(st._id.toString(), st);
+                        }
+                    });
+                }
+            });
+
+            const allStudents = Array.from(studentMap.values());
+            const assignments = await ClassActivityModel.find({ classId: { $in: classIds } });
+            const assignmentIds = assignments.map(a => a._id);
+            const submissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } });
+            const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
+            const attendances = await AttendanceModel.find({ classId: { $in: classIds } });
+
+            const leaderboardData = allStudents.map(student => {
+                const sId = student._id.toString();
+                const studentGrades = grades.filter(g => g.studentId.toString() === sId);
+                const sumGrades = studentGrades.reduce((sum, g) => sum + g.score, 0);
+
+                const studentSubmissions = submissions.filter(s => s.studentId.toString() === sId);
+                const onTimeCount = studentSubmissions.filter(s => {
+                    const assignment = assignments.find(a => a._id.toString() === s.assignmentId.toString());
+                    const isLate = (assignment && assignment.dueDate) ? new Date(s.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
+                    return !isLate;
+                }).length;
+
+                let presentCount = 0;
+                let lateCount = 0;
+                let absentCount = 0;
+                attendances.forEach(att => {
+                    if (att.records) {
+                        const record = att.records.find(r => r.studentId.toString() === sId);
+                        if (record) {
+                            if (record.status === 'present') presentCount++;
+                            if (record.status === 'late') lateCount++;
+                            if (record.status === 'absent') absentCount++;
+                        }
+                    }
+                });
+
+                const totalXP = Math.max(0, Math.round((sumGrades * 3) + (onTimeCount * 15) + (presentCount * 5) + (lateCount * 2) - (absentCount * 5)));
+                return {
+                    id: sId,
+                    name: student.name,
+                    avatar: student.avatar,
+                    xp: totalXP
+                };
+            });
+
+            leaderboardData.sort((a, b) => b.xp - a.xp);
+            return res.status(200).json({
+                message: 'Lấy bảng xếp hạng tổng thành công',
+                data: leaderboardData
+            });
         }
 
         const classId = classIdQuery as string;

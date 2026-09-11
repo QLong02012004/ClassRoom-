@@ -32,6 +32,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { PrimaryButton } from "@/components/ui/Buttons/PrimaryButton";
 import { SaveButton } from "@/components/ui/Buttons/SaveButton";
 import { SecondaryButton } from "@/components/ui/Buttons/SecondaryButton";
+import { BackButton } from "@/components/ui/Buttons/BackButton";
 import styles from './StudentProfile.module.scss';
 
 const StudentProfile: React.FC = () => {
@@ -294,6 +295,12 @@ const StudentProfile: React.FC = () => {
 
   return (
     <div className={styles.profileContainer}>
+      <div className="mb-4">
+        <BackButton onClick={() => navigate(-1)}>
+          Quay lại
+        </BackButton>
+      </div>
+
       {/* Header */}
       <div className={styles.profileHeader}>
         <div className={styles.headerLeft}>

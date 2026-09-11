@@ -14,6 +14,7 @@ import { scheduleService } from "../../../service/schedule.service";
 import type { ISchedule } from "../../../service/schedule.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
+import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import FireEffect from "./FireEffect";
 import styles from "./TeacherSchedule.module.scss";
 
@@ -474,6 +475,12 @@ export default function TeacherSchedule() {
     <div className={styles.container}>
       {/* CỘT CHÍNH (MAIN SCHEDULE) */}
       <div className={styles.mainContent}>
+        <div className="mb-4">
+          <BackButton onClick={() => navigate("/classrooms")}>
+            Quay lại danh sách lớp
+          </BackButton>
+        </div>
+
         {/* Tiêu đề & Toggle View */}
         <div className={styles.header}>
           <div className={styles.headerLeft}>

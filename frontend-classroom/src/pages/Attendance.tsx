@@ -13,10 +13,13 @@
  */
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import TeacherAttendance from "./Teacher/Attendance/TeacherAttendance";
 import { useAuth } from "../context/AuthContext.tsx";
+import { BackButton } from "../components/ui/Buttons/BackButton";
 
 export default function Attendance() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const userRole = user?.role?.toUpperCase() || "TEACHER";
 
@@ -25,6 +28,11 @@ export default function Attendance() {
     // Tạm thời trả về 1 component cơ bản, hoặc render luôn thông báo
     return (
       <div style={{ padding: 24 }}>
+        <div className="mb-4">
+          <BackButton onClick={() => navigate("/classrooms")}>
+            Quay lại danh sách lớp
+          </BackButton>
+        </div>
         <h2>Điểm danh</h2>
         <p>Tính năng xem điểm danh chi tiết của học sinh đang được phát triển.</p>
       </div>
