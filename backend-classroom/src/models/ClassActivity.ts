@@ -19,7 +19,7 @@ import { BankItemType } from './BankItem';
 
 export interface IClassActivity extends Document {
     classId: Types.ObjectId;
-    bankItemId: Types.ObjectId; // Reference to the template
+    bankItemId?: Types.ObjectId; // Reference to the template
     type: BankItemType; // 'quiz' or 'document'
     title: string;
     description: string;
@@ -28,6 +28,7 @@ export interface IClassActivity extends Document {
     category: string;
     allowMultipleSubmissions: boolean;
     startDate?: Date;
+    attachments?: Array<{ name: string; url: string; size?: string }>;
 
     // For quizzes
     durationMinutes?: number;
@@ -39,8 +40,8 @@ export interface IClassActivity extends Document {
 
 const ClassActivitySchema = new Schema<IClassActivity>({
     classId: { type: Schema.Types.ObjectId, ref: 'Class', required: true },
-    bankItemId: { type: Schema.Types.ObjectId, ref: 'BankItem', required: true },
-    type: { type: String, enum: Object.values(BankItemType), required: true },
+    bankItemId: { type: Schema.Types.ObjectId, ref: 'BankItem', required: false },
+    type: { type: String, enum: Object.values(BankItemType), required: true, default: BankItemType.DOCUMENT },
     title: { type: String, required: true },
     description: { type: String, default: '' },
     dueDate: { type: Date, required: true },
@@ -48,6 +49,7 @@ const ClassActivitySchema = new Schema<IClassActivity>({
     category: { type: String, default: 'homework' },
     allowMultipleSubmissions: { type: Boolean, default: true },
     startDate: { type: Date, default: Date.now },
+    attachments: { type: Array, default: [] },
 
     durationMinutes: { type: Number },
     status: { type: String, enum: Object.values(QuizStatus) },

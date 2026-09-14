@@ -151,6 +151,19 @@ export const saveGrades = async (req: Request, res: Response, next: NextFunction
             return res.status(403).json({ message: 'Bạn không có quyền quản lý điểm của bài tập này' });
         }
 
+        // Kiểm tra tính hợp lệ của điểm số (không âm, không vượt quá maxScore)
+        const maxAllowed = assignment.maxScore || 10;
+        for (const g of grades) {
+            const sc = Number(g.score);
+            if (isNaN(sc)) continue;
+            if (sc < 0) {
+                return res.status(400).json({ message: 'Điểm không được âm!' });
+            }
+            if (sc > maxAllowed) {
+                return res.status(400).json({ message: `Điểm số không được vượt quá thang điểm tối đa (${maxAllowed})!` });
+            }
+        }
+
         const { Types } = await import('mongoose');
         const aObjectId = new Types.ObjectId(String(assignmentId));
 

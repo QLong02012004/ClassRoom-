@@ -32,6 +32,21 @@ export const createBankItem = async (req: Request, res: Response) => {
         const user = (req as any).user;
         const teacherId = user?._id || req.body.teacherId;
 
+        if (!itemData.title || !String(itemData.title).trim()) {
+            return res.status(400).json({ message: 'Tiêu đề không được để trống!' });
+        }
+
+        if (itemData.type === 'quiz') {
+            if (!itemData.quizQuestions || itemData.quizQuestions.length === 0) {
+                return res.status(400).json({ message: 'Vui lòng thêm ít nhất 1 câu hỏi!' });
+            }
+            for (const q of itemData.quizQuestions) {
+                if (q.correctOptionIndex === undefined || q.correctOptionIndex === null || q.correctOptionIndex < 0) {
+                    return res.status(400).json({ message: 'Có câu hỏi chưa chọn đáp án đúng!' });
+                }
+            }
+        }
+
         // Admin tạo ra tài liệu dùng chung toàn trung tâm (CENTER_SHARED)
         // Giáo viên tạo ra tài liệu cá nhân (PRIVATE)
         const sharingStatus = user?.role === 'admin' 
@@ -104,6 +119,11 @@ export const updateBankItem = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updateData = req.body;
+
+        if (updateData.title !== undefined && (!updateData.title || !String(updateData.title).trim())) {
+            return res.status(400).json({ message: 'Tiêu đề không được để trống!' });
+        }
+
         updateData.updatedAt = new Date();
         const updated = await BankItemModel.findByIdAndUpdate(id, updateData, { new: true });
         if (!updated) return res.status(404).json({ message: 'Không tìm thấy' });

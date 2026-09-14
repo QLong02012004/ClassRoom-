@@ -190,15 +190,53 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
             } catch (e) {
                 console.error("Lỗi tạo thông báo Admin cho Giáo viên mới:", e);
             }
+            await user.save();
+
+            return res.status(200).json({
+                message: 'Xác thực email thành công! Vui lòng chờ Ban giám hiệu phê duyệt.'
+            });
         } else if (user.role === 'student') {
             user.status = 'Active' as any;
             notifyAdminStatsUpdate();
+            await user.save();
+
+            const { accessToken, refreshToken } = generateTokens(String(user._id), user.role);
+            res.cookie('refresh_token', refreshToken, REFRESH_COOKIE_OPTIONS);
+
+            return res.status(200).json({
+                message: 'Xác thực email thành công! Đang chuyển hướng vào trang chủ...',
+                data: {
+                    accessToken,
+                    user: {
+                        id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role,
+                        avatar: user.avatar,
+                        status: user.status,
+                        dob: user.dob,
+                        gender: user.gender,
+                        phone: user.phone,
+                        address: user.address,
+                        bio: user.bio,
+                        gradeLevel: user.gradeLevel,
+                        school: user.school,
+                        parentPhone: user.parentPhone,
+                        parentRelationship: user.parentRelationship,
+                        isGoogleAccount: user.isGoogleAccount,
+                        xp: user.xp ?? 0,
+                        level: user.level ?? 1,
+                        streak: user.streak ?? 0,
+                        createdAt: user.createdAt
+                    }
+                }
+            });
         }
 
         await user.save();
 
         res.status(200).json({
-            message: 'Xác thực email thành công! ' + (user.role === 'teacher' ? 'Vui lòng chờ Ban giám hiệu phê duyệt.' : 'Bạn có thể đăng nhập ngay bây giờ.')
+            message: 'Xác thực email thành công! Bạn có thể đăng nhập ngay bây giờ.'
         });
 
     } catch (error) {
@@ -315,10 +353,23 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
                     email: user.email,
                     role: user.role,
                     status: user.status,
+                    avatar: user.avatar,
+                    dob: user.dob,
+                    gender: user.gender,
+                    phone: user.phone,
+                    address: user.address,
                     subject: user.subject,
                     bio: user.bio,
                     degree: user.degree,
-                    isGoogleAccount: user.isGoogleAccount
+                    gradeLevel: user.gradeLevel,
+                    school: user.school,
+                    parentPhone: user.parentPhone,
+                    parentRelationship: user.parentRelationship,
+                    isGoogleAccount: user.isGoogleAccount,
+                    xp: user.xp ?? 0,
+                    level: user.level ?? 1,
+                    streak: user.streak ?? 0,
+                    createdAt: user.createdAt
                 }
             }
         });
@@ -360,7 +411,11 @@ export const getMe = async (req: AuthRequest, res: Response, next: NextFunction)
                 school: user.school,
                 parentPhone: user.parentPhone,
                 parentRelationship: user.parentRelationship,
-                isGoogleAccount: user.isGoogleAccount
+                isGoogleAccount: user.isGoogleAccount,
+                xp: user.xp ?? 0,
+                level: user.level ?? 1,
+                streak: user.streak ?? 0,
+                createdAt: user.createdAt
             }
         });
     } catch (error) {
@@ -413,6 +468,7 @@ export const googleLogin = async (req: Request, res: Response, next: NextFunctio
             }
         });
     } catch (error) {
+        res.status(400);
         next(error);
     }
 };

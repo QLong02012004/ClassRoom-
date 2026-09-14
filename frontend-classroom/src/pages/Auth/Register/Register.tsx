@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeSlash, Envelope, Lock, User, Phone, UserPlus } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
+import { useAuth } from "../../../context/AuthContext.tsx";
 import { authService } from "../../../service/auth.service.ts";
 import { motion } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog.tsx";
@@ -11,6 +12,7 @@ import styles from "../Login/Login.module.scss";
 const Register: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { login } = useAuth();
 
   const [role, setRole] = useState<'student' | 'teacher'>('student');
   const [showPassword, setShowPassword] = useState(false);
@@ -153,10 +155,24 @@ const Register: React.FC = () => {
     try {
       setOtpLoading(true);
       const res = await authService.verifyEmail({ email: registeredEmail, otp: otpCode });
-      toast.success(res?.message || "Xác thực email thành công! Bạn có thể đăng nhập ngay.", 4000);
       setShowOTP(false);
       resetOtpDigits();
-      navigate("/login");
+
+      // Nếu backend trả về token & user (cho học sinh tự động đăng nhập)
+      if (res?.data?.accessToken && res?.data?.user) {
+        login(res.data.accessToken, res.data.user);
+        toast.success(res.message || `Xác thực thành công! Chào mừng ${res.data.user.name} đến với ClassRoom.`, 3000);
+        if (res.data.user.role === 'admin') {
+          navigate("/admin/dashboard");
+        } else if (res.data.user.role === 'teacher') {
+          navigate("/classrooms");
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        toast.success(res?.message || "Xác thực email thành công! Bạn có thể đăng nhập ngay.", 4000);
+        navigate("/login");
+      }
     } catch (err: any) {
       toast.error(err.message || "Xác thực thất bại!");
     } finally {
@@ -483,7 +499,16 @@ const Register: React.FC = () => {
                     disabled={countdown > 0 || otpLoading}
                     className="text-xs font-bold text-[#f47c20] hover:underline disabled:text-slate-400 disabled:no-underline cursor-pointer bg-transparent border-none p-0 inline-block transition-colors"
                   >
-                    {countdown > 0 ? `Gửi lại mã sau (${countdown}s)` : "Gửi lại mã ngay"}
+                    {otpLoading ? (
+                      <span className="inline-flex items-center gap-1.5 text-orange-600">
+                        <span className="w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin inline-block" />
+                        Đang gửi lại...
+                      </span>
+                    ) : countdown > 0 ? (
+                      `Gửi lại mã sau (${countdown}s)`
+                    ) : (
+                      "Gửi lại mã ngay"
+                    )}
                   </button>
                 </div>
               </div>

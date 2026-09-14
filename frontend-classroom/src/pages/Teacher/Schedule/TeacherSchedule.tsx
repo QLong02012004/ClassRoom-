@@ -15,6 +15,7 @@ import type { ISchedule } from "../../../service/schedule.service";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { BackButton } from "../../../components/ui/Buttons/BackButton";
+import { useAuth } from "../../../context/AuthContext";
 import FireEffect from "./FireEffect";
 import styles from "./TeacherSchedule.module.scss";
 
@@ -52,6 +53,8 @@ const getClassTheme = (classId: string | undefined) => {
 export default function TeacherSchedule() {
   const toast = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isStudent = user?.role === 'student';
 
   const [classes, setClasses] = useState<ITeacherClassroom[]>([]);
   const [schedules, setSchedules] = useState<ISchedule[]>([]);
@@ -177,8 +180,9 @@ export default function TeacherSchedule() {
   const loadInitialData = useCallback(async () => {
     setLoadingData(true);
     try {
+      const classPromise = isStudent ? classroomService.getStudentClassrooms() : classroomService.getTeacherClassrooms();
       const [classRes, scheduleRes] = await Promise.all([
-        classroomService.getTeacherClassrooms(),
+        classPromise,
         scheduleService.getSchedule()
       ]);
       if (classRes.data) {
@@ -428,7 +432,7 @@ export default function TeacherSchedule() {
 
   // --- DRAG TO CREATE LOGIC ---
   const handleMouseDown = (e: React.MouseEvent, dayValue: number) => {
-    if (e.button !== 0) return; // Chỉ chuột trái
+    if (isStudent || e.button !== 0) return; // Chỉ chuột trái và chỉ giáo viên mới tạo slot
     if ((e.target as HTMLElement).closest(`.${styles.lessonCardAbsolute}`)) return; // Bỏ qua nếu click vào lesson card
 
     const rect = e.currentTarget.getBoundingClientRect();
@@ -584,13 +588,15 @@ export default function TeacherSchedule() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <AnimatedAddButton onClick={() => {
-              setEditingScheduleId(null);
-              setSubject("");
-              setChapter("");
-              setProgress(0);
-              setShowAddModal(true);
-            }} />
+            {!isStudent && (
+              <AnimatedAddButton onClick={() => {
+                setEditingScheduleId(null);
+                setSubject("");
+                setChapter("");
+                setProgress(0);
+                setShowAddModal(true);
+              }} />
+            )}
           </div>
         </div>
 
@@ -682,27 +688,29 @@ export default function TeacherSchedule() {
                       return (
                         <div
                           key={lesson._id}
-                          draggable={true}
-                          onDragStart={(e) => handleDragStart(e, lesson._id)}
-                          onClick={() => handleEditSchedule(lesson)}
+                          draggable={!isStudent}
+                          onDragStart={(e) => !isStudent && handleDragStart(e, lesson._id)}
+                          onClick={() => !isStudent && handleEditSchedule(lesson)}
                           className={`${styles.lessonCardAbsolute} ${themeClass} ${stateClass}`}
-                          style={{ top, height, cursor: 'grab' }}
+                          style={{ top, height, cursor: isStudent ? 'default' : 'grab' }}
                         >
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(lesson._id); }}
-                            style={{
-                              position: 'absolute',
-                              right: 6,
-                              top: 6,
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: isOngoing ? '#fecaca' : '#ef4444',
-                              zIndex: 10
-                            }}
-                          >
-                            <Trash size={14} />
-                          </button>
+                          {!isStudent && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleDeleteSchedule(lesson._id); }}
+                              style={{
+                                position: 'absolute',
+                                right: 6,
+                                top: 6,
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                color: isOngoing ? '#fecaca' : '#ef4444',
+                                zIndex: 10
+                              }}
+                            >
+                              <Trash size={14} />
+                            </button>
+                          )}
 
                           {day.isToday && (isCurrent || isUpcoming15Mins) && <FireEffect />}
 

@@ -16,16 +16,31 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../service/auth.service';
 
-interface User {
+export interface User {
   id: string;
+  _id?: string;
   name: string;
   email: string;
   role: 'admin' | 'teacher' | 'student';
+  status?: string;
   avatar?: string;
   dob?: string;
   gender?: string;
   phone?: string;
   address?: string;
+  bio?: string;
+  degree?: string;
+  subject?: string;
+  gradeLevel?: string;
+  school?: string;
+  parentPhone?: string;
+  parentRelationship?: string;
+  ethnicity?: string;
+  isGoogleAccount?: boolean;
+  xp?: number;
+  level?: number;
+  streak?: number;
+  createdAt?: string;
 }
 
 interface AuthContextType {
@@ -37,6 +52,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (accessToken: string, userData: User) => void;
   logout: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -113,6 +129,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateUser = useCallback((userData: Partial<User>) => {
+    setUser((prev) => (prev ? { ...prev, ...userData } : null));
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -124,6 +144,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         login,
         logout,
+        updateUser,
       }}
     >
       {children}

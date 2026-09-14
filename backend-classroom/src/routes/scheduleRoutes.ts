@@ -17,7 +17,7 @@ import { protect, authorize } from '../middlewares/authMiddleware';
 const router = Router();
 
 // GET /api/v1/schedule
-router.get('/', protect, authorize('teacher'), getTeacherSchedule);
+router.get('/', protect, authorize('teacher', 'student'), getTeacherSchedule);
 
 // POST /api/v1/schedule
 router.post('/', protect, authorize('teacher'), createSchedule);

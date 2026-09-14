@@ -386,6 +386,7 @@ export default function AdminUsers() {
 
   // State cho dialog Reset mật khẩu
   const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [isResetting, setIsResetting] = useState(false);
@@ -607,6 +608,7 @@ export default function AdminUsers() {
   const handleOpenResetPassword = (user: User) => {
     setSelectedUser(user);
     setNewPassword("");
+    setShowResetPassword(false);
     setShowResetDialog(true);
   };
 
@@ -625,6 +627,7 @@ export default function AdminUsers() {
       toast.success(`Đã reset mật khẩu cho ${selectedUser.name}`, 3000);
       setShowResetDialog(false);
       setNewPassword("");
+      setShowResetPassword(false);
     } catch (error: any) {
       toast.error(error.message || "Reset mật khẩu thất bại", 3000);
     } finally {
@@ -1021,7 +1024,13 @@ export default function AdminUsers() {
         </Dialog>
 
         {/* Dialog Reset mật khẩu */}
-        <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <Dialog
+          open={showResetDialog}
+          onOpenChange={(open) => {
+            setShowResetDialog(open);
+            if (!open) setShowResetPassword(false);
+          }}
+        >
           <DialogContent className="sm:max-w-[425px]">
             <form onSubmit={handleConfirmResetPassword}>
               <DialogHeader>
@@ -1038,16 +1047,29 @@ export default function AdminUsers() {
                   <Label htmlFor="newPassword" className="font-semibold text-slate-700">
                     Mật khẩu mới
                   </Label>
-                  <HeroInput
-                    id="newPassword"
-                    type="password"
-                    placeholder="Tối thiểu 6 ký tự"
-                    required
-                    minLength={6}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
+                  <div className="relative">
+                    <HeroInput
+                      id="newPassword"
+                      type={showResetPassword ? "text" : "password"}
+                      placeholder="Tối thiểu 8 ký tự..."
+                      required
+                      autoComplete="new-password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowResetPassword(!showResetPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 flex items-center justify-center z-10"
+                      title={showResetPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    >
+                      {showResetPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
+                    </button>
+                  </div>
+                  <p className="text-[12px] text-slate-500">
+                    Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt.
+                  </p>
                 </div>
               </div>
               <DialogFooter>

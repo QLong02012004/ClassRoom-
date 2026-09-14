@@ -18,7 +18,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #cbd5e1;
 
   .headerLeft {
     display: flex;
@@ -74,7 +74,7 @@
     .infoRow {
       display: flex;
       flex-wrap: wrap;
-      gap: 14px;
+      gap: 10px;
       color: #64748b;
       font-size: 13px;
 
@@ -82,6 +82,12 @@
         display: flex;
         align-items: center;
         gap: 6px;
+        background: #f8fafc;
+        padding: 5px 12px;
+        border-radius: 10px;
+        border: 1.5px solid #e2e8f0;
+        font-weight: 600;
+        color: #475569;
       }
     }
   }
@@ -97,14 +103,14 @@
       gap: 12px;
       padding: 10px 16px;
       background: #f8fafc;
-      border: 1px solid #f1f5f9;
+      border: 1.5px solid #e2e8f0;
       border-radius: 14px;
       min-width: 140px;
       transition: all 0.2s;
 
       &:hover {
         background: white;
-        border-color: rgba(244, 124, 32, 0.3);
+        border-color: rgba(244, 124, 32, 0.4);
         box-shadow: 0 4px 12px rgba(244, 124, 32, 0.08);
       }
 
@@ -188,7 +194,13 @@
   align-items: center;
   text-align: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  border: 1px solid #e2e8f0;
+  border: 1.5px solid #cbd5e1;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: rgba(244, 124, 32, 0.4);
+    box-shadow: 0 4px 14px rgba(244, 124, 32, 0.08);
+  }
 
   .iconWrapper {
     width: 42px;
@@ -251,8 +263,8 @@
   border-radius: 20px;
   padding: 20px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
-  border: 1px solid #e2e8f0;
-  margin-bottom: 30px;
+  border: 1.5px solid #cbd5e1;
+  margin-bottom: 24px;
 
   .sectionHeader {
     display: flex;
@@ -349,10 +361,16 @@
       display: flex;
       flex-direction: column;
       gap: 3px;
-      padding: 10px 14px;
+      padding: 12px 14px;
       background: #f8fafc;
       border-radius: 12px;
-      border: 1px solid #f1f5f9;
+      border: 1.5px solid #e2e8f0;
+      transition: all 0.2s;
+
+      &:hover {
+        background: white;
+        border-color: #cbd5e1;
+      }
 
       .label {
         font-size: 12px;
@@ -374,10 +392,16 @@
 
     .tagBox {
       background: #f8fafc;
-      padding: 10px 14px;
+      padding: 12px 14px;
       border-radius: 12px;
-      border: 1px solid #f1f5f9;
+      border: 1.5px solid #e2e8f0;
       flex: 1;
+      transition: all 0.2s;
+
+      &:hover {
+        background: white;
+        border-color: #cbd5e1;
+      }
 
       .tagLabel {
         font-size: 11px;
@@ -395,14 +419,27 @@
 }
 
 .badgesGrid {
-  display: flex;
-  justify-content: space-around;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
 
   .badgeItem {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    padding: 16px 8px;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: white;
+      border-color: rgba(244, 124, 32, 0.4);
+      box-shadow: 0 4px 12px rgba(244, 124, 32, 0.08);
+      transform: translateY(-2px);
+    }
 
     .badgeCircle {
       width: 64px;
@@ -455,9 +492,20 @@
 .progressList {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 
   .progressItem {
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 14px 16px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: white;
+      border-color: #cbd5e1;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    }
     .pHeader {
       display: flex;
       justify-content: space-between;
@@ -531,12 +579,12 @@
     padding: 12px 16px;
     background: #f8fafc;
     border-radius: 14px;
-    border: 1px solid #f1f5f9;
+    border: 1.5px solid #e2e8f0;
     cursor: pointer;
     transition: 0.2s;
 
     &:hover {
-      border-color: rgba(244, 124, 32, 0.3);
+      border-color: rgba(244, 124, 32, 0.4);
       background: white;
       box-shadow: 0 4px 12px rgba(244, 124, 32, 0.06);
 
@@ -560,6 +608,7 @@
         width: 38px;
         height: 38px;
         background: white;
+        border: 1.5px solid #e2e8f0;
         border-radius: 10px;
         display: flex;
         align-items: center;
@@ -595,7 +644,7 @@
   .logoutBtn {
     margin-top: 6px;
     background: #fef2f2;
-    border: 1px solid #fee2e2;
+    border: 1.5px solid #fecaca;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -610,45 +659,55 @@
 
     &:hover {
       background: #fee2e2;
-      border-color: #fca5a5;
+      border-color: #f87171;
     }
   }
 }
 
 .summaryCard {
-  background: linear-gradient(135deg, #2d2a32, #1a1a1a);
-  border-radius: 16px;
-  padding: 24px;
-  color: white;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
 
   .summaryHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 16px;
-    font-weight: 700;
-    margin-bottom: 20px;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin-bottom: 16px;
   }
 
   .summaryStats {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 24px;
+    gap: 12px;
+    margin-bottom: 16px;
 
     .sStat {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 12px;
-      padding: 16px;
+      background: #f8fafc;
+      border-radius: 14px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
       text-align: center;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1.5px solid #e2e8f0;
+      transition: all 0.2s;
+
+      &:hover {
+        background: white;
+        border-color: #cbd5e1;
+      }
 
       .sVal {
-        font-size: 28px;
-        font-weight: 700;
+        font-size: 24px;
+        font-weight: 800;
         color: #1fb98f;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
 
       .sVal.orange {
@@ -656,9 +715,9 @@
       }
 
       .sLabel {
-        font-size: 10px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+        font-weight: 700;
+        color: #64748b;
         text-transform: uppercase;
         letter-spacing: 0.5px;
       }
@@ -666,51 +725,53 @@
   }
 
   .gpaBox {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #f8fafc;
+    border-radius: 14px;
+    padding: 16px;
+    border: 1.5px solid #e2e8f0;
 
     .gpaTop {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
 
       .gpaLabel {
-        font-size: 12px;
-        font-weight: 600;
-        color: rgba(255, 255, 255, 0.7);
+        font-size: 11px;
+        font-weight: 800;
+        color: #64748b;
+        letter-spacing: 0.5px;
       }
 
       .gpaVal {
         font-size: 18px;
-        font-weight: 700;
-        color: #1fb98f;
+        font-weight: 800;
+        color: vars.$primary;
       }
     }
 
     .gpaBarWrap {
       height: 6px;
-      background: rgba(255, 255, 255, 0.1);
+      background: #e2e8f0;
       border-radius: 4px;
-      margin-bottom: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
 
       .gpaBar {
         height: 100%;
-        background: #1fb98f;
+        background: linear-gradient(90deg, #f47c20, #fb923c);
         border-radius: 4px;
-        width: 92%;
       }
     }
 
     .gpaSub {
       font-size: 11px;
-      color: rgba(255, 255, 255, 0.5);
+      color: #94a3b8;
       text-align: center;
 
       strong {
-        color: white;
+        color: vars.$dark-text;
+        font-weight: 700;
       }
     }
   }

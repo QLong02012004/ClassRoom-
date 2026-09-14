@@ -287,6 +287,11 @@
     @apply bg-background text-foreground;}
   html {
     @apply font-sans;}
+
+  :focus-visible {
+    outline: 2px solid #f47c20;
+    outline-offset: 2px;
+  }
     
   /* Fix Chrome autocomplete yellow/gray background */
   input:-webkit-autofill,

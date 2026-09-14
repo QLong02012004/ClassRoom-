@@ -96,13 +96,28 @@ const findOptimalSlots = async (teacherId: string, dayOfWeek: number, excludeId:
     return suggestions;
 };
 
-// Lấy danh sách lịch giảng dạy của giáo viên hiện tại
+// Lấy danh sách lịch giảng dạy của giáo viên hiện tại hoặc lịch học của học sinh
 export const getTeacherSchedule = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const teacherId = (req as any).user?.id;
+        const userId = (req as any).user?.id;
+        const userRole = (req as any).user?.role;
+
+        if (userRole === 'student') {
+            const studentClasses = await ClassModel.find({ students: userId }).select('_id');
+            const classIds = studentClasses.map(c => c._id);
+            const schedules = await ScheduleModel.find({ classId: { $in: classIds } })
+                .populate('classId', 'name subject code')
+                .populate('teacherId', 'name email avatar')
+                .sort({ dayOfWeek: 1, startTime: 1 });
+
+            return res.status(200).json({
+                message: 'Lấy lịch học thành công',
+                data: schedules
+            });
+        }
 
         // Lấy toàn bộ lịch dạy của giáo viên này, đồng thời populate thông tin lớp học
-        const schedules = await ScheduleModel.find({ teacherId })
+        const schedules = await ScheduleModel.find({ teacherId: userId })
             .populate('classId', 'name subject code')
             .sort({ dayOfWeek: 1, startTime: 1 });
 

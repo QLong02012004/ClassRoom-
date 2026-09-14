@@ -24,9 +24,13 @@ const Sidebar: React.FC = () => {
   const [isHovered, setIsHovered] = useState(false);
 
   const userRole = user?.role || "student";
-  const isActive = (path: string) =>
-    location.pathname === path ||
-    (path !== "/dashboard" && location.pathname.startsWith(path));
+  const isActive = (path: string) => {
+    const basePath = path.split("?")[0];
+    return (
+      location.pathname === basePath ||
+      (basePath !== "/dashboard" && location.pathname.startsWith(basePath))
+    );
+  };
 
   const getNavLinks = (role: string) => {
     const baseLinks = [
@@ -39,6 +43,8 @@ const Sidebar: React.FC = () => {
         ...baseLinks,
         { name: "Bài tập", path: "/assignments", icon: Notebook, tourClass: "tour-step-assignments" },
         { name: "Bảng điểm", path: "/grades", icon: ChartBar, tourClass: "tour-step-grades" },
+        { name: "Luyện tập", path: "/practice?tag=Toán", icon: BookOpen, tourClass: "tour-step-practice" },
+        { name: "Thời khóa biểu", path: "/schedule", icon: CalendarCheck, tourClass: "tour-step-schedule" },
         { name: "Tài liệu", path: "/materials", icon: Books, tourClass: "tour-step-materials" },
         { name: "Trợ lý học tập", path: "/chat", icon: Sparkle, tourClass: "tour-step-chat" },
       ];

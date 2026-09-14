@@ -32,6 +32,7 @@ import { QuizDraftModel } from '../models/QuizDraft';
 import { SubmissionModel } from '../models/Submission';
 import { GradeModel } from '../models/Grade';
 import { ClassModel } from '../models/Class';
+import { UserModel } from '../models/User';
 import { SubmissionStatus, UserRole, NotificationType } from '../constants/enums';
 import { createUserNotification } from '../services/notificationService';
 import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate, notifyClassroomFeedUpdate, notifyStudentClassroomsUpdate } from '../socket';
@@ -103,11 +104,11 @@ export const getStudentActivities = async (req: Request, res: Response): Promise
     }
 };
 
-// Giao một hoạt động mới từ ngân hàng cho lớp
+// Giao một hoạt động mới từ ngân hàng cho lớp hoặc tạo bài tập trực tiếp
 export const assignActivity = async (req: Request, res: Response) => {
     try {
         const classId = req.params.classId as string;
-        const { bankItemId, startDate, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions } = req.body;
+        const { bankItemId, startDate, dueDate, category, title, maxScore, description, durationMinutes, status, allowMultipleSubmissions, attachments } = req.body;
 
         if (dueDate) {
             const dueTime = new Date(dueDate).getTime();
@@ -116,24 +117,34 @@ export const assignActivity = async (req: Request, res: Response) => {
             }
         }
 
-        const bankItem = await BankItemModel.findById(bankItemId);
-        if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
+        let bankItem: any = null;
+        if (bankItemId) {
+            bankItem = await BankItemModel.findById(bankItemId);
+            if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
+        }
+
+        const effectiveTitle = title || bankItem?.title;
+        if (!effectiveTitle || !String(effectiveTitle).trim()) {
+            return res.status(400).json({ message: 'Vui lòng nhập tiêu đề bài tập!' });
+        }
 
         const isScheduledFuture = startDate && new Date(startDate).getTime() > Date.now();
+        const activityType = bankItem ? bankItem.type : 'document';
 
         const newActivity = new ClassActivityModel({
             classId,
-            bankItemId,
-            type: bankItem.type,
-            title: title || bankItem.title,
-            description: description !== undefined ? description : bankItem.description,
+            bankItemId: bankItem ? bankItem._id : undefined,
+            type: activityType,
+            title: title || bankItem?.title,
+            description: description !== undefined ? description : (bankItem?.description || ''),
             startDate: startDate ? new Date(startDate) : new Date(),
             dueDate,
-            category,
-            maxScore: Math.round(Number(maxScore || bankItem.maxScore || 10) * 100) / 100,
-            durationMinutes: durationMinutes || bankItem.durationMinutes,
+            category: category || 'homework',
+            maxScore: Math.round(Number(maxScore || bankItem?.maxScore || 10) * 100) / 100,
+            durationMinutes: durationMinutes || bankItem?.durationMinutes,
             status: status || 'open',
             allowMultipleSubmissions: allowMultipleSubmissions !== undefined ? allowMultipleSubmissions : true,
+            attachments: attachments || [],
             isNotified: !isScheduledFuture
         });
 
@@ -684,10 +695,7 @@ export const addComment = async (req: Request, res: Response): Promise<any> => {
         if (!text) return res.status(400).json({ message: 'Thiếu nội dung bình luận' });
 
         const isTeacher = user.role === 'teacher' || user.role === 'admin';
-        // Đối với học sinh, thêm vào my-submission
-        // Lưu ý: Nếu giáo viên bình luận, họ cũng cần có endpoint tương tự nhưng truyền `studentId`.
-        // Tạm thời để đơn giản, endpoint này phục vụ học sinh gửi bình luận vào bài nộp của mình.
-        const studentId = user.id;
+        const studentId = (isTeacher && req.body.studentId) ? req.body.studentId : user.id;
 
         const newComment = {
             userId: user.id,
@@ -698,7 +706,6 @@ export const addComment = async (req: Request, res: Response): Promise<any> => {
         };
 
         // Tìm kiếm User để lấy tên thật
-        const { UserModel } = await import('../models/User.js');
         const userInfo = await UserModel.findById(user.id);
         if (userInfo) {
             newComment.name = userInfo.name;
@@ -718,6 +725,21 @@ export const addComment = async (req: Request, res: Response): Promise<any> => {
             },
             { upsert: true, new: true }
         );
+
+        if (isTeacher && req.body.studentId) {
+            try {
+                await createUserNotification(
+                    studentId,
+                    UserRole.STUDENT,
+                    user.id,
+                    'Phản hồi mới từ Giáo viên',
+                    `Giáo viên đã gửi tin nhắn trao đổi trong bài tập: "${text}"`,
+                    NotificationType.ASSIGNMENT
+                );
+            } catch (errNotif) {
+                console.error('Lỗi gửi thông báo trao đổi cho học sinh:', errNotif);
+            }
+        }
 
         res.status(200).json({ message: 'Bình luận thành công', data: submission });
     } catch (error) {

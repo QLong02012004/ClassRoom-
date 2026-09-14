@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   PencilSimple,
   TrendUp,
@@ -19,12 +19,15 @@ import {
   GraduationCap,
   IdentificationBadge,
   Eye,
-  EyeSlash
+  EyeSlash,
+  BookOpen,
+  ChartBar
 } from 'phosphor-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useToast } from '../../../components/Styles/ToastContext';
 import { userService } from '../../../service/user.service';
+import { classroomService } from '../../../service/classroom.service';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -36,7 +39,7 @@ import { BackButton } from "@/components/ui/Buttons/BackButton";
 import styles from './StudentProfile.module.scss';
 
 const StudentProfile: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -54,6 +57,25 @@ const StudentProfile: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enrolledClasses, setEnrolledClasses] = useState<any[]>([]);
+  const [loadingClasses, setLoadingClasses] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'student') {
+      setLoadingClasses(true);
+      classroomService.getStudentClassrooms()
+        .then((res) => {
+          if (res?.data && Array.isArray(res.data)) {
+            setEnrolledClasses(res.data);
+          }
+        })
+        .catch((err) => {
+          console.error('Lỗi khi tải danh sách lớp học của học sinh:', err);
+        })
+        .finally(() => setLoadingClasses(false));
+    }
+  }, [user?.role]);
+
   const [formData, setFormData] = useState({
     name: user?.name || '',
     dob: user?.dob || '',
@@ -67,8 +89,30 @@ const StudentProfile: React.FC = () => {
     gradeLevel: (user as any)?.gradeLevel || '',
     school: (user as any)?.school || '',
     parentPhone: (user as any)?.parentPhone || '',
-    parentRelationship: (user as any)?.parentRelationship || ''
+    parentRelationship: (user as any)?.parentRelationship || '',
+    ethnicity: (user as any)?.ethnicity || ''
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        dob: user.dob || '',
+        gender: user.gender || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        avatar: user.avatar || '',
+        degree: (user as any)?.degree || '',
+        subject: (user as any)?.subject || '',
+        bio: (user as any)?.bio || '',
+        gradeLevel: (user as any)?.gradeLevel || '',
+        school: (user as any)?.school || '',
+        parentPhone: (user as any)?.parentPhone || '',
+        parentRelationship: (user as any)?.parentRelationship || '',
+        ethnicity: (user as any)?.ethnicity || ''
+      });
+    }
+  }, [user]);
 
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -98,8 +142,15 @@ const StudentProfile: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast.error('Định dạng file không được hỗ trợ!');
+      e.target.value = '';
+      return;
+    }
+
     if (file.size > 2 * 1024 * 1024) {
-      toast.error('Kích thước ảnh không được vượt quá 2MB');
+      toast.error('Dung lượng file vượt quá giới hạn 2MB!');
+      e.target.value = '';
       return;
     }
 
@@ -109,7 +160,10 @@ const StudentProfile: React.FC = () => {
       setFormData((prev) => ({ ...prev, avatar: base64String }));
 
       try {
-        await userService.updateProfile({ avatar: base64String });
+        const res = await userService.updateProfile({ avatar: base64String });
+        if (res?.data) {
+          updateUser(res.data);
+        }
         toast.success('Đã cập nhật ảnh đại diện', 3000);
         setTimeout(() => {
           window.location.reload();
@@ -119,6 +173,7 @@ const StudentProfile: React.FC = () => {
       }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const capitalizeWords = (str: string) => {
@@ -333,11 +388,19 @@ const StudentProfile: React.FC = () => {
             <div className={styles.infoRow}>
               <div className={styles.infoItem}>
                 <GraduationCap size={16} />
-                {user?.role === 'admin' ? 'Quản trị viên hệ thống' : user?.role === 'teacher' ? 'Giáo viên trường' : 'Lớp 12A1 • THPT Chuyên Lê Hồng Phong'}
+                {user?.role === 'admin'
+                  ? 'Quản trị viên hệ thống'
+                  : user?.role === 'teacher'
+                    ? 'Giáo viên trường'
+                    : enrolledClasses.length > 0
+                      ? `${enrolledClasses[0].name}${user?.school ? ` • ${user.school}` : ''}`
+                      : user?.school
+                        ? user.school
+                        : 'Chưa tham gia lớp học'}
               </div>
               <div className={styles.infoItem}>
                 <IdentificationBadge size={16} />
-                ID: {user?.role === 'admin' ? 'AD' : user?.role === 'teacher' ? 'GV' : 'HS'}{(user as any)?._id ? (user as any)._id.slice(-6).toUpperCase() : (user as any)?.id ? (user as any).id.slice(-6).toUpperCase() : '2024'}
+                Mã HS: {user?.role === 'admin' ? 'AD' : user?.role === 'teacher' ? 'GV' : 'HS'}{((user as any)?._id || (user as any)?.id) ? String((user as any)._id || (user as any).id).slice(-6).toUpperCase() : '------'}
               </div>
             </div>
           </div>
@@ -376,31 +439,31 @@ const StudentProfile: React.FC = () => {
             <div className={styles.statCards}>
               <div className={styles.statCard}>
                 <div className={`${styles.iconWrapper} ${styles.green}`}>
-                  <TrendUp size={24} weight="bold" />
+                  <Medal size={24} weight="bold" />
                 </div>
-                <div className={styles.statLabel}>Hạng lớp</div>
-                <div className={styles.statValue}>05<span>/40</span></div>
+                <div className={styles.statLabel}>Cấp độ</div>
+                <div className={styles.statValue}>Cấp <span>{(user as any)?.level ?? 1}</span></div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={`${styles.iconWrapper} ${styles.orange}`}>
+                  <Star size={24} weight="bold" />
+                </div>
+                <div className={styles.statLabel}>Tổng XP</div>
+                <div className={styles.statValue}>{(user as any)?.xp ?? 0}<span> XP</span></div>
               </div>
               <div className={styles.statCard}>
                 <div className={`${styles.iconWrapper} ${styles.red}`}>
-                  <BookBookmark size={24} weight="bold" />
-                </div>
-                <div className={styles.statLabel}>Tín chỉ</div>
-                <div className={styles.statValue}>124</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={`${styles.iconWrapper} ${styles.blue}`}>
                   <Fire size={24} weight="bold" />
                 </div>
                 <div className={styles.statLabel}>Chuỗi học</div>
-                <div className={styles.statValue}>12<span> ngày</span></div>
+                <div className={styles.statValue}>{(user as any)?.streak ?? 0}<span> ngày</span></div>
               </div>
               <div className={styles.statCard}>
-                <div className={`${styles.iconWrapper} ${styles.gray}`}>
-                  <CalendarCheck size={24} weight="bold" />
+                <div className={`${styles.iconWrapper} ${styles.blue}`}>
+                  <BookBookmark size={24} weight="bold" />
                 </div>
-                <div className={styles.statLabel}>Chuyên cần</div>
-                <div className={styles.statValue}>98<span>%</span></div>
+                <div className={styles.statLabel}>Lớp tham gia</div>
+                <div className={styles.statValue}>{enrolledClasses.length}<span> lớp</span></div>
               </div>
             </div>
           )}
@@ -431,8 +494,16 @@ const StudentProfile: React.FC = () => {
                   <span className={styles.value}>{user?.gender || 'Chưa cập nhật'}</span>
                 </div>
                 <div className={styles.infoItem}>
+                  <span className={styles.label}>Ngày tham gia</span>
+                  <span className={styles.value}>
+                    {(user as any)?.createdAt
+                      ? new Date((user as any).createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                      : 'Mới tham gia'}
+                  </span>
+                </div>
+                <div className={styles.infoItem} style={{ gridColumn: '1 / -1' }}>
                   <span className={styles.label}>Dân tộc</span>
-                  <span className={styles.value}>Kinh</span>
+                  <span className={styles.value}>{(user as any)?.ethnicity || 'Chưa cập nhật'}</span>
                 </div>
               </div>
             </div>
@@ -455,7 +526,7 @@ const StudentProfile: React.FC = () => {
 
             <div className={styles.infoGroup}>
               <div className={styles.groupTitle}>Giới thiệu bản thân (Bio)</div>
-              <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+              <div className="p-3.5 bg-slate-50/90 rounded-xl border-1.5 border-slate-200 shadow-2xs">
                 <p className="font-medium text-slate-700 text-sm leading-relaxed italic">
                   {(user as any)?.bio || 'Chưa có thông tin giới thiệu bản thân.'}
                 </p>
@@ -519,32 +590,51 @@ const StudentProfile: React.FC = () => {
                   <div className={styles.titleIcon}><Medal size={20} weight="bold" /></div>
                   Huy hiệu thành tích
                 </div>
-                <button className={styles.seeAllBtn}>Xem tất cả</button>
+                <span className="text-xs font-semibold text-slate-400">
+                  {((((user as any)?.streak ?? 0) >= 7 ? 1 : 0) + (((user as any)?.xp ?? 0) >= 500 ? 1 : 0) + (enrolledClasses.length > 0 ? 1 : 0) + 1)}/4 đã mở
+                </span>
               </div>
               <div className={styles.badgesGrid}>
-                <div className={styles.badgeItem}>
+                {/* 1. Tân binh - luôn mở khi có tài khoản */}
+                <div className={styles.badgeItem} title="Đăng ký tài khoản thành công">
                   <div className={`${styles.badgeCircle} ${styles.green}`}>
                     <CircleWavyCheck size={36} weight="fill" />
                   </div>
+                  <div className={styles.badgeName}>Tân binh</div>
+                  <span className="text-[10px] font-bold text-emerald-600">Đã đạt</span>
+                </div>
+
+                {/* 2. Chuyên cần - yêu cầu chuỗi streak >= 7 */}
+                <div className={styles.badgeItem} title="Duy trì chuỗi học liên tục từ 7 ngày trở lên">
+                  <div className={`${styles.badgeCircle} ${(((user as any)?.streak ?? 0) >= 7) ? styles.orange : styles.gray}`}>
+                    <Fire size={36} weight={(((user as any)?.streak ?? 0) >= 7) ? "fill" : "regular"} />
+                  </div>
                   <div className={styles.badgeName}>Chuyên cần</div>
+                  <span className={`text-[10px] font-bold ${(((user as any)?.streak ?? 0) >= 7) ? "text-orange-500" : "text-slate-400"}`}>
+                    {(((user as any)?.streak ?? 0) >= 7) ? "Đã đạt" : `${(user as any)?.streak ?? 0}/7 ngày`}
+                  </span>
                 </div>
-                <div className={styles.badgeItem}>
-                  <div className={`${styles.badgeCircle} ${styles.orange}`}>
-                    <Star size={36} weight="fill" />
+
+                {/* 3. Chăm chỉ - yêu cầu tổng XP >= 500 */}
+                <div className={styles.badgeItem} title="Tích lũy từ 500 điểm kinh nghiệm (XP)">
+                  <div className={`${styles.badgeCircle} ${(((user as any)?.xp ?? 0) >= 500) ? styles.blue : styles.gray}`}>
+                    <Star size={36} weight={(((user as any)?.xp ?? 0) >= 500) ? "fill" : "regular"} />
                   </div>
-                  <div className={styles.badgeName}>Điểm tuyệt đối</div>
+                  <div className={styles.badgeName}>Chăm chỉ</div>
+                  <span className={`text-[10px] font-bold ${(((user as any)?.xp ?? 0) >= 500) ? "text-blue-500" : "text-slate-400"}`}>
+                    {(((user as any)?.xp ?? 0) >= 500) ? "Đã đạt" : `${(user as any)?.xp ?? 0}/500 XP`}
+                  </span>
                 </div>
-                <div className={styles.badgeItem}>
-                  <div className={`${styles.badgeCircle} ${styles.blue}`}>
-                    <UsersThree size={36} weight="fill" />
+
+                {/* 4. Tích cực - yêu cầu đã tham gia ít nhất 1 lớp học */}
+                <div className={styles.badgeItem} title="Tham gia ít nhất 1 lớp học chính thức">
+                  <div className={`${styles.badgeCircle} ${enrolledClasses.length > 0 ? styles.green : styles.gray}`}>
+                    <UsersThree size={36} weight={enrolledClasses.length > 0 ? "fill" : "regular"} />
                   </div>
-                  <div className={styles.badgeName}>Sôi nổi</div>
-                </div>
-                <div className={styles.badgeItem}>
-                  <div className={`${styles.badgeCircle} ${styles.gray}`}>
-                    <Medal size={36} weight="fill" />
-                  </div>
-                  <div className={styles.badgeName}>Lãnh đạo</div>
+                  <div className={styles.badgeName}>Tích cực</div>
+                  <span className={`text-[10px] font-bold ${enrolledClasses.length > 0 ? "text-emerald-600" : "text-slate-400"}`}>
+                    {enrolledClasses.length > 0 ? "Đã đạt" : "Chưa mở"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -562,38 +652,49 @@ const StudentProfile: React.FC = () => {
                   Tiến độ học tập
                 </div>
               </div>
-              <div className={styles.progressList}>
-                <div className={styles.progressItem}>
-                  <div className={`${styles.pHeader} ${styles.green}`}>
-                    <span className={styles.pLabel}>Mục tiêu học kỳ 1</span>
-                    <span className={styles.pVal}>9.2 / 10.0</span>
+              {enrolledClasses.length === 0 ? (
+                <div className="py-6 px-4 text-center flex flex-col items-center justify-center bg-slate-50/80 rounded-2xl border-1.5 border-dashed border-slate-300">
+                  <div className="w-12 h-12 rounded-2xl bg-orange-50 text-[#f47c20] border border-orange-200/60 flex items-center justify-center mb-3">
+                    <BookOpen size={24} weight="bold" />
                   </div>
-                  <div className={`${styles.pBarWrap} ${styles.green}`}>
-                    <div className={styles.pBar} style={{ width: '92%' }}></div>
-                  </div>
-                  <div className={styles.pSub}>Đã đạt 92% kế hoạch học tập đề ra</div>
+                  <p className="text-sm font-bold text-slate-700 mb-1">Chưa có dữ liệu học tập</p>
+                  <p className="text-xs text-slate-400 max-w-[240px] leading-relaxed mb-4">
+                    Bạn chưa tham gia lớp học nào. Hãy tham gia lớp học để bắt đầu học tập và theo dõi tiến độ!
+                  </p>
+                  <button 
+                    onClick={() => navigate('/classrooms')}
+                    className="px-4 py-2 bg-[#f47c20] text-white text-xs font-bold rounded-xl hover:bg-[#e06810] transition-colors shadow-sm cursor-pointer"
+                  >
+                    Tìm & Tham gia lớp học
+                  </button>
                 </div>
-                <div className={styles.progressItem}>
-                  <div className={`${styles.pHeader} ${styles.orange}`}>
-                    <span className={styles.pLabel}>Hoàn thành bài tập</span>
-                    <span className={styles.pVal}>88%</span>
+              ) : (
+                <div className={styles.progressList}>
+                  <div className={styles.progressItem}>
+                    <div className={`${styles.pHeader} ${styles.green}`}>
+                      <span className={styles.pLabel}>Lớp học đang theo</span>
+                      <span className={styles.pVal}>{enrolledClasses.length} lớp</span>
+                    </div>
+                    <div className={`${styles.pBarWrap} ${styles.green}`}>
+                      <div className={styles.pBar} style={{ width: '100%' }}></div>
+                    </div>
+                    <div className={styles.pSub}>Đã tham gia {enrolledClasses.length} không gian lớp học</div>
                   </div>
-                  <div className={`${styles.pBarWrap} ${styles.orange}`}>
-                    <div className={styles.pBar} style={{ width: '88%' }}></div>
+                  <div className={styles.progressItem}>
+                    <div className={`${styles.pHeader} ${styles.orange}`}>
+                      <span className={styles.pLabel}>Tích lũy kinh nghiệm</span>
+                      <span className={styles.pVal}>{(user as any)?.xp ?? 0} / {(((user as any)?.level ?? 1) * 100)} XP</span>
+                    </div>
+                    <div className={`${styles.pBarWrap} ${styles.orange}`}>
+                      <div 
+                        className={styles.pBar} 
+                        style={{ width: `${Math.min(100, Math.round((((user as any)?.xp ?? 0) % 100)))}%` }}
+                      ></div>
+                    </div>
+                    <div className={styles.pSub}>Tiến độ lên Cấp {((user as any)?.level ?? 1) + 1}</div>
                   </div>
-                  <div className={styles.pSub}>Chỉ còn 12 bài tập chưa nộp</div>
                 </div>
-                <div className={styles.progressItem}>
-                  <div className={`${styles.pHeader} ${styles.blue}`}>
-                    <span className={styles.pLabel}>Dự án cuối năm</span>
-                    <span className={styles.pVal}>45%</span>
-                  </div>
-                  <div className={`${styles.pBarWrap} ${styles.blue}`}>
-                    <div className={styles.pBar} style={{ width: '45%' }}></div>
-                  </div>
-                  <div className={styles.pSub}>Đang trong giai đoạn thu thập dữ liệu</div>
-                </div>
-              </div>
+              )}
             </div>
           )}
 
@@ -667,26 +768,33 @@ const StudentProfile: React.FC = () => {
           {/* Tổng kết năm học */}
           {user?.role === 'student' && (
             <div className={styles.summaryCard}>
-              <div className={styles.summaryHeader}>Tổng kết năm học</div>
+              <div className={styles.summaryHeader}>
+                <ChartBar size={20} weight="bold" color="#f47c20" />
+                Tổng kết năm học
+              </div>
               <div className={styles.summaryStats}>
                 <div className={styles.sStat}>
                   <div className={styles.sVal}>0</div>
                   <div className={styles.sLabel}>Số ngày vắng</div>
                 </div>
                 <div className={styles.sStat}>
-                  <div className={`${styles.sVal} ${styles.orange}`}>12</div>
+                  <div className={`${styles.sVal} ${styles.orange}`}>
+                    {enrolledClasses.length > 0 ? (((user as any)?.level && (user as any).level > 1) ? (user as any).level - 1 : 0) : 0}
+                  </div>
                   <div className={styles.sLabel}>Khen thưởng</div>
                 </div>
               </div>
               <div className={styles.gpaBox}>
                 <div className={styles.gpaTop}>
                   <span className={styles.gpaLabel}>ĐIỂM TRUNG BÌNH (GPA)</span>
-                  <span className={styles.gpaVal}>9.2</span>
+                  <span className={styles.gpaVal}>{enrolledClasses.length === 0 ? '--' : 'Chưa có'}</span>
                 </div>
                 <div className={styles.gpaBarWrap}>
-                  <div className={styles.gpaBar}></div>
+                  <div className={styles.gpaBar} style={{ width: enrolledClasses.length === 0 ? '0%' : '50%' }}></div>
                 </div>
-                <div className={styles.gpaSub}>Xếp loại: <strong>XUẤT SẮC</strong></div>
+                <div className={styles.gpaSub}>
+                  Xếp loại: <strong>{enrolledClasses.length === 0 ? 'CHƯA CÓ ĐÁNH GIÁ' : 'ĐANG HỌC'}</strong>
+                </div>
               </div>
             </div>
           )}

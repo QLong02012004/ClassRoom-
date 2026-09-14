@@ -26,11 +26,15 @@ const MainLayout: React.FC = () => {
     <div className="flex min-h-screen bg-[#f1f5f9] overflow-hidden font-sans">
       {!isExamRoute && <OnboardingTour />}
 
-      {/* Global Sidebar (fixed position) - Ẩn hoàn toàn khi đang thi */}
-      {!isExamRoute && <Sidebar />}
+      {/* Global Sidebar (fixed position) - Ẩn hoàn toàn khi đang thi hoặc trên mobile */}
+      {!isExamRoute && (
+        <div className="hidden md:block">
+          <Sidebar />
+        </div>
+      )}
 
-      {/* Main Content Area - offset by 72px for the fixed sidebar, 0px khi đang thi */}
-      <div className={`flex flex-col flex-1 ${isExamRoute ? "pl-0" : "pl-[72px]"} w-full h-screen`}>
+      {/* Main Content Area - offset by 72px for desktop fixed sidebar, 0px on mobile or when taking exams */}
+      <div className={`flex flex-col flex-1 ${isExamRoute ? "pl-0" : "pl-0 md:pl-[72px]"} w-full h-screen`}>
         {/* Top Header - Ẩn khi đang thi để trang thi dùng Header chuyên biệt */}
         {!isExamRoute && <TopHeader />}
 

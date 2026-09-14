@@ -71,8 +71,10 @@ export const createAccountService = async (
     // 1. Kiểm tra email đã tồn tại chưa
     const existingUser = await UserModel.findOne({ email: cleanEmail });
     if (existingUser) {
-        if (existingUser.isEmailVerified === false) {
-            // Nếu tài khoản cũ chưa từng xác thực email -> Xóa bản ghi rác này để cho phép người dùng đăng ký mới lại!
+        // Nếu tài khoản cũ chưa hoàn tất xác thực email (chưa xác thực hoặc còn mã OTP đang chờ xác nhận)
+        const isUnverified = !existingUser.isEmailVerified || (existingUser.status === UserStatus.PENDING && existingUser.emailVerificationOTP);
+        if (isUnverified) {
+            // Xóa bản ghi rác/chưa kích hoạt này để cho phép người dùng đăng ký mới lại mượt mà!
             await UserModel.deleteOne({ _id: existingUser._id });
         } else {
             throw new Error('Email này đã được đăng ký sử dụng trên hệ thống!');
@@ -168,17 +170,20 @@ export const verifyRefreshToken = (token: string) => {
 
 export const loginService = async (email: string, password: string) => {
     // 1. Kiểm tra email có tồn tại không
-    const user = await UserModel.findOne({ email });
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const user = await UserModel.findOne({ email: cleanEmail });
     if (!user) {
         throw new Error('Email hoặc mật khẩu không chính xác!');
     }
 
     // 1.5. Kiểm tra xem email đã được xác thực chưa
-    if (user.isEmailVerified === false) {
+    // (Bao gồm !isEmailVerified hoặc học sinh còn mã OTP chưa xác thực)
+    const isUnverified = !user.isEmailVerified || (user.role === 'student' && user.status === UserStatus.PENDING && Boolean(user.emailVerificationOTP));
+    if (isUnverified) {
         throw new Error('Tài khoản của bạn chưa được xác thực Email. Vui lòng kiểm tra hộp thư để nhận mã OTP xác thực!');
     }
 
-    // Kiểm tra xem tài khoản có đang chờ duyệt không
+    // Kiểm tra xem tài khoản có đang chờ duyệt không (chỉ áp dụng cho giáo viên)
     if (user.status === UserStatus.PENDING) {
         throw new Error('Tài khoản của bạn đang chờ Ban giám hiệu phê duyệt. Vui lòng liên hệ Admin!');
     }
@@ -212,7 +217,15 @@ export const loginService = async (email: string, password: string) => {
             subject: user.subject,
             bio: user.bio,
             degree: user.degree,
-            isGoogleAccount: user.isGoogleAccount
+            gradeLevel: user.gradeLevel,
+            school: user.school,
+            parentPhone: user.parentPhone,
+            parentRelationship: user.parentRelationship,
+            isGoogleAccount: user.isGoogleAccount,
+            xp: user.xp ?? 0,
+            level: user.level ?? 1,
+            streak: user.streak ?? 0,
+            createdAt: user.createdAt
         },
         accessToken,
         refreshToken
@@ -290,10 +303,22 @@ export const googleAuthService = async (
                 role: user.role,
                 status: user.status,
                 avatar: user.avatar,
+                dob: user.dob,
+                gender: user.gender,
+                phone: user.phone,
+                address: user.address,
                 subject: user.subject,
                 bio: user.bio,
                 degree: user.degree,
-                isGoogleAccount: user.isGoogleAccount
+                gradeLevel: user.gradeLevel,
+                school: user.school,
+                parentPhone: user.parentPhone,
+                parentRelationship: user.parentRelationship,
+                isGoogleAccount: user.isGoogleAccount,
+                xp: user.xp ?? 0,
+                level: user.level ?? 1,
+                streak: user.streak ?? 0,
+                createdAt: user.createdAt
             },
             accessToken,
             refreshToken
@@ -349,10 +374,22 @@ export const googleAuthService = async (
             role: newUser.role,
             status: newUser.status,
             avatar: newUser.avatar,
+            dob: newUser.dob,
+            gender: newUser.gender,
+            phone: newUser.phone,
+            address: newUser.address,
             subject: newUser.subject,
             bio: newUser.bio,
             degree: newUser.degree,
-            isGoogleAccount: newUser.isGoogleAccount
+            gradeLevel: newUser.gradeLevel,
+            school: newUser.school,
+            parentPhone: newUser.parentPhone,
+            parentRelationship: newUser.parentRelationship,
+            isGoogleAccount: newUser.isGoogleAccount,
+            xp: newUser.xp ?? 0,
+            level: newUser.level ?? 1,
+            streak: newUser.streak ?? 0,
+            createdAt: newUser.createdAt
         },
         accessToken,
         refreshToken

@@ -182,6 +182,15 @@ const NavBar: React.FC = () => {
     if (userRole === "teacher" && (text.includes("nộp bài") || text.includes("bài nộp") || text.includes("hoàn thành đề thi"))) {
       setIsNotifOpen(false);
       navigate("/gradebook");
+    } else if (userRole === "student") {
+      setIsNotifOpen(false);
+      if (notif.type === 'assignment' || notif.type === 'quiz' || text.includes("bài tập") || text.includes("bài thi") || text.includes("đề thi")) {
+        navigate("/assignments");
+      } else if (text.includes("chấm") || text.includes("điểm") || text.includes("kết quả")) {
+        navigate("/grades");
+      } else if (notif.type === 'classroom' || text.includes("lớp") || text.includes("phê duyệt") || text.includes("duyệt")) {
+        navigate("/classrooms");
+      }
     }
   };
 
@@ -197,7 +206,7 @@ const NavBar: React.FC = () => {
       return [
         ...commonLinks,
         { name: "Lớp học", path: "/classrooms", icon: <Chalkboard size={20} weight={isActive("/classrooms") ? "fill" : "regular"} /> },
-        { name: "Điểm số", path: "/gradebook", icon: <GraduationCap size={20} weight={isActive("/gradebook") ? "fill" : "regular"} /> },
+        { name: "Điểm số", path: "/grades", icon: <GraduationCap size={20} weight={isActive("/grades") ? "fill" : "regular"} /> },
         { name: "Bài tập", path: "/assignments", icon: <ClipboardText size={20} weight={isActive("/assignments") ? "fill" : "regular"} /> },
       ];
     } else if (userRole === "admin") {

@@ -62,9 +62,9 @@ app.use('/uploads', (req, res, next) => {
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/uploads', express.static(path.join(__dirname, './uploads')));
 
-// 2. Các Middleware giải mã dữ liệu
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 2. Các Middleware giải mã dữ liệu (Hỗ trợ upload ảnh Base64 dung lượng lớn)
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser()); // Đọc cookie từ request
 
 // 3. Nạp API Versioning (URL sẽ là /api/v1 + /auth + /register)

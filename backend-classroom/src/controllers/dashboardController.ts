@@ -587,17 +587,18 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             return res.status(401).json({ message: "Không tìm thấy thông tin học sinh" });
         }
 
-        const user = await UserModel.findById(studentId);
+        const classIdFilter = req.query.classId as string | undefined;
+
+        // Tải thông tin người dùng và danh sách lớp học song song
+        const [user, classes] = await Promise.all([
+            UserModel.findById(studentId).lean(),
+            ClassModel.find({ students: studentId, status: ClassStatus.ACTIVE }).populate('teacherId', 'name avatar').lean()
+        ]);
+
         if (!user) {
             return res.status(404).json({ message: "Không tìm thấy người dùng" });
         }
 
-
-
-        const classIdFilter = req.query.classId as string | undefined;
-
-        const classes = await ClassModel.find({ students: studentId, status: ClassStatus.ACTIVE }).populate('teacherId', 'name avatar');
-        
         let targetClassIds = classes.map(c => c._id);
         if (classIdFilter && classIdFilter !== 'all') {
             const matched = classes.find(c => c._id.toString() === classIdFilter.toString());
@@ -606,11 +607,27 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             }
         }
 
-        const recentAnnouncements = await AnnouncementModel.find({ classId: { $in: targetClassIds } })
-            .sort({ createdAt: -1 })
-            .limit(5)
-            .populate('authorId', 'name avatar')
-            .populate('classId', 'name');
+        const jsDay = new Date().getDay();
+        const schemaDayOfWeek = jsDay === 0 ? 7 : jsDay;
+
+        // Tải thông báo, điểm danh, bài tập và lịch học song song
+        const [recentAnnouncements, attendances, assignments, todayScheduleRaw] = await Promise.all([
+            AnnouncementModel.find({ classId: { $in: targetClassIds } })
+                .sort({ createdAt: -1 })
+                .limit(5)
+                .populate('authorId', 'name avatar')
+                .populate('classId', 'name')
+                .lean(),
+            AttendanceModel.find({ classId: { $in: targetClassIds } }).lean(),
+            ClassActivityModel.find({ classId: { $in: targetClassIds } }).lean(),
+            ScheduleModel.find({
+                classId: { $in: targetClassIds },
+                dayOfWeek: schemaDayOfWeek
+            })
+                .populate('classId', 'name subject')
+                .sort({ startTime: 1 })
+                .lean()
+        ]);
 
         const announcements = recentAnnouncements.map((ann: any) => ({
             id: ann._id,
@@ -621,7 +638,6 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             time: formatTimeAgo(ann.createdAt)
         }));
 
-        const attendances = await AttendanceModel.find({ classId: { $in: targetClassIds } });
         let totalRecords = 0;
         let presentCount = 0;
         let lateCount = 0;
@@ -640,9 +656,13 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         });
         const attendanceRate = totalRecords === 0 ? 100 : Math.round((presentCount / totalRecords) * 100);
 
-        const assignments = await ClassActivityModel.find({ classId: { $in: targetClassIds } });
         const assignmentIds = assignments.map(a => a._id);
-        const submissions = await SubmissionModel.find({ studentId, assignmentId: { $in: assignmentIds } });
+
+        // Tải bài nộp và điểm số song song
+        const [submissions, grades] = await Promise.all([
+            SubmissionModel.find({ studentId, assignmentId: { $in: assignmentIds } }).lean(),
+            GradeModel.find({ studentId, assignmentId: { $in: assignmentIds } }).lean()
+        ]);
 
         let pendingAssignmentsCount = 0;
         const todoList: any[] = [];
@@ -665,24 +685,11 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
 
         todoList.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
-        const grades = await GradeModel.find({ studentId, assignmentId: { $in: assignmentIds } });
         let sumGPA = 0;
         grades.forEach(g => {
             sumGPA += g.score;
         });
         const overallGPA = grades.length > 0 ? (sumGPA / grades.length).toFixed(1) : null;
-
-        // Lấy lịch học hôm nay của học sinh từ ScheduleModel thật
-        // dayOfWeek: 0=CN, 1=T2, ..., 6=T7 (JS) -> cần map sang 1=T2..7=CN (schema)
-        const jsDay = new Date().getDay(); // 0 = Chủ nhật
-        const schemaDayOfWeek = jsDay === 0 ? 7 : jsDay; // 0 -> 7, 1->1, 2->2, ...
-
-        const todayScheduleRaw = await ScheduleModel.find({
-            classId: { $in: targetClassIds },
-            dayOfWeek: schemaDayOfWeek
-        })
-            .populate('classId', 'name subject')
-            .sort({ startTime: 1 });
 
         const todaySchedule = todayScheduleRaw.map((s: any) => ({
             _id: s._id.toString(),

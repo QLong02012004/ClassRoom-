@@ -14,7 +14,16 @@ import {
   ClipboardText,
   Users,
   CheckSquare,
-  ChartBar
+  ChartBar,
+  List,
+  X,
+  House,
+  Notebook,
+  Books,
+  Sparkle,
+  CalendarCheck,
+  BookOpen,
+  GraduationCap
 } from "phosphor-react";
 import styles from "./TopHeader.module.scss";
 
@@ -27,6 +36,7 @@ const TopHeader: React.FC = () => {
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [notifications, setNotifications] = useState<INotificationItem[]>([]);
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -91,7 +101,7 @@ const TopHeader: React.FC = () => {
     const interval = setInterval(fetchNotifications, 15000);
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = io(backendUrl, { withCredentials: true, reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
 
     socket.on('notification_update', () => {
       console.log('🔔 [Socket.io] Có thông báo mới, đang cập nhật...');
@@ -170,6 +180,15 @@ const TopHeader: React.FC = () => {
     } else if (userRole === "teacher" && (text.includes("nộp bài") || text.includes("bài nộp") || text.includes("hoàn thành đề thi"))) {
       setIsNotifOpen(false);
       navigate("/gradebook");
+    } else if (userRole === "student") {
+      setIsNotifOpen(false);
+      if (notif.type === 'assignment' || notif.type === 'quiz' || text.includes("bài tập") || text.includes("bài thi") || text.includes("đề thi")) {
+        navigate("/assignments");
+      } else if (text.includes("chấm") || text.includes("điểm") || text.includes("kết quả")) {
+        navigate("/grades");
+      } else if (notif.type === 'classroom' || text.includes("lớp") || text.includes("phê duyệt") || text.includes("duyệt")) {
+        navigate("/classrooms");
+      }
     }
   };
 
@@ -184,6 +203,14 @@ const TopHeader: React.FC = () => {
   return (
     <header className={styles.topHeader}>
       <div className={styles.leftSection}>
+        <button
+          type="button"
+          aria-label="Mở menu điều hướng"
+          className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors mr-1 cursor-pointer"
+          onClick={() => setIsMobileDrawerOpen(true)}
+        >
+          <List size={22} weight="bold" />
+        </button>
         <span className={styles.brandName}>ClassRoom</span>
         <span className={styles.divider}>/</span>
         <span className={styles.pageTitle}>{currentPathName}</span>
@@ -263,6 +290,7 @@ const TopHeader: React.FC = () => {
         <div className="relative" ref={notifRef}>
           <button
             type="button"
+            aria-label="Thông báo"
             className={`${styles.iconBtn} tour-step-notifications`}
             onClick={() => setIsNotifOpen(!isNotifOpen)}
           >
@@ -375,6 +403,8 @@ const TopHeader: React.FC = () => {
         {/* User Profile */}
         <div className={styles.profileDropdown} ref={profileRef}>
           <button
+            type="button"
+            aria-label="Tài khoản cá nhân"
             className={`${styles.profileBtn} tour-step-profile`}
             onClick={() => setIsProfileOpen(!isProfileOpen)}
           >
@@ -398,6 +428,112 @@ const TopHeader: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* MOBILE DRAWER OVERLAY & MENU */}
+      {isMobileDrawerOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs transition-opacity"
+            onClick={() => setIsMobileDrawerOpen(false)}
+          />
+
+          {/* Drawer panel */}
+          <div className="relative w-[280px] max-w-[80vw] bg-white h-full shadow-2xl flex flex-col z-10">
+            {/* Drawer header */}
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">🐧</span>
+                <span className="font-extrabold text-lg text-slate-800 tracking-tight">ClassRoom</span>
+              </div>
+              <button
+                type="button"
+                aria-label="Đóng menu điều hướng"
+                onClick={() => setIsMobileDrawerOpen(false)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100 cursor-pointer"
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+
+            {/* Navigation links */}
+            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+              {[
+                { name: "Trang chủ", path: "/dashboard", icon: House },
+                { name: "Lớp học", path: "/classrooms", icon: GraduationCap },
+                ...(userRole === "student" ? [
+                  { name: "Bài tập", path: "/assignments", icon: Notebook },
+                  { name: "Bảng điểm", path: "/grades", icon: ChartBar },
+                  { name: "Luyện tập", path: "/practice?tag=Toán", icon: BookOpen },
+                  { name: "Thời khóa biểu", path: "/schedule", icon: CalendarCheck },
+                  { name: "Tài liệu", path: "/materials", icon: Books },
+                  { name: "Trợ lý học tập", path: "/chat", icon: Sparkle },
+                ] : userRole === "teacher" ? [
+                  { name: "Điểm danh", path: "/attendance", icon: CalendarCheck },
+                  { name: "Sổ điểm", path: "/gradebook", icon: ClipboardText },
+                  { name: "Lịch dạy", path: "/schedule", icon: BookOpen },
+                ] : [
+                  { name: "Quản lý Người dùng", path: "/admin/users", icon: Users },
+                  { name: "Quản lý Lớp học", path: "/admin/classrooms", icon: Notebook },
+                ])
+              ].map((item) => {
+                const isItemActive = location.pathname === item.path.split("?")[0];
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      navigate(item.path);
+                    }}
+                    className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                      isItemActive
+                        ? "bg-[#f47c20]/10 text-[#f47c20] font-bold"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    }`}
+                  >
+                    <Icon size={20} weight={isItemActive ? "fill" : "regular"} />
+                    <span>{item.name}</span>
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* User Profile in Drawer Footer */}
+            <div className="p-3 border-t border-slate-100 bg-slate-50/60">
+              <div className="flex items-center gap-3 px-2 py-2 mb-2">
+                <div className="w-9 h-9 rounded-full bg-[#f47c20]/20 text-[#f47c20] flex items-center justify-center font-bold text-sm">
+                  {user?.name ? user.name[0]?.toUpperCase() : "U"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-bold text-slate-800 truncate">{user?.name || "Người dùng"}</p>
+                  <p className="text-xs text-slate-500 capitalize">{userRole === "student" ? "Học sinh" : userRole === "teacher" ? "Giáo viên" : "Quản trị viên"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    navigate("/profile");
+                  }}
+                  className="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white border border-slate-200 transition-colors cursor-pointer text-center"
+                >
+                  Hồ sơ
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogOut}
+                  className="flex-1 py-1.5 px-2.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 border border-red-200 transition-colors cursor-pointer text-center"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

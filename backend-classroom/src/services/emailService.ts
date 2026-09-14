@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.SMTP_USER || 'your_email@gmail.com', // Điền email của bạn vào .env
-        pass: process.env.SMTP_PASS || 'your_app_password',    // Điền App Password vào .env
+        pass: (process.env.SMTP_PASS || 'your_app_password').replace(/\s+/g, ''), // Tự động loại bỏ khoảng trắng
     }
 });
 

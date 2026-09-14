@@ -112,11 +112,17 @@ const Login: React.FC = () => {
         navigate("/dashboard");
       }
     } catch (err: any) {
-      const msg = err.message || "";
+      const msg = err.response?.data?.message || err.message || "";
       toast.error(msg || "Đã xảy ra lỗi, vui lòng kiểm tra lại thông tin!");
 
       // Nếu tài khoản chưa xác thực Email -> Bật Modal OTP ngay tại màn hình Login!
-      if (msg.includes("chưa được xác thực Email") || msg.includes("OTP")) {
+      const isUnverifiedError =
+        msg.includes("chưa được xác thực") ||
+        msg.includes("chưa xác thực") ||
+        msg.includes("xác thực Email") ||
+        msg.includes("OTP");
+
+      if (isUnverifiedError) {
         setRegisteredEmail(data.email);
         resetOtpDigits();
         setShowOTP(true);
@@ -197,9 +203,22 @@ const Login: React.FC = () => {
     try {
       setOtpLoading(true);
       const res = await authService.verifyEmail({ email: registeredEmail, otp: otpCode });
-      toast.success(res?.message || "Xác thực email thành công! Bạn có thể đăng nhập ngay.", 4000);
       setShowOTP(false);
       resetOtpDigits();
+
+      if (res?.data?.accessToken && res?.data?.user) {
+        login(res.data.accessToken, res.data.user);
+        toast.success(res.message || `Xác thực thành công! Chào mừng ${res.data.user.name} đến với ClassRoom.`, 3000);
+        if (res.data.user.role === 'admin') {
+          navigate("/admin/dashboard");
+        } else if (res.data.user.role === 'teacher') {
+          navigate("/classrooms");
+        } else {
+          navigate("/dashboard");
+        }
+      } else {
+        toast.success(res?.message || "Xác thực email thành công! Bạn có thể đăng nhập ngay.", 4000);
+      }
     } catch (err: any) {
       toast.error(err.message || "Xác thực thất bại!");
     } finally {
@@ -380,7 +399,16 @@ const Login: React.FC = () => {
                     disabled={countdown > 0 || otpLoading}
                     className="text-xs font-bold text-[#f47c20] hover:underline disabled:text-slate-400 disabled:no-underline cursor-pointer bg-transparent border-none p-0 inline-block transition-colors"
                   >
-                    {countdown > 0 ? `Gửi lại mã sau (${countdown}s)` : "Gửi lại mã ngay"}
+                    {otpLoading ? (
+                      <span className="inline-flex items-center gap-1.5 text-orange-600">
+                        <span className="w-3 h-3 border-2 border-orange-500 border-t-transparent rounded-full animate-spin inline-block" />
+                        Đang gửi lại...
+                      </span>
+                    ) : countdown > 0 ? (
+                      `Gửi lại mã sau (${countdown}s)`
+                    ) : (
+                      "Gửi lại mã ngay"
+                    )}
                   </button>
                 </div>
               </div>
