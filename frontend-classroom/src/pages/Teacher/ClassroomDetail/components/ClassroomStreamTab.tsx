@@ -146,9 +146,9 @@ export default function ClassroomStreamTab(props: ClassroomStreamTabProps) {
               <div className="w-7 h-7 rounded-lg bg-[#2f8fa3]/20 text-[#2f8fa3] flex items-center justify-center shrink-0 font-bold">
                 <User size={15} weight="bold" />
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider truncate">Giáo viên</span>
-                <span className="text-xs font-black text-[#0F172A] truncate capitalize" title={classroom?.teacherName || user?.name || "—"}>
+              <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider truncate leading-tight">Giáo viên</span>
+                <span className="text-xs font-black text-[#0F172A] truncate capitalize leading-tight" title={classroom?.teacherName || user?.name || "—"}>
                   {classroom?.teacherName || user?.name || "—"}
                 </span>
               </div>
@@ -159,28 +159,28 @@ export default function ClassroomStreamTab(props: ClassroomStreamTabProps) {
               <div className="w-7 h-7 rounded-lg bg-[#f47c20]/20 text-[#f47c20] flex items-center justify-center shrink-0 font-bold">
                 <BookOpen size={15} weight="bold" />
               </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[10px] text-[#f47c20] font-bold uppercase tracking-wider truncate">Môn học</span>
-                <span className="text-xs font-black text-[#0F172A] truncate">{classroom?.subject || "Môn học chung"}</span>
+              <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                <span className="text-[10px] text-[#f47c20] font-bold uppercase tracking-wider truncate leading-tight">Môn học</span>
+                <span className="text-xs font-black text-[#0F172A] truncate leading-tight">{classroom?.subject || "Môn học chung"}</span>
               </div>
             </div>
 
             {/* MÃ GIA NHẬP */}
             <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/35 shadow-2xs min-w-0 transition-all hover:bg-[#F59E0B]/15">
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <div className="w-7 h-7 rounded-lg bg-[#F59E0B]/20 text-[#d97706] flex items-center justify-center shrink-0 font-bold">
                   <Key size={15} weight="bold" />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] text-[#b45309] font-bold uppercase tracking-wider truncate">Mã gia nhập</span>
-                  <span className="text-xs font-black font-mono text-[#78350f] tracking-wider truncate">{classroom?.code || "—"}</span>
+                <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                  <span className="text-[10px] text-[#b45309] font-bold uppercase tracking-wider truncate leading-tight">Mã gia nhập</span>
+                  <span className="text-xs font-black font-mono text-[#78350f] tracking-wider truncate leading-tight">{classroom?.code || "—"}</span>
                 </div>
               </div>
               {classroom?.code && (
                 <button
                   type="button"
                   onClick={handleCopyCode}
-                  className="p-1 text-[#b45309] hover:bg-[#F59E0B]/25 rounded-md transition-colors cursor-pointer border-none shrink-0"
+                  className="p-1 text-[#b45309] hover:bg-[#F59E0B]/25 rounded-md transition-colors cursor-pointer border-none shrink-0 ml-1"
                   title="Sao chép mã lớp"
                 >
                   {copiedCode ? <Check size={14} weight="bold" className="text-emerald-600" /> : <Copy size={14} weight="bold" />}
@@ -194,16 +194,16 @@ export default function ClassroomStreamTab(props: ClassroomStreamTabProps) {
               onClick={() => navigate(`/classrooms/${classId}/students`)}
               title="Quản lý danh sách học sinh"
             >
-              <div className="flex items-center gap-1.5 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0 flex-1">
                 <div className="w-7 h-7 rounded-lg bg-[#2f8fa3]/20 text-[#2f8fa3] flex items-center justify-center shrink-0 font-bold">
                   <Users size={15} weight="bold" />
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider truncate">Sĩ số lớp</span>
-                  <span className="text-xs font-black text-[#0F172A] truncate">{classroom?.studentCount || 0} học sinh</span>
+                <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                  <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider truncate leading-tight">Sĩ số lớp</span>
+                  <span className="text-xs font-black text-[#0F172A] truncate leading-tight">{classroom?.studentCount || 0} học sinh</span>
                 </div>
               </div>
-              <span className="text-[11px] text-[#2f8fa3] font-bold shrink-0">&rarr;</span>
+              <span className="text-[11px] text-[#2f8fa3] font-bold shrink-0 ml-1">&rarr;</span>
             </div>
           </div>
         </div>

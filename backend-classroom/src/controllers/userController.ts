@@ -125,21 +125,38 @@ export const resetUserPassword = async (req: AuthRequest, res: Response, next: N
         const { id } = req.params;
         const { newPassword } = req.body;
 
+        const cleanPassword = (newPassword || '').trim();
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
-        if (!newPassword || !passwordRegex.test(newPassword)) {
+        if (!cleanPassword || !passwordRegex.test(cleanPassword)) {
             res.status(400);
             return next(new Error('Mật khẩu mới phải có ít nhất 8 ký tự, bao gồm ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt!'));
         }
 
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(newPassword, salt);
-
-        const user = await UserModel.findByIdAndUpdate(id, { passwordHash }, { new: true }).select('-passwordHash');
-
-        if (!user) {
+        const existingUser = await UserModel.findById(id);
+        if (!existingUser) {
             res.status(404);
             return next(new Error('Không tìm thấy người dùng'));
         }
+
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(cleanPassword, salt);
+
+        const updateFields: any = {
+            passwordHash,
+            isEmailVerified: true,
+            emailVerificationOTP: null,
+            emailVerificationExpires: null
+        };
+
+        // Nếu tài khoản đang ở trạng thái Pending, kích hoạt Active luôn
+        if (existingUser.status === 'Pending') {
+            updateFields.status = 'Active';
+        }
+        if (existingUser.isGoogleAccount) {
+            updateFields.isGoogleAccount = false;
+        }
+
+        const user = await UserModel.findByIdAndUpdate(id, { $set: updateFields }, { new: true }).select('-passwordHash');
 
         res.status(200).json({
             message: 'Khôi phục mật khẩu thành công',

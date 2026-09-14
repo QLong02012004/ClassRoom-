@@ -194,7 +194,8 @@ export const loginService = async (email: string, password: string) => {
     }
 
     // 2. Kiểm tra mật khẩu có khớp không
-    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    const cleanPassword = (password || '').trim();
+    const isMatch = (await bcrypt.compare(cleanPassword, user.passwordHash)) || (await bcrypt.compare(password, user.passwordHash));
     if (!isMatch) {
         throw new Error('Email hoặc mật khẩu không chính xác!');
     }

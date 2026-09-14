@@ -28,7 +28,6 @@ export default function StudentClassrooms() {
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [username, setUsername] = useState<string>("Học sinh A");
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [pendingClasses, setPendingClasses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'pending'>('active');
@@ -64,7 +63,6 @@ export default function StudentClassrooms() {
 
   const loadData = async () => {
     const currentUsername = user?.name || localStorage.getItem("username") || "Học sinh A";
-    setUsername(currentUsername);
 
     try {
       let mappedPending: any[] = [];
@@ -190,6 +188,11 @@ export default function StudentClassrooms() {
       loadData();
     });
 
+    socket.on('classroom_feed_update', () => {
+      console.log('📡 [Socket.io] Lớp học có cập nhật mới realtime...');
+      loadData();
+    });
+
     socket.on('attendance_update', () => {
       console.log('📡 [Socket.io] Cập nhật chuyên cần lớp học sinh realtime...');
       loadData();
@@ -201,11 +204,12 @@ export default function StudentClassrooms() {
 
     return () => {
       socket.off('student_classrooms_update');
+      socket.off('classroom_feed_update');
       socket.off('attendance_update');
       socket.off('notification_update');
       socket.disconnect();
     };
-  }, [username, user]);
+  }, [user?._id]);
 
   const searchSuggestions = useMemo<SearchSuggestionItem[]>(() => {
     if (!searchQuery.trim()) return [];
@@ -481,7 +485,7 @@ export default function StudentClassrooms() {
                   )}
                 </div>
                 <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                  {!isPending && !isLocked && (
+                  {!isPending && !isLocked && !isClosed && (
                     <StudentActionMenu
                       onEnterClass={() => navigate(`/classrooms/${cls._id}`)}
                       onViewActivities={() => navigate(`/classrooms/${cls._id}?tab=activities`)}
@@ -542,10 +546,17 @@ export default function StudentClassrooms() {
                     type="button"
                     className={styles.enterBtn}
                     onClick={() => {
-                      if (isLocked || isClosed) return;
+                      if (isLocked) {
+                        toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                        return;
+                      }
+                      if (isClosed) {
+                        toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                        return;
+                      }
                       navigate(`/classrooms/${cls._id}`);
                     }}
-                    title="Vào lớp"
+                    title={isClosed ? "Lớp học đã bị đóng" : isLocked ? "Lớp học đã bị khóa" : "Vào lớp"}
                   >
                     <Chalkboard size={15} weight="bold" />
                     <span>Vào lớp</span>
@@ -554,10 +565,17 @@ export default function StudentClassrooms() {
                     type="button"
                     className={styles.quickActionBtn}
                     onClick={() => {
-                      if (isLocked || isClosed) return;
+                      if (isLocked) {
+                        toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                        return;
+                      }
+                      if (isClosed) {
+                        toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                        return;
+                      }
                       navigate(`/classrooms/${cls._id}?tab=activities`);
                     }}
-                    title="Bài tập"
+                    title={isClosed ? "Lớp học đã bị đóng" : isLocked ? "Lớp học đã bị khóa" : "Bài tập"}
                   >
                     <ClipboardText size={15} weight="bold" />
                     <span>Bài tập</span>
@@ -566,10 +584,17 @@ export default function StudentClassrooms() {
                     type="button"
                     className={styles.quickActionBtn}
                     onClick={() => {
-                      if (isLocked || isClosed) return;
+                      if (isLocked) {
+                        toast.error('Lớp học đã bị khóa bởi Quản trị viên hệ thống.');
+                        return;
+                      }
+                      if (isClosed) {
+                        toast.warning('Lớp học đã bị đóng, không thể truy cập.');
+                        return;
+                      }
                       navigate(`/classrooms/${cls._id}?tab=members`);
                     }}
-                    title="Thành viên"
+                    title={isClosed ? "Lớp học đã bị đóng" : isLocked ? "Lớp học đã bị khóa" : "Thành viên"}
                   >
                     <Users size={15} weight="bold" />
                     <span>Thành viên ({cls.studentCount || 0})</span>

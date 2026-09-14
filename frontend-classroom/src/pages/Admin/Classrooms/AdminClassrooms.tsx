@@ -473,17 +473,25 @@ export default function AdminClassrooms() {
     }
   };
 
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     title: string;
     description: React.ReactNode;
     actionType?: 'danger' | 'warning' | 'success' | 'default';
+    confirmText?: string;
+    cancelText?: string;
+    isLoading?: boolean;
     onConfirm: () => void;
   }>({
     isOpen: false,
     title: "",
     description: "",
     actionType: 'default',
+    confirmText: "Đồng ý",
+    cancelText: "Hủy bỏ",
+    isLoading: false,
     onConfirm: () => { },
   });
 
@@ -527,17 +535,15 @@ export default function AdminClassrooms() {
     return Array.from(subjects).sort();
   }, [classes]);
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (showLoading = true) => {
     try {
-      setIsLoading(true);
+      if (showLoading) setIsLoading(true);
       const res = await classroomService.getAdminClassrooms();
       if (res.data) setClasses(res.data);
     } catch (error: any) {
       toast.error("Không thể tải danh sách lớp học", 3000);
     } finally {
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000);
+      if (showLoading) setIsLoading(false);
     }
   };
 
@@ -547,18 +553,18 @@ export default function AdminClassrooms() {
   });
 
   useEffect(() => {
-    fetchClasses();
+    fetchClasses(true);
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
     const socket = io(backendUrl, { withCredentials: true });
 
     socket.on('admin_stats_update', () => {
       console.log('🔄 [Socket.io] Có thay đổi trạng thái lớp, đang tải lại...');
-      fetchClasses();
+      fetchClasses(false);
     });
 
     socket.on('teacher_classrooms_update', () => {
-      fetchClasses();
+      fetchClasses(false);
     });
 
     return () => {
@@ -632,17 +638,25 @@ export default function AdminClassrooms() {
   const handleDeleteClass = (id: string, name: string) => {
     setConfirmDialog({
       isOpen: true,
+      isLoading: false,
       title: "Cảnh báo xóa dữ liệu",
       description: `Lớp học ${name} cùng toàn bộ điểm số, bài tập và danh sách học sinh sẽ bị xóa vĩnh viễn. Hành động này không thể hoàn tác.`,
+      confirmText: "Xóa vĩnh viễn",
       actionType: 'danger',
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setProcessingId(id);
         try {
           await classroomService.deleteClassroom(id);
+          setClasses(prev => prev.filter(c => c._id !== id));
           toast.success(`Đã xóa lớp học ${name} khỏi hệ thống!`, 3000);
-          fetchClasses();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          fetchClasses(false);
         } catch (error: any) {
+          setConfirmDialog(prev => ({ ...prev, isLoading: false }));
           toast.error("Lỗi khi xóa: " + error.message, 3000);
+        } finally {
+          setProcessingId(null);
         }
       }
     });
@@ -651,19 +665,28 @@ export default function AdminClassrooms() {
   const handleLockClass = (id: string, name: string, isLocked: boolean) => {
     setConfirmDialog({
       isOpen: true,
+      isLoading: false,
       title: isLocked ? "Mở khóa lớp học này?" : "Khóa lớp học này?",
       description: isLocked
         ? `Lớp ${name} sẽ được mở lại bình thường.`
         : `Lớp ${name} sẽ bị tạm ngưng và giáo viên/học sinh không thể truy cập vào bài tập được nữa.`,
+      confirmText: isLocked ? "Mở khóa" : "Khóa lớp",
       actionType: isLocked ? 'success' : 'warning',
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setProcessingId(id);
+        const nextStatus = isLocked ? 'Active' : 'Locked';
         try {
-          await classroomService.updateClassroomStatus(id, isLocked ? 'Active' : 'Locked');
+          await classroomService.updateClassroomStatus(id, nextStatus);
+          setClasses(prev => prev.map(c => c._id === id ? { ...c, status: nextStatus } : c));
           toast.success(`Đã ${isLocked ? 'mở khóa' : 'khóa'} lớp học ${name}!`, 3000);
-          fetchClasses();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          fetchClasses(false);
         } catch (error: any) {
+          setConfirmDialog(prev => ({ ...prev, isLoading: false }));
           toast.error("Lỗi khi cập nhật: " + error.message, 3000);
+        } finally {
+          setProcessingId(null);
         }
       }
     });
@@ -673,17 +696,25 @@ export default function AdminClassrooms() {
     setPendingApprovalClass(null);
     setConfirmDialog({
       isOpen: true,
+      isLoading: false,
       title: "Phê duyệt lớp học",
       description: `Bạn có chắc chắn muốn duyệt lớp học "${name}"? Sau khi duyệt, giáo viên và học sinh có thể bắt đầu truy cập hoạt động.`,
+      confirmText: "Phê duyệt ngay",
       actionType: 'success',
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setProcessingId(id);
         try {
           await classroomService.updateClassroomStatus(id, 'Active');
+          setClasses(prev => prev.map(c => c._id === id ? { ...c, status: 'Active' } : c));
           toast.success(`Đã phê duyệt lớp học ${name} thành công!`, 3000);
-          fetchClasses();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          fetchClasses(false);
         } catch (error: any) {
+          setConfirmDialog(prev => ({ ...prev, isLoading: false }));
           toast.error("Lỗi khi duyệt: " + error.message, 3000);
+        } finally {
+          setProcessingId(null);
         }
       }
     });
@@ -693,17 +724,25 @@ export default function AdminClassrooms() {
     setPendingApprovalClass(null);
     setConfirmDialog({
       isOpen: true,
+      isLoading: false,
       title: "Từ chối lớp học này?",
       description: `Bạn có chắc chắn muốn từ chối lớp học "${name}"? Yêu cầu tạo lớp sẽ bị hủy và thông báo từ chối sẽ được gửi đến giáo viên phụ trách.`,
+      confirmText: "Từ chối lớp",
       actionType: 'danger',
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setProcessingId(id);
         try {
           await classroomService.deleteClassroom(id);
+          setClasses(prev => prev.filter(c => c._id !== id));
           toast.success(`Đã từ chối lớp học ${name}!`, 3000);
-          fetchClasses();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          fetchClasses(false);
         } catch (error: any) {
+          setConfirmDialog(prev => ({ ...prev, isLoading: false }));
           toast.error("Lỗi khi từ chối: " + error.message, 3000);
+        } finally {
+          setProcessingId(null);
         }
       }
     });
@@ -714,17 +753,22 @@ export default function AdminClassrooms() {
 
     setConfirmDialog({
       isOpen: true,
+      isLoading: false,
       title: "Cảnh báo xóa nhiều lớp",
       description: `Bạn sắp xóa vĩnh viễn ${selectedIds.length} lớp học cùng toàn bộ dữ liệu liên quan. Hành động này không thể hoàn tác.`,
+      confirmText: `Xóa ${selectedIds.length} lớp`,
       actionType: 'danger',
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           await Promise.all(selectedIds.map(id => classroomService.deleteClassroom(id)));
-          toast.success(`Đã xóa ${selectedIds.length} lớp học thành công!`, 3000);
+          setClasses(prev => prev.filter(c => !selectedIds.includes(c._id)));
           setSelectedKeys(new Set());
-          fetchClasses();
+          toast.success(`Đã xóa ${selectedIds.length} lớp học thành công!`, 3000);
+          setConfirmDialog(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          fetchClasses(false);
         } catch (error: any) {
+          setConfirmDialog(prev => ({ ...prev, isLoading: false }));
           toast.error("Lỗi khi xóa hàng loạt: " + error.message, 3000);
         }
       }
@@ -736,17 +780,22 @@ export default function AdminClassrooms() {
 
     setConfirmDialog({
       isOpen: true,
+      isLoading: false,
       title: "Khóa nhiều lớp học?",
       description: `Bạn có chắc chắn muốn khóa ${selectedIds.length} lớp học đã chọn? Các lớp này sẽ bị tạm ngưng.`,
+      confirmText: `Khóa ${selectedIds.length} lớp`,
       actionType: 'warning',
       onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           await Promise.all(selectedIds.map(id => classroomService.updateClassroomStatus(id, 'Locked')));
+          setClasses(prev => prev.map(c => selectedIds.includes(c._id) ? { ...c, status: 'Locked' } : c));
           toast.success(`Đã khóa ${selectedIds.length} lớp học!`, 3000);
           setSelectedKeys(new Set());
-          fetchClasses();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false, isLoading: false }));
+          fetchClasses(false);
         } catch (error: any) {
+          setConfirmDialog(prev => ({ ...prev, isLoading: false }));
           toast.error("Lỗi khi cập nhật hàng loạt: " + error.message, 3000);
         }
       }
@@ -1154,8 +1203,9 @@ export default function AdminClassrooms() {
                                   <PrimaryButton
                                     variant="outline"
                                     size="icon"
-                                    className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                                    className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Phê duyệt lớp học"
+                                    disabled={confirmDialog.isOpen || processingId === cls._id}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleApproveClass(cls._id, cls.name);
@@ -1166,8 +1216,9 @@ export default function AdminClassrooms() {
                                   <PrimaryButton
                                     variant="outline"
                                     size="icon"
-                                    className="h-8 w-8 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors"
+                                    className="h-8 w-8 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                     title="Từ chối lớp học"
+                                    disabled={confirmDialog.isOpen || processingId === cls._id}
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleRejectClass(cls._id, cls.name);
@@ -1289,6 +1340,9 @@ export default function AdminClassrooms() {
         title={confirmDialog.title}
         description={confirmDialog.description}
         actionType={confirmDialog.actionType}
+        confirmText={confirmDialog.confirmText}
+        cancelText={confirmDialog.cancelText}
+        isLoading={confirmDialog.isLoading}
         onConfirm={confirmDialog.onConfirm}
       />
     </div>

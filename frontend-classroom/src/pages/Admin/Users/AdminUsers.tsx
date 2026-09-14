@@ -616,14 +616,15 @@ export default function AdminUsers() {
   const handleConfirmResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
+    const trimmedPassword = newPassword.trim();
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`])[A-Za-z\d@$!%*?&#^()_+\-=\[\]{};':"\\|,.<>\/?~`]{8,}$/;
-    if (!passwordRegex.test(newPassword)) {
+    if (!passwordRegex.test(trimmedPassword)) {
       toast.error("Mật khẩu mới phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt!", 3000);
       return;
     }
     setIsResetting(true);
     try {
-      await userService.resetUserPassword(selectedUser._id, newPassword);
+      await userService.resetUserPassword(selectedUser._id, trimmedPassword);
       toast.success(`Đã reset mật khẩu cho ${selectedUser.name}`, 3000);
       setShowResetDialog(false);
       setNewPassword("");

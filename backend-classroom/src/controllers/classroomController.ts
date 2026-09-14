@@ -34,7 +34,13 @@ import { AttendanceModel } from '../models/Attendance';
 import { createAdminNotification, createUserNotification } from '../services/notificationService';
 import { ClassStatus, NotificationType, UserRole, AttendanceStatus, SubmissionStatus } from '../constants/enums';
 import { GoogleSheetsService } from '../services/googleSheetsService';
-import { notifyAdminStatsUpdate, notifyTeacherClassroomsUpdate, notifyNotificationUpdate, notifyStudentClassroomsUpdate } from '../socket';
+import {
+    notifyAdminStatsUpdate,
+    notifyTeacherClassroomsUpdate,
+    notifyNotificationUpdate,
+    notifyStudentClassroomsUpdate,
+    notifyClassroomFeedUpdate
+} from '../socket';
 
 // Lấy danh sách toàn bộ lớp học (dành cho Admin)
 export const getAdminClassrooms = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -120,6 +126,8 @@ export const updateClassroomStatus = async (req: Request, res: Response, next: N
                 NotificationType.CLASSROOM
             );
             notifyTeacherClassroomsUpdate(existingClass.teacherId.toString());
+            notifyStudentClassroomsUpdate();
+            notifyClassroomFeedUpdate(existingClass._id.toString());
             notifyAdminStatsUpdate();
             notifyNotificationUpdate();
         }
@@ -134,6 +142,8 @@ export const updateClassroomStatus = async (req: Request, res: Response, next: N
                 NotificationType.CLASSROOM
             );
             notifyTeacherClassroomsUpdate(existingClass.teacherId.toString());
+            notifyStudentClassroomsUpdate();
+            notifyClassroomFeedUpdate(existingClass._id.toString());
             notifyAdminStatsUpdate();
             notifyNotificationUpdate();
         }
@@ -172,8 +182,12 @@ export const deleteClassroom = async (req: Request, res: Response, next: NextFun
                 `Yêu cầu tạo lớp học "${classToDelete.name}" của bạn đã bị quản trị viên từ chối và bị xóa khỏi hệ thống.`,
                 NotificationType.WARNING
             );
-            notifyTeacherClassroomsUpdate(classToDelete.teacherId.toString());
         }
+
+        notifyTeacherClassroomsUpdate(classToDelete.teacherId.toString());
+        notifyStudentClassroomsUpdate();
+        notifyClassroomFeedUpdate(id as string);
+        notifyAdminStatsUpdate();
 
         res.status(200).json({
             message: 'Đã xóa lớp học thành công'
@@ -452,6 +466,11 @@ export const updateClassroom = async (req: Request, res: Response, next: NextFun
             return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền sửa' });
         }
 
+        // Realtime WebSockets: Cập nhật thông tin lớp học cho học sinh và giáo viên
+        notifyStudentClassroomsUpdate();
+        notifyTeacherClassroomsUpdate(teacherId?.toString());
+        notifyClassroomFeedUpdate(id as string);
+
         res.status(200).json({
             message: 'Cập nhật lớp học thành công',
             data: updatedClass
@@ -477,6 +496,12 @@ export const softDeleteClassroom = async (req: Request, res: Response, next: Nex
             return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền xóa' });
         }
 
+        // Realtime WebSockets: Đồng bộ tức thì khi lưu trữ lớp
+        notifyStudentClassroomsUpdate();
+        notifyTeacherClassroomsUpdate(teacherId?.toString());
+        notifyClassroomFeedUpdate(deletedClass._id.toString());
+        notifyAdminStatsUpdate();
+
         res.status(200).json({
             message: 'Đã lưu trữ lớp học thành công',
             data: deletedClass
@@ -497,6 +522,12 @@ export const hardDeleteClassroom = async (req: Request, res: Response, next: Nex
         if (!deletedClass) {
             return res.status(404).json({ message: 'Không tìm thấy lớp học hoặc không có quyền xóa' });
         }
+
+        // Realtime WebSockets: Đồng bộ tức thì khi xóa vĩnh viễn lớp
+        notifyStudentClassroomsUpdate();
+        notifyTeacherClassroomsUpdate(teacherId?.toString());
+        notifyClassroomFeedUpdate(deletedClass._id.toString());
+        notifyAdminStatsUpdate();
 
         res.status(200).json({
             message: 'Đã xóa lớp học vĩnh viễn',
@@ -556,7 +587,9 @@ export const getStudentClassrooms = async (req: Request, res: Response, next: Ne
 export const getClassroomDetail = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { id } = req.params;
-        const classroom = await ClassModel.findById(id).populate('teacherId', 'name avatar');
+        const classroom = await ClassModel.findById(id)
+            .populate('teacherId', 'name avatar email phone')
+            .populate('students', 'name avatar email studentCode gender');
         if (!classroom) {
             return res.status(404).json({ message: 'Lớp học không tồn tại hoặc đã bị xóa!' });
         }
@@ -1089,6 +1122,12 @@ export const toggleCloseClassroom = async (req: Request, res: Response, next: Ne
         classroom.status = classroom.status === ClassStatus.ACTIVE ? ClassStatus.CLOSED : ClassStatus.ACTIVE;
         await classroom.save();
 
+        // Realtime WebSockets: Đồng bộ tức thì cho Học sinh, Giáo viên và Bảng tin
+        notifyStudentClassroomsUpdate();
+        notifyTeacherClassroomsUpdate(teacherId?.toString());
+        notifyClassroomFeedUpdate(classroom._id.toString());
+        notifyAdminStatsUpdate();
+
         res.status(200).json({
             message: classroom.status === ClassStatus.CLOSED ? 'Đã đóng lớp học thành công' : 'Đã mở lại lớp học thành công',
             data: classroom
@@ -1114,6 +1153,11 @@ export const removeStudentFromClassroom = async (req: Request, res: Response, ne
 
         // Xóa yêu cầu tham gia cũ nếu có
         await ClassJoinRequestModel.deleteMany({ classId: id as any, studentId: studentId as any });
+
+        // Realtime WebSockets: Cập nhật thông tin lớp cho học sinh bị mời ra và giáo viên
+        notifyStudentClassroomsUpdate(studentId as string);
+        notifyTeacherClassroomsUpdate(teacherId?.toString());
+        notifyClassroomFeedUpdate(id as string);
 
         res.status(200).json({
             message: 'Đã mời học sinh ra khỏi lớp học thành công',

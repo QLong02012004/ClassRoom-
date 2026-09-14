@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import AnnouncementComments from "../../../components/Classroom/AnnouncementComments";
@@ -169,6 +169,29 @@ export default function StudentClassroomDetail() {
   const [feedPage, setFeedPage] = useState(1);
   const [showReplies, setShowReplies] = useState<Record<string, boolean>>({});
   const [replyToMap, setReplyToMap] = useState<Record<string, string>>({});
+  const [memberSearchQuery, setMemberSearchQuery] = useState("");
+
+  const studentList = useMemo(() => {
+    return classroom?.students || [];
+  }, [classroom?.students]);
+
+  const filteredStudents = useMemo(() => {
+    if (!memberSearchQuery.trim()) return studentList;
+    const q = memberSearchQuery.toLowerCase().trim();
+    return studentList.filter((s: any) => {
+      const name = (typeof s === 'object' ? (s.name || s.email || '') : String(s)).toLowerCase();
+      const email = (typeof s === 'object' ? (s.email || '') : '').toLowerCase();
+      const code = (typeof s === 'object' ? (s.studentCode || '') : '').toLowerCase();
+      return name.includes(q) || email.includes(q) || code.includes(q);
+    });
+  }, [studentList, memberSearchQuery]);
+
+  const teacherObj = classroom?.teacherId;
+  const teacherName = typeof teacherObj === 'object' ? (teacherObj?.name || classroom?.teacherName || "Giáo viên phụ trách") : (classroom?.teacherName || "Giáo viên phụ trách");
+  const teacherEmail = typeof teacherObj === 'object' ? teacherObj?.email : "";
+  const teacherAvatar = (typeof teacherObj === 'object' && teacherObj?.avatar)
+    ? teacherObj.avatar
+    : `https://ui-avatars.com/api/?name=${encodeURIComponent(teacherName)}&background=2f8fa3&color=fff&bold=true`;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -347,7 +370,15 @@ export default function StudentClassroomDetail() {
       }
     });
 
+    socket.on('student_classrooms_update', () => {
+      console.log('⚡ [Socket.io Realtime] Lớp học có thay đổi trạng thái, đang tự động cập nhật...');
+      loadData();
+    });
+
     return () => {
+      socket.off('classroom_feed_update');
+      socket.off('submission_update');
+      socket.off('student_classrooms_update');
       socket.disconnect();
     };
   }, [classId]);
@@ -545,9 +576,9 @@ export default function StudentClassroomDetail() {
                       <div className="w-8 h-8 rounded-lg bg-[#2f8fa3]/20 text-[#2f8fa3] flex items-center justify-center shrink-0 font-bold">
                         <User size={16} weight="bold" />
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider">Giáo viên</span>
-                        <span className="text-xs font-black text-[#0F172A] truncate capitalize" title={classroom?.teacherId?.name || "—"}>
+                      <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                        <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider leading-tight">Giáo viên</span>
+                        <span className="text-xs font-black text-[#0F172A] truncate capitalize leading-tight" title={classroom?.teacherId?.name || "—"}>
                           {classroom?.teacherId?.name || "—"}
                         </span>
                       </div>
@@ -557,22 +588,22 @@ export default function StudentClassroomDetail() {
                       <div className="w-8 h-8 rounded-lg bg-[#f47c20]/20 text-[#f47c20] flex items-center justify-center shrink-0 font-bold">
                         <BookOpen size={16} weight="bold" />
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] text-[#f47c20] font-bold uppercase tracking-wider">Môn học</span>
-                        <span className="text-xs font-black text-[#0F172A] truncate">
+                      <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                        <span className="text-[10px] text-[#f47c20] font-bold uppercase tracking-wider leading-tight">Môn học</span>
+                        <span className="text-xs font-black text-[#0F172A] truncate leading-tight">
                           {classroom?.subject || "Môn học chung"}
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#F59E0B]/10 border border-[#F59E0B]/35 shadow-2xs">
-                      <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
                         <div className="w-8 h-8 rounded-lg bg-[#F59E0B]/20 text-[#d97706] flex items-center justify-center shrink-0 font-bold">
                           <Key size={16} weight="bold" />
                         </div>
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-[10px] text-[#b45309] font-bold uppercase tracking-wider">Mã gia nhập</span>
-                          <span className="text-xs font-black font-mono text-[#78350f] tracking-wider">
+                        <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                          <span className="text-[10px] text-[#b45309] font-bold uppercase tracking-wider leading-tight">Mã gia nhập</span>
+                          <span className="text-xs font-black font-mono text-[#78350f] tracking-wider leading-tight">
                             {classroom?.code || "—"}
                           </span>
                         </div>
@@ -581,7 +612,7 @@ export default function StudentClassroomDetail() {
                         <button
                           type="button"
                           onClick={handleCopyCode}
-                          className="p-1.5 text-[#b45309] hover:bg-[#F59E0B]/25 rounded-lg transition-colors cursor-pointer border-none"
+                          className="p-1.5 text-[#b45309] hover:bg-[#F59E0B]/25 rounded-lg transition-colors cursor-pointer border-none ml-1"
                           title="Sao chép mã lớp"
                         >
                           {copiedCode ? <Check size={16} weight="bold" className="text-emerald-600" /> : <Copy size={16} weight="bold" />}
@@ -593,9 +624,9 @@ export default function StudentClassroomDetail() {
                       <div className="w-8 h-8 rounded-lg bg-[#2f8fa3]/20 text-[#2f8fa3] flex items-center justify-center shrink-0 font-bold">
                         <Users size={16} weight="bold" />
                       </div>
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider">Sĩ số lớp</span>
-                        <span className="text-xs font-black text-[#0F172A]">
+                      <div className="flex flex-col min-w-0 justify-center gap-0.5">
+                        <span className="text-[10px] text-[#2f8fa3] font-bold uppercase tracking-wider leading-tight">Sĩ số lớp</span>
+                        <span className="text-xs font-black text-[#0F172A] leading-tight">
                           {classroom?.students?.length || 0} học sinh
                         </span>
                       </div>
@@ -1072,49 +1103,206 @@ export default function StudentClassroomDetail() {
 
           {/* ===== TAB: THÀNH VIÊN ===== */}
           {isMembersTab && (
-            <div className={styles.membersTab}>
-              <div className="mb-4">
-                <BackButton onClick={() => navigate("/classrooms")}>Quay lại danh sách lớp</BackButton>
-              </div>
-              {/* Giáo viên */}
-              {classroom?.teacherId && (
-                <div className={styles.memberSection}>
-                  <h4>Giáo viên</h4>
-                  <div className={styles.memberCard}>
-                    <img
-                      src={`https://ui-avatars.com/api/?name=${encodeURIComponent(classroom.teacherId.name || "GV")}&background=f47c20&color=fff&bold=true`}
-                      alt=""
-                      className={styles.memberAvatar}
-                    />
-                    <div>
-                      <p className={styles.memberName}>{classroom.teacherId.name}</p>
-                      <p className={styles.memberRole}>Giáo viên phụ trách</p>
-                    </div>
+            <div className="max-w-6xl mx-auto w-full flex flex-col gap-6 py-2">
+              {/* TOP HEADER: Nút quay lại + Tiêu đề trang + Ô tìm kiếm */}
+              <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <BackButton onClick={() => navigate(`/classrooms/${classId}?tab=overview`)}>
+                    Quay lại bảng tin
+                  </BackButton>
+                  <div className="h-5 w-[1px] bg-slate-300 mx-1 hidden sm:block" />
+                  <div>
+                    <h2 className="text-lg font-black text-slate-800 m-0 flex items-center gap-2">
+                      <Users size={22} weight="duotone" className="text-[#2f8fa3]" />
+                      <span>Thành viên lớp học</span>
+                    </h2>
+                    <p className="text-xs text-slate-500 m-0 mt-0.5">
+                      {classroom?.name || classroom?.className || "Lớp học"} • {studentList.length} bạn cùng lớp
+                    </p>
                   </div>
                 </div>
-              )}
 
-              {/* Học sinh */}
-              <div className={styles.memberSection}>
-                <h4>Học sinh ({classroom?.students?.length || 0})</h4>
-                <div className={styles.memberGrid}>
-                  {(classroom?.students || []).map((s: any, i: number) => {
-                    const sName = s.name || s.userId?.name || `Học sinh ${i + 1}`;
-                    return (
-                      <div key={s._id || i} className={styles.memberCard}>
-                        <img
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(sName)}&background=6366f1&color=fff&bold=true`}
-                          alt=""
-                          className={styles.memberAvatar}
-                        />
-                        <div>
-                          <p className={styles.memberName}>{sName}</p>
-                          <p className={styles.memberRole}>Học sinh</p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Ô tìm kiếm nhanh thành viên */}
+                <div className="relative w-full sm:w-64">
+                  <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm theo tên bạn học..."
+                    value={memberSearchQuery}
+                    onChange={(e) => setMemberSearchQuery(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2f8fa3]/30 focus:border-[#2f8fa3] transition-all shadow-2xs"
+                  />
+                  {memberSearchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setMemberSearchQuery("")}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer border-none bg-transparent p-0 flex items-center justify-center"
+                    >
+                      <X size={13} weight="bold" />
+                    </button>
+                  )}
                 </div>
+              </div>
+
+              {/* 1. MỤC: GIÁO VIÊN CHỦ NHIỆM */}
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between pb-2 border-b-2 border-[#2f8fa3]/40">
+                  <div className="flex items-center gap-2">
+                    <Chalkboard size={20} weight="bold" className="text-[#2f8fa3]" />
+                    <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider m-0">
+                      Giáo viên chủ nhiệm
+                    </h3>
+                  </div>
+                  <span className="text-xs font-bold text-[#2f8fa3] bg-[#2f8fa3]/10 px-2.5 py-0.5 rounded-full border border-[#2f8fa3]/20">
+                    Phụ trách lớp
+                  </span>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs hover:shadow-xs transition-all flex items-center justify-between gap-4 flex-wrap max-w-xl">
+                  <div className="flex items-center gap-3.5">
+                    <img
+                      src={teacherAvatar}
+                      alt={teacherName}
+                      className="w-12 h-12 rounded-full object-cover border-2 border-[#2f8fa3]/30 shadow-2xs shrink-0"
+                    />
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm sm:text-base font-black text-slate-800 tracking-tight">
+                          {(() => {
+                            const name = teacherName.toLowerCase();
+                            if (name.startsWith("thầy") || name.startsWith("cô") || name.startsWith("gv") || name.startsWith("giáo viên")) {
+                              return teacherName;
+                            }
+                            return `Thầy/Cô ${teacherName}`;
+                          })()}
+                        </span>
+                      </div>
+                      {teacherEmail ? (
+                        <span className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                          {teacherEmail}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium mt-0.5">
+                          {classroom?.subject ? `Môn giảng dạy: ${classroom.subject}` : "Giáo viên giảng dạy"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-[#2f8fa3] border border-[#2f8fa3]/30 shadow-2xs">
+                      <span className="w-2 h-2 rounded-full bg-[#2f8fa3]" />
+                      Giáo viên chủ nhiệm
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. MỤC: DANH SÁCH BẠN CÙNG LỚP */}
+              <div className="flex flex-col gap-3 mt-1">
+                <div className="flex items-center justify-between pb-2 border-b-2 border-[#f47c20]/40">
+                  <div className="flex items-center gap-2">
+                    <Users size={20} weight="bold" className="text-[#f47c20]" />
+                    <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider m-0">
+                      Danh sách bạn cùng lớp
+                    </h3>
+                  </div>
+                  <span className="text-xs font-bold text-[#f47c20] bg-[#f47c20]/10 px-2.5 py-0.5 rounded-full border border-[#f47c20]/20">
+                    {studentList.length} học sinh
+                  </span>
+                </div>
+
+                {filteredStudents.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {filteredStudents.map((s: any, idx: number) => {
+                      const sId = typeof s === 'object' ? (s._id || s.id) : s;
+                      const isCurrentUser = user && (sId === user._id || sId === user.id || (typeof s === 'object' && s.email && s.email === user.email));
+                      const studentName = typeof s === 'object' ? (s.name || s.email || `Học sinh ${idx + 1}`) : `Học sinh ${idx + 1}`;
+                      const studentEmail = typeof s === 'object' ? s.email : "";
+                      const studentCode = typeof s === 'object' ? s.studentCode : "";
+
+                      const colorPalette = ["f47c20", "2f8fa3", "0d9488", "6366f1", "ec4899", "8b5cf6"];
+                      const avatarBg = colorPalette[idx % colorPalette.length];
+                      const studentAvatar = (typeof s === 'object' && s.avatar)
+                        ? s.avatar
+                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(studentName)}&background=${avatarBg}&color=fff&bold=true`;
+
+                      return (
+                        <div
+                          key={sId || idx}
+                          className={`relative flex items-center gap-3 p-3 rounded-2xl border transition-all duration-200 group ${
+                            isCurrentUser
+                              ? "bg-amber-50/70 border-amber-300 shadow-2xs hover:shadow-xs hover:border-[#f47c20]"
+                              : "bg-white border-slate-200/90 shadow-2xs hover:shadow-xs hover:border-[#2f8fa3]/50 hover:-translate-y-0.5"
+                          }`}
+                        >
+                          {/* STT */}
+                          <span className="text-[11px] font-black text-slate-400 font-mono w-4 text-center shrink-0">
+                            {idx + 1}
+                          </span>
+
+                          {/* Avatar */}
+                          <div className="relative shrink-0">
+                            <img
+                              src={studentAvatar}
+                              alt={studentName}
+                              className={`w-10 h-10 rounded-full object-cover border shrink-0 ${
+                                isCurrentUser ? "border-[#f47c20] ring-2 ring-[#f47c20]/25" : "border-slate-200"
+                              }`}
+                            />
+                            {isCurrentUser && (
+                              <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-[#f47c20] border-2 border-white shadow-2xs" title="Tài khoản của bạn" />
+                            )}
+                          </div>
+
+                          {/* Thông tin học sinh */}
+                          <div className="flex flex-col min-w-0 flex-1 justify-center">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span
+                                className={`text-xs sm:text-sm font-bold truncate ${
+                                  isCurrentUser ? "text-[#f47c20]" : "text-slate-800 group-hover:text-[#2f8fa3]"
+                                } transition-colors`}
+                                title={studentName}
+                              >
+                                {studentName}
+                              </span>
+                              {isCurrentUser && (
+                                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-[#f47c20]/15 text-[#f47c20] border border-[#f47c20]/30 shrink-0">
+                                  Bạn
+                                </span>
+                              )}
+                            </div>
+                            <span
+                              className="text-[11px] text-slate-400 font-medium truncate mt-0.5"
+                              title={studentEmail || studentCode || "Học sinh"}
+                            >
+                              {studentEmail || studentCode || "Học sinh"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : memberSearchQuery ? (
+                  <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center flex flex-col items-center justify-center">
+                    <MagnifyingGlass size={36} weight="duotone" className="text-slate-300 mb-2" />
+                    <p className="text-sm font-bold text-slate-700 m-0">Không tìm thấy bạn học nào</p>
+                    <p className="text-xs text-slate-400 m-0 mt-1">Không có kết quả khớp với "{memberSearchQuery}"</p>
+                    <button
+                      type="button"
+                      onClick={() => setMemberSearchQuery("")}
+                      className="mt-3 px-3 py-1 text-xs font-bold text-[#2f8fa3] hover:underline cursor-pointer border-none bg-transparent"
+                    >
+                      Xóa tìm kiếm
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-8 text-center flex flex-col items-center justify-center">
+                    <Users size={36} weight="duotone" className="text-slate-300 mb-2" />
+                    <p className="text-sm font-bold text-slate-700 m-0">Chưa có bạn học nào trong lớp</p>
+                    <p className="text-xs text-slate-400 m-0 mt-1">Các bạn học sinh khác tham gia bằng mã code sẽ hiển thị tại đây.</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
