@@ -17,6 +17,16 @@ import { io } from "socket.io-client";
 import { useToast } from "@/components/Styles/ToastContext";
 import { activityService } from "@/service/activity.service";
 import type { Selection } from "@heroui/react";
+import type { SearchSuggestionItem } from "@/components/ui/Inputs/SmartSearchBar";
+
+export const removeAccents = (str: string): string => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
 
 interface UseClassroomActivitiesProps {
   classId?: string;
@@ -121,10 +131,32 @@ export function useClassroomActivities({
       }
 
       if (searchQuery.trim() !== "") {
-        const q = searchQuery.toLowerCase();
-        const matchTitle = item.title?.toLowerCase().includes(q);
-        const matchDesc = item.description?.toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc) return false;
+        const tokens = removeAccents(searchQuery.toLowerCase().trim()).split(/\s+/).filter(Boolean);
+        if (tokens.length > 0) {
+          const titleNorm = removeAccents((item.title || "").toLowerCase());
+          const descNorm = removeAccents((item.description || "").toLowerCase());
+          
+          const isQuiz = item.type === "quiz";
+          const typeText = isQuiz ? "trac nghiem quiz" : "tu luan document essay file";
+          const catText = item.category === "homework"
+            ? "bai tap ve nha homework btvn"
+            : item.category === "periodic"
+              ? "kiem tra periodic 15 phut 1 tiet giua ky hoc ky"
+              : item.category === "mock_exam"
+                ? "thi thu mock exam"
+                : removeAccents((item.category || "").toLowerCase());
+
+          const isUngraded = (item.pendingGradeCount && item.pendingGradeCount > 0) || (subCount > 0 && gradedCount < subCount);
+          const statusText = [
+            item.status === "closed" ? "da dong closed" : "dang mo open",
+            isUngraded ? "can cham chua cham ungraded pending" : "",
+            isGraded ? "da cham graded done" : ""
+          ].join(" ");
+
+          const combined = `${titleNorm} ${descNorm} ${typeText} ${catText} ${statusText}`;
+          const isMatch = tokens.every(token => combined.includes(token));
+          if (!isMatch) return false;
+        }
       }
 
       return true;
@@ -258,6 +290,70 @@ export function useClassroomActivities({
     }
   };
 
+  const searchSuggestions = useMemo<SearchSuggestionItem[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const tokens = removeAccents(searchQuery.toLowerCase().trim()).split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return [];
+
+    return allActivities
+      .filter((item: any) => {
+        const titleNorm = removeAccents((item.title || "").toLowerCase());
+        const descNorm = removeAccents((item.description || "").toLowerCase());
+        const isQuiz = item.type === "quiz";
+        const typeText = isQuiz ? "trac nghiem quiz" : "tu luan document essay file";
+        const catText = item.category === "homework"
+          ? "bai tap ve nha homework btvn"
+          : item.category === "periodic"
+            ? "kiem tra periodic 15 phut 1 tiet giua ky hoc ky"
+            : item.category === "mock_exam"
+              ? "thi thu mock exam"
+              : removeAccents((item.category || "").toLowerCase());
+        const combined = `${titleNorm} ${descNorm} ${typeText} ${catText}`;
+        return tokens.every(token => combined.includes(token));
+      })
+      .slice(0, 6)
+      .map((item: any) => {
+        const isQuiz = item.type === "quiz";
+        const typeLabel = isQuiz ? "Trắc nghiệm" : "Tự luận";
+        const catLabel = item.category === "homework"
+          ? "BTVN"
+          : item.category === "periodic"
+            ? "Kiểm tra"
+            : item.category === "mock_exam"
+              ? "Thi thử"
+              : "";
+
+        const subCount = item.submissionCount || 0;
+        const pendingCount = item.pendingGradeCount || 0;
+
+        let tag = "Đang mở";
+        if (item.status === "closed") {
+          tag = "Đã đóng";
+        } else if (pendingCount > 0) {
+          tag = `${pendingCount} cần chấm`;
+        } else if (subCount > 0) {
+          tag = `${subCount} bài nộp`;
+        }
+
+        const subtitleParts = [typeLabel];
+        if (catLabel) subtitleParts.push(catLabel);
+        if (isQuiz && item.quizQuestions?.length) {
+          subtitleParts.push(`${item.quizQuestions.length} câu`);
+        }
+        if (subCount > 0) {
+          subtitleParts.push(`${subCount} bài nộp`);
+        }
+
+        return {
+          id: item._id,
+          title: item.title,
+          subtitle: subtitleParts.join(" • "),
+          tag,
+          rawData: item,
+        };
+      });
+  }, [allActivities, searchQuery]);
+
   return {
     allActivities,
     setAllActivities,
@@ -273,6 +369,7 @@ export function useClassroomActivities({
     setFilterStatus,
     searchQuery,
     setSearchQuery,
+    searchSuggestions,
     viewMode,
     setViewMode,
     currentPage,

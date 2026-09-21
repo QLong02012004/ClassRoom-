@@ -58,6 +58,16 @@ import FolderFileCard from "../../../components/ui/Uploads/FolderUpload/FolderFi
 import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
 import { DropdownFilter } from "../../../components/ui/Dropdowns/DropdownFilter";
 import FullPageLoader from "../../../components/ui/Loaders/FullPageLoader";
+import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
+
+const removeAccents = (str: string): string => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
 import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton";
 import { PrimaryButton } from "../../../components/ui/Buttons/PrimaryButton";
 import { Pagination } from "@heroui/react";
@@ -230,7 +240,25 @@ export default function StudentClassroomDetail() {
   ];
 
   const activitiesForStatusCount = allActivities.filter((item: any) => {
-    if (searchQuery && !item.title?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery.trim() !== "") {
+      const tokens = removeAccents(searchQuery.toLowerCase().trim()).split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        const titleNorm = removeAccents((item.title || "").toLowerCase());
+        const descNorm = removeAccents((item.description || "").toLowerCase());
+        const isQuiz = item.type === "quiz";
+        const typeText = isQuiz ? "trac nghiem quiz" : "tu luan document essay file";
+        const catText = item.category === "homework"
+          ? "bai tap ve nha homework btvn"
+          : item.category === "periodic"
+            ? "kiem tra periodic 15 phut 1 tiet giua ky hoc ky"
+            : item.category === "mock_exam"
+              ? "thi thu mock exam"
+              : removeAccents((item.category || "").toLowerCase());
+        const combined = `${titleNorm} ${descNorm} ${typeText} ${catText}`;
+        const isMatch = tokens.every(token => combined.includes(token));
+        if (!isMatch) return false;
+      }
+    }
     if (activityTypeFilter === "quiz" && item.type !== "quiz") return false;
     if (activityTypeFilter === "document" && item.type === "quiz") return false;
     if (activityCategoryFilter !== "all") {
@@ -244,6 +272,64 @@ export default function StudentClassroomDetail() {
     }
     return true;
   });
+
+  const activitySuggestions = useMemo<SearchSuggestionItem[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const tokens = removeAccents(searchQuery.toLowerCase().trim()).split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return [];
+
+    return allActivities
+      .filter((item: any) => {
+        const titleNorm = removeAccents((item.title || "").toLowerCase());
+        const descNorm = removeAccents((item.description || "").toLowerCase());
+        const isQuiz = item.type === "quiz";
+        const typeText = isQuiz ? "trac nghiem quiz" : "tu luan document essay file";
+        const catText = item.category === "homework"
+          ? "bai tap ve nha homework btvn"
+          : item.category === "periodic"
+            ? "kiem tra periodic 15 phut 1 tiet giua ky hoc ky"
+            : item.category === "mock_exam"
+              ? "thi thu mock exam"
+              : removeAccents((item.category || "").toLowerCase());
+        const combined = `${titleNorm} ${descNorm} ${typeText} ${catText}`;
+        return tokens.every(token => combined.includes(token));
+      })
+      .slice(0, 6)
+      .map((item: any) => {
+        const isQuiz = item.type === "quiz";
+        const typeLabel = isQuiz ? "Trắc nghiệm" : "Tự luận";
+        const catLabel = item.category === "homework"
+          ? "BTVN"
+          : item.category === "periodic"
+            ? "Kiểm tra"
+            : item.category === "mock_exam"
+              ? "Thi thử"
+              : "";
+
+        const status = getStatus(item);
+        const statusLabelMap: Record<string, string> = {
+          graded: "Đã chấm",
+          submitted: "Đã nộp",
+          late: "Quá hạn",
+          pending: "Chưa nộp"
+        };
+        const tag = statusLabelMap[status] || "Đang mở";
+
+        const subtitleParts = [typeLabel];
+        if (catLabel) subtitleParts.push(catLabel);
+        if (isQuiz && item.quizQuestions?.length) {
+          subtitleParts.push(`${item.quizQuestions.length} câu`);
+        }
+
+        return {
+          id: item._id,
+          title: item.title,
+          subtitle: subtitleParts.join(" • "),
+          tag,
+          rawData: item,
+        };
+      });
+  }, [allActivities, searchQuery]);
 
   const pendingCount = activitiesForStatusCount.filter((a) => getStatus(a) === "pending").length;
   const lateCount = activitiesForStatusCount.filter((a) => getStatus(a) === "late").length;
@@ -353,7 +439,7 @@ export default function StudentClassroomDetail() {
     loadData(true);
 
     // Kết nối Socket.io Realtime cho Bảng tin lớp học (Học sinh)
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || 'http://localhost:5000';
     const socket = io(backendUrl, { withCredentials: true });
 
     socket.on('classroom_feed_update', (targetClassId?: string) => {
@@ -375,10 +461,15 @@ export default function StudentClassroomDetail() {
       loadData();
     });
 
+    socket.on('notification_update', () => {
+      loadData();
+    });
+
     return () => {
       socket.off('classroom_feed_update');
       socket.off('submission_update');
       socket.off('student_classrooms_update');
+      socket.off('notification_update');
       socket.disconnect();
     };
   }, [classId]);
@@ -800,13 +891,22 @@ export default function StudentClassroomDetail() {
 
               {/* Advanced Filter Toolbar matching StudentAssignments */}
               <div className={stylesAssign.filterBar}>
-                <div className={stylesAssign.searchInput}>
-                  <MagnifyingGlass size={16} className="text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Tìm kiếm theo tên bài tập..."
+                <div className="w-full sm:w-72 md:w-80">
+                  <SmartSearchBar
+                    placeholder="Tìm kiếm bài tập, đề thi... (Ấn /)"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={setSearchQuery}
+                    suggestions={activitySuggestions}
+                    onSelectSuggestion={(item) => {
+                      setActivityTypeFilter("all");
+                      setActivityCategoryFilter("all");
+                      setStatusFilter("all");
+                      setSearchQuery(item.title);
+                    }}
+                    recentSearchesKey="studentClassroomActivitiesSearches"
+                    enableShortcut={true}
+                    widthClass="w-full"
+                    inputClassName="w-full h-9 pl-9 pr-8 bg-white border border-slate-200/80 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-xl outline-none text-slate-700 placeholder:text-slate-400/80 text-xs font-medium shadow-2xs"
                   />
                 </div>
 
@@ -949,7 +1049,7 @@ export default function StudentClassroomDetail() {
                           key={act._id}
                           className={`${stylesAssign.assignCard} ${status === "late" ? stylesAssign.lateCard : ""} ${isDone ? stylesAssign.doneCard : ""}`}
                           onClick={() => {
-                            if (isQuiz) navigate(`/exams/${act._id}`);
+                            if (isQuiz && status !== "late") navigate(`/exams/${act._id}`);
                             else navigate(`/assignments/${act._id}`);
                           }}
                         >
@@ -1031,12 +1131,12 @@ export default function StudentClassroomDetail() {
                             </div>
 
                             <PrimaryButton
-                              variant={isDone ? "outline" : "default"}
+                              variant={isDone || status === "late" ? "outline" : "default"}
                               size="sm"
                               className="!text-xs font-extrabold ml-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (isQuiz) navigate(`/exams/${act._id}`);
+                                if (isQuiz && status !== "late") navigate(`/exams/${act._id}`);
                                 else navigate(`/assignments/${act._id}`);
                               }}
                               disabled={classroom?.status === 'Closed' && !isDone}
@@ -1044,6 +1144,10 @@ export default function StudentClassroomDetail() {
                               {status === "graded" ? (
                                 <>
                                   Xem kết quả <ArrowRight size={13} weight="bold" />
+                                </>
+                              ) : status === "late" ? (
+                                <>
+                                  Xem chi tiết <ArrowRight size={13} weight="bold" />
                                 </>
                               ) : (
                                 <>

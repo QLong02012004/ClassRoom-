@@ -441,8 +441,24 @@ export const logout = async (req: AuthRequest, res: Response, next: NextFunction
 export const googleLogin = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
         const { credential, role, subject } = req.body;
+        console.log("📥 [Backend googleLogin] Nhận request đăng nhập Google, role:", role);
 
         const result = await googleAuthService(credential, role, subject);
+        console.log("🔍 [Backend googleLogin] Kết quả:", {
+            requiresRoleSelection: (result as any).requiresRoleSelection,
+            isPending: (result as any).isPending,
+            email: (result as any).user?.email || (result as any).googleInfo?.email,
+            role: (result as any).user?.role
+        });
+
+        // Yêu cầu người dùng chọn vai trò (Học sinh / Giáo viên) nếu là tài khoản mới chưa có role
+        if ((result as any).requiresRoleSelection) {
+            return res.status(200).json({
+                message: 'Vui lòng chọn vai trò tài khoản để tiếp tục!',
+                requiresRoleSelection: true,
+                googleInfo: (result as any).googleInfo
+            });
+        }
 
         // Nếu là Giáo viên đăng ký mới -> Trạng thái Pending
         if ((result as any).isPending) {

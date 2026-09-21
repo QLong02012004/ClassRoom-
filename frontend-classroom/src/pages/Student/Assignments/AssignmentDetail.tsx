@@ -14,7 +14,8 @@ import {
   Info,
   ArrowSquareOut,
   WarningCircle,
-  ChatCircleDots
+  ChatCircleDots,
+  ClockCounterClockwise
 } from "phosphor-react";
 import { BackButton } from "../../../components/ui/Buttons/BackButton.tsx";
 import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButton.tsx";
@@ -87,17 +88,26 @@ export default function AssignmentDetail() {
   useEffect(() => {
     loadData();
 
-    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
     const socket = io(backendUrl, { withCredentials: true });
 
-    socket.on("submission_update", (data?: { assignmentId?: string }) => {
+    const handleUpdate = (data?: { assignmentId?: string }) => {
       if (!data?.assignmentId || data.assignmentId === id) {
         console.log("⚡ [Socket.io Realtime] Cập nhật bài nộp/điểm số từ giáo viên...");
         loadData();
       }
-    });
+    };
+
+    socket.on("submission_update", handleUpdate);
+    socket.on("student_classrooms_update", () => loadData());
+    socket.on("classroom_feed_update", () => loadData());
+    socket.on("notification_update", () => loadData());
 
     return () => {
+      socket.off("submission_update", handleUpdate);
+      socket.off("student_classrooms_update");
+      socket.off("classroom_feed_update");
+      socket.off("notification_update");
       socket.disconnect();
     };
   }, [id, loadData]);
@@ -113,6 +123,14 @@ export default function AssignmentDetail() {
     if (!iso) return "";
     const d = new Date(iso);
     const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+    return `${time} - ${date}`;
+  };
+
+  const formatFullDateTime = (iso: string) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}:${String(d.getSeconds()).padStart(2, "0")}`;
     const date = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
     return `${time} - ${date}`;
   };
@@ -469,16 +487,35 @@ export default function AssignmentDetail() {
                   />
                 )}
 
-                {/* Resubmit button if allowed */}
-                {assignment.allowMultipleSubmissions !== false && !isClosed && (
+                {/* Nút chỉnh sửa / nộp lại bài - chỉ hiện khi: còn hạn, chưa đóng, chưa chấm điểm */}
+                {!isGraded && !isClosed && !isPastDeadline && (
                   <button
                     type="button"
                     className={styles.resubmitBtn}
                     onClick={() => setIsResubmitting(true)}
                   >
-                    Nộp lại bài
+                    ✏️ Chỉnh sửa bài nộp
                   </button>
                 )}
+              </div>
+            ) : isClosed ? (
+              <div className={styles.closedCard}>
+                <WarningCircle size={24} weight="fill" className="text-slate-500 flex-shrink-0" />
+                <p style={{ margin: 0 }}>
+                  Bài tập này đã bị giáo viên đóng. Bạn không thể tiếp tục nộp bài.
+                </p>
+              </div>
+            ) : isPastDeadline ? (
+              <div className={styles.closedCard} style={{ borderColor: '#fca5a5', background: '#fff1f2' }}>
+                <WarningCircle size={24} weight="fill" className="flex-shrink-0" style={{ color: '#ef4444' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <p style={{ margin: 0, fontWeight: 700, color: '#b91c1c' }}>
+                    Đã quá hạn nộp bài
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#ef4444' }}>
+                    Thời hạn nộp bài đã kết thúc lúc {formatDate(assignment.deadline)}. Bạn không thể nộp bài nữa.
+                  </p>
+                </div>
               </div>
             ) : assignment.type === 'quiz' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -490,13 +527,6 @@ export default function AssignmentDetail() {
                   text="Bắt đầu làm bài"
                   className="w-full"
                 />
-              </div>
-            ) : isClosed ? (
-              <div className={styles.closedCard}>
-                <WarningCircle size={24} weight="fill" className="text-slate-500 flex-shrink-0" />
-                <p style={{ margin: 0 }}>
-                  Bài tập này đã bị giáo viên đóng. Bạn không thể tiếp tục nộp bài.
-                </p>
               </div>
             ) : (
               <>
@@ -604,26 +634,151 @@ export default function AssignmentDetail() {
           </div>
 
           {/* Submission History */}
-          {mySubmission?.history?.length > 0 && (
+          {mySubmission?.history && mySubmission.history.length > 0 && (
             <div className={styles.historyCard}>
-              <h4 className={styles.activityTitle}>LỊCH SỬ NỘP</h4>
-              <div className={styles.historyTimeline}>
-                {mySubmission.history.map((h: any, i: number) => (
-                  <div key={i} className={styles.historyItem}>
-                    <div className={styles.historyDot} />
-                    <div className={styles.historyContent}>
-                      <span className={styles.historyLabel}>Lần {i + 1}</span>
-                      <span className={styles.historyDate}>{new Date(h.submittedAt).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit' })}</span>
-                    </div>
+              <div className={styles.historyHeader}>
+                <div className={styles.historyTitleWrap}>
+                  <div className={styles.historyIconBox}>
+                    <ClockCounterClockwise size={20} weight="bold" />
                   </div>
-                ))}
-                <div className={styles.historyItem}>
-                  <div className={`${styles.historyDot} ${styles.historyDotActive}`} />
-                  <div className={styles.historyContent}>
-                    <span className={styles.historyLabel}>Lần cuối</span>
-                    <span className={styles.historyDate}>{new Date(mySubmission.submittedAt).toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit' })}</span>
+                  <div>
+                    <h4 className={styles.historyTitle}>Lịch sử nộp bài</h4>
+                    <p className={styles.historySubtitle}>Tiến trình các lần nộp & chỉnh sửa</p>
                   </div>
                 </div>
+                <span className={styles.historyCountBadge}>
+                  {mySubmission.history.length + 1} lần nộp
+                </span>
+              </div>
+
+              <div className={styles.historyTimeline}>
+                {/* Lần nộp hiện tại (Mới nhất) */}
+                <div className={`${styles.historyItem} ${styles.historyItemActive}`}>
+                  <div className={styles.timelineNode}>
+                    <div className={styles.nodeDotActive}>
+                      <CheckCircle size={14} weight="fill" />
+                    </div>
+                    <div className={styles.timelineLine} />
+                  </div>
+                  <div className={styles.historyContentBox}>
+                    <div className={styles.historyItemTop}>
+                      <span className={styles.historyAttemptTagActive}>
+                        Bản nộp mới nhất (Lần {mySubmission.history.length + 1})
+                      </span>
+                      <span className={styles.historyRelativeTime}>
+                        {formatRelativeTime(mySubmission.submittedAt)}
+                      </span>
+                    </div>
+
+                    <div className={styles.historyDateTime}>
+                      <Clock size={14} />
+                      <span>{formatFullDateTime(mySubmission.submittedAt)}</span>
+                    </div>
+
+                    {mySubmission.submissionText && (
+                      <p className={styles.historyNoteText}>
+                        &ldquo;{mySubmission.submissionText}&rdquo;
+                      </p>
+                    )}
+
+                    {mySubmission.attachments && mySubmission.attachments.length > 0 && (
+                      <div className={styles.historyFilesList}>
+                        {mySubmission.attachments.map((att: any, fIdx: number) => {
+                          const ext = att.name?.split('.').pop()?.toLowerCase();
+                          return (
+                            <a
+                              key={fIdx}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.historyFilePill}
+                              title="Bấm để xem/tải file này"
+                            >
+                              {ext === 'pdf' ? (
+                                <FilePdf size={16} weight="fill" className="text-[#EF4444] flex-shrink-0" />
+                              ) : ext === 'doc' || ext === 'docx' ? (
+                                <FileDoc size={16} weight="fill" className="text-[#2563EB] flex-shrink-0" />
+                              ) : (
+                                <CloudArrowUp size={16} weight="bold" className="text-[#10B981] flex-shrink-0" />
+                              )}
+                              <span className={styles.historyFileName}>
+                                {formatCleanFileName(att.name)}
+                              </span>
+                              {att.size && <span className={styles.historyFileSize}>{att.size}</span>}
+                              <ArrowSquareOut size={13} className={styles.historyFileIcon} />
+                            </a>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Các lần nộp trước đó (xếp theo thứ tự từ mới tới cũ hơn) */}
+                {[...mySubmission.history].reverse().map((h: any, rIdx: number) => {
+                  const attemptNum = mySubmission.history.length - rIdx;
+                  const isLastOld = rIdx === mySubmission.history.length - 1;
+                  return (
+                    <div key={rIdx} className={styles.historyItem}>
+                      <div className={styles.timelineNode}>
+                        <div className={styles.nodeDot} />
+                        {!isLastOld && <div className={styles.timelineLine} />}
+                      </div>
+                      <div className={styles.historyContentBox}>
+                        <div className={styles.historyItemTop}>
+                          <span className={styles.historyAttemptTag}>
+                            Lần nộp {attemptNum}
+                          </span>
+                          <span className={styles.historyRelativeTime}>
+                            {formatRelativeTime(h.submittedAt)}
+                          </span>
+                        </div>
+
+                        <div className={styles.historyDateTime}>
+                          <Clock size={14} />
+                          <span>{formatFullDateTime(h.submittedAt)}</span>
+                        </div>
+
+                        {h.submissionText && (
+                          <p className={styles.historyNoteText}>
+                            &ldquo;{h.submissionText}&rdquo;
+                          </p>
+                        )}
+
+                        {h.attachments && h.attachments.length > 0 && (
+                          <div className={styles.historyFilesList}>
+                            {h.attachments.map((att: any, fIdx: number) => {
+                              const ext = att.name?.split('.').pop()?.toLowerCase();
+                              return (
+                                <a
+                                  key={fIdx}
+                                  href={att.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={styles.historyFilePill}
+                                  title="Bấm để xem/tải lại file phiên bản này"
+                                >
+                                  {ext === 'pdf' ? (
+                                    <FilePdf size={16} weight="fill" className="text-[#EF4444] flex-shrink-0" />
+                                  ) : ext === 'doc' || ext === 'docx' ? (
+                                    <FileDoc size={16} weight="fill" className="text-[#2563EB] flex-shrink-0" />
+                                  ) : (
+                                    <CloudArrowUp size={16} weight="bold" className="text-[#10B981] flex-shrink-0" />
+                                  )}
+                                  <span className={styles.historyFileName}>
+                                    {formatCleanFileName(att.name)}
+                                  </span>
+                                  {att.size && <span className={styles.historyFileSize}>{att.size}</span>}
+                                  <ArrowSquareOut size={13} className={styles.historyFileIcon} />
+                                </a>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

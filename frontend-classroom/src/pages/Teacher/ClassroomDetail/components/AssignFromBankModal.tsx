@@ -101,7 +101,13 @@ export const AssignFromBankModal: React.FC<AssignFromBankModalProps> = (props) =
     const searchLower = bankSearchQuery.toLowerCase();
     return bankItems.filter((item: any) => {
       const matchesSearch = (item.title?.toLowerCase().includes(searchLower)) || (item.description?.toLowerCase().includes(searchLower));
-      const matchesType = bankFilterType === "all" ? true : item.type === bankFilterType;
+      // Backend có thể lưu tự luận với type="document", "essay", hoặc "assignment" (dữ liệu seed/test cũ)
+      // Filter "essay" (UI) cần match tất cả các giá trị non-quiz này
+      const isEssayType = item.type !== "quiz";
+      const matchesType = bankFilterType === "all" ? true
+          : bankFilterType === "essay" ? isEssayType
+            : bankFilterType === "quiz" ? item.type === "quiz"
+              : item.type === bankFilterType;
       const matchesOrigin = bankFilterOrigin === "all" ? true : item.sharingStatus === bankFilterOrigin;
       return matchesSearch && matchesType && matchesOrigin;
     });
@@ -180,7 +186,7 @@ export const AssignFromBankModal: React.FC<AssignFromBankModalProps> = (props) =
                   suggestions={bankItems.map((item: any) => ({
                     id: item._id,
                     title: item.title,
-                    subtitle: item.type === 'quiz' ? `Trắc nghiệm • ${item.quizQuestions?.length || 0} câu` : `Tự luận`,
+                    subtitle: item.type === 'quiz' ? `Trắc nghiệm • ${item.quizQuestions?.length || 0} câu` : `Tự luận • Thang điểm: ${item.maxScore || 10}`,
                     tag: item.sharingStatus === 'CENTER_SHARED' ? 'Thư viện' : 'Cá nhân',
                     rawData: item
                   }))}

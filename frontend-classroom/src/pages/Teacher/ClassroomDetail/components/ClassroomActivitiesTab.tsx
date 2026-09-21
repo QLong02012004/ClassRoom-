@@ -22,7 +22,7 @@ import {
   PencilSimple,
   Trash,
 } from "phosphor-react";
-import SearchInput from "@/components/ui/FormControls/SearchInput";
+import { SmartSearchBar, type SearchSuggestionItem } from "@/components/ui/Inputs/SmartSearchBar";
 import ViewModeSwitch from "@/components/ui/Buttons/ViewModeSwitch";
 import { QuizActionMenu } from "@/components/ui/ActionMenus/QuizActionMenu";
 import ActivitiesTable from "@/components/ui/Tables/ActivitiesTable";
@@ -53,6 +53,7 @@ interface ClassroomActivitiesTabProps {
   setFilterStatus?: (status: any) => void;
   searchQuery?: string;
   setSearchQuery?: (query: string) => void;
+  searchSuggestions?: SearchSuggestionItem[];
   viewMode?: "grid" | "table";
   setViewMode?: (mode: "grid" | "table") => void;
   loadingActivities?: boolean;
@@ -120,6 +121,7 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
   const setFilterStatus = props.setFilterStatus ?? activities?.setFilterStatus;
   const searchQuery = props.searchQuery ?? activities?.searchQuery ?? "";
   const setSearchQuery = props.setSearchQuery ?? activities?.setSearchQuery;
+  const searchSuggestions: SearchSuggestionItem[] = props.searchSuggestions ?? activities?.searchSuggestions ?? [];
   const viewMode = props.viewMode ?? activities?.viewMode ?? "grid";
   const setViewMode = props.setViewMode ?? activities?.setViewMode;
   const loadingActivities = props.loadingActivities ?? activities?.loadingActivities ?? false;
@@ -192,13 +194,23 @@ export default function ClassroomActivitiesTab(props: ClassroomActivitiesTabProp
       {/* ROW 2: FILTERS & VIEW MODE TOOLBAR (WRAPPED LIKE GRADEBOOK) */}
       <div className="flex items-center justify-between flex-wrap gap-3 mb-5 p-2 bg-slate-50/70 border border-slate-200/80 rounded-2xl">
         <div className="flex items-center gap-3 flex-wrap">
-          {/* 1. SEARCH INPUT AT FRONT */}
-          <div className="w-64 min-w-[200px]">
-            <SearchInput
-              id="teacherActivitiesSearch"
-              placeholder="Tìm theo tên bài tập..."
+          {/* 1. SMART SEARCH BAR AT FRONT */}
+          <div className="w-64 sm:w-72 md:w-80">
+            <SmartSearchBar
+              placeholder="Tìm kiếm bài tập, đề thi... (Ấn /)"
               value={searchQuery}
-              onChange={(val) => setSearchQuery(val)}
+              onChange={(val) => setSearchQuery && setSearchQuery(val)}
+              suggestions={searchSuggestions}
+              onSelectSuggestion={(item) => {
+                if (setFilterType) setFilterType("all");
+                if (setFilterCategory) setFilterCategory("all");
+                if (setFilterStatus) setFilterStatus("all");
+                if (setSearchQuery) setSearchQuery(item.title);
+              }}
+              recentSearchesKey="teacherClassroomActivitiesSearches"
+              enableShortcut={true}
+              widthClass="w-full"
+              inputClassName="w-full h-9 pl-9 pr-8 bg-white border border-slate-200/80 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-xl outline-none text-slate-700 placeholder:text-slate-400/80 text-xs font-medium shadow-2xs"
             />
           </div>
 

@@ -32,8 +32,18 @@ export const createBankItem = async (req: Request, res: Response) => {
         const user = (req as any).user;
         const teacherId = user?._id || req.body.teacherId;
 
-        if (!itemData.title || !String(itemData.title).trim()) {
+        const trimmedTitle = String(itemData.title || '').trim();
+        if (!trimmedTitle) {
             return res.status(400).json({ message: 'Tiêu đề không được để trống!' });
+        }
+
+        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const existingItem = await BankItemModel.findOne({
+            teacherId,
+            title: { $regex: new RegExp(`^${escapeRegex(trimmedTitle)}$`, 'i') }
+        });
+        if (existingItem) {
+            return res.status(400).json({ message: `Tên bài tập/đề thi "${trimmedTitle}" đã tồn tại trong ngân hàng đề! Vui lòng chọn tên khác.` });
         }
 
         if (itemData.type === 'quiz') {
@@ -120,8 +130,24 @@ export const updateBankItem = async (req: Request, res: Response) => {
         const { id } = req.params;
         const updateData = req.body;
 
-        if (updateData.title !== undefined && (!updateData.title || !String(updateData.title).trim())) {
-            return res.status(400).json({ message: 'Tiêu đề không được để trống!' });
+        const currentItem = await BankItemModel.findById(id);
+        if (!currentItem) return res.status(404).json({ message: 'Không tìm thấy' });
+
+        if (updateData.title !== undefined) {
+            const trimmedTitle = String(updateData.title || '').trim();
+            if (!trimmedTitle) {
+                return res.status(400).json({ message: 'Tiêu đề không được để trống!' });
+            }
+            const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const existingItem = await BankItemModel.findOne({
+                _id: { $ne: id as any },
+                teacherId: currentItem.teacherId,
+                title: { $regex: new RegExp(`^${escapeRegex(trimmedTitle)}$`, 'i') }
+            });
+            if (existingItem) {
+                return res.status(400).json({ message: `Tên bài tập/đề thi "${trimmedTitle}" đã tồn tại trong ngân hàng đề! Vui lòng chọn tên khác.` });
+            }
+            updateData.title = trimmedTitle;
         }
 
         updateData.updatedAt = new Date();

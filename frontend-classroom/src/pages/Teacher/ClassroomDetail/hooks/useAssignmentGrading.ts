@@ -12,7 +12,8 @@
  * ============================================================================
  */
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { io } from "socket.io-client";
 import { useToast } from "@/components/Styles/ToastContext";
 import { activityService } from "@/service/activity.service";
 import { gradebookService } from "@/service/gradebook.service";
@@ -40,6 +41,8 @@ export function useAssignmentGrading({
   const [assignmentToDelete, setAssignmentToDelete] = useState<any | null>(null);
   const [isDeletingAssignment, setIsDeletingAssignment] = useState(false);
 
+  const selectedAssignmentRef = useRef<any>(null);
+
   const loadAssignmentSubmissions = async (assignmentId: string) => {
     window.scrollTo({ top: 0, behavior: "instant" });
     try {
@@ -63,6 +66,31 @@ export function useAssignmentGrading({
       setLoadingSubmissions(false);
     }
   };
+
+  // ── Socket.io: lắng nghe học sinh nộp/nộp lại bài → tự động reload ──────
+  useEffect(() => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
+      const currentAssignment = selectedAssignmentRef.current;
+      if (!currentAssignment) return;
+      // Reload nếu event liên quan tới bài đang xem (hoặc không có assignmentId cụ thể)
+      if (!data?.assignmentId || data.assignmentId === currentAssignment._id) {
+        console.log("⚡ [Teacher Socket] Học sinh nộp/nộp lại bài → tự động cập nhật danh sách bài nộp...");
+        loadAssignmentSubmissions(currentAssignment._id);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  // Sync ref với selectedAssignment state để socket callback luôn có giá trị mới nhất
+  useEffect(() => {
+    selectedAssignmentRef.current = selectedAssignment;
+  }, [selectedAssignment]);
 
   const handleDeleteAssignmentClick = (assignmentItem: any) => {
     setAssignmentToDelete(assignmentItem);

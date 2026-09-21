@@ -20,7 +20,8 @@ import {
   Keyboard,
   X,
   SpeakerHigh,
-  SpeakerSlash
+  SpeakerSlash,
+  Lightbulb
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { activityService } from "../../../service/activity.service.ts";
@@ -42,6 +43,9 @@ export default function TakeExam() {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
+  const [isClosedQuiz, setIsClosedQuiz] = useState(false);
+  const [expiredMessage, setExpiredMessage] = useState<string | null>(null);
   const [isTimeOutLocked, setIsTimeOutLocked] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
@@ -75,6 +79,7 @@ export default function TakeExam() {
       !isAllowingExitRef.current &&
       !result &&
       !!quiz &&
+      !isExpired &&
       !isSubmitting &&
       timeLeft > 0 &&
       currentLocation.pathname !== nextLocation.pathname
@@ -126,6 +131,22 @@ export default function TakeExam() {
 
         setQuiz(fetchedQuiz);
         setResult(fetchedResult);
+
+        // Kiểm tra nếu bài thi đã quá hạn hoặc đã đóng và học sinh chưa từng nộp bài
+        const isPastDue = activity.dueDate && new Date(activity.dueDate).getTime() < Date.now();
+        const isClosed = activity.status === 'closed';
+
+        if (!fetchedResult && (isPastDue || isClosed)) {
+          setIsExpired(true);
+          setIsClosedQuiz(isClosed);
+          setExpiredMessage(
+            isClosed
+              ? "Bài thi này đã bị giáo viên đóng. Bạn không thể tham gia làm bài nữa."
+              : `Thời hạn nộp bài thi đã kết thúc lúc ${new Date(activity.dueDate).toLocaleString('vi-VN')}. Bạn không thể tham gia làm bài nữa.`
+          );
+          setLoading(false);
+          return;
+        }
 
         // 1. Kiểm tra bản nháp từ Server Draft
         let draftRes: any = null;
@@ -724,6 +745,34 @@ export default function TakeExam() {
     );
   }
 
+  if (isExpired && !result) {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-500 mb-2">
+          <Warning size={38} weight="duotone" />
+        </div>
+        <h2 className="text-xl font-black text-rose-700 mt-2">
+          {isClosedQuiz ? "Bài thi đã bị đóng" : "Đã quá hạn nộp bài thi"}
+        </h2>
+        <p className="mt-2 text-sm text-slate-600 max-w-md text-center leading-relaxed">
+          {expiredMessage}
+        </p>
+        <div className="mt-6 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              isAllowingExitRef.current = true;
+              navigate(quiz?.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/assignments");
+            }}
+            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 cursor-pointer shadow-sm transition-colors"
+          >
+            Quay lại danh sách bài tập
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!quiz || questionOrder.length === 0) {
     return (
       <div className={styles.loadingContainer}>
@@ -992,6 +1041,27 @@ export default function TakeExam() {
                   );
                 })}
               </div>
+
+              {/* LỜI GIẢI THÍCH CHI TIẾT KHI XEM LẠI BÀI ĐÃ NỘP (TC-STU-14.2) */}
+              {result && (
+                <div className={styles.explanationBox}>
+                  <div className={styles.explanationHeader}>
+                    <div className={styles.explanationIcon}>
+                      <Lightbulb size={18} weight="fill" />
+                    </div>
+                    <span className={styles.explanationTitle}>Lời giải thích chi tiết:</span>
+                  </div>
+                  <div className={styles.explanationBody}>
+                    {currentQ?.explanation ? (
+                      <p className={styles.explanationText}>{currentQ.explanation}</p>
+                    ) : (
+                      <p className={styles.explanationEmpty}>
+                        Chưa có lời giải thích chi tiết cho câu hỏi này từ giáo viên.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* ĐIỀU HƯỚNG CÂU HỎI: ← CÂU TRƯỚC    1 / 5    CÂU TIẾP THEO → (HOẶC HOÀN THÀNH BÀI →) */}
               <div className={styles.navButtons}>

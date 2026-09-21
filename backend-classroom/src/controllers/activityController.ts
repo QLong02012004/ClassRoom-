@@ -123,9 +123,19 @@ export const assignActivity = async (req: Request, res: Response) => {
             if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
         }
 
-        const effectiveTitle = title || bankItem?.title;
-        if (!effectiveTitle || !String(effectiveTitle).trim()) {
+        const effectiveTitle = String(title || bankItem?.title || '').trim();
+        if (!effectiveTitle) {
             return res.status(400).json({ message: 'Vui lòng nhập tiêu đề bài tập!' });
+        }
+
+        // Không cho phép đặt tên bài tập trùng nhau trong cùng một lớp học
+        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const existingActivity = await ClassActivityModel.findOne({
+            classId,
+            title: { $regex: new RegExp(`^${escapeRegex(effectiveTitle)}$`, 'i') }
+        });
+        if (existingActivity) {
+            return res.status(400).json({ message: `Tên bài tập "${effectiveTitle}" đã tồn tại trong lớp học này! Vui lòng chọn tên khác.` });
         }
 
         const isScheduledFuture = startDate && new Date(startDate).getTime() > Date.now();
@@ -135,7 +145,7 @@ export const assignActivity = async (req: Request, res: Response) => {
             classId,
             bankItemId: bankItem ? bankItem._id : undefined,
             type: activityType,
-            title: title || bankItem?.title,
+            title: effectiveTitle,
             description: description !== undefined ? description : (bankItem?.description || ''),
             startDate: startDate ? new Date(startDate) : new Date(),
             dueDate,
@@ -179,6 +189,7 @@ export const assignActivity = async (req: Request, res: Response) => {
             notifyStudentClassroomsUpdate();
         }
 
+        notifySubmissionUpdate({ assignmentId: newActivity._id.toString(), classId });
         notifyAdminStatsUpdate();
         notifyTeacherClassroomsUpdate();
         res.status(201).json(newActivity);
@@ -206,6 +217,28 @@ export const assignActivityToMultipleClasses = async (req: Request, res: Respons
         const bankItem = await BankItemModel.findById(bankItemId);
         if (!bankItem) return res.status(404).json({ message: 'Không tìm thấy đề trong ngân hàng' });
 
+        const effectiveTitle = String(title || bankItem.title || '').trim();
+        if (!effectiveTitle) {
+            return res.status(400).json({ message: 'Vui lòng nhập tiêu đề bài tập!' });
+        }
+
+        const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        // Kiểm tra xem tên bài tập có bị trùng trong bất kỳ lớp nào trong danh sách được chọn hay không
+        for (const classId of classIds) {
+            const existingInClass = await ClassActivityModel.findOne({
+                classId,
+                title: { $regex: new RegExp(`^${escapeRegex(effectiveTitle)}$`, 'i') }
+            });
+            if (existingInClass) {
+                const cls = await ClassModel.findById(classId).lean();
+                const className = cls ? cls.name : 'lớp đã chọn';
+                return res.status(400).json({
+                    message: `Tên bài tập "${effectiveTitle}" đã tồn tại trong lớp "${className}"! Vui lòng chọn tên khác.`
+                });
+            }
+        }
+
         const isScheduledFuture = startDate && new Date(startDate).getTime() > Date.now();
 
         const createdActivities = [];
@@ -215,7 +248,7 @@ export const assignActivityToMultipleClasses = async (req: Request, res: Respons
                 classId,
                 bankItemId,
                 type: bankItem.type,
-                title: title || bankItem.title,
+                title: effectiveTitle,
                 description: description !== undefined ? description : bankItem.description,
                 startDate: startDate ? new Date(startDate) : new Date(),
                 dueDate,
@@ -261,6 +294,9 @@ export const assignActivityToMultipleClasses = async (req: Request, res: Respons
 
         notifyAdminStatsUpdate();
         notifyTeacherClassroomsUpdate();
+        for (const act of createdActivities) {
+            notifySubmissionUpdate({ assignmentId: act._id.toString(), classId: act.classId?.toString() });
+        }
         if (!isScheduledFuture) {
             notifyStudentClassroomsUpdate();
         }
@@ -275,66 +311,49 @@ export const assignActivityToMultipleClasses = async (req: Request, res: Respons
     }
 };
 
-// Lấy danh sách hoạt động của 1 lớp
-export const getClassActivities = async (req: Request, res: Response) => {
+// Lấy danh sách hoạt động của một lớp
+export const getClassActivities = async (req: Request, res: Response): Promise<any> => {
     try {
         const classId = req.params.classId as string;
-        const userRole = (req as any).user?.role;
-        const filterQuery: any = { classId };
+        const { type } = req.query;
 
-        if (userRole === 'student') {
-            filterQuery.$or = [
-                { startDate: { $exists: false } },
-                { startDate: null },
-                { startDate: { $lte: new Date() } }
-            ];
-        }
+        if (!classId) return res.status(400).json({ message: 'Thiếu ID lớp học' });
+
+        const filterQuery: any = { classId };
+        if (type) filterQuery.type = type;
 
         const activities = await ClassActivityModel.find(filterQuery)
             .populate('bankItemId')
             .sort({ createdAt: -1 })
             .lean();
 
-        const enrichedActivities = await Promise.all(
-            activities.map(async (act: any) => {
-                let submissionCount = 0;
-                let gradedCount = 0;
-                let pendingGradeCount = 0;
+        // Đếm số lượng bài nộp cho từng hoạt động
+        const activityIds = activities.map(a => a._id);
+        const submissions = await SubmissionModel.find({ assignmentId: { $in: activityIds } }).lean();
+        const grades = await GradeModel.find({ assignmentId: { $in: activityIds } }).lean();
 
-                if (act.type === 'quiz') {
-                    submissionCount = await QuizResultModel.countDocuments({ quizId: act._id });
-                    gradedCount = submissionCount;
-                    pendingGradeCount = 0;
-                } else {
-                    const submissions = await SubmissionModel.find({
-                        assignmentId: act._id,
-                        status: { $in: [SubmissionStatus.SUBMITTED, SubmissionStatus.LATE, 'submitted', 'late', 'graded'] as any[] }
-                    }).select('studentId status').lean();
+        const enrichedActivities = activities.map((act: any) => {
+            const actSubmissions = submissions.filter(s => s.assignmentId.toString() === act._id.toString());
+            const actGrades = grades.filter(g => g.assignmentId.toString() === act._id.toString());
+            const submissionCount = actSubmissions.length;
+            const gradedCount = actGrades.length;
+            const pendingGradeCount = Math.max(0, submissionCount - gradedCount);
 
-                    submissionCount = submissions.length;
+            const questionCount = (act.bankItemId as any)?.quizQuestions?.length || act.questions?.length || 0;
 
-                    const grades = await GradeModel.find({ assignmentId: act._id }).select('studentId').lean();
-                    gradedCount = grades.length;
+            return {
+                ...act,
+                submissionCount,
+                gradedCount,
+                pendingGradeCount,
+                questionCount,
+                maxScore: Math.round((act.maxScore || 10) * 100) / 100
+            };
+        });
 
-                    pendingGradeCount = Math.max(0, submissionCount - gradedCount);
-                }
-
-                const questionCount = act.bankItemId?.quizQuestions?.length || (Array.isArray(act.questions) ? act.questions.length : 0);
-
-                return {
-                    ...act,
-                    questionCount,
-                    maxScore: Math.round((act.maxScore || 10) * 100) / 100,
-                    submissionCount,
-                    gradedCount,
-                    pendingGradeCount
-                };
-            })
-        );
-
-        res.json(enrichedActivities);
+        res.status(200).json({ data: enrichedActivities });
     } catch (error) {
-        res.status(500).json({ message: 'Lỗi khi lấy danh sách hoạt động', error });
+        res.status(500).json({ message: 'Lỗi khi lấy danh sách hoạt động của lớp', error });
     }
 };
 
@@ -363,6 +382,26 @@ export const updateActivity = async (req: Request, res: Response) => {
         const { id } = req.params;
         const updateData = req.body;
 
+        const currentActivity = await ClassActivityModel.findById(id);
+        if (!currentActivity) return res.status(404).json({ message: 'Không tìm thấy bài tập' });
+
+        if (updateData.title !== undefined) {
+            const newTitle = String(updateData.title).trim();
+            if (!newTitle) {
+                return res.status(400).json({ message: 'Tiêu đề không được để trống!' });
+            }
+            const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const duplicateActivity = await ClassActivityModel.findOne({
+                _id: { $ne: id as any },
+                classId: currentActivity.classId,
+                title: { $regex: new RegExp(`^${escapeRegex(newTitle)}$`, 'i') }
+            });
+            if (duplicateActivity) {
+                return res.status(400).json({ message: `Tên bài tập "${newTitle}" đã tồn tại trong lớp học này! Vui lòng chọn tên khác.` });
+            }
+            updateData.title = newTitle;
+        }
+
         if (updateData.dueDate) {
             const dueTime = new Date(updateData.dueDate).getTime();
             if (!isNaN(dueTime) && dueTime < Date.now() - 60000) {
@@ -389,9 +428,8 @@ export const updateActivity = async (req: Request, res: Response) => {
         notifyAdminStatsUpdate();
         notifyTeacherClassroomsUpdate();
         notifyClassroomFeedUpdate(updated.classId?.toString());
-        if (updated.startDate && new Date(updated.startDate).getTime() <= Date.now()) {
-            notifyStudentClassroomsUpdate();
-        }
+        notifyStudentClassroomsUpdate();
+        notifySubmissionUpdate({ assignmentId: updated._id.toString(), classId: updated.classId?.toString() });
         res.json(updated);
     } catch (error) {
         res.status(500).json({ message: 'Lỗi cập nhật bài tập', error });
@@ -405,6 +443,7 @@ export const deleteActivity = async (req: Request, res: Response) => {
         if (deleted) {
             notifyClassroomFeedUpdate(deleted.classId?.toString());
             notifyStudentClassroomsUpdate();
+            notifySubmissionUpdate({ assignmentId: deleted._id.toString(), classId: deleted.classId?.toString() });
         }
         res.json({ message: 'Xóa thành công' });
     } catch (error) {
@@ -551,8 +590,18 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
         // Nếu là bài tập tự luận (homework, periodic, etc.)
         const { submissionText, attachments } = req.body;
 
-        const isLate = new Date(activity.dueDate).getTime() < Date.now();
-        const status = isLate ? SubmissionStatus.LATE : SubmissionStatus.SUBMITTED;
+        // Kiểm tra hạn nộp: từ chối nộp bài nếu đã quá deadline
+        const isPastDeadline = activity.dueDate && new Date(activity.dueDate).getTime() < Date.now();
+        if (isPastDeadline) {
+            const formattedDeadline = new Date(activity.dueDate).toLocaleString('vi-VN');
+            return res.status(403).json({
+                message: `Đã quá hạn nộp bài! Thời hạn kết thúc lúc ${formattedDeadline}. Bạn không thể nộp bài nữa.`
+            });
+        }
+
+        const isLate = false; // Nếu vượt qua check trên thì luôn là đúng hạn
+        const status = SubmissionStatus.SUBMITTED;
+
 
         const existingSubmission = await SubmissionModel.findOne({ assignmentId: activityId, studentId });
 
@@ -589,8 +638,8 @@ export const submitActivity = async (req: Request, res: Response): Promise<any> 
             const cls = await ClassModel.findById(activity.classId).lean();
             if (cls && cls.teacherId) {
                 const studentName = (req as any).user?.name || 'Một học sinh';
-                const notifTitle = isLate ? 'Bài nộp mới (Nộp muộn)' : 'Bài nộp mới từ Học sinh';
-                const notifMsg = `Học sinh <strong>${studentName}</strong> vừa nộp bài <strong>"${activity.title}"</strong> trong lớp <strong>${cls.name}</strong>${isLate ? ' <span style="color:#f59e0b;">(Nộp muộn)</span>' : ''}.`;
+                const notifTitle = 'Bài nộp mới từ Học sinh';
+                const notifMsg = `Học sinh <strong>${studentName}</strong> vừa nộp bài <strong>"${activity.title}"</strong> trong lớp <strong>${cls.name}</strong>.`;
                 await createUserNotification(
                     cls.teacherId.toString(),
                     UserRole.TEACHER,

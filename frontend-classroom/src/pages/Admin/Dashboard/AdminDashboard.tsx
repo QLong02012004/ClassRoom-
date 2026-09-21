@@ -343,7 +343,7 @@ export default function AdminDashboard() {
     fetchStats();
 
     // Kết nối Socket.IO Real-time
-    const backendUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
     const socket = io(backendUrl, {
       withCredentials: true
     });
@@ -352,12 +352,17 @@ export default function AdminDashboard() {
       console.log('⚡ [AdminDashboard] Đã kết nối Socket.IO Real-time!');
     });
 
-    socket.on('admin_stats_update', () => {
-      console.log('🔄 [AdminDashboard] Nhận sự kiện admin_stats_update -> Nạp lại thống kê...');
+    const handleUpdate = () => {
+      console.log('🔄 [AdminDashboard] Nhận sự kiện cập nhật -> Nạp lại thống kê...');
       fetchStats();
-    });
+    };
+
+    socket.on('admin_stats_update', handleUpdate);
+    socket.on('admin_users_update', handleUpdate);
 
     return () => {
+      socket.off('admin_stats_update', handleUpdate);
+      socket.off('admin_users_update', handleUpdate);
       socket.disconnect();
     };
   }, [toast]);

@@ -150,7 +150,7 @@ export function useBankAssign({
         loadAssignments();
       }
     } catch (err: any) {
-      toast.error(err.message || "Giao bài tập thất bại!");
+      toast.error(err.response?.data?.message || err.message || "Giao bài tập thất bại!");
     } finally {
       setIsAssigning(false);
     }

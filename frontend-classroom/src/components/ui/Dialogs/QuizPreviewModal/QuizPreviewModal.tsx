@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, CaretLeft, CaretRight } from "phosphor-react";
+import { X, CaretLeft, CaretRight, Lightbulb } from "phosphor-react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 
 export interface QuizPreviewModalProps {
@@ -12,6 +12,7 @@ export interface QuizPreviewModalProps {
     options: string[];
     correctOptionIndex?: number;
     points?: number;
+    explanation?: string;
   }[];
 }
 
@@ -167,6 +168,27 @@ export default function QuizPreviewModal({
                     );
                   })}
                 </div>
+
+                {quizQuestions[currentPreviewIndex]?.explanation && (
+                  <div style={{
+                    marginTop: "16px",
+                    padding: "12px 16px",
+                    borderRadius: "12px",
+                    backgroundColor: "#f0fdf4",
+                    border: "1.5px solid #bbf7d0",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "#166534", fontWeight: 700, fontSize: "0.85rem" }}>
+                      <Lightbulb size={16} weight="fill" className="text-emerald-600" />
+                      <span>Lời giải thích chi tiết:</span>
+                    </div>
+                    <p style={{ margin: 0, color: "#1e293b", fontSize: "0.85rem", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                      {quizQuestions[currentPreviewIndex].explanation}
+                    </p>
+                  </div>
+                )}
               </>
             ) : (
               <div style={{ textAlign: "center", padding: "40px", color: "#64748b" }}>

@@ -1,6 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { io } from "socket.io-client";
 import { Pagination } from "@heroui/react";
+import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
+
+const removeAccents = (str: string): string => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
 import {
   BookOpen,
   ArrowRight,
@@ -47,8 +58,8 @@ export default function StudentAssignments() {
   }, [activeTab, filterClass, filterType, searchQuery]);
 
   useEffect(() => {
-    const fetchAssignments = async () => {
-      setLoading(true);
+    const fetchAssignments = async (isBackground = false) => {
+      if (!isBackground) setLoading(true);
       try {
         const res = await gradebookService.getStudentAssignments();
         if (res && res.data) {
@@ -64,10 +75,32 @@ export default function StudentAssignments() {
       } catch (err) {
         console.error("Không thể tải danh sách bài tập", err);
       } finally {
-        setLoading(false);
+        if (!isBackground) setLoading(false);
       }
     };
     fetchAssignments();
+
+    // Kết nối Socket.io Realtime để tự động cập nhật bài mới và kết quả chấm điểm
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
+    const socket = io(backendUrl, { withCredentials: true });
+
+    const handleRealtimeUpdate = () => {
+      console.log("⚡ [Socket.io Realtime] Cập nhật bài tập / điểm số học sinh...");
+      fetchAssignments(true);
+    };
+
+    socket.on("submission_update", handleRealtimeUpdate);
+    socket.on("student_classrooms_update", handleRealtimeUpdate);
+    socket.on("classroom_feed_update", handleRealtimeUpdate);
+    socket.on("notification_update", handleRealtimeUpdate);
+
+    return () => {
+      socket.off("submission_update", handleRealtimeUpdate);
+      socket.off("student_classrooms_update", handleRealtimeUpdate);
+      socket.off("classroom_feed_update", handleRealtimeUpdate);
+      socket.off("notification_update", handleRealtimeUpdate);
+      socket.disconnect();
+    };
   }, []);
 
   const getStatus = (assign: any) => {
@@ -117,11 +150,59 @@ export default function StudentAssignments() {
   const classesList = Array.from(new Set(assignments.map(a => a.className))).filter(Boolean);
 
   const filteredAssignments = assignments.filter((a) => {
-    if (searchQuery && !a.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (searchQuery.trim() !== "") {
+      const tokens = removeAccents(searchQuery.toLowerCase().trim()).split(/\s+/).filter(Boolean);
+      if (tokens.length > 0) {
+        const titleNorm = removeAccents((a.title || "").toLowerCase());
+        const classNorm = removeAccents((a.className || "").toLowerCase());
+        const isQuiz = (a.type || "").toLowerCase() === "quiz";
+        const typeText = isQuiz ? "trac nghiem quiz" : "tu luan document essay file";
+        const combined = `${titleNorm} ${classNorm} ${typeText}`;
+        const isMatch = tokens.every(token => combined.includes(token));
+        if (!isMatch) return false;
+      }
+    }
     if (filterClass !== "all" && a.className !== filterClass) return false;
     if (filterType !== "all" && (a.type || "").toLowerCase() !== filterType) return false;
     return true;
   });
+
+  const assignmentSuggestions = useMemo<SearchSuggestionItem[]>(() => {
+    if (!searchQuery.trim()) return [];
+    const tokens = removeAccents(searchQuery.toLowerCase().trim()).split(/\s+/).filter(Boolean);
+    if (tokens.length === 0) return [];
+
+    return assignments
+      .filter((a) => {
+        const titleNorm = removeAccents((a.title || "").toLowerCase());
+        const classNorm = removeAccents((a.className || "").toLowerCase());
+        const isQuiz = (a.type || "").toLowerCase() === "quiz";
+        const typeText = isQuiz ? "trac nghiem quiz" : "tu luan document essay file";
+        const combined = `${titleNorm} ${classNorm} ${typeText}`;
+        return tokens.every(token => combined.includes(token));
+      })
+      .slice(0, 6)
+      .map((a) => {
+        const isQuiz = (a.type || "").toLowerCase() === "quiz";
+        const typeLabel = isQuiz ? "Trắc nghiệm" : "Tự luận";
+        const status = getStatus(a);
+        const statusLabelMap: Record<string, string> = {
+          graded: "Đã chấm",
+          submitted: "Đã nộp",
+          late: "Hết hạn",
+          pending: "Chưa nộp"
+        };
+        const tag = statusLabelMap[status] || "Đang mở";
+
+        return {
+          id: a._id,
+          title: a.title,
+          subtitle: `${typeLabel}${a.className ? ` • ${a.className}` : ""}`,
+          tag,
+          rawData: a,
+        };
+      });
+  }, [assignments, searchQuery]);
 
   const pending = filteredAssignments.filter((a) => getStatus(a) === "pending");
   const late = filteredAssignments.filter((a) => getStatus(a) === "late");
@@ -239,7 +320,7 @@ export default function StudentAssignments() {
           </div>
 
           <PrimaryButton
-            variant={isDone ? "outline" : "default"}
+            variant={isDone || status === "late" ? "outline" : "default"}
             size="sm"
             className="!text-xs font-extrabold ml-auto"
             onClick={(e) => {
@@ -250,6 +331,10 @@ export default function StudentAssignments() {
             {status === "graded" ? (
               <>
                 Xem kết quả <ArrowRight size={13} weight="bold" />
+              </>
+            ) : status === "late" ? (
+              <>
+                Xem chi tiết <ArrowRight size={13} weight="bold" />
               </>
             ) : (
               <>
@@ -383,13 +468,22 @@ export default function StudentAssignments() {
 
       {/* Advanced Filter Toolbar */}
       <div className={styles.filterBar}>
-        <div className={styles.searchInput + " tour-step-search"}>
-          <MagnifyingGlass size={16} className="text-slate-400" />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên bài tập..."
+        <div className="w-full sm:w-72 md:w-80 tour-step-search">
+          <SmartSearchBar
+            placeholder="Tìm kiếm bài tập, đề thi... (Ấn /)"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={setSearchQuery}
+            suggestions={assignmentSuggestions}
+            onSelectSuggestion={(item) => {
+              setFilterClass("all");
+              setFilterType("all");
+              setStatusFilter("all");
+              setSearchQuery(item.title);
+            }}
+            recentSearchesKey="studentAllAssignmentsSearches"
+            enableShortcut={true}
+            widthClass="w-full"
+            inputClassName="w-full h-9 pl-9 pr-8 bg-white border border-slate-200/80 hover:border-slate-300 focus:border-[#f47c20] focus:ring-1 focus:ring-[#f47c20] transition-colors rounded-xl outline-none text-slate-700 placeholder:text-slate-400/80 text-xs font-medium shadow-2xs"
           />
         </div>
 

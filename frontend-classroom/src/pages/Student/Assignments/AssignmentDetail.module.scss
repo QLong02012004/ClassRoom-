@@ -672,20 +672,29 @@
 }
 
 .resubmitBtn {
-  background: mix(white, vars.$secondary, 90%);
-  color: vars.$secondary;
-  border: 1px solid mix(white, vars.$secondary, 75%);
-  border-radius: 10px;
-  padding: 8px 16px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: mix(white, vars.$primary, 90%);
+  color: vars.$primary;
+  border: 1.5px dashed mix(white, vars.$primary, 60%);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 700;
   cursor: pointer;
   transition: vars.$transition-fast;
   margin-top: 8px;
 
   &:hover {
-    background: vars.$secondary;
+    background: vars.$primary;
     color: white;
+    border-style: solid;
+    border-color: vars.$primary;
+    box-shadow: 0 4px 12px rgba(244, 124, 32, 0.25);
+    transform: translateY(-1px);
   }
 }
 
@@ -994,3 +1003,283 @@
     transform: rotate(360deg);
   }
 }
+
+/* --- SUBMISSION HISTORY CARD --- */
+.historyCard {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid vars.$sidebar-border;
+  box-shadow: vars.$shadow-sm;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeIn 0.3s ease;
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.historyTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.historyIconBox {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #f0fdfa;
+  border: 1px solid #ccfbf1;
+  color: #0d9488;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.historyTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: vars.$dark-text;
+  margin: 0;
+}
+
+.historySubtitle {
+  font-size: 0.78rem;
+  color: vars.$text-sub;
+  margin: 2px 0 0 0;
+}
+
+.historyCountBadge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #0d9488;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  padding: 4px 11px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.historyTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.historyItem {
+  display: flex;
+  gap: 16px;
+  position: relative;
+
+  &:last-child {
+    .timelineLine {
+      display: none;
+    }
+
+    .historyContentBox {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.timelineNode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.nodeDotActive {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #10b981;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px #d1fae5;
+  z-index: 2;
+}
+
+.nodeDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  border: 3px solid white;
+  box-shadow: 0 0 0 2px #e2e8f0;
+  margin-top: 5px;
+  z-index: 2;
+}
+
+.timelineLine {
+  flex: 1;
+  width: 2px;
+  background: #e2e8f0;
+  margin: 4px 0;
+  min-height: 28px;
+}
+
+.historyContentBox {
+  flex: 1;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #e2e8f0;
+    background: #f1f5f9;
+  }
+}
+
+.historyItemActive {
+  .historyContentBox {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+
+    &:hover {
+      background: #ecfdf5;
+      border-color: #86efac;
+    }
+  }
+}
+
+.historyItemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.historyAttemptTagActive {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  padding: 3px 9px;
+  border-radius: 8px;
+}
+
+.historyAttemptTag {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  padding: 3px 9px;
+  border-radius: 8px;
+}
+
+.historyRelativeTime {
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.historyDateTime {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
+
+  svg {
+    color: #94a3b8;
+  }
+}
+
+.historyNoteText {
+  font-size: 0.82rem;
+  color: #334155;
+  background: white;
+  border-left: 3px solid #0d9488;
+  padding: 6px 10px;
+  border-radius: 0 8px 8px 0;
+  margin: 2px 0 0 0;
+  font-style: italic;
+  word-break: break-word;
+}
+
+.historyFilesList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.historyFilePill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  color: #1e293b;
+  text-decoration: none;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #0d9488;
+    background: #f0fdfa;
+    color: #0d9488;
+    transform: translateX(2px);
+
+    .historyFileIcon {
+      color: #0d9488;
+    }
+  }
+}
+
+.historyFileName {
+  flex: 1;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historyFileSize {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.historyFileIcon {
+  color: #94a3b8;
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+

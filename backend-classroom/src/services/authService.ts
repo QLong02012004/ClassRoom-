@@ -326,7 +326,19 @@ export const googleAuthService = async (
         };
     }
 
-    // 2. Nếu User chưa tồn tại -> Tự động đăng ký mới bằng Email Google thật
+    // 2. Nếu User chưa tồn tại và chưa chọn vai trò -> Yêu cầu Frontend hiển thị popup chọn role
+    if (!requestedRole) {
+        return {
+            requiresRoleSelection: true,
+            googleInfo: {
+                name,
+                email,
+                avatar
+            }
+        };
+    }
+
+    // 3. Nếu User chưa tồn tại và ĐÃ CÓ requestedRole -> Tự động đăng ký mới bằng Email Google thật
     const targetRole = requestedRole === 'teacher' ? UserRole.TEACHER : UserRole.STUDENT;
     const initialStatus = targetRole === UserRole.TEACHER ? UserStatus.PENDING : UserStatus.ACTIVE;
     const randomPassword = Math.random().toString(36).slice(-10) + 'Gg@2026';

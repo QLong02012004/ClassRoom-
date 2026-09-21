@@ -81,6 +81,8 @@ export const updateUserStatus = async (req: AuthRequest, res: Response, next: Ne
             return next(new Error('Không tìm thấy người dùng'));
         }
 
+        notifyAdminStatsUpdate();
+
         res.status(200).json({
             message: `Cập nhật trạng thái thành ${status} thành công`,
             data: user

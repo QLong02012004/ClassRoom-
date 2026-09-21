@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X, Question, FloppyDisk } from "phosphor-react";
+import { DotsSixVertical, Image, Trash, Eye, CaretLeft, CaretRight, X, Question, FloppyDisk, Lightbulb } from "phosphor-react";
 import { useToast } from "../../../Styles/ToastContext";
 import NumberStepper from "../../FormControls/NumberStepper";
 import Checkbox from "../../FormControls/Checkbox/Checkbox";
@@ -44,7 +44,8 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     imageUrl?: string;
     optionImages?: string[];
     points?: number;
-  }>>([{ questionText: "", options: ["", "", "", ""], correctOptionIndex: -1, points: 1 }]);
+    explanation?: string;
+  }>>([{ questionText: "", options: ["", "", "", ""], correctOptionIndex: -1, points: 1, explanation: "" }]);
 
   const [expandedQuestionIndex, setExpandedQuestionIndex] = useState<number | null>(0);
   const [errorQuestionIndex, setErrorQuestionIndex] = useState<number | null>(null);
@@ -80,6 +81,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
             : ["", "", "", ""],
           correctOptionIndex: typeof q.correctOptionIndex === 'number' ? q.correctOptionIndex : 0,
           points: typeof q.points === 'number' ? q.points : 1,
+          explanation: String(q.explanation || "")
         }));
         setQuizQuestions(sanitized);
       }
@@ -336,7 +338,7 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
     const newIndex = quizQuestions.length;
     setQuizQuestions([
       ...quizQuestions,
-      { questionText: "", options: ["", "", "", ""], correctOptionIndex: -1, points: 1 }
+      { questionText: "", options: ["", "", "", ""], correctOptionIndex: -1, points: 1, explanation: "" }
     ]);
     scrollToQuestion(newIndex);
   };
@@ -352,6 +354,12 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
   const handleQuestionTextChange = (index: number, val: string) => {
     const updated = [...quizQuestions];
     updated[index].questionText = val;
+    setQuizQuestions(updated);
+  };
+
+  const handleExplanationChange = (index: number, val: string) => {
+    const updated = [...quizQuestions];
+    updated[index].explanation = val;
     setQuizQuestions(updated);
   };
 
@@ -653,6 +661,21 @@ export default function QuizBuilder({ initialData, onSubmit, onCancel, isSaving 
                         ))}
                       </div>
                       <button type="button" className={styles.btnAddOption} onClick={() => handleAddOption(qIndex)}>+ Thêm phương án</button>
+
+                      <div className={styles.formGroup} style={{ marginTop: '16px' }}>
+                        <label htmlFor={`q-${qIndex}-explanation`} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 700, color: '#475569', marginBottom: '6px' }}>
+                          <Lightbulb size={16} weight="fill" className="text-amber-500" />
+                          <span>Lời giải thích chi tiết / Hướng dẫn giải (Tùy chọn)</span>
+                        </label>
+                        <textarea
+                          id={`q-${qIndex}-explanation`}
+                          placeholder="Nhập giải thích vì sao chọn đáp án đúng này, các bước giải toán, kiến thức cần nhớ..."
+                          value={q.explanation || ""}
+                          onChange={(e) => handleExplanationChange(qIndex, e.target.value)}
+                          rows={2}
+                          style={{ fontSize: '0.88rem' }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>

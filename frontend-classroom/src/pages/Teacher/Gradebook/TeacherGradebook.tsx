@@ -348,7 +348,7 @@ export default function TeacherGradebook() {
             studentId: studentIdStr as any,
             score: scoreNum,
             feedback: currentGrade.feedback || "",
-            gradedAt: new Date()
+            gradedAt: new Date().toISOString()
           }
         ];
       });
@@ -527,7 +527,7 @@ export default function TeacherGradebook() {
   useEffect(() => {
     loadGradebook();
 
-    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
     const socket = io(backendUrl, { withCredentials: true });
 
     socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
@@ -770,6 +770,15 @@ export default function TeacherGradebook() {
       return;
     }
 
+    const trimmedTitle = newTitle.trim();
+    const isDuplicate = assignments.some(
+      a => a.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
+    );
+    if (isDuplicate) {
+      toast.error(`Tên bài tập "${trimmedTitle}" đã tồn tại trong lớp học này! Vui lòng chọn tên khác.`);
+      return;
+    }
+
     if (newDueDate) {
       const selectedTime = new Date(newDueDate).getTime();
       if (!isNaN(selectedTime) && selectedTime < Date.now() - 60000) {
@@ -782,7 +791,7 @@ export default function TeacherGradebook() {
     try {
       await gradebookService.createAssignment({
         classId: selectedClassId,
-        title: newTitle,
+        title: trimmedTitle,
         dueDate: newDueDate,
         maxScore: newMaxScore,
         description: newDescription,
@@ -797,8 +806,8 @@ export default function TeacherGradebook() {
       setNewCategory("homework");
       // Reload danh sách
       loadGradebook();
-    } catch {
-      toast.error("Giao bài tập thất bại!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Giao bài tập thất bại!");
     } finally {
       setCreatingTask(false);
     }
@@ -829,6 +838,20 @@ export default function TeacherGradebook() {
     e.preventDefault();
     if (!selectedAssignmentForEdit) return;
 
+    const trimmedTitle = editTitle.trim();
+    if (!trimmedTitle) {
+      toast.error("Tiêu đề bài tập không được để trống!");
+      return;
+    }
+
+    const isDuplicate = assignments.some(
+      a => a._id !== selectedAssignmentForEdit._id && a.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
+    );
+    if (isDuplicate) {
+      toast.error(`Tên bài tập "${trimmedTitle}" đã tồn tại trong lớp học này! Vui lòng chọn tên khác.`);
+      return;
+    }
+
     const finalCategory = editCategory === "custom" ? editCustomCategory : editCategory;
     if (editCategory === "custom" && !editCustomCategory.trim()) {
       toast.error("Vui lòng nhập tên phân loại bài tập tùy chỉnh!");
@@ -846,7 +869,7 @@ export default function TeacherGradebook() {
     setUpdatingAssignment(true);
     try {
       await activityService.updateActivity(selectedAssignmentForEdit._id, {
-        title: editTitle,
+        title: trimmedTitle,
         dueDate: editDueDate,
         maxScore: editMaxScore,
         category: finalCategory,
@@ -855,8 +878,8 @@ export default function TeacherGradebook() {
       toast.success("Cập nhật bài tập thành công!");
       setSelectedAssignmentForEdit(null);
       loadGradebook();
-    } catch {
-      toast.error("Cập nhật bài tập thất bại!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Cập nhật bài tập thất bại!");
     } finally {
       setUpdatingAssignment(false);
     }

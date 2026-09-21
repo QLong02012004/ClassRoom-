@@ -66,9 +66,14 @@ export const getIO = () => {
 
 export const notifyAdminStatsUpdate = () => {
   if (io) {
-    console.log('📡 [Socket.io] Phát tín hiệu admin_stats_update...');
+    console.log('📡 [Socket.io] Phát tín hiệu admin_stats_update & admin_users_update...');
     io.emit('admin_stats_update');
+    io.emit('admin_users_update');
   }
+};
+
+export const notifyAdminUsersUpdate = () => {
+  notifyAdminStatsUpdate();
 };
 
 export const notifyTeacherClassroomsUpdate = (teacherId?: string) => {

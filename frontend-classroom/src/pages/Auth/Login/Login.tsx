@@ -7,6 +7,7 @@ import { authService } from "../../../service/auth.service.ts";
 import { motion } from 'framer-motion';
 import AuthBanner from "../components/AuthBanner";
 import AuthForm from "../../../components/ui/AuthForm/AuthForm";
+import GoogleRoleSelectModal from "../../../components/ui/Dialogs/GoogleRoleSelectModal";
 import styles from "./Login.module.scss";
 
 const Login: React.FC = () => {
@@ -25,6 +26,12 @@ const Login: React.FC = () => {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const otpInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+
+  // Google Role Select Modal State (cho người dùng đăng ký Google lần đầu)
+  const [showGoogleRoleModal, setShowGoogleRoleModal] = useState(false);
+  const [googlePendingCredential, setGooglePendingCredential] = useState("");
+  const [googleUserInfo, setGoogleUserInfo] = useState<{ name: string; email: string; avatar?: string } | null>(null);
+  const [googleRoleLoading, setGoogleRoleLoading] = useState(false);
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
@@ -243,9 +250,21 @@ const Login: React.FC = () => {
   };
 
   const handleGoogleLogin = async (data: { credential: string; role?: string; subject?: string }) => {
+    console.log("🚀 [Frontend handleGoogleLogin] Gửi yêu cầu đăng nhập Google:", { role: data.role, hasCredential: !!data.credential });
     setLoading(true);
     try {
       const response = await authService.loginWithGoogle(data);
+      console.log("📥 [Frontend handleGoogleLogin] Kết quả từ API:", response);
+
+      // Nếu là tài khoản Google mới chưa có vai trò -> Hiển thị Modal chọn Học sinh / Giáo viên
+      if (response?.requiresRoleSelection) {
+        console.log("✨ [Frontend handleGoogleLogin] Cần chọn vai trò -> Mở Modal Role Selection!");
+        setGooglePendingCredential(data.credential);
+        setGoogleUserInfo(response.googleInfo || null);
+        setShowGoogleRoleModal(true);
+        setLoading(false);
+        return;
+      }
 
       if (response?.isPending) {
         toast.success(response.message || "Đăng ký Giáo viên qua Google thành công! Vui lòng chờ BGH phê duyệt.", 5000);
@@ -270,6 +289,21 @@ const Login: React.FC = () => {
       toast.error(err.message || "Xác thực Google thất bại, vui lòng thử lại!");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmGoogleRole = async (role: "student" | "teacher", subject?: string) => {
+    if (!googlePendingCredential) return;
+    setGoogleRoleLoading(true);
+    try {
+      await handleGoogleLogin({
+        credential: googlePendingCredential,
+        role,
+        subject
+      });
+      setShowGoogleRoleModal(false);
+    } finally {
+      setGoogleRoleLoading(false);
     }
   };
 
@@ -416,6 +450,15 @@ const Login: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* POPUP CHỌN VAI TRÒ (HỌC SINH / GIÁO VIÊN) KHI ĐĂNG KÝ BẰNG GOOGLE LẦN ĐẦU */}
+      <GoogleRoleSelectModal
+        isOpen={showGoogleRoleModal}
+        onClose={() => setShowGoogleRoleModal(false)}
+        googleUser={googleUserInfo}
+        onConfirm={handleConfirmGoogleRole}
+        isLoading={googleRoleLoading || loading}
+      />
     </>
   );
 };

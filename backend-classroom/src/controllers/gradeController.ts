@@ -28,7 +28,7 @@ import { SubmissionModel } from '../models/Submission';
 import { QuizResultModel } from '../models/QuizResult';
 import { SubmissionStatus, UserRole, NotificationType } from '../constants/enums';
 import { createUserNotification } from '../services/notificationService';
-import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate } from '../socket';
+import { notifyAdminStatsUpdate, notifySubmissionUpdate, notifyTeacherClassroomsUpdate, notifyStudentClassroomsUpdate, notifyClassroomFeedUpdate } from '../socket';
 
 // Lấy danh sách bảng điểm của một lớp
 export const getClassroomGrades = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -231,10 +231,12 @@ export const saveGrades = async (req: Request, res: Response, next: NextFunction
             }
         }
 
-        // Phát tín hiệu Real-time cho Admin Dashboard & Giáo viên/Học sinh
+        // Phát tín hiệu Real-time cho Admin Dashboard, Giáo viên & Học sinh
         notifyAdminStatsUpdate();
         notifySubmissionUpdate({ assignmentId: String(assignmentId), classId: assignment.classId.toString() });
         notifyTeacherClassroomsUpdate(teacherId);
+        notifyStudentClassroomsUpdate();
+        notifyClassroomFeedUpdate(assignment.classId.toString());
 
         res.status(200).json({
             message: 'Cập nhật điểm số thành công'

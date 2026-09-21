@@ -124,7 +124,7 @@ export default function TeacherAssignments() {
   useEffect(() => {
     loadData();
 
-    const backendUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
     const socket = io(backendUrl, { withCredentials: true });
 
     socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
@@ -154,6 +154,15 @@ export default function TeacherAssignments() {
       return;
     }
 
+    const trimmedTitle = title.trim();
+    const isDuplicate = assignments.some(
+      a => a.classId === selectedClassId && a.title.trim().toLowerCase() === trimmedTitle.toLowerCase()
+    );
+    if (isDuplicate) {
+      toast.error(`Tên bài tập "${trimmedTitle}" đã tồn tại trong lớp học này! Vui lòng chọn tên khác.`);
+      return;
+    }
+
     if (deadline) {
       const selectedTime = new Date(deadline).getTime();
       if (!isNaN(selectedTime) && selectedTime < Date.now() - 60000) {
@@ -172,7 +181,7 @@ export default function TeacherAssignments() {
     try {
       await gradebookService.createAssignment({
         classId: selectedClassId,
-        title,
+        title: trimmedTitle,
         dueDate: deadline,
         maxScore,
         category: finalCategory,
@@ -188,8 +197,8 @@ export default function TeacherAssignments() {
       setDescription("");
       setAllowMultipleSubmissions(true);
       loadData();
-    } catch {
-      toast.error("Tạo bài tập thất bại!");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || "Tạo bài tập thất bại!");
     } finally {
       setCreating(false);
     }

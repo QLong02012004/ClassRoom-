@@ -31,6 +31,12 @@ const app: Application = express();
 
 connectDB();
 
+// 0. Security Headers cho Google OAuth Popup (COOP)
+app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    next();
+});
+
 // 1. CORS — phải nằm trước tất cả middleware khác
 app.use(cors({
     origin: (origin, callback) => {

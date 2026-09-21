@@ -83,7 +83,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
     if (isGoogleSdkLoaded && (window as any).google?.accounts?.id) {
       (window as any).google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "374440336134-v4gcigg4nl0uqmg492htjrg7jf6240ie.apps.googleusercontent.com",
+        use_fedcm_for_prompt: true,
+        auto_select: false,
         callback: (response: any) => {
+          console.log("🔑 [Google Auth Callback] Response:", response);
           const current = googleCallbackRef.current;
           if (response.credential && current?.onGoogleLogin) {
             const role = current.isFlipped ? current.registerRole : undefined;
@@ -163,7 +166,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onRegister, onGoogleLogin,
     if ((window as any).google?.accounts?.id) {
       (window as any).google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || "374440336134-v4gcigg4nl0uqmg492htjrg7jf6240ie.apps.googleusercontent.com",
+        use_fedcm_for_prompt: true,
+        auto_select: false,
         callback: (response: any) => {
+          console.log("🔑 [Google Auth Fallback] Response:", response);
           if (response.credential && onGoogleLogin) {
             onGoogleLogin({
               credential: response.credential,
