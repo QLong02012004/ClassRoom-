@@ -18,6 +18,8 @@ import {
   ChartLineUp,
   TrendUp,
   BookOpen,
+  Users,
+  Sparkle,
 } from "phosphor-react";
 import {
   DropdownMenu,
@@ -807,109 +809,164 @@ export default function TeacherAttendance() {
           Hiển thị tỷ lệ Có mặt, Đi muộn, Vắng mặt dạng phần trăm và biểu đồ phân bổ
          ========================================================================= */}
       {!loadingStudents && students.length > 0 && selectedClass && (
-        <section className="bg-white rounded-2xl border border-slate-200 p-5 md:p-6 shadow-sm flex flex-col gap-5 animate-in fade-in duration-300">
+        <section className="relative overflow-hidden bg-white/95 backdrop-blur-xl rounded-3xl border border-slate-200/80 p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col gap-6 animate-in fade-in duration-300">
+          {/* Ambient Decorative Blurs */}
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-orange-100/40 via-amber-50/20 to-transparent rounded-full blur-3xl pointer-events-none -z-0" />
+          <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-gradient-to-tr from-emerald-100/30 via-teal-50/20 to-transparent rounded-full blur-3xl pointer-events-none -z-0" />
+
           {/* Header của bảng thống kê */}
-          <div className="flex items-center justify-between flex-wrap gap-3 pb-3 border-b border-slate-100">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold">
-                <ChartPieSlice size={20} weight="duotone" />
+          <div className="relative z-10 flex items-start sm:items-center justify-between flex-wrap gap-4 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-orange-500 via-amber-500 to-yellow-500 text-white flex items-center justify-center font-bold shadow-lg shadow-orange-500/20 ring-4 ring-orange-100/70 shrink-0">
+                <ChartPieSlice size={24} weight="duotone" />
               </div>
               <div>
-                <h3 className="text-base font-extrabold text-slate-800 m-0">
-                  Bảng thống kê tỷ lệ chuyên cần cả lớp (Stats View)
-                </h3>
-                <p className="text-xs text-slate-500 m-0 mt-0.5">
-                  Lớp: <strong className="text-slate-700">{selectedClass.name}</strong> • Ngày điểm danh: <strong className="text-slate-700">{formatDateVN(selectedDate)}</strong> • Sĩ số: <strong className="text-slate-700">{totalStudents}</strong> học sinh
-                </p>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-lg md:text-xl font-black text-slate-800 tracking-tight m-0">
+                    Bảng thống kê tỷ lệ chuyên cần cả lớp
+                  </h3>
+                  <span className="text-[11px] font-extrabold text-orange-600 bg-orange-50 border border-orange-200/80 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                    Stats View
+                  </span>
+                </div>
+                <div className="flex items-center flex-wrap gap-2 text-xs text-slate-500 mt-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-slate-700 font-semibold border border-slate-200/80 shadow-2xs">
+                    <BookOpen size={13} weight="bold" className="text-orange-500" />
+                    Lớp: <strong className="text-slate-800">{selectedClass.name}</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-slate-700 font-semibold border border-slate-200/80 shadow-2xs">
+                    <CalendarBlank size={13} weight="bold" className="text-blue-500" />
+                    Ngày: <strong className="text-slate-800">{formatDateVN(selectedDate)}</strong>
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100/90 text-slate-700 font-semibold border border-slate-200/80 shadow-2xs">
+                    <Users size={13} weight="bold" className="text-emerald-600" />
+                    Sĩ số: <strong className="text-slate-800 font-mono">{totalStudents}</strong> HS
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Đánh giá ngày này:</span>
-              <span className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
+            {/* Đánh giá ngày này */}
+            <div className="flex items-center gap-2.5 self-start sm:self-center">
+              <span className="text-xs font-bold text-slate-400 hidden sm:inline">Đánh giá ngày:</span>
+              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border shadow-sm transition-all ${
                 presentPercent >= 90
-                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                  ? "bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/70 text-emerald-800 border-emerald-300/80 shadow-emerald-500/10"
                   : presentPercent >= 75
-                  ? "bg-amber-50 text-amber-700 border-amber-200"
-                  : "bg-rose-50 text-rose-700 border-rose-200"
+                  ? "bg-gradient-to-r from-amber-50 via-orange-50 to-amber-100/70 text-amber-800 border-amber-300/80 shadow-amber-500/10"
+                  : "bg-gradient-to-r from-rose-50 via-red-50 to-rose-100/70 text-rose-800 border-rose-300/80 shadow-rose-500/10"
               }`}>
-                {presentPercent >= 90 ? "🌟 Chuyên cần Xuất sắc" : presentPercent >= 75 ? "👍 Chuyên cần Khá tốt" : "⚠️ Cần nhắc nhở chuyên cần"} ({presentPercent}%)
-              </span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                    presentPercent >= 90 ? "bg-emerald-400" : presentPercent >= 75 ? "bg-amber-400" : "bg-rose-400"
+                  }`} />
+                  <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                    presentPercent >= 90 ? "bg-emerald-500" : presentPercent >= 75 ? "bg-amber-500" : "bg-rose-500"
+                  }`} />
+                </span>
+                <span className="text-xs font-black tracking-tight">
+                  {presentPercent >= 90 ? "Chuyên cần Xuất sắc" : presentPercent >= 75 ? "Chuyên cần Khá tốt" : "Cần lưu ý chuyên cần"}
+                </span>
+                <span className={`text-xs font-mono font-black px-2 py-0.5 rounded-md border ${
+                  presentPercent >= 90
+                    ? "bg-white text-emerald-700 border-emerald-200"
+                    : presentPercent >= 75
+                    ? "bg-white text-amber-700 border-amber-200"
+                    : "bg-white text-rose-700 border-rose-200"
+                }`}>
+                  {presentPercent}%
+                </span>
+              </div>
             </div>
           </div>
 
           {/* 3 Thẻ tỷ lệ phần trăm trực quan */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Thẻ 1: Có mặt */}
-            <div className="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CheckCircle size={18} weight="fill" className="text-emerald-600" />
-                  <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Tỷ lệ Có mặt</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/30 border border-emerald-200/80 hover:border-emerald-300 rounded-2xl p-5 shadow-xs hover:shadow-lg hover:shadow-emerald-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between gap-4 group">
+              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-emerald-100/50 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold shadow-xs">
+                      <CheckCircle size={20} weight="fill" />
+                    </div>
+                    <span className="text-xs font-black text-emerald-900 uppercase tracking-wider">Tỷ lệ Có mặt</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-emerald-800 bg-emerald-100/90 border border-emerald-200/90 px-2.5 py-1 rounded-lg font-mono shadow-2xs">
+                    {presentCount}/{totalStudents} HS
+                  </span>
                 </div>
-                <span className="text-xs font-extrabold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md font-mono">
-                  {presentCount}/{totalStudents} HS
-                </span>
+                <div className="flex items-baseline gap-2 mt-4">
+                  <span className="text-3xl sm:text-4xl font-black text-emerald-700 font-mono tracking-tight">
+                    {presentPercent}%
+                  </span>
+                  <span className="text-xs text-emerald-600 font-medium">học sinh tham gia đầy đủ</span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-3xl font-extrabold text-emerald-700 font-mono tracking-tight">
-                  {presentPercent}%
-                </span>
-                <span className="text-xs text-emerald-600 font-medium">học sinh tham gia đầy đủ</span>
-              </div>
-              <div className="w-full h-2.5 bg-emerald-200/70 rounded-full overflow-hidden mt-1">
+              <div className="w-full h-2.5 bg-emerald-100/80 rounded-full overflow-hidden p-0.5 ring-1 ring-emerald-200/60">
                 <div
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-500 rounded-full transition-all duration-700 ease-out shadow-xs"
                   style={{ width: `${presentPercent}%` }}
                 />
               </div>
             </div>
 
             {/* Thẻ 2: Đi muộn */}
-            <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock size={18} weight="fill" className="text-amber-600" />
-                  <span className="text-xs font-bold text-amber-800 uppercase tracking-wide">Tỷ lệ Đi muộn</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/70 via-white to-orange-50/30 border border-amber-200/80 hover:border-amber-300 rounded-2xl p-5 shadow-xs hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between gap-4 group">
+              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-amber-100/50 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold shadow-xs">
+                      <Clock size={20} weight="fill" />
+                    </div>
+                    <span className="text-xs font-black text-amber-900 uppercase tracking-wider">Tỷ lệ Đi muộn</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-amber-800 bg-amber-100/90 border border-amber-200/90 px-2.5 py-1 rounded-lg font-mono shadow-2xs">
+                    {lateCount}/{totalStudents} HS
+                  </span>
                 </div>
-                <span className="text-xs font-extrabold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-md font-mono">
-                  {lateCount}/{totalStudents} HS
-                </span>
+                <div className="flex items-baseline gap-2 mt-4">
+                  <span className="text-3xl sm:text-4xl font-black text-amber-700 font-mono tracking-tight">
+                    {latePercent}%
+                  </span>
+                  <span className="text-xs text-amber-600 font-medium">học sinh vào lớp chậm</span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-3xl font-extrabold text-amber-700 font-mono tracking-tight">
-                  {latePercent}%
-                </span>
-                <span className="text-xs text-amber-600 font-medium">học sinh vào lớp chậm</span>
-              </div>
-              <div className="w-full h-2.5 bg-amber-200/70 rounded-full overflow-hidden mt-1">
+              <div className="w-full h-2.5 bg-amber-100/80 rounded-full overflow-hidden p-0.5 ring-1 ring-amber-200/60">
                 <div
-                  className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-amber-400 via-orange-400 to-amber-500 rounded-full transition-all duration-700 ease-out shadow-xs"
                   style={{ width: `${latePercent}%` }}
                 />
               </div>
             </div>
 
             {/* Thẻ 3: Vắng mặt */}
-            <div className="bg-rose-50/70 border border-rose-200 rounded-2xl p-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <XCircle size={18} weight="fill" className="text-rose-600" />
-                  <span className="text-xs font-bold text-rose-800 uppercase tracking-wide">Tỷ lệ Vắng mặt</span>
+            <div className="relative overflow-hidden bg-gradient-to-br from-rose-50/70 via-white to-red-50/30 border border-rose-200/80 hover:border-rose-300 rounded-2xl p-5 shadow-xs hover:shadow-lg hover:shadow-rose-500/5 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between gap-4 group">
+              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-rose-100/50 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center font-bold shadow-xs">
+                      <XCircle size={20} weight="fill" />
+                    </div>
+                    <span className="text-xs font-black text-rose-900 uppercase tracking-wider">Tỷ lệ Vắng mặt</span>
+                  </div>
+                  <span className="text-xs font-extrabold text-rose-800 bg-rose-100/90 border border-rose-200/90 px-2.5 py-1 rounded-lg font-mono shadow-2xs">
+                    {absentCount}/{totalStudents} HS
+                  </span>
                 </div>
-                <span className="text-xs font-extrabold text-rose-700 bg-rose-100/80 px-2 py-0.5 rounded-md font-mono">
-                  {absentCount}/{totalStudents} HS
-                </span>
+                <div className="flex items-baseline gap-2 mt-4">
+                  <span className="text-3xl sm:text-4xl font-black text-rose-700 font-mono tracking-tight">
+                    {absentPercent}%
+                  </span>
+                  <span className="text-xs text-rose-600 font-medium">học sinh không tham gia</span>
+                </div>
               </div>
-              <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-3xl font-extrabold text-rose-700 font-mono tracking-tight">
-                  {absentPercent}%
-                </span>
-                <span className="text-xs text-rose-600 font-medium">học sinh không tham gia</span>
-              </div>
-              <div className="w-full h-2.5 bg-rose-200/70 rounded-full overflow-hidden mt-1">
+              <div className="w-full h-2.5 bg-rose-100/80 rounded-full overflow-hidden p-0.5 ring-1 ring-rose-200/60">
                 <div
-                  className="h-full bg-rose-500 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-rose-400 via-red-500 to-rose-600 rounded-full transition-all duration-700 ease-out shadow-xs"
                   style={{ width: `${absentPercent}%` }}
                 />
               </div>
@@ -917,89 +974,122 @@ export default function TeacherAttendance() {
           </div>
 
           {/* Biểu đồ thanh phân bổ 100% tỷ lệ chuyên cần */}
-          <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between text-xs font-bold text-slate-700">
-              <span className="flex items-center gap-1.5">
-                <ChartLineUp size={16} className="text-orange-500" weight="bold" />
+          <div className="relative z-10 bg-slate-50/80 border border-slate-200/80 rounded-2xl p-5 flex flex-col gap-4 shadow-2xs">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-700 flex-wrap gap-2">
+              <span className="flex items-center gap-2 font-black uppercase tracking-wider text-slate-800">
+                <ChartLineUp size={18} className="text-orange-500" weight="bold" />
                 Biểu đồ thanh phân bổ chuyên cần ngày {formatDateVN(selectedDate)}
               </span>
-              <span className="text-[11px] font-semibold text-slate-500">Tổng quy mô: 100%</span>
+              <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200/80 px-2.5 py-0.5 rounded-full shadow-2xs">
+                Tổng quy mô: 100%
+              </span>
             </div>
 
             {/* Segmented Progress Bar */}
-            <div className="w-full h-5 bg-slate-200 rounded-full overflow-hidden flex shadow-inner">
+            <div className="w-full h-6 bg-slate-200/80 rounded-xl overflow-hidden flex p-0.5 gap-0.5 shadow-inner border border-slate-200/60">
               {presentPercent > 0 && (
                 <div
-                  className="bg-emerald-500 h-full flex items-center justify-center text-[10px] text-white font-extrabold transition-all duration-500"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 h-full rounded-lg flex items-center justify-center text-[11px] text-white font-black transition-all duration-700 shadow-xs"
                   style={{ width: `${presentPercent}%` }}
                   title={`Có mặt: ${presentPercent}% (${presentCount} học sinh)`}
                 >
-                  {presentPercent >= 12 ? `${presentPercent}%` : ""}
+                  {presentPercent >= 10 ? `${presentPercent}%` : ""}
                 </div>
               )}
               {latePercent > 0 && (
                 <div
-                  className="bg-amber-500 h-full flex items-center justify-center text-[10px] text-white font-extrabold transition-all duration-500"
+                  className="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-lg flex items-center justify-center text-[11px] text-white font-black transition-all duration-700 shadow-xs"
                   style={{ width: `${latePercent}%` }}
                   title={`Đi muộn: ${latePercent}% (${lateCount} học sinh)`}
                 >
-                  {latePercent >= 12 ? `${latePercent}%` : ""}
+                  {latePercent >= 10 ? `${latePercent}%` : ""}
                 </div>
               )}
               {absentPercent > 0 && (
                 <div
-                  className="bg-rose-500 h-full flex items-center justify-center text-[10px] text-white font-extrabold transition-all duration-500"
+                  className="bg-gradient-to-r from-rose-500 to-red-600 h-full rounded-lg flex items-center justify-center text-[11px] text-white font-black transition-all duration-700 shadow-xs"
                   style={{ width: `${absentPercent}%` }}
                   title={`Vắng mặt: ${absentPercent}% (${absentCount} học sinh)`}
                 >
-                  {absentPercent >= 12 ? `${absentPercent}%` : ""}
+                  {absentPercent >= 10 ? `${absentPercent}%` : ""}
                 </div>
               )}
             </div>
 
             {/* Chú thích chi tiết bên dưới thanh biểu đồ */}
-            <div className="flex items-center justify-between text-xs text-slate-600 flex-wrap gap-3 pt-1">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-xs" />
-                <span>Có mặt: <strong className="text-emerald-700 font-mono">{presentCount} HS ({presentPercent}%)</strong></span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="flex items-center gap-2.5 bg-white border border-emerald-100 px-3.5 py-2 rounded-xl shadow-2xs">
+                <span className="w-3 h-3 rounded-full bg-emerald-500 ring-4 ring-emerald-100 inline-block shrink-0" />
+                <div className="flex-1">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Có mặt</span>
+                  <span className="text-xs font-black text-emerald-700 font-mono">
+                    {presentCount} HS <span className="text-emerald-600/80 font-semibold">({presentPercent}%)</span>
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-amber-500 inline-block shadow-xs" />
-                <span>Đi muộn: <strong className="text-amber-700 font-mono">{lateCount} HS ({latePercent}%)</strong></span>
+              <div className="flex items-center gap-2.5 bg-white border border-amber-100 px-3.5 py-2 rounded-xl shadow-2xs">
+                <span className="w-3 h-3 rounded-full bg-amber-500 ring-4 ring-amber-100 inline-block shrink-0" />
+                <div className="flex-1">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Đi muộn</span>
+                  <span className="text-xs font-black text-amber-700 font-mono">
+                    {lateCount} HS <span className="text-amber-600/80 font-semibold">({latePercent}%)</span>
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-rose-500 inline-block shadow-xs" />
-                <span>Vắng mặt: <strong className="text-rose-700 font-mono">{absentCount} HS ({absentPercent}%)</strong></span>
+              <div className="flex items-center gap-2.5 bg-white border border-rose-100 px-3.5 py-2 rounded-xl shadow-2xs">
+                <span className="w-3 h-3 rounded-full bg-rose-500 ring-4 ring-rose-100 inline-block shrink-0" />
+                <div className="flex-1">
+                  <span className="text-[11px] text-slate-500 font-semibold block">Vắng mặt</span>
+                  <span className="text-xs font-black text-rose-700 font-mono">
+                    {absentCount} HS <span className="text-rose-600/80 font-semibold">({absentPercent}%)</span>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Thống kê tích lũy lịch sử các buổi (nếu có lịch sử) */}
           {historyStats && (
-            <div className="bg-gradient-to-r from-orange-50/60 to-amber-50/40 border border-orange-200/80 rounded-2xl p-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center font-bold shrink-0">
-                  <TrendUp size={22} weight="bold" />
+            <div className="relative overflow-hidden bg-gradient-to-r from-amber-50/80 via-white to-orange-50/60 border border-orange-200/80 rounded-2xl p-5 md:p-6 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 z-10">
+              {/* Subtle Warm Ambient Glow */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-orange-100/60 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-amber-100/50 rounded-full blur-2xl pointer-events-none" />
+
+              {/* Left Details */}
+              <div className="flex items-center gap-3.5 z-10">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-yellow-500 text-white flex items-center justify-center font-bold shadow-md shadow-orange-500/20 ring-4 ring-orange-100/80 shrink-0">
+                  <TrendUp size={24} weight="bold" />
                 </div>
                 <div>
-                  <h4 className="text-xs font-extrabold text-slate-800 m-0 uppercase tracking-wide">
-                    Thống kê chuyên cần tích lũy cả lớp ({historyStats.sessionCount} buổi đã lưu)
-                  </h4>
-                  <p className="text-xs text-slate-600 m-0 mt-0.5">
-                    Tổng: <strong>{historyStats.totalRecords}</strong> lượt điểm danh • Có mặt: <strong className="text-emerald-700">{historyStats.totalPresent}</strong> lượt • Đi muộn: <strong className="text-amber-700">{historyStats.totalLate}</strong> lượt • Vắng: <strong className="text-rose-700">{historyStats.totalAbsent}</strong> lượt
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-xs md:text-sm font-black text-slate-800 m-0 uppercase tracking-wider">
+                      Thống kê chuyên cần tích lũy cả lớp
+                    </h4>
+                    <span className="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-orange-100 text-orange-800 border border-orange-200/80 shadow-2xs">
+                      {historyStats.sessionCount} buổi đã lưu
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 m-0 mt-1.5 flex items-center gap-2 flex-wrap">
+                    <span>Tổng: <strong className="text-slate-900 font-mono">{historyStats.totalRecords}</strong> lượt điểm danh</span>
+                    <span className="text-slate-300">•</span>
+                    <span>Có mặt: <strong className="text-emerald-700 font-mono">{historyStats.totalPresent}</strong> lượt</span>
+                    <span className="text-slate-300">•</span>
+                    <span>Đi muộn: <strong className="text-amber-700 font-mono">{historyStats.totalLate}</strong> lượt</span>
+                    <span className="text-slate-300">•</span>
+                    <span>Vắng: <strong className="text-rose-700 font-mono">{historyStats.totalAbsent}</strong> lượt</span>
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 shrink-0">
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Tỷ lệ có mặt TB</span>
-                  <span className="text-xl font-extrabold text-emerald-700 font-mono">{historyStats.avgPresentPercent}%</span>
+              {/* Right KPI Cards */}
+              <div className="flex items-center gap-3 sm:gap-4 shrink-0 w-full lg:w-auto justify-end border-t lg:border-t-0 pt-3 lg:pt-0 border-orange-100 z-10">
+                <div className="bg-white/95 border border-emerald-200/80 px-4 py-2.5 rounded-xl text-center min-w-[125px] shadow-xs">
+                  <span className="text-[10px] text-emerald-800 block uppercase font-bold tracking-wider">Tỷ lệ có mặt TB</span>
+                  <span className="text-2xl font-black text-emerald-600 font-mono tracking-tight">{historyStats.avgPresentPercent}%</span>
                 </div>
-                <div className="w-px h-8 bg-orange-200" />
-                <div className="text-right">
-                  <span className="text-[10px] text-slate-500 block uppercase font-bold">Chỉ số chuyên cần TB</span>
-                  <span className="text-xl font-extrabold text-orange-600 font-mono">{historyStats.overallScore}%</span>
+                <div className="bg-white/95 border border-orange-200/80 px-4 py-2.5 rounded-xl text-center min-w-[135px] shadow-xs">
+                  <span className="text-[10px] text-orange-800 block uppercase font-bold tracking-wider">Chỉ số chuyên cần TB</span>
+                  <span className="text-2xl font-black text-orange-600 font-mono tracking-tight">{historyStats.overallScore}%</span>
                 </div>
               </div>
             </div>

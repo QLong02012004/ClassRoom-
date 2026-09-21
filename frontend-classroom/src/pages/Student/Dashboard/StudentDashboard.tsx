@@ -17,6 +17,7 @@ import {
   Books,
   ChatTeardropText,
   Crown,
+  Medal,
   Warning,
   CaretDown
 } from "phosphor-react";
@@ -770,18 +771,79 @@ export default function StudentDashboard() {
               )}
             </div>
             <div className={styles.leaderboardList}>
-              {leaderboard.length > 0 ? leaderboard.slice(0, 6).map((student, idx) => (
-                <div key={student.id} className={`${styles.leaderboardItem} ${student.name === username ? styles.currentUser : ''}`}>
-                  <div className={styles.rankBadge}>{idx + 1}</div>
-                  <div className={styles.avatarPlaceholder} style={{ overflow: 'hidden' }}>
-                    {student.avatar && student.avatar.length > 2 ? <img src={student.avatar} alt={student.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : student.name.charAt(0)}
+              {leaderboard.length > 0 ? leaderboard.slice(0, 6).map((student, idx) => {
+                const isTop1 = idx === 0;
+                const isTop2 = idx === 1;
+                const isTop3 = idx === 2;
+                const itemClass = `${styles.leaderboardItem} ${
+                  isTop1 ? styles.top1 : isTop2 ? styles.top2 : isTop3 ? styles.top3 : ''
+                } ${student.name === username ? styles.currentUser : ''}`;
+
+                return (
+                  <div key={student.id || idx} className={itemClass}>
+                    {/* Rank Badge with Crown / Silver Medal / Bronze Medal */}
+                    {isTop1 ? (
+                      <div
+                        className={styles.rankBadge}
+                        title="Top 1: Vương miện Vàng Crown"
+                        aria-label="Top 1: Vương miện Vàng Crown"
+                      >
+                        <Crown size={16} weight="fill" />
+                      </div>
+                    ) : isTop2 ? (
+                      <div
+                        className={styles.rankBadge}
+                        title="Top 2: Huy chương Bạc"
+                        aria-label="Top 2: Huy chương Bạc"
+                      >
+                        <Medal size={16} weight="fill" />
+                      </div>
+                    ) : isTop3 ? (
+                      <div
+                        className={styles.rankBadge}
+                        title="Top 3: Huy chương Đồng"
+                        aria-label="Top 3: Huy chương Đồng"
+                      >
+                        <Medal size={16} weight="fill" />
+                      </div>
+                    ) : (
+                      <div className={styles.rankBadge} title={`Hạng ${idx + 1}`}>
+                        {idx + 1}
+                      </div>
+                    )}
+
+                    <div className={styles.avatarPlaceholder} style={{ overflow: 'hidden' }}>
+                      {student.avatar && student.avatar.length > 2 ? (
+                        <img src={student.avatar} alt={student.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        student.name.charAt(0)
+                      )}
+                    </div>
+
+                    <div className={styles.studentInfo}>
+                      <div className={styles.nameRow}>
+                        <span className={styles.name} title={student.name}>{student.name}</span>
+                        {isTop1 && (
+                          <span className={styles.badgeTop1} title="Top 1: Vương miện Vàng Crown">
+                            <Crown size={12} weight="fill" /> Vương miện Vàng Crown
+                          </span>
+                        )}
+                        {isTop2 && (
+                          <span className={styles.badgeTop2} title="Top 2: Huy chương Bạc">
+                            <Medal size={12} weight="fill" /> Huy chương Bạc
+                          </span>
+                        )}
+                        {isTop3 && (
+                          <span className={styles.badgeTop3} title="Top 3: Huy chương Đồng">
+                            <Medal size={12} weight="fill" /> Huy chương Đồng
+                          </span>
+                        )}
+                      </div>
+                      <span className={styles.xp}>{student.xp} XP</span>
+                    </div>
                   </div>
-                  <div className={styles.studentInfo}>
-                    <span className={styles.name}>{student.name}</span>
-                    <span className={styles.xp}>{student.xp} XP</span>
-                  </div>
-                </div>
-              )) : (
+                );
+              }) : (
                 <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>Chưa có dữ liệu.</div>
               )}
             </div>

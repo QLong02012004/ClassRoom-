@@ -502,6 +502,32 @@ export const submitActivityQuiz = async (req: Request, res: Response): Promise<a
             { upsert: true, new: true }
         );
 
+        // Đồng bộ điểm trắc nghiệm vào GradeModel và SubmissionModel
+        try {
+            await Promise.all([
+                GradeModel.findOneAndUpdate(
+                    { assignmentId: activityId, studentId },
+                    {
+                        score: normalizedScore,
+                        feedback: `Tự động chấm trắc nghiệm: Đạt ${normalizedScore.toFixed(1)}/${activity.maxScore || 10} điểm`,
+                        gradedAt: new Date()
+                    },
+                    { upsert: true, new: true }
+                ),
+                SubmissionModel.findOneAndUpdate(
+                    { assignmentId: activityId, studentId },
+                    {
+                        status: SubmissionStatus.GRADED,
+                        submittedAt: new Date(),
+                        submissionText: `Bài thi trắc nghiệm (${questions.length} câu)`
+                    },
+                    { upsert: true, new: true }
+                )
+            ]);
+        } catch (syncErr) {
+            console.warn('Lỗi đồng bộ GradeModel/SubmissionModel cho bài trắc nghiệm:', syncErr);
+        }
+
         // Gửi thông báo chuông Real-time tới Giáo viên phụ trách khi học sinh nộp bài thi trắc nghiệm
         try {
             const cls = await ClassModel.findById(activity.classId).lean();

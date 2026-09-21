@@ -814,27 +814,34 @@
 .leaderboardList {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .leaderboardItem {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px;
-  border-radius: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
   background: #f8fafc;
-  transition: all 0.2s;
+  border: 1px solid #f1f5f9;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  }
 
   &.currentUser {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
+    background: #fffbeb !important;
+    border: 1px solid #fde68a !important;
+    box-shadow: 0 2px 10px rgba(251, 191, 36, 0.15);
   }
 
   .rankBadge {
-    width: 24px;
-    height: 24px;
-    background: vars.$dark-text;
+    width: 28px;
+    height: 28px;
+    background: #94a3b8;
     color: white;
     border-radius: 50%;
     display: flex;
@@ -842,15 +849,74 @@
     justify-content: center;
     font-size: 0.8rem;
     font-weight: 800;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
   }
 
-  &:nth-child(1) .rankBadge { background: #fbbf24; }
-  &:nth-child(2) .rankBadge { background: #94a3b8; }
-  &:nth-child(3) .rankBadge { background: #b45309; }
+  &:hover .rankBadge {
+    transform: scale(1.1);
+  }
+
+  /* Top 1 - Vương miện Vàng Crown */
+  &.top1, &:nth-child(1) {
+    background: linear-gradient(135deg, #fffdf5 0%, #fef9c3 100%);
+    border: 1px solid #fde047;
+    box-shadow: 0 2px 8px rgba(234, 179, 8, 0.12);
+
+    .rankBadge {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(245, 158, 11, 0.45);
+      border: 1.5px solid #fef08a;
+    }
+
+    .avatarPlaceholder {
+      border: 2px solid #eab308;
+      box-shadow: 0 0 8px rgba(234, 179, 8, 0.35);
+    }
+  }
+
+  /* Top 2 - Huy chương Bạc */
+  &.top2, &:nth-child(2) {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    border: 1px solid #cbd5e1;
+    box-shadow: 0 2px 8px rgba(148, 163, 184, 0.12);
+
+    .rankBadge {
+      background: linear-gradient(135deg, #94a3b8, #64748b);
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(100, 116, 139, 0.35);
+      border: 1.5px solid #e2e8f0;
+    }
+
+    .avatarPlaceholder {
+      border: 2px solid #94a3b8;
+      box-shadow: 0 0 8px rgba(148, 163, 184, 0.3);
+    }
+  }
+
+  /* Top 3 - Huy chương Đồng */
+  &.top3, &:nth-child(3) {
+    background: linear-gradient(135deg, #fffaf5 0%, #ffedd5 100%);
+    border: 1px solid #fed7aa;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.12);
+
+    .rankBadge {
+      background: linear-gradient(135deg, #d97706, #92400e);
+      color: #ffffff;
+      box-shadow: 0 3px 10px rgba(180, 83, 9, 0.35);
+      border: 1.5px solid #fed7aa;
+    }
+
+    .avatarPlaceholder {
+      border: 2px solid #d97706;
+      box-shadow: 0 0 8px rgba(217, 119, 6, 0.3);
+    }
+  }
 
   .avatarPlaceholder {
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: vars.$primary;
     color: white;
@@ -859,22 +925,77 @@
     justify-content: center;
     font-weight: 700;
     font-size: 0.9rem;
+    flex-shrink: 0;
+    transition: all 0.2s;
   }
 
   .studentInfo {
     flex: 1;
     display: flex;
     flex-direction: column;
+    min-width: 0;
+
+    .nameRow {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
 
     .name {
       font-size: 0.85rem;
       font-weight: 700;
       color: vars.$dark-text;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 110px;
     }
+
+    .badgeTop1 {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+
+    .badgeTop2 {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .badgeTop3 {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 1px 7px;
+      border-radius: 9999px;
+      font-size: 0.65rem;
+      font-weight: 800;
+      background: #ffedd5;
+      color: #9a3412;
+      border: 1px solid #fed7aa;
+    }
+
     .xp {
       font-size: 0.75rem;
       color: vars.$primary;
       font-weight: 800;
+      margin-top: 2px;
     }
   }
 }

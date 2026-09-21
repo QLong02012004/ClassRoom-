@@ -658,17 +658,48 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
 
         const assignmentIds = assignments.map(a => a._id);
 
-        // Tải bài nộp và điểm số song song
-        const [submissions, grades] = await Promise.all([
+        // Tải bài nộp, điểm số và kết quả trắc nghiệm song song
+        const [submissions, grades, quizResults] = await Promise.all([
             SubmissionModel.find({ studentId, assignmentId: { $in: assignmentIds } }).lean(),
-            GradeModel.find({ studentId, assignmentId: { $in: assignmentIds } }).lean()
+            GradeModel.find({ studentId, assignmentId: { $in: assignmentIds } }).lean(),
+            QuizResultModel.find({ studentId, quizId: { $in: assignmentIds } }).lean()
         ]);
+
+        // Hợp nhất bài nộp từ SubmissionModel và QuizResultModel
+        const allSubmissions = [...submissions];
+        quizResults.forEach(q => {
+            const exists = allSubmissions.some(s => s.assignmentId.toString() === q.quizId.toString());
+            if (!exists) {
+                allSubmissions.push({
+                    _id: q._id,
+                    assignmentId: q.quizId,
+                    studentId: q.studentId,
+                    submittedAt: q.submittedAt,
+                    status: 'graded'
+                } as any);
+            }
+        });
+
+        // Hợp nhất điểm số từ GradeModel và QuizResultModel (tránh tính trùng)
+        const combinedGrades = [...grades];
+        quizResults.forEach(q => {
+            const exists = combinedGrades.some(g => g.assignmentId.toString() === q.quizId.toString());
+            if (!exists) {
+                combinedGrades.push({
+                    _id: q._id,
+                    assignmentId: q.quizId,
+                    studentId: q.studentId,
+                    score: q.score,
+                    gradedAt: q.submittedAt
+                } as any);
+            }
+        });
 
         let pendingAssignmentsCount = 0;
         const todoList: any[] = [];
 
         assignments.forEach(a => {
-            const hasSub = submissions.some(s => s.assignmentId.toString() === a._id.toString());
+            const hasSub = allSubmissions.some(s => s.assignmentId.toString() === a._id.toString());
             const cls: any = classes.find((c: any) => c._id.toString() === a.classId.toString());
 
             if (!hasSub && a.dueDate && new Date(a.dueDate) >= new Date()) {
@@ -686,10 +717,10 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         todoList.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
 
         let sumGPA = 0;
-        grades.forEach(g => {
+        combinedGrades.forEach(g => {
             sumGPA += g.score;
         });
-        const overallGPA = grades.length > 0 ? (sumGPA / grades.length).toFixed(1) : null;
+        const overallGPA = combinedGrades.length > 0 ? (sumGPA / combinedGrades.length).toFixed(1) : null;
 
         const todaySchedule = todayScheduleRaw.map((s: any) => ({
             _id: s._id.toString(),
@@ -719,7 +750,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             const aDate = new Date(a.dueDate);
             const targetMonth = last6Months.find(m => m.year === aDate.getFullYear() && m.month === aDate.getMonth());
             if (targetMonth) {
-                const hasSub = submissions.some(s => s.assignmentId.toString() === a._id.toString());
+                const hasSub = allSubmissions.some(s => s.assignmentId.toString() === a._id.toString());
                 if (hasSub) {
                     targetMonth.desktop += 1;
                 } else {
@@ -735,7 +766,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
         }));
 
         const recentActivities = [
-            ...grades.map(g => {
+            ...combinedGrades.map(g => {
                 const a = assignments.find(x => x._id.toString() === g.assignmentId.toString());
                 return {
                     id: g._id.toString(),
@@ -752,14 +783,14 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
 
         const weeklyGoals = [
             { id: 'g1', title: 'Đi học đầy đủ 100%', target: 100, current: attendanceRate, unit: '%' },
-            { id: 'g2', title: 'Hoàn thành bài tập', target: 5, current: Math.min(5, submissions.length), unit: 'bài' }
+            { id: 'g2', title: 'Hoàn thành bài tập', target: 5, current: Math.min(5, allSubmissions.length), unit: 'bài' }
         ];
 
         let onTimeCount = 0;
         let streak = 0;
-        const sortedSubmissions = [...submissions].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
+        const sortedSubmissions = [...allSubmissions].sort((a, b) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime());
 
-        submissions.forEach(sub => {
+        allSubmissions.forEach(sub => {
             const assignment = assignments.find(a => a._id.toString() === sub.assignmentId.toString());
             const isLate = (assignment && assignment.dueDate) ? new Date(sub.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
             if (!isLate) {
@@ -777,15 +808,29 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             }
         }
 
-        const onTimeSubmissionRate = submissions.length === 0 ? 100 : Math.round((onTimeCount / submissions.length) * 100);
+        const onTimeSubmissionRate = allSubmissions.length === 0 ? 100 : Math.round((onTimeCount / allSubmissions.length) * 100);
 
         let sumGrades = 0;
-        grades.forEach(g => {
-            sumGrades += g.score;
+        combinedGrades.forEach(g => {
+            const assignment = assignments.find(a => a._id.toString() === g.assignmentId.toString());
+            const maxScore = (assignment && assignment.maxScore && assignment.maxScore > 0) ? assignment.maxScore : 10;
+            const score10 = (g.score / maxScore) * 10;
+            sumGrades += score10;
         });
 
         let totalXP = Math.max(0, Math.round((sumGrades * 3) + (onTimeCount * 15) + (presentCount * 5) + (lateCount * 2) - (absentCount * 5)));
         const levelInfo = calculateLevelAndProgress(totalXP);
+
+        // Đồng bộ lưu XP vào User Model
+        try {
+            await UserModel.findByIdAndUpdate(studentId, {
+                xp: totalXP,
+                level: levelInfo.level,
+                streak: streak
+            });
+        } catch (updateErr) {
+            console.warn('Lỗi cập nhật UserModel.xp:', updateErr);
+        }
 
         const gamification = {
             xp: totalXP,
@@ -802,7 +847,7 @@ export const getStudentDashboardStats = async (req: Request, res: Response, next
             : classes;
         const learningStats = (targetClasses as any[]).map(cls => {
             const classAssignments = assignments.filter(a => a.classId.toString() === cls._id.toString());
-            const classSubmissions = submissions.filter(s =>
+            const classSubmissions = allSubmissions.filter(s =>
                 classAssignments.some(a => a._id.toString() === s.assignmentId.toString())
             );
             const total = classAssignments.length;
@@ -867,17 +912,45 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
             const allStudents = Array.from(studentMap.values());
             const assignments = await ClassActivityModel.find({ classId: { $in: classIds } });
             const assignmentIds = assignments.map(a => a._id);
-            const submissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } });
-            const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
-            const attendances = await AttendanceModel.find({ classId: { $in: classIds } });
+            const [submissions, grades, quizResults, attendances] = await Promise.all([
+                SubmissionModel.find({ assignmentId: { $in: assignmentIds } }),
+                GradeModel.find({ assignmentId: { $in: assignmentIds } }),
+                QuizResultModel.find({ quizId: { $in: assignmentIds } }),
+                AttendanceModel.find({ classId: { $in: classIds } })
+            ]);
 
             const leaderboardData = allStudents.map(student => {
                 const sId = student._id.toString();
                 const studentGrades = grades.filter(g => g.studentId.toString() === sId);
-                const sumGrades = studentGrades.reduce((sum, g) => sum + g.score, 0);
+                const studentQuizzes = quizResults.filter(q => q.studentId.toString() === sId);
+
+                // Hợp nhất điểm số (tránh tính trùng nếu quiz đã sync vào GradeModel)
+                const gradeMap = new Map<string, number>();
+                studentGrades.forEach(g => gradeMap.set(g.assignmentId.toString(), g.score));
+                studentQuizzes.forEach(q => {
+                    if (!gradeMap.has(q.quizId.toString())) {
+                        gradeMap.set(q.quizId.toString(), q.score);
+                    }
+                });
+                let sumGrades = 0;
+                gradeMap.forEach((score, assignmentId) => {
+                    const assignment = assignments.find(a => a._id.toString() === assignmentId);
+                    const maxScore = (assignment && assignment.maxScore && assignment.maxScore > 0) ? assignment.maxScore : 10;
+                    sumGrades += (score / maxScore) * 10;
+                });
 
                 const studentSubmissions = submissions.filter(s => s.studentId.toString() === sId);
-                const onTimeCount = studentSubmissions.filter(s => {
+                const allStudentSubs = [...studentSubmissions];
+                studentQuizzes.forEach(q => {
+                    if (!allStudentSubs.some(s => s.assignmentId.toString() === q.quizId.toString())) {
+                        allStudentSubs.push({
+                            assignmentId: q.quizId,
+                            submittedAt: q.submittedAt
+                        } as any);
+                    }
+                });
+
+                const onTimeCount = allStudentSubs.filter(s => {
                     const assignment = assignments.find(a => a._id.toString() === s.assignmentId.toString());
                     const isLate = (assignment && assignment.dueDate) ? new Date(s.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
                     return !isLate;
@@ -925,20 +998,47 @@ export const getLeaderboard = async (req: Request, res: Response, next: NextFunc
         const assignments = await ClassActivityModel.find({ classId });
         const assignmentIds = assignments.map(a => a._id);
 
-        const submissions = await SubmissionModel.find({ assignmentId: { $in: assignmentIds } });
-        const grades = await GradeModel.find({ assignmentId: { $in: assignmentIds } });
-        const attendances = await AttendanceModel.find({ classId });
+        const [submissions, grades, quizResults, attendances] = await Promise.all([
+            SubmissionModel.find({ assignmentId: { $in: assignmentIds } }),
+            GradeModel.find({ assignmentId: { $in: assignmentIds } }),
+            QuizResultModel.find({ quizId: { $in: assignmentIds } }),
+            AttendanceModel.find({ classId })
+        ]);
 
         const leaderboardData = students.map(student => {
             const studentId = student._id.toString();
 
             // Grades XP
             const studentGrades = grades.filter(g => g.studentId.toString() === studentId);
-            const sumGrades = studentGrades.reduce((sum, g) => sum + g.score, 0);
+            const studentQuizzes = quizResults.filter(q => q.studentId.toString() === studentId);
+
+            const gradeMap = new Map<string, number>();
+            studentGrades.forEach(g => gradeMap.set(g.assignmentId.toString(), g.score));
+            studentQuizzes.forEach(q => {
+                if (!gradeMap.has(q.quizId.toString())) {
+                    gradeMap.set(q.quizId.toString(), q.score);
+                }
+            });
+            let sumGrades = 0;
+            gradeMap.forEach((score, assignmentId) => {
+                const assignment = assignments.find(a => a._id.toString() === assignmentId);
+                const maxScore = (assignment && assignment.maxScore && assignment.maxScore > 0) ? assignment.maxScore : 10;
+                sumGrades += (score / maxScore) * 10;
+            });
 
             // Submissions XP
             const studentSubmissions = submissions.filter(s => s.studentId.toString() === studentId);
-            const onTimeCount = studentSubmissions.filter(s => {
+            const allStudentSubs = [...studentSubmissions];
+            studentQuizzes.forEach(q => {
+                if (!allStudentSubs.some(s => s.assignmentId.toString() === q.quizId.toString())) {
+                    allStudentSubs.push({
+                        assignmentId: q.quizId,
+                        submittedAt: q.submittedAt
+                    } as any);
+                }
+            });
+
+            const onTimeCount = allStudentSubs.filter(s => {
                 const assignment = assignments.find(a => a._id.toString() === s.assignmentId.toString());
                 const isLate = (assignment && assignment.dueDate) ? new Date(s.submittedAt).getTime() > new Date(assignment.dueDate).getTime() : false;
                 return !isLate;
