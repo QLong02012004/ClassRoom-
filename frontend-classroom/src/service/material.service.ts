@@ -24,6 +24,9 @@ export interface IMaterialData {
 
 export const materialService = {
   getPublicMaterials: () => api.get("/api/v1/materials"),
+  getMaterialById: (id: string) => api.get(`/api/v1/materials/${id}`),
+  downloadMaterial: (id: string) =>
+    api.get(`/api/v1/materials/${id}/download`, { responseType: "blob" }),
   createMaterial: (data: IMaterialData) => api.post("/api/v1/materials", data),
   deleteMaterial: (id: string) => api.delete(`/api/v1/materials/${id}`),
 };

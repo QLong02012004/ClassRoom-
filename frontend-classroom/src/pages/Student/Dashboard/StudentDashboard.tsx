@@ -34,6 +34,7 @@ import { useAuth } from "../../../context/AuthContext.tsx";
 import { SecondaryButton } from "../../../components/ui/Buttons/SecondaryButton.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../../../components/ui/dialog";
 import { WeaknessRadar } from "./components/WeaknessRadar";
+import { ChartBarStacked } from "./components/ChartBarStacked";
 import { dashboardService } from "../../../service/dashboard.service.ts";
 import { analyticsService } from "../../../service/analytics.service.ts";
 import { announcementService } from "../../../service/announcement.service.ts";
@@ -139,15 +140,11 @@ export default function StudentDashboard() {
         }
       }
 
-      const weaknessRes = await analyticsService.getStudentWeaknessRadar();
+      const weaknessRes = await analyticsService.getStudentWeaknessRadar(targetClassId);
       if (weaknessRes && weaknessRes.data && weaknessRes.data.length > 0) {
         setWeaknessData(weaknessRes.data);
       } else {
-        // Mock data để demo UI
-        setWeaknessData([
-          { tag: 'Hàm số mũ và logarit', total: 10, wrong: 8, errorRate: 80 },
-          { tag: 'Hình học không gian', total: 12, wrong: 7, errorRate: 58 }
-        ]);
+        setWeaknessData([]);
       }
     } catch (err: any) {
       toast.error(err.message || "Lỗi tải thông tin dashboard từ server!");
@@ -720,6 +717,11 @@ export default function StudentDashboard() {
                   </ComicButton>
                 </div>
               </div>
+            </div>
+
+            {/* Biểu đồ cột so sánh tiến độ nộp bài 6 tháng (TC-STU-19.2) */}
+            <div style={{ marginTop: '20px' }}>
+              <ChartBarStacked data={learningProgress} />
             </div>
           </section>
 

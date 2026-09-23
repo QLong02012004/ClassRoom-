@@ -26,24 +26,44 @@ import {
   Image,
   FilePdf,
   Paperclip,
-  FileText
+  FileText,
+  Trash
 } from "phosphor-react";
 import styles from "./StudentAssistant.module.scss";
 import api from "../../../utils/AxiosCustomize";
 import { useAuth } from "../../../context/AuthContext";
 import { classroomService, type ITeacherClassroom } from "../../../service/classroom.service";
 import NewChatButton from "../../../components/common/NewChatButton/NewChatButton";
+import SecondaryButton from "../../../components/ui/Buttons/SecondaryButton";
+import katex from "katex";
 
-// Mock Data cho lịch sử cuộc trò chuyện có gán môn học
-const MOCK_HISTORY = [
-  { id: "h1", title: "Giải phương trình bậc 2", date: "Vừa xong", subject: "Toán Học", category: "Giải bài tập" },
-  { id: "h2", title: "Tóm tắt Bình Ngô đại cáo", date: "Hôm nay", subject: "Ngữ Văn", category: "Tóm tắt bài học" },
-  { id: "h3", title: "Cấu trúc câu điều kiện Tiếng Anh", date: "Hôm nay", subject: "Tiếng Anh", category: "Giải thích kiến thức" },
-  { id: "h4", title: "Định luật bảo toàn năng lượng", date: "Hôm qua", subject: "Vật Lý", category: "Giải thích kiến thức" },
-  { id: "h5", title: "Cân bằng phản ứng Oxi hóa khử", date: "3 ngày trước", subject: "Hóa Học", category: "Giải bài tập" },
-  { id: "h6", title: "Lập kế hoạch ôn thi môn Toán 12", date: "5 ngày trước", subject: "Toán Học", category: "Lập kế hoạch" },
-  { id: "h7", title: "Phân tích tác phẩm Tây Tiến", date: "1 tuần trước", subject: "Ngữ Văn", category: "Ôn tập" },
-];
+export interface ChatSessionItem {
+  _id: string;
+  title: string;
+  subject?: string;
+  className?: string;
+  chapter?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const formatRelativeTime = (dateStr: string) => {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMin < 1) return "Vừa xong";
+  if (diffMin < 60) return `${diffMin} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays === 1) return "Hôm qua";
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+};
 
 const SUBJECTS = [
   "Toán Học",
@@ -284,7 +304,6 @@ export default function StudentAssistant() {
   const [isTyping, setIsTyping] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string>("Tất cả");
   const [activeModalSuggestion, setActiveModalSuggestion] = useState<SuggestionItem | null>(null);
-  const [modalSubject, setModalSubject] = useState<string>("Toán Học");
   const [modalDetailInput, setModalDetailInput] = useState<string>("");
 
   // Quản lý file đính kèm bài tập/hình ảnh/PDF
@@ -354,7 +373,71 @@ export default function StudentAssistant() {
     scrollToBottom();
   }, [messages, isTyping]);
 
+  // Quản lý lịch sử cuộc trò chuyện (Sessions)
+  const [sessions, setSessions] = useState<ChatSessionItem[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isLoadingSessions, setIsLoadingSessions] = useState<boolean>(false);
+
+  const fetchSessions = async () => {
+    setIsLoadingSessions(true);
+    try {
+      const res = await api.get('/api/v1/chat/sessions');
+      if (res && res.data && res.data.data) {
+        setSessions(res.data.data);
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải lịch sử trò chuyện:", err);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
+  const handleSelectSession = async (sessionId: string) => {
+    if (sessionId === activeSessionId) return;
+    try {
+      const res = await api.get(`/api/v1/chat/sessions/${sessionId}`);
+      if (res && res.data && res.data.data) {
+        const sessionData = res.data.data;
+        setActiveSessionId(sessionId);
+        setMessages(sessionData.messages || []);
+
+        if (sessionData.className || sessionData.subject) {
+          const matched = studentClasses.find(
+            (c) => c.className === sessionData.className || c.subject === sessionData.subject
+          );
+          if (matched) {
+            setSelectedClassContext(matched);
+          }
+        }
+        if (sessionData.chapter) {
+          setSelectedChapter(sessionData.chapter);
+        }
+      }
+    } catch (err) {
+      console.error("Lỗi khi tải chi tiết cuộc trò chuyện:", err);
+    }
+  };
+
+  const handleDeleteSession = async (e: React.MouseEvent, sessionId: string) => {
+    e.stopPropagation();
+    if (!window.confirm("Bạn có chắc chắn muốn xóa cuộc trò chuyện này không?")) return;
+    try {
+      await api.delete(`/api/v1/chat/sessions/${sessionId}`);
+      setSessions((prev) => prev.filter((s) => s._id !== sessionId));
+      if (activeSessionId === sessionId) {
+        handleNewChat();
+      }
+    } catch (err) {
+      console.error("Lỗi khi xóa cuộc trò chuyện:", err);
+    }
+  };
+
   const handleNewChat = () => {
+    setActiveSessionId(null);
     setMessages([]);
     setInput("");
     setAttachedFiles([]);
@@ -423,6 +506,7 @@ export default function StudentAssistant() {
     try {
       // Truyền thông tin lớp học, môn học & file đính kèm sang AI API
       const response: any = await api.post('/api/v1/chat/ask', {
+        sessionId: activeSessionId,
         message: textToSend,
         attachments: filesToSend.map((att) => ({
           name: att.name,
@@ -442,6 +526,19 @@ export default function StudentAssistant() {
           role: "ai",
           content: response.data.reply
         }]);
+
+        if (response.data.sessionId) {
+          const sid = response.data.sessionId;
+          setActiveSessionId(sid);
+          if (response.data.session) {
+            setSessions((prev) => {
+              const remaining = prev.filter((s) => s._id !== sid);
+              return [response.data.session, ...remaining];
+            });
+          } else {
+            fetchSessions();
+          }
+        }
       } else {
         setMessages([...newMessages, { role: "ai", content: "Xin lỗi, đã có lỗi xảy ra khi xử lý phản hồi." }]);
       }
@@ -471,7 +568,6 @@ export default function StudentAssistant() {
   // Mở modal khi bấm thẻ gợi ý
   const openSuggestionModal = (item: SuggestionItem) => {
     setActiveModalSuggestion(item);
-    setModalSubject(selectedClassContext.subject || "Toán Học");
     setModalDetailInput("");
   };
 
@@ -481,21 +577,53 @@ export default function StudentAssistant() {
 
     let finalPrompt = "";
     if (useDefaultOnly || !modalDetailInput.trim()) {
-      finalPrompt = `[Yêu cầu ${activeModalSuggestion.title} - ${selectedClassContext.className} · Môn ${modalSubject}]: ${activeModalSuggestion.defaultPrompt}`;
+      finalPrompt = `[Yêu cầu ${activeModalSuggestion.title} - ${selectedClassContext.className} · Môn ${selectedClassContext.subject}]: ${activeModalSuggestion.defaultPrompt}`;
     } else {
-      finalPrompt = `[${activeModalSuggestion.title} - ${selectedClassContext.className} · Môn ${modalSubject}]: ${modalDetailInput.trim()}`;
+      finalPrompt = `[${activeModalSuggestion.title} - ${selectedClassContext.className} · Môn ${selectedClassContext.subject}]: ${modalDetailInput.trim()}`;
     }
 
     setActiveModalSuggestion(null);
     handleSendWithText(finalPrompt);
   };
 
-  // Parse inline text formatting (Bold **text**, Inline Code `code`)
+  // Render LaTeX math expressions or fallback text safely
+  const renderMathOrText = (formula: string, displayMode: boolean = false) => {
+    try {
+      const html = katex.renderToString(formula, {
+        displayMode,
+        throwOnError: false
+      });
+      return <span dangerouslySetInnerHTML={{ __html: html }} />;
+    } catch {
+      return <span>{formula}</span>;
+    }
+  };
+
+  // Parse inline text formatting (Bold **text**, Inline Code `code`, Math LaTeX $formula$, Bước 1, Bước 2...)
   const parseInlineFormatting = (text: string) => {
-    const parts = text.split(/(\*\*.*?\*\*|`.*?`)/g);
+    const parts = text.split(/(\$\$[\s\S]*?\$\$|\$.*?\$|\*\*.*?\*\*|`.*?`)/g);
     return parts.map((part, index) => {
+      if (!part) return null;
+      if (part.startsWith('$$') && part.endsWith('$$') && part.length >= 4) {
+        return (
+          <div key={index} className={styles.mathBlock}>
+            {renderMathOrText(part.slice(2, -2).trim(), true)}
+          </div>
+        );
+      }
+      if (part.startsWith('$') && part.endsWith('$') && part.length >= 2) {
+        return <span key={index} className={styles.mathInline}>{renderMathOrText(part.slice(1, -1).trim(), false)}</span>;
+      }
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={index}>{part.slice(2, -2)}</strong>;
+        const innerText = part.slice(2, -2);
+        if (/^(Bước\s+\d+|Đáp số|Kết luận|Lời giải|Chú ý)/i.test(innerText)) {
+          return (
+            <span key={index} className={styles.stepBadge}>
+              {innerText}
+            </span>
+          );
+        }
+        return <strong key={index}>{innerText}</strong>;
       }
       if (part.startsWith('`') && part.endsWith('`')) {
         return <code key={index} className={styles.inlineCode}>{part.slice(1, -1)}</code>;
@@ -562,21 +690,40 @@ export default function StudentAssistant() {
         </div>
 
         <div className={styles.historyList}>
-          {MOCK_HISTORY.map(item => (
-            <div key={item.id} className={styles.historyItem}>
-              <div className={styles.historyIconBox}>
-                <ChatCircle size={16} color="#2f8fa3" weight="bold" />
-              </div>
-              <div className={styles.historyMeta}>
-                <span className={styles.historyTitle}>{item.title}</span>
-                <div className={styles.historySubLine}>
-                  <span className={styles.subjectPill}>{item.subject}</span>
-                  <span className={styles.dateText}>• {item.date}</span>
-                </div>
-              </div>
-              <DotsThree size={18} className={styles.moreIcon} />
+          {isLoadingSessions ? (
+            <div className={styles.emptyHistory}>Đang tải lịch sử...</div>
+          ) : sessions.length === 0 ? (
+            <div className={styles.emptyHistory}>
+              Chưa có cuộc trò chuyện nào. Bắt đầu hỏi để lưu lại!
             </div>
-          ))}
+          ) : (
+            sessions.map((item) => (
+              <div
+                key={item._id}
+                className={`${styles.historyItem} ${activeSessionId === item._id ? styles.activeHistoryItem : ''}`}
+                onClick={() => handleSelectSession(item._id)}
+                title={item.title}
+              >
+                <div className={styles.historyIconBox}>
+                  <ChatCircle size={16} color={activeSessionId === item._id ? "#2563eb" : "#2f8fa3"} weight="bold" />
+                </div>
+                <div className={styles.historyMeta}>
+                  <span className={styles.historyTitle}>{item.title}</span>
+                  <div className={styles.historySubLine}>
+                    <span className={styles.subjectPill}>{item.subject || "Tổng hợp"}</span>
+                    <span className={styles.dateText}>• {formatRelativeTime(item.updatedAt || item.createdAt)}</span>
+                  </div>
+                </div>
+                <button
+                  className={styles.deleteHistoryBtn}
+                  onClick={(e) => handleDeleteSession(e, item._id)}
+                  title="Xóa cuộc trò chuyện"
+                >
+                  <Trash size={15} />
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
@@ -878,25 +1025,9 @@ export default function StudentAssistant() {
             </div>
 
             <div className={styles.modalBody}>
-              {/* CHỌN MÔN HỌC */}
-              <div className={styles.formGroup}>
-                <label>1. Chọn môn học liên quan (Hiện tại: {selectedClassContext.className}):</label>
-                <div className={styles.modalSubjectChips}>
-                  {SUBJECTS.map((sub) => (
-                    <button
-                      key={sub}
-                      className={`${styles.modalSubjectChip} ${modalSubject === sub ? styles.selectedSubject : ""}`}
-                      onClick={() => setModalSubject(sub)}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* CHI TIẾT CÂU HỎI HOẶC BÀI TẬP */}
               <div className={styles.formGroup}>
-                <label>2. Nhập nội dung chi tiết (hoặc chọn gợi ý mẫu):</label>
+                <label>Nhập nội dung câu hỏi hoặc bài tập bạn cần hỗ trợ:</label>
                 <textarea
                   className={styles.modalTextarea}
                   rows={3}
@@ -930,12 +1061,12 @@ export default function StudentAssistant() {
               >
                 Dùng mẫu chuẩn
               </button>
-              <button
-                className={styles.primaryBtn}
+              <SecondaryButton
+                size="md"
                 onClick={() => handleModalSubmit(false)}
               >
                 Bắt đầu học tập ngay 🚀
-              </button>
+              </SecondaryButton>
             </div>
           </div>
         </div>

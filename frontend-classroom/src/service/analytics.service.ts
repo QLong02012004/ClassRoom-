@@ -16,8 +16,10 @@ import api from '../utils/AxiosCustomize';
 import type { IBackendRes } from '../types/backend';
 
 export const analyticsService = {
-  getStudentWeaknessRadar: async (): Promise<IBackendRes<any>> => {
-    return await api.get('/api/v1/analytics/student/weakness');
+  getStudentWeaknessRadar: async (classId?: string): Promise<IBackendRes<any>> => {
+    return await api.get('/api/v1/analytics/student/weakness', {
+      params: classId && classId !== 'all' ? { classId } : {}
+    });
   },
   getClassErrorInsights: async (activityId: string): Promise<IBackendRes<any>> => {
     return await api.get(`/api/v1/analytics/class/${activityId}/errors`);

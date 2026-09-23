@@ -22,12 +22,12 @@ import {
 
 const chartConfig = {
   desktop: {
-    label: "Bài tập hoàn thành",
-    color: "#3b82f6", // var(--chart-1) equivalent
+    label: "Bài đã nộp đúng hạn",
+    color: "#3b82f6", // Cột màu Xanh
   },
   mobile: {
-    label: "Bài tập chưa nộp",
-    color: "#ef4444", // var(--chart-2) equivalent
+    label: "Bài nộp trễ / Chưa nộp",
+    color: "#f97316", // Cột màu Cam chuẩn TC-19.2
   },
 } satisfies ChartConfig
 
@@ -60,14 +60,14 @@ export function ChartBarStacked({ data }: { data: any[] }) {
             <Bar
               dataKey="desktop"
               stackId="a"
-              fill="var(--color-desktop)"
+              fill="var(--color-desktop, #3b82f6)"
               radius={[0, 0, 4, 4]}
               maxBarSize={40}
             />
             <Bar
               dataKey="mobile"
               stackId="a"
-              fill="var(--color-mobile)"
+              fill="var(--color-mobile, #f97316)"
               radius={[4, 4, 0, 0]}
               maxBarSize={40}
             />

@@ -745,3 +745,133 @@
 .emptyIcon {
   color: #cbd5e1;
 }
+
+/* --- SCORE TREND AREA CHART CONTAINER (TC-STU-21.3) --- */
+.chartContainer {
+  background: #ffffff;
+  border: 1px solid vars.$sidebar-border;
+  border-radius: 24px;
+  padding: 24px 28px;
+  box-shadow: vars.$shadow-sm;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 8px;
+}
+
+.chartHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.chartTitleCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chartTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  h3 {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: vars.$dark-text;
+    margin: 0;
+  }
+}
+
+.chartSubtitle {
+  font-size: 0.85rem;
+  color: vars.$text-sub;
+  margin: 0;
+  font-weight: 500;
+}
+
+.trendBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+
+.classBadge {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.chartWrapper {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.tooltipBox {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  font-family: vars.$font-main;
+}
+
+.tooltipTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 2px 0;
+}
+
+.tooltipClass {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin: 0 0 6px 0;
+}
+
+.tooltipScoreRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #334155;
+  font-weight: 600;
+}
+
+.tooltipDate {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin: 4px 0 0 0;
+}
+
+.emptyChart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+
+  p {
+    font-size: 0.88rem;
+    color: vars.$text-sub;
+    margin: 0;
+    font-weight: 500;
+  }
+}

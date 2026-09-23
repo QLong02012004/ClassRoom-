@@ -16,6 +16,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import './utils/mockDb.ts'
+import 'katex/dist/katex.min.css'
 import App from './App.tsx'
 
 // Intercept & suppress third-party extension errors (e.g., IDM 200.js M_ID errors)

@@ -20,7 +20,7 @@ import OnboardingTour from "../common/OnboardingTour/OnboardingTour";
 
 const MainLayout: React.FC = () => {
   const location = useLocation();
-  const isExamRoute = location.pathname.startsWith("/exams/");
+  const isExamRoute = location.pathname.startsWith("/exams/") || location.pathname.startsWith("/practice");
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] overflow-hidden font-sans">

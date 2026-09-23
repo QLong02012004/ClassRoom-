@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useBlocker } from "react-router-dom";
+import { useParams, useNavigate, useBlocker, useLocation, useSearchParams } from "react-router-dom";
 import {
   Clock,
   CaretLeft,
@@ -25,13 +25,24 @@ import {
 } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { activityService } from "../../../service/activity.service.ts";
+import { analyticsService } from "../../../service/analytics.service.ts";
 import { SaveButton } from "../../../components/ui/Buttons/SaveButton.tsx";
 import styles from "./TakeExam.module.scss";
 
-export default function TakeExam() {
+interface TakeExamProps {
+  isPractice?: boolean;
+}
+
+export default function TakeExam({ isPractice = false }: TakeExamProps = {}) {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const toast = useToast();
+
+  const isPracticeMode = isPractice || location.pathname.startsWith("/practice");
+  const practiceTag = searchParams.get("tag") || "Hàm số mũ và logarit";
+  const practiceLimit = parseInt(searchParams.get("limit") || "10", 10);
 
   const [quiz, setQuiz] = useState<any | null>(null);
   const [result, setResult] = useState<any | null>(null);
@@ -102,6 +113,73 @@ export default function TakeExam() {
   };
 
   const fetchQuizDetails = async () => {
+    if (isPracticeMode) {
+      try {
+        setLoading(true);
+        const res = await analyticsService.getPracticeQuestions(practiceTag, practiceLimit);
+        const questionsData = res?.data || [];
+        const fetchedQuiz = {
+          _id: `practice_${encodeURIComponent(practiceTag)}`,
+          title: `Luyện tập: ${practiceTag}`,
+          durationMinutes: Math.max(10, Math.ceil((questionsData.length || 10) * 1.5)),
+          shuffleQuestions: false,
+          shuffleOptions: false,
+          questions: questionsData.map((q: any, idx: number) => ({
+            _id: `pq_${idx}`,
+            questionText: q.questionText,
+            options: q.options || [],
+            correctOptionIndex: q.correctOptionIndex,
+            imageUrl: q.imageUrl,
+            explanation: q.explanation || "Xem lại lý thuyết và các ví dụ trọng tâm của chuyên đề này."
+          })),
+          classId: "",
+          subject: practiceTag,
+          maxScore: 10
+        };
+
+        setQuiz(fetchedQuiz);
+        setResult(null);
+
+        const qOrder = Array.from({ length: fetchedQuiz.questions.length }, (_, i) => i);
+        setQuestionOrder(qOrder);
+        const oOrders: Record<number, number[]> = {};
+        fetchedQuiz.questions.forEach((q: any, idx: number) => {
+          oOrders[idx] = Array.from({ length: q.options.length }, (_, i) => i);
+        });
+        setOptionOrders(oOrders);
+
+        // Khôi phục nháp luyện tập nếu có
+        let localDraft: any = null;
+        try {
+          const localDraftStr = localStorage.getItem(`classroom_practice_draft_${practiceTag}`);
+          if (localDraftStr) localDraft = JSON.parse(localDraftStr);
+        } catch (e) {}
+
+        if (localDraft?.answers && typeof localDraft.answers === "object") {
+          setAnswers(localDraft.answers);
+        }
+        if (localDraft?.flagged && typeof localDraft.flagged === "object") {
+          setFlagged(localDraft.flagged);
+        }
+
+        const durationMinutes = fetchedQuiz.durationMinutes || 15;
+        const totalDurationMs = durationMinutes * 60 * 1000;
+        const startedAtMs = localDraft?.startedAt ? new Date(localDraft.startedAt).getTime() : Date.now();
+        endTimestampRef.current = startedAtMs + totalDurationMs;
+        const initialRemaining = Math.max(
+          0,
+          Math.floor((endTimestampRef.current - Date.now()) / 1000)
+        );
+        setTimeLeft(initialRemaining);
+      } catch (err: any) {
+        toast.error(err.message || "Không thể tải bộ câu hỏi luyện tập!");
+        navigate(-1);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
     if (!id) return;
     try {
       setLoading(true);
@@ -285,11 +363,60 @@ export default function TakeExam() {
 
   useEffect(() => {
     fetchQuizDetails();
-  }, [id]);
+  }, [id, isPracticeMode, practiceTag, practiceLimit]);
 
   // Submit helper: Chống accidental submit & khóa bài tự động
   const submitAnswers = async (auto = false) => {
     if (!quiz || result || isSubmitting) return;
+
+    if (isPracticeMode) {
+      try {
+        setIsSubmitting(true);
+        if (auto) setIsTimeOutLocked(true);
+
+        const answersArray = Array.from({ length: quiz.questions.length }, (_, i) => {
+          return answers[i] !== undefined ? answers[i] : -1;
+        });
+
+        let calculatedCorrect = 0;
+        quiz.questions.forEach((q: any, idx: number) => {
+          if (answers[idx] === q.correctOptionIndex) {
+            calculatedCorrect++;
+          }
+        });
+
+        const calculatedScore = quiz.questions.length > 0
+          ? Math.round((calculatedCorrect / quiz.questions.length) * 10 * 10) / 10
+          : 0;
+
+        const resultData = {
+          score: calculatedScore,
+          answers: answersArray,
+          submittedAt: new Date().toISOString()
+        };
+
+        setShowSubmitModal(false);
+        setIsTimeOutLocked(false);
+        setResult(resultData);
+        setShowCompletionModal(true);
+
+        try {
+          localStorage.removeItem(`classroom_practice_draft_${practiceTag}`);
+        } catch (e) {}
+
+        toast.success(auto ? "Thời gian đã hết! Đã nộp bài luyện tập." : "Nộp bài luyện tập thành công!");
+
+        setTimeout(() => {
+          speakScore(calculatedScore, calculatedCorrect, quiz.questions.length, 10);
+        }, 350);
+      } catch (err: any) {
+        toast.error("Nộp bài luyện tập thất bại!");
+        setIsTimeOutLocked(false);
+      } finally {
+        setIsSubmitting(false);
+      }
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -456,7 +583,27 @@ export default function TakeExam() {
     newFlagged: Record<number, boolean>,
     qIdx = currentQIndex
   ) => {
-    if (result || !id) return;
+    if (result) return;
+
+    if (isPracticeMode) {
+      const payload = {
+        answers: newAnswers,
+        flagged: newFlagged,
+        questionOrder,
+        optionOrders,
+        currentQIndex: qIdx,
+        startedAt: new Date(endTimestampRef.current - (quiz?.durationMinutes || 15) * 60 * 1000).toISOString(),
+        savedAt: new Date().toISOString()
+      };
+      try {
+        localStorage.setItem(`classroom_practice_draft_${practiceTag}`, JSON.stringify(payload));
+      } catch (e) {}
+      setSaveStatus("saved");
+      setLastSavedTime(getCurrentTimeStr());
+      return;
+    }
+
+    if (!id) return;
     setSaveStatus("saving");
 
     const payload = {
@@ -666,7 +813,7 @@ export default function TakeExam() {
     } else if (pendingExitUrl) {
       navigate(pendingExitUrl);
     } else {
-      navigate(quiz?.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/classrooms");
+      navigate(isPracticeMode ? "/dashboard" : (quiz?.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/classrooms"));
     }
   };
 
@@ -762,7 +909,7 @@ export default function TakeExam() {
             type="button"
             onClick={() => {
               isAllowingExitRef.current = true;
-              navigate(quiz?.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/assignments");
+              navigate(isPracticeMode ? "/dashboard" : (quiz?.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/assignments"));
             }}
             className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 cursor-pointer shadow-sm transition-colors"
           >
@@ -782,7 +929,7 @@ export default function TakeExam() {
         </p>
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={() => navigate(isPracticeMode ? "/dashboard" : -1)}
           className="mt-4 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 font-bold text-sm rounded-xl hover:bg-slate-50 cursor-pointer shadow-sm"
         >
           Quay lại
@@ -836,9 +983,9 @@ export default function TakeExam() {
           <div className={styles.headerLeft}>
             <button
               type="button"
-              onClick={() => handleNavigateAway(quiz.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/classrooms")}
+              onClick={() => handleNavigateAway(isPracticeMode ? "/dashboard" : (quiz.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/classrooms"))}
               className={styles.brandBtn}
-              title="Quay lại lớp học"
+              title={isPracticeMode ? "Quay lại Bảng điều khiển" : "Quay lại lớp học"}
             >
               <span className={styles.brandLogo}>🐧</span>
               <span className={styles.brandTitle}>ClassRoom</span>
@@ -1782,11 +1929,11 @@ export default function TakeExam() {
                 className={styles.btnBackToClass}
                 onClick={() => {
                   stopSpeakingScore();
-                  navigate(quiz.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/classrooms");
+                  navigate(isPracticeMode ? "/dashboard" : (quiz.classId ? `/classrooms/${quiz.classId}?tab=activities` : "/classrooms"));
                 }}
               >
                 <ArrowLeft size={16} weight="bold" />
-                <span>Quay lại lớp học</span>
+                <span>{isPracticeMode ? "Về Dashboard" : "Quay lại lớp học"}</span>
               </button>
             </div>
           </div>

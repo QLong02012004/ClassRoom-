@@ -12,13 +12,22 @@
  */
 
 import { Router } from 'express';
-import { getPublicMaterials, createMaterial, deleteMaterial } from '../controllers/materialController';
+import { getPublicMaterials, getMaterialById, downloadMaterial, createMaterial, deleteMaterial, clearAllMaterials } from '../controllers/materialController';
 import { protect, authorize } from '../middlewares/authMiddleware';
 
 const router = Router();
 
 // GET /api/v1/materials -> accessible to all authenticated users
 router.get('/', protect, getPublicMaterials);
+
+// DELETE /api/v1/materials/clear-all -> Dọn sạch tài liệu mẫu
+router.delete('/clear-all', protect, clearAllMaterials);
+
+// GET /api/v1/materials/:id -> accessible to all authenticated users
+router.get('/:id', protect, getMaterialById);
+
+// GET /api/v1/materials/:id/download -> accessible to all authenticated users
+router.get('/:id/download', protect, downloadMaterial);
 
 // POST /api/v1/materials -> Admin only
 router.post('/', protect, authorize('admin'), createMaterial);
