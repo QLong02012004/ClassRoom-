@@ -46,12 +46,59 @@ export default function StudentAssignments() {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<string>("pending");
   const [filterClass, setFilterClass] = useState("all");
   const [filterType, setFilterType] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
+
+  const getStatus = (assign: any) => {
+    if (assign.submission?.status === "graded") return "graded";
+    if (assign.submission) return "submitted";
+    const diff = new Date(assign.deadline).getTime() - Date.now();
+    if (diff < 0) return "late";
+    return "pending";
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "graded": return "Đã chấm điểm";
+      case "submitted": return "Đã nộp bài";
+      case "late": return "Quá hạn nộp";
+      default: return "Đang mở (Chưa nộp)";
+    }
+  };
+
+  // Sắp xếp ưu tiên: Bài tập đang mở (pending) lên đầu tiên, sắp đến hạn nộp trước
+  const sortAssignments = (list: any[]) => {
+    return [...list].sort((a: any, b: any) => {
+      const statusA = getStatus(a);
+      const statusB = getStatus(b);
+
+      const priorityMap: Record<string, number> = {
+        pending: 0,
+        submitted: 1,
+        graded: 2,
+        late: 3,
+      };
+
+      const pA = priorityMap[statusA] ?? 99;
+      const pB = priorityMap[statusB] ?? 99;
+
+      if (pA !== pB) {
+        return pA - pB;
+      }
+
+      // Nếu cùng là "pending" (đang mở): bài nào sắp hết hạn hơn (deadline gần hơn) thì xếp trước
+      if (statusA === "pending") {
+        return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+      }
+
+      // Các bài khác: sắp xếp theo bài gần đây hơn
+      return new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
+    });
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -67,10 +114,14 @@ export default function StudentAssignments() {
             ...assign,
             deadline: assign.dueDate || assign.deadline
           }));
-          mapped.sort(
-            (a: any, b: any) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime()
-          );
-          setAssignments(mapped);
+          const sorted = sortAssignments(mapped);
+          setAssignments(sorted);
+
+          // Nếu không còn bài nào đang mở/chưa nộp, tự động chuyển về "all" để học sinh không thấy trang trống
+          const hasPending = sorted.some((item: any) => getStatus(item) === "pending");
+          if (!hasPending && !isBackground) {
+            setActiveTab("all");
+          }
         }
       } catch (err) {
         console.error("Không thể tải danh sách bài tập", err);
@@ -100,23 +151,6 @@ export default function StudentAssignments() {
       socket.off("notification_update", handleRealtimeUpdate);
     };
   }, []);
-
-  const getStatus = (assign: any) => {
-    if (assign.submission?.status === "graded") return "graded";
-    if (assign.submission) return "submitted";
-    const diff = new Date(assign.deadline).getTime() - Date.now();
-    if (diff < 0) return "late";
-    return "pending";
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "graded": return "Đã chấm điểm";
-      case "submitted": return "Đã nộp bài";
-      case "late": return "Quá hạn nộp";
-      default: return "Chưa nộp bài";
-    }
-  };
 
   const formatDeadline = (iso: string) => {
     try {
@@ -208,11 +242,11 @@ export default function StudentAssignments() {
   const graded = filteredAssignments.filter((a) => getStatus(a) === "graded");
 
   const statusOptions = [
-    { id: "all", label: "Tất cả trạng thái", icon: <ListChecks size={15} weight="duotone" className="text-slate-600" /> },
-    { id: "late", label: "Quá hạn", icon: <XCircle size={15} weight="duotone" className="text-red-500" /> },
-    { id: "pending", label: "Chưa nộp", icon: <NotePencil size={15} weight="duotone" className="text-orange-500" /> },
-    { id: "submitted", label: "Đã nộp", icon: <CheckCircle size={15} weight="duotone" className="text-teal-600" /> },
+    { id: "pending", label: "Đang mở (Chưa nộp)", icon: <NotePencil size={15} weight="duotone" className="text-orange-500" /> },
+    { id: "all", label: "Tất cả bài tập", icon: <ListChecks size={15} weight="duotone" className="text-slate-600" /> },
+    { id: "submitted", label: "Đã nộp bài", icon: <CheckCircle size={15} weight="duotone" className="text-teal-600" /> },
     { id: "graded", label: "Đã chấm điểm", icon: <Star size={15} weight="fill" className="text-amber-400" /> },
+    { id: "late", label: "Quá hạn", icon: <XCircle size={15} weight="duotone" className="text-red-500" /> },
   ];
 
   const renderAssignmentCard = (assign: any) => {
@@ -451,14 +485,22 @@ export default function StudentAssignments() {
         </div>
 
         <div className={styles.headerStats}>
-          <div className={styles.statPill}>
+          <div
+            className={`${styles.statPill} cursor-pointer hover:bg-slate-100 transition-colors ${activeTab === "all" ? "ring-2 ring-[#f47c20] bg-slate-50" : ""}`}
+            onClick={() => setActiveTab("all")}
+            title="Xem tất cả bài tập"
+          >
             <Notebook size={16} weight="duotone" className="text-[#f47c20]" />
             <span>{assignments.length} Bài tập</span>
           </div>
           {pending.length > 0 && (
-            <div className={styles.statPill}>
+            <div
+              className={`${styles.statPill} cursor-pointer hover:bg-orange-50 transition-colors ${activeTab === "pending" ? "ring-2 ring-[#f47c20] bg-orange-50" : ""}`}
+              onClick={() => setActiveTab("pending")}
+              title="Xem bài tập đang mở cần làm"
+            >
               <NotePencil size={16} weight="duotone" className="text-[#f47c20]" />
-              <span>{pending.length} Chưa nộp</span>
+              <span>{pending.length} Đang mở</span>
             </div>
           )}
         </div>
@@ -557,11 +599,11 @@ export default function StudentAssignments() {
 
       {/* Grid Content */}
       <div className="outline-none">
-        {activeTab === "all" && renderList(filteredAssignments, "Chưa có bài tập nào thỏa mãn bộ lọc tìm kiếm")}
-        {activeTab === "late" && renderList(late, "Tuyệt vời! Không có bài nào bị quá hạn")}
-        {activeTab === "pending" && renderList(pending, "Không có bài tập nào chưa nộp")}
-        {activeTab === "submitted" && renderList(submitted, "Chưa có bài tập nào đang chờ chấm")}
-        {activeTab === "graded" && renderList(graded, "Chưa có bài tập nào được chấm điểm")}
+        {activeTab === "pending" && renderList(sortAssignments(pending), "Tuyệt vời! Bạn không có bài tập nào đang mở cần nộp")}
+        {activeTab === "all" && renderList(sortAssignments(filteredAssignments), "Chưa có bài tập nào thỏa mãn bộ lọc tìm kiếm")}
+        {activeTab === "submitted" && renderList(sortAssignments(submitted), "Chưa có bài tập nào đang chờ chấm")}
+        {activeTab === "graded" && renderList(sortAssignments(graded), "Chưa có bài tập nào được chấm điểm")}
+        {activeTab === "late" && renderList(sortAssignments(late), "Tuyệt vời! Không có bài nào bị quá hạn")}
       </div>
     </div>
   );
