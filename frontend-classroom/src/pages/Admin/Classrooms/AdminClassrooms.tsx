@@ -63,7 +63,7 @@ import { useToast } from "../../../components/Styles/ToastContext";
 import { CustomConfirmDialog } from "@/components/ui/Dialogs/CustomConfirmDialog";
 
 import { classroomService, type IClassroomItem, type IClassroomActivities } from "../../../service/classroom.service";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../components/ui/dialog";
 import { StudentsTable } from "../../../components/ui/Tables/StudentsTable";
 import { attendanceService } from "../../../service/attendance.service";
@@ -555,20 +555,23 @@ export default function AdminClassrooms() {
   useEffect(() => {
     fetchClasses(true);
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on('admin_stats_update', () => {
+    const handleAdminStatsUpdate = () => {
       console.log('🔄 [Socket.io] Có thay đổi trạng thái lớp, đang tải lại...');
       fetchClasses(false);
-    });
+    };
 
-    socket.on('teacher_classrooms_update', () => {
+    const handleTeacherClassroomsUpdate = () => {
       fetchClasses(false);
-    });
+    };
+
+    socket.on('admin_stats_update', handleAdminStatsUpdate);
+    socket.on('teacher_classrooms_update', handleTeacherClassroomsUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off('admin_stats_update', handleAdminStatsUpdate);
+      socket.off('teacher_classrooms_update', handleTeacherClassroomsUpdate);
     };
   }, []);
 

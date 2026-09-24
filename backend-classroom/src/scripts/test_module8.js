@@ -64,7 +64,10 @@ async function runModule8Tests() {
   } else {
     await mongoose.connection.collection('classes').updateOne(
       { _id: testClass._id },
-      { $addToSet: { students: new mongoose.Types.ObjectId(studentId) } }
+      { 
+        $addToSet: { students: new mongoose.Types.ObjectId(studentId) },
+        $set: { teacherId: new mongoose.Types.ObjectId(teacherId) }
+      }
     );
   }
 
@@ -93,7 +96,7 @@ async function runModule8Tests() {
   // Create BankItem of type assignment
   const bankItemDoc = await mongoose.connection.collection('bankitems').insertOne({
     teacherId: new mongoose.Types.ObjectId(teacherId),
-    type: 'assignment',
+    type: 'document',
     title: `Bài tập Tích Phân Tự Luận #${Date.now().toString().slice(-4)}`,
     description: 'Tính các tích phân cơ bản và ứng dụng diện tích hình phẳng',
     maxScore: 10,
@@ -122,7 +125,7 @@ async function runModule8Tests() {
     })
   });
   const assignCreateData = await assignCreateRes.json();
-  const createdAssignmentId = assignCreateData.data?._id;
+  const createdAssignmentId = assignCreateData._id || assignCreateData.data?._id;
 
   // Wait a short moment for async notification & socket emit
   await new Promise(resolve => setTimeout(resolve, 1000));

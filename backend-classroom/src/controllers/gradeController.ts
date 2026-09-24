@@ -224,8 +224,8 @@ export const saveGrades = async (req: Request, res: Response, next: NextFunction
                     g.sObjectId.toString(),
                     UserRole.STUDENT,
                     teacherId,
-                    `Bài tập "${assignment.title}" đã được chấm điểm!`,
-                    `Giáo viên đã chấm bài tập "${assignment.title}" của bạn: ${g.score}/10 điểm.${feedbackText}`,
+                    `Bài tập của bạn đã được chấm điểm: ${g.score}`,
+                    `Giáo viên đã chấm bài tập "<strong>${assignment.title}</strong>" của bạn: <strong>${g.score}/${assignment.maxScore || 10} điểm</strong>.${feedbackText ? `<br/>Lời phê: <em>"${g.feedback}"</em>` : ''}`,
                     NotificationType.ASSIGNMENT
                 );
             }

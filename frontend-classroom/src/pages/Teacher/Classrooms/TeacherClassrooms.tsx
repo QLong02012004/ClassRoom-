@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Plus, Users, PencilSimple, CaretDown, Check, ClipboardText, BookOpen, MagnifyingGlass, Funnel, CheckSquare, Clock, SquaresFour, List, PushPin, Archive, Trash, UserPlus, XCircle, CheckCircle, ListChecks, Lock, LockKey } from "phosphor-react";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import { useNavigate, Link } from "react-router-dom";
 import { classroomService } from "../../../service/classroom.service";
 import type { ITeacherClassroom } from "../../../service/classroom.service";
@@ -365,23 +365,24 @@ export default function TeacherClassrooms() {
 
   // Socket.io Real-time update cho Giáo viên khi có thay đổi lớp, bài nộp hoặc chấm điểm mới
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-    const socket = io(backendUrl, {
-      withCredentials: true,
-    });
+    const socket = getSocket();
 
-    socket.on('teacher_classrooms_update', () => {
+    const handleClassUpdate = () => {
       console.log('🔄 [Socket.io] Có thay đổi thông tin lớp học, đang làm mới...');
       loadData();
-    });
+    };
 
-    socket.on('submission_update', () => {
+    const handleSubUpdate = () => {
       console.log('🔄 [Socket.io] Có học sinh nộp bài hoặc điểm số mới, đang làm mới số bài cần chấm...');
       loadData();
-    });
+    };
+
+    socket.on('teacher_classrooms_update', handleClassUpdate);
+    socket.on('submission_update', handleSubUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off('teacher_classrooms_update', handleClassUpdate);
+      socket.off('submission_update', handleSubUpdate);
     };
   }, [user]);
 

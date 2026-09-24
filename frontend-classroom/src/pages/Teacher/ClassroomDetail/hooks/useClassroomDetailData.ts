@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { getSocket } from "@/service/socket.service";
 import { classroomService } from "@/service/classroom.service";
 import { announcementService, type IAnnouncement } from "@/service/announcement.service";
 import { useToast } from "@/components/Styles/ToastContext";
@@ -67,18 +67,19 @@ export function useClassroomDetailData(classId?: string) {
   useEffect(() => {
     loadData(true);
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on("classroom_feed_update", (targetClassId?: string) => {
+    const handleFeed = (targetClassId?: string) => {
       if (!targetClassId || targetClassId === classId) {
         console.log("⚡ [Socket.io Realtime] Bảng tin có cập nhật mới, đang tự động tải lại...");
         loadData();
       }
-    });
+    };
+
+    socket.on("classroom_feed_update", handleFeed);
 
     return () => {
-      socket.disconnect();
+      socket.off("classroom_feed_update", handleFeed);
     };
   }, [classId, loadData]);
 

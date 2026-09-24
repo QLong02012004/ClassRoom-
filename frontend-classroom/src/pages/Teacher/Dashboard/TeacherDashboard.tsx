@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   BookOpen,
@@ -177,12 +177,18 @@ export default function TeacherDashboard() {
     }
   };
 
+  const isFirstMount = useRef(true);
+
   useEffect(() => {
-    loadData(selectedClassFilter, false);
+    if (isFirstMount.current) {
+      isFirstMount.current = false;
+      loadData(selectedClassFilter, true);
+    } else {
+      loadData(selectedClassFilter, false);
+    }
   }, [selectedClassFilter]);
 
   useEffect(() => {
-    loadData('all', true);
     loadSchedules();
 
     const handleOpenModal = () => {

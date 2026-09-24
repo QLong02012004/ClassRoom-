@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router-do
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
 import { useToast } from "../../Styles/ToastContext";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import {
   Bell,
   Globe,
@@ -37,7 +37,10 @@ const TopHeader: React.FC = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const [isBellBouncing, setIsBellBouncing] = useState(false);
   const [notifications, setNotifications] = useState<INotificationItem[]>([]);
+  const isInitialFetchRef = useRef(true);
+  const knownUnreadIdsRef = useRef<Set<string>>(new Set());
   const profileRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -83,13 +86,34 @@ const TopHeader: React.FC = () => {
 
   const currentPathName = getPageTitle(location.pathname);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (isRealtime = false) => {
     try {
       let serverNotifs: INotificationItem[] = [];
       const res = await notificationService.getNotifications();
       if (res && res.data && Array.isArray(res.data)) {
         serverNotifs = res.data;
       }
+
+      const currentUnread = serverNotifs.filter((n) => !n.isRead);
+
+      if (isRealtime && !isInitialFetchRef.current) {
+        // Tìm thông báo chưa đọc mới xuất hiện
+        const brandNewUnread = currentUnread.filter(
+          (n) => !knownUnreadIdsRef.current.has(n._id)
+        );
+        if (brandNewUnread.length > 0) {
+          // Kích hoạt hiệu ứng Quả chuông nảy chấm đỏ thời gian thực
+          setIsBellBouncing(true);
+          setTimeout(() => setIsBellBouncing(false), 3500);
+
+          // Pop toast thông báo tới người dùng
+          const latest = brandNewUnread[0];
+          toast.info(`🔔 ${latest.title}`);
+        }
+      }
+
+      knownUnreadIdsRef.current = new Set(currentUnread.map((n) => n._id));
+      isInitialFetchRef.current = false;
       setNotifications(serverNotifs);
     } catch (error) {
       console.error("Lỗi lấy thông báo:", error);
@@ -98,30 +122,32 @@ const TopHeader: React.FC = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    const interval = setInterval(fetchNotifications, 30000); // 30s polling fallback
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true, reconnection: true, reconnectionAttempts: 10, reconnectionDelay: 1000 });
+    const socket = getSocket();
 
-    socket.on('notification_update', () => {
-      console.log('🔔 [Socket.io] Có thông báo mới, đang cập nhật...');
+    const handleNotifUpdate = (recipientId?: string) => {
+      const myId = (user as any)?._id || (user as any)?.id;
+      if (!recipientId || !myId || String(recipientId) === String(myId)) {
+        console.log('🔔 [Socket.io] Có thông báo mới, đang cập nhật...');
+        fetchNotifications(true);
+      }
+    };
+
+    const handleSubmissionUpdate = () => {
+      console.log('⚡ [Socket.io] Có bài nộp / chấm điểm mới, đang cập nhật thông báo...');
+      fetchNotifications(true);
+    };
+
+    const handleAdminStatsUpdate = () => {
       fetchNotifications();
-    });
+    };
 
-    socket.on('submission_update', () => {
-      console.log('⚡ [Socket.io] Có bài nộp mới, đang cập nhật thông báo...');
+    const handleTeacherClassroomsUpdate = () => {
       fetchNotifications();
-    });
+    };
 
-    socket.on('admin_stats_update', () => {
-      fetchNotifications();
-    });
-
-    socket.on('teacher_classrooms_update', () => {
-      fetchNotifications();
-    });
-
-    socket.on('attendance_update', (data?: any) => {
+    const handleAttendanceUpdate = (data?: any) => {
       fetchNotifications();
       if (userRole === 'student' && data?.records && Array.isArray(data.records)) {
         const studentId = (user as any)?._id || (user as any)?.id;
@@ -139,11 +165,21 @@ const TopHeader: React.FC = () => {
           }
         }
       }
-    });
+    };
+
+    socket.on('notification_update', handleNotifUpdate);
+    socket.on('submission_update', handleSubmissionUpdate);
+    socket.on('admin_stats_update', handleAdminStatsUpdate);
+    socket.on('teacher_classrooms_update', handleTeacherClassroomsUpdate);
+    socket.on('attendance_update', handleAttendanceUpdate);
 
     return () => {
       clearInterval(interval);
-      socket.disconnect();
+      socket.off('notification_update', handleNotifUpdate);
+      socket.off('submission_update', handleSubmissionUpdate);
+      socket.off('admin_stats_update', handleAdminStatsUpdate);
+      socket.off('teacher_classrooms_update', handleTeacherClassroomsUpdate);
+      socket.off('attendance_update', handleAttendanceUpdate);
     };
   }, [userRole, user]);
 
@@ -167,6 +203,7 @@ const TopHeader: React.FC = () => {
         setNotifications((prev) =>
           prev.map((n) => (n._id === notif._id ? { ...n, isRead: true } : n))
         );
+        knownUnreadIdsRef.current.delete(notif._id);
       } catch (error) {
         console.error("Lỗi khi đánh dấu đã đọc:", error);
       }
@@ -182,10 +219,11 @@ const TopHeader: React.FC = () => {
       navigate("/gradebook");
     } else if (userRole === "student") {
       setIsNotifOpen(false);
-      if (notif.type === 'assignment' || notif.type === 'quiz' || text.includes("bài tập") || text.includes("bài thi") || text.includes("đề thi")) {
-        navigate("/assignments");
-      } else if (text.includes("chấm") || text.includes("điểm") || text.includes("kết quả")) {
+      // Ưu tiên kiểm tra thông báo chấm điểm / kết quả trước để điều hướng sang /grades
+      if (text.includes("chấm") || text.includes("điểm") || text.includes("kết quả")) {
         navigate("/grades");
+      } else if (notif.type === 'assignment' || notif.type === 'quiz' || text.includes("bài tập") || text.includes("bài thi") || text.includes("đề thi")) {
+        navigate("/assignments");
       } else if (notif.type === 'classroom' || text.includes("lớp") || text.includes("phê duyệt") || text.includes("duyệt")) {
         navigate("/classrooms");
       }
@@ -291,16 +329,20 @@ const TopHeader: React.FC = () => {
           <button
             type="button"
             aria-label="Thông báo"
-            className={`${styles.iconBtn} tour-step-notifications`}
-            onClick={() => setIsNotifOpen(!isNotifOpen)}
+            className={`${styles.iconBtn} tour-step-notifications ${isBellBouncing ? styles.bellBouncing : ""}`}
+            onClick={() => {
+              setIsNotifOpen(!isNotifOpen);
+              if (isBellBouncing) setIsBellBouncing(false);
+            }}
           >
-            <Bell size={20} />
-            {unreadCount > 0 ? (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-[10px] font-bold text-white px-1 leading-none">
-                {unreadCount > 99 ? "99+" : unreadCount}
-              </span>
-            ) : (
-              <span className={styles.notifDot}></span>
+            <Bell size={20} className={isBellBouncing ? "text-[#f47c20] animate-bounce" : ""} />
+            {unreadCount > 0 && (
+              <>
+                <span className="absolute -top-1 -right-1 w-[18px] h-[18px] bg-red-500 rounded-full animate-ping opacity-75 pointer-events-none" />
+                <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 rounded-full border-2 border-white text-[10px] font-bold text-white px-1 leading-none shadow-xs pointer-events-none ${isBellBouncing ? "animate-bounce" : ""}`}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              </>
             )}
           </button>
 

@@ -31,7 +31,7 @@ import {
 import { useAuth } from "../../../context/AuthContext";
 import { notificationService, type INotificationItem } from "../../../service/notification.service";
 import { gradebookService } from "../../../service/gradebook.service";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 
 const NavBar: React.FC = () => {
   const location = useLocation();
@@ -139,22 +139,21 @@ const NavBar: React.FC = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    const interval = setInterval(fetchNotifications, 45000);
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on('notification_update', () => {
+    const handleUpdate = () => {
       fetchNotifications();
-    });
+    };
 
-    socket.on('submission_update', () => {
-      fetchNotifications();
-    });
+    socket.on('notification_update', handleUpdate);
+    socket.on('submission_update', handleUpdate);
 
     return () => {
       clearInterval(interval);
-      socket.disconnect();
+      socket.off('notification_update', handleUpdate);
+      socket.off('submission_update', handleUpdate);
     };
   }, [userRole]);
 
@@ -184,10 +183,10 @@ const NavBar: React.FC = () => {
       navigate("/gradebook");
     } else if (userRole === "student") {
       setIsNotifOpen(false);
-      if (notif.type === 'assignment' || notif.type === 'quiz' || text.includes("bài tập") || text.includes("bài thi") || text.includes("đề thi")) {
-        navigate("/assignments");
-      } else if (text.includes("chấm") || text.includes("điểm") || text.includes("kết quả")) {
+      if (text.includes("chấm") || text.includes("điểm") || text.includes("kết quả")) {
         navigate("/grades");
+      } else if (notif.type === 'assignment' || notif.type === 'quiz' || text.includes("bài tập") || text.includes("bài thi") || text.includes("đề thi")) {
+        navigate("/assignments");
       } else if (notif.type === 'classroom' || text.includes("lớp") || text.includes("phê duyệt") || text.includes("duyệt")) {
         navigate("/classrooms");
       }

@@ -636,18 +636,25 @@ export default function StudentAssistant() {
   const renderFormattedMessage = (content: string) => {
     const lines = content.split('\n');
     return lines.map((line, idx) => {
-      if (line.startsWith('### ')) {
-        return <h4 key={idx} className={styles.mdH3}>{line.replace('### ', '')}</h4>;
-      }
-      if (line.startsWith('## ')) {
-        return <h3 key={idx} className={styles.mdH2}>{line.replace('## ', '')}</h3>;
-      }
-      if (line.startsWith('# ')) {
-        return <h2 key={idx} className={styles.mdH1}>{line.replace('# ', '')}</h2>;
+      const trimmed = line.trim();
+
+      // Đường kẻ ngang phân cách: --- hoặc *** hoặc ___
+      if (/^(\s*[-*_]\s*){3,}$/.test(trimmed)) {
+        return <hr key={idx} className={styles.mdDivider} />;
       }
 
-      if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
-        const cleanLine = line.trim().substring(2);
+      // Tiêu đề Markdown: #, ##, ###, ####
+      const hMatch = line.match(/^(\s*#{1,4})\s+(.*)/);
+      if (hMatch) {
+        const level = hMatch[1].trim().length;
+        const text = hMatch[2];
+        if (level === 1) return <h2 key={idx} className={styles.mdH1}>{parseInlineFormatting(text)}</h2>;
+        if (level === 2) return <h3 key={idx} className={styles.mdH2}>{parseInlineFormatting(text)}</h3>;
+        return <h4 key={idx} className={styles.mdH3}>{parseInlineFormatting(text)}</h4>;
+      }
+
+      if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+        const cleanLine = trimmed.substring(2);
         return (
           <div key={idx} className={styles.mdBullet}>
             <span className={styles.bulletDot}>•</span>
@@ -656,7 +663,7 @@ export default function StudentAssistant() {
         );
       }
 
-      const numMatch = line.trim().match(/^(\d+)\.\s+(.*)/);
+      const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
       if (numMatch) {
         return (
           <div key={idx} className={styles.mdNumItem}>
@@ -666,7 +673,7 @@ export default function StudentAssistant() {
         );
       }
 
-      if (line.trim() === '') {
+      if (trimmed === '') {
         return <div key={idx} className={styles.mdSpacing} />;
       }
 

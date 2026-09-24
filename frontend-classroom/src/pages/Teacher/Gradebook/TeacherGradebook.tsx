@@ -55,7 +55,7 @@ import {
 import * as XLSX from "xlsx";
 import { ExcelImportButton, ExcelExportButton } from "../../../components/ui/Buttons/ExcelButtons";
 import { activityService } from "../../../service/activity.service";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import FocusGradingModal from "../ClassroomDetail/components/grading/FocusGradingModal";
 import styles from "./TeacherGradebook.module.scss";
 
@@ -527,18 +527,18 @@ export default function TeacherGradebook() {
   useEffect(() => {
     loadGradebook();
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
-
-    socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
+    const socket = getSocket();
+    const handleSubmissionUpdate = (data?: { assignmentId?: string; classId?: string }) => {
       if (!data?.classId || data.classId === selectedClassId) {
         console.log("⚡ [Socket.io Realtime] Sổ điểm có bài nộp/cập nhật điểm mới, tự động đồng bộ ngầm...");
         loadGradebook(true);
       }
-    });
+    };
+
+    socket.on("submission_update", handleSubmissionUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off("submission_update", handleSubmissionUpdate);
     };
   }, [loadGradebook, selectedClassId]);
 

@@ -50,7 +50,7 @@ import { useToast } from "../../../components/Styles/ToastContext";
 import styles from "./AdminUsers.module.scss";
 import { authService } from "../../../service/auth.service";
 import { userService, type IUserItem } from "../../../service/user.service";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import { DropdownFilter } from "../../../components/ui/Dropdowns/DropdownFilter";
 import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
 
@@ -459,19 +459,7 @@ export default function AdminUsers() {
 
   // Kết nối Socket.IO để tự động tải lại danh sách thời gian thực khi có người mới đăng ký hoặc cập nhật
   useEffect(() => {
-    const rawUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace('/api/v1', '') || "http://localhost:5000";
-    const backendUrl = rawUrl.replace(/\/api(\/v\d+)?\/?$/, '');
-
-    const socket = io(backendUrl, {
-      withCredentials: true,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
-    });
-
-    socket.on('connect', () => {
-      console.log('⚡ [AdminUsers] Đã kết nối Socket.IO Real-time thành công!');
-    });
+    const socket = getSocket();
 
     const handleRealtimeUpdate = () => {
       console.log('🔄 [AdminUsers] Nhận tín hiệu Real-time -> Đang tự động cập nhật danh sách người dùng...');
@@ -482,17 +470,10 @@ export default function AdminUsers() {
     socket.on('admin_users_update', handleRealtimeUpdate);
     socket.on('notification_update', handleRealtimeUpdate);
 
-    // Bổ sung Polling nhẹ nhàng mỗi 10 giây để đảm bảo luôn đồng bộ nếu mất kết nối socket
-    const interval = setInterval(() => {
-      fetchUsers();
-    }, 10000);
-
     return () => {
       socket.off('admin_stats_update', handleRealtimeUpdate);
       socket.off('admin_users_update', handleRealtimeUpdate);
       socket.off('notification_update', handleRealtimeUpdate);
-      socket.disconnect();
-      clearInterval(interval);
     };
   }, [fetchUsers]);
 

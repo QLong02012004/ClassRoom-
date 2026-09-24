@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { io } from "socket.io-client";
+import { getSocket } from "@/service/socket.service";
 import { useToast } from "@/components/Styles/ToastContext";
 import { activityService } from "@/service/activity.service";
 import type { Selection } from "@heroui/react";
@@ -80,18 +80,19 @@ export function useClassroomActivities({
   useEffect(() => {
     if (!classId) return;
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on("submission_update", (data?: { classId?: string; assignmentId?: string }) => {
+    const handleSubUpdate = (data?: { classId?: string; assignmentId?: string }) => {
       if (!data || !data.classId || data.classId === classId) {
         console.log("⚡ [Socket.io Realtime] Bài nộp có cập nhật mới, đang làm mới danh sách bài tập...");
         loadAllActivitiesRef.current();
       }
-    });
+    };
+
+    socket.on("submission_update", handleSubUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off("submission_update", handleSubUpdate);
     };
   }, [classId]);
 
@@ -115,16 +116,16 @@ export function useClassroomActivities({
         }
       }
 
+      const subCount = item.submissionCount || 0;
+      const gradedCount = item.gradedCount || 0;
+      const isGraded = gradedCount > 0 && gradedCount >= subCount && subCount > 0;
+      const isUngraded = (item.pendingGradeCount && item.pendingGradeCount > 0) || (subCount > 0 && gradedCount < subCount);
+
       if (filterStatus !== "all") {
         const currentSt = (item.status || "open").toLowerCase();
         if (filterStatus === "open" && currentSt !== "open") return false;
         if (filterStatus === "closed" && currentSt !== "closed") return false;
         if (filterStatus === "draft" && currentSt !== "draft") return false;
-
-        const subCount = item.submissionCount || 0;
-        const gradedCount = item.gradedCount || 0;
-        const isGraded = gradedCount > 0 && gradedCount >= subCount && subCount > 0;
-        const isUngraded = (item.pendingGradeCount && item.pendingGradeCount > 0) || (subCount > 0 && gradedCount < subCount);
 
         if (filterStatus === "graded" && !isGraded) return false;
         if (filterStatus === "ungraded" && !isUngraded) return false;
@@ -146,7 +147,6 @@ export function useClassroomActivities({
                 ? "thi thu mock exam"
                 : removeAccents((item.category || "").toLowerCase());
 
-          const isUngraded = (item.pendingGradeCount && item.pendingGradeCount > 0) || (subCount > 0 && gradedCount < subCount);
           const statusText = [
             item.status === "closed" ? "da dong closed" : "dang mo open",
             isUngraded ? "can cham chua cham ungraded pending" : "",

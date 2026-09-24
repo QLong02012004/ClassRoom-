@@ -21,6 +21,7 @@ import OnboardingTour from "../common/OnboardingTour/OnboardingTour";
 const MainLayout: React.FC = () => {
   const location = useLocation();
   const isExamRoute = location.pathname.startsWith("/exams/") || location.pathname.startsWith("/practice");
+  const isChatRoute = location.pathname.startsWith("/chat");
 
   return (
     <div className="flex min-h-screen bg-[#f1f5f9] overflow-hidden font-sans">
@@ -44,8 +45,16 @@ const MainLayout: React.FC = () => {
           {!isExamRoute && <Header />}
 
           {/* Actual Page Content */}
-          <main className={`flex-1 overflow-y-auto ${isExamRoute ? "p-0" : "p-4 md:p-8"}`}>
-            <div className={`w-full ${isExamRoute ? "max-w-none" : "max-w-7xl mx-auto"} h-full`}>
+          <main
+            className={`flex-1 ${
+              isExamRoute
+                ? "p-0 overflow-y-auto"
+                : isChatRoute
+                ? "p-3 md:p-4 overflow-hidden"
+                : "p-4 md:p-8 overflow-y-auto"
+            }`}
+          >
+            <div className={`w-full ${isExamRoute || isChatRoute ? "max-w-none" : "max-w-7xl mx-auto"} h-full`}>
               <Outlet />
             </div>
           </main>

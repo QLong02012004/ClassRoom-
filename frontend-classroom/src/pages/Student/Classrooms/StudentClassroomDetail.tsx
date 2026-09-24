@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import AnnouncementComments from "../../../components/Classroom/AnnouncementComments";
 import {
   ChatCircle,
@@ -439,38 +439,41 @@ export default function StudentClassroomDetail() {
     loadData(true);
 
     // Kết nối Socket.io Realtime cho Bảng tin lớp học (Học sinh)
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || 'http://localhost:5000';
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on('classroom_feed_update', (targetClassId?: string) => {
+    const handleFeedUpdate = (targetClassId?: string) => {
       if (!targetClassId || targetClassId === classId) {
         console.log('⚡ [Socket.io Realtime] Giáo viên đã đăng bài/thay đổi thông báo, đang tự động cập nhật...');
         loadData();
       }
-    });
+    };
 
-    socket.on('submission_update', (data?: { classId?: string }) => {
+    const handleSubmission = (data?: { classId?: string }) => {
       if (!data?.classId || data.classId === classId) {
         console.log('⚡ [Socket.io Realtime] Có bài nộp hoặc cập nhật điểm số mới, đang tự động tải lại...');
         loadData();
       }
-    });
+    };
 
-    socket.on('student_classrooms_update', () => {
+    const handleClassUpdate = () => {
       console.log('⚡ [Socket.io Realtime] Lớp học có thay đổi trạng thái, đang tự động cập nhật...');
       loadData();
-    });
+    };
 
-    socket.on('notification_update', () => {
+    const handleNotif = () => {
       loadData();
-    });
+    };
+
+    socket.on('classroom_feed_update', handleFeedUpdate);
+    socket.on('submission_update', handleSubmission);
+    socket.on('student_classrooms_update', handleClassUpdate);
+    socket.on('notification_update', handleNotif);
 
     return () => {
-      socket.off('classroom_feed_update');
-      socket.off('submission_update');
-      socket.off('student_classrooms_update');
-      socket.off('notification_update');
-      socket.disconnect();
+      socket.off('classroom_feed_update', handleFeedUpdate);
+      socket.off('submission_update', handleSubmission);
+      socket.off('student_classrooms_update', handleClassUpdate);
+      socket.off('notification_update', handleNotif);
     };
   }, [classId]);
 

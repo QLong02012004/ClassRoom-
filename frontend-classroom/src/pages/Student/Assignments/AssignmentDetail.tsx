@@ -22,7 +22,7 @@ import AnimatedSendButton from "../../../components/ui/Buttons/AnimatedSendButto
 import { gradebookService } from "../../../service/gradebook.service.ts";
 import { classroomService } from "../../../service/classroom.service.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service.ts";
 import { uploadService } from "@/service/upload.service";
 import { formatCleanFileName } from "@/lib/utils";
 import styles from "./AssignmentDetail.module.scss";
@@ -88,8 +88,7 @@ export default function AssignmentDetail() {
   useEffect(() => {
     loadData();
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
     const handleUpdate = (data?: { assignmentId?: string }) => {
       if (!data?.assignmentId || data.assignmentId === id) {
@@ -98,17 +97,20 @@ export default function AssignmentDetail() {
       }
     };
 
+    const handleReload = () => {
+      loadData();
+    };
+
     socket.on("submission_update", handleUpdate);
-    socket.on("student_classrooms_update", () => loadData());
-    socket.on("classroom_feed_update", () => loadData());
-    socket.on("notification_update", () => loadData());
+    socket.on("student_classrooms_update", handleReload);
+    socket.on("classroom_feed_update", handleReload);
+    socket.on("notification_update", handleReload);
 
     return () => {
       socket.off("submission_update", handleUpdate);
-      socket.off("student_classrooms_update");
-      socket.off("classroom_feed_update");
-      socket.off("notification_update");
-      socket.disconnect();
+      socket.off("student_classrooms_update", handleReload);
+      socket.off("classroom_feed_update", handleReload);
+      socket.off("notification_update", handleReload);
     };
   }, [id, loadData]);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pagination } from "@heroui/react";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service.ts";
 import {
   ChartBar,
   Notebook,
@@ -150,27 +150,32 @@ export default function StudentGrades() {
     fetchGrades();
 
     // Socket.io Realtime Listener
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on("submission_update", (data?: { assignmentId?: string }) => {
+    const handleSubmission = (data?: { assignmentId?: string }) => {
       console.log("⚡ [Socket.io Realtime] Cập nhật bảng điểm học sinh...");
       if (data?.assignmentId) {
         setNewlyGradedIds((prev) => new Set(prev).add(data.assignmentId!));
       }
       fetchGrades(true);
-    });
+    };
 
-    socket.on("classroom_feed_update", () => {
+    const handleFeed = () => {
       fetchGrades();
-    });
+    };
 
-    socket.on("student_classrooms_update", () => {
+    const handleClass = () => {
       fetchGrades();
-    });
+    };
+
+    socket.on("submission_update", handleSubmission);
+    socket.on("classroom_feed_update", handleFeed);
+    socket.on("student_classrooms_update", handleClass);
 
     return () => {
-      socket.disconnect();
+      socket.off("submission_update", handleSubmission);
+      socket.off("classroom_feed_update", handleFeed);
+      socket.off("student_classrooms_update", handleClass);
     };
   }, [fetchGrades]);
 

@@ -23,6 +23,7 @@ import { Request, Response, NextFunction } from 'express';
 import { NotificationModel } from '../models/Notification';
 import mongoose from 'mongoose';
 import { UserRole, NotificationType } from '../constants/enums';
+import { notifyNotificationUpdate } from '../socket';
 
 // 1. Lấy danh sách thông báo (lọc theo role HOẶC recipientId trực tiếp)
 export const getNotifications = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
@@ -73,6 +74,7 @@ export const markAsRead = async (req: Request, res: Response, next: NextFunction
         if (!notification.readBy.some(readId => String(readId) === String(userId))) {
             notification.readBy.push(new mongoose.Types.ObjectId(userId));
             await notification.save();
+            notifyNotificationUpdate(String(userId));
         }
 
         return res.status(200).json({
@@ -100,6 +102,8 @@ export const markAllAsRead = async (req: Request, res: Response, next: NextFunct
             },
             { $addToSet: { readBy: new mongoose.Types.ObjectId(userId) } }
         );
+
+        notifyNotificationUpdate(String(userId));
 
         return res.status(200).json({ message: 'Đã đánh dấu đọc toàn bộ thông báo thành công' });
     } catch (error) {

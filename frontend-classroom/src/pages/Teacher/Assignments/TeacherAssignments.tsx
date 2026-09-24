@@ -28,7 +28,7 @@ import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { BackButton } from "../../../components/ui/Buttons/BackButton";
 import NumberStepper from "../../../components/ui/FormControls/NumberStepper";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import styles from "./TeacherAssignments.module.scss";
 
 const categoryLabels: Record<string, string> = {
@@ -124,10 +124,9 @@ export default function TeacherAssignments() {
   useEffect(() => {
     loadData();
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
+    const handleSubUpdate = (data?: { assignmentId?: string; classId?: string }) => {
       console.log("⚡ [Socket.io Realtime] Có bài nộp/điểm mới, tự động cập nhật...");
       loadData();
       if (selectedAssignment && (!data?.assignmentId || data.assignmentId === selectedAssignment._id)) {
@@ -135,10 +134,12 @@ export default function TeacherAssignments() {
           if (res && res.data) setSubmissions(res.data);
         }).catch(console.error);
       }
-    });
+    };
+
+    socket.on("submission_update", handleSubUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off("submission_update", handleSubUpdate);
     };
   }, [loadData, selectedAssignment]);
 

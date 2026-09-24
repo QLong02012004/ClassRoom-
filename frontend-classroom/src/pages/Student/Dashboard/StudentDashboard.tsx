@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pagination } from "@heroui/react";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import {
   ArrowRight,
   Fire,
@@ -22,6 +21,7 @@ import {
   CaretDown
 } from "phosphor-react";
 import { CheckIcon } from "lucide-react";
+import { Pagination } from "@heroui/react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -169,21 +169,13 @@ export default function StudentDashboard() {
   };
 
   useEffect(() => {
-    loadData(selectedClassIdRef.current);
-    fetchLeaderboard(selectedClassIdRef.current);
-  }, [username, user]);
-
-  useEffect(() => {
-    if (selectedClassId) {
-      loadData(selectedClassId);
-      fetchLeaderboard(selectedClassId);
-    }
-  }, [selectedClassId]);
+    loadData(selectedClassId);
+    fetchLeaderboard(selectedClassId);
+  }, [selectedClassId, user?._id]);
 
   // Lắng nghe Socket.IO cập nhật realtime điểm XP, chuyên cần, bảng xếp hạng
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
     const handleRefresh = () => {
       console.log("⚡ [StudentDashboard] Đồng bộ dữ liệu realtime từ Socket...");
@@ -207,7 +199,6 @@ export default function StudentDashboard() {
       socket.off("student_classrooms_update", handleRefresh);
       socket.off("submission_update", handleRefresh);
       socket.off("classroom_feed_update", handleRefresh);
-      socket.disconnect();
     };
   }, []);
 

@@ -26,7 +26,7 @@ import { useToast } from "../../../components/Styles/ToastContext";
 import { dashboardService, type IDashboardStats } from "../../../service/dashboard.service";
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { ChartBarStacked } from "@/components/ui/ChartBarStacked";
-import { io } from "socket.io-client";
+import { getSocket } from "@/service/socket.service";
 
 function StatCardSkeleton() {
   return (
@@ -342,15 +342,8 @@ export default function AdminDashboard() {
     };
     fetchStats();
 
-    // Kết nối Socket.IO Real-time
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
-    const socket = io(backendUrl, {
-      withCredentials: true
-    });
-
-    socket.on('connect', () => {
-      console.log('⚡ [AdminDashboard] Đã kết nối Socket.IO Real-time!');
-    });
+    // Kết nối Socket.IO Real-time qua singleton
+    const socket = getSocket();
 
     const handleUpdate = () => {
       console.log('🔄 [AdminDashboard] Nhận sự kiện cập nhật -> Nạp lại thống kê...');
@@ -363,7 +356,6 @@ export default function AdminDashboard() {
     return () => {
       socket.off('admin_stats_update', handleUpdate);
       socket.off('admin_users_update', handleUpdate);
-      socket.disconnect();
     };
   }, [toast]);
 

@@ -17,7 +17,7 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { settingsService } from '../../service/settings.service';
 import MaintenancePage from '../../pages/MaintenancePage';
-import { io } from 'socket.io-client';
+import { getSocket } from '../../service/socket.service';
 import FullPageLoader from '../ui/Loaders/FullPageLoader';
 
 const ProtectedRoute: React.FC = () => {
@@ -38,15 +38,15 @@ const ProtectedRoute: React.FC = () => {
 
     checkMaintenance();
 
-    const socketUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-    const socket = io(socketUrl, { withCredentials: true });
-
-    socket.on('settings_update', () => {
+    const socket = getSocket();
+    const handleSettingsUpdate = () => {
       checkMaintenance();
-    });
+    };
+
+    socket.on('settings_update', handleSettingsUpdate);
 
     return () => {
-      socket.disconnect();
+      socket.off('settings_update', handleSettingsUpdate);
     };
   }, []);
 

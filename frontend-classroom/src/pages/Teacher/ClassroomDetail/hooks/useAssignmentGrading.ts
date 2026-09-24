@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { io } from "socket.io-client";
+import { getSocket } from "@/service/socket.service";
 import { useToast } from "@/components/Styles/ToastContext";
 import { activityService } from "@/service/activity.service";
 import { gradebookService } from "@/service/gradebook.service";
@@ -69,10 +69,9 @@ export function useAssignmentGrading({
 
   // ── Socket.io: lắng nghe học sinh nộp/nộp lại bài → tự động reload ──────
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on("submission_update", (data?: { assignmentId?: string; classId?: string }) => {
+    const handleSubmission = (data?: { assignmentId?: string; classId?: string }) => {
       const currentAssignment = selectedAssignmentRef.current;
       if (!currentAssignment) return;
       // Reload nếu event liên quan tới bài đang xem (hoặc không có assignmentId cụ thể)
@@ -80,10 +79,12 @@ export function useAssignmentGrading({
         console.log("⚡ [Teacher Socket] Học sinh nộp/nộp lại bài → tự động cập nhật danh sách bài nộp...");
         loadAssignmentSubmissions(currentAssignment._id);
       }
-    });
+    };
+
+    socket.on("submission_update", handleSubmission);
 
     return () => {
-      socket.disconnect();
+      socket.off("submission_update", handleSubmission);
     };
   }, []);
 

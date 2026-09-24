@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service";
 import { Pagination } from "@heroui/react";
 import { SmartSearchBar, type SearchSuggestionItem } from "../../../components/ui/Inputs/SmartSearchBar";
 
@@ -81,8 +81,7 @@ export default function StudentAssignments() {
     fetchAssignments();
 
     // Kết nối Socket.io Realtime để tự động cập nhật bài mới và kết quả chấm điểm
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL?.replace(/\/api\/v1\/?$/, '') || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
     const handleRealtimeUpdate = () => {
       console.log("⚡ [Socket.io Realtime] Cập nhật bài tập / điểm số học sinh...");
@@ -99,7 +98,6 @@ export default function StudentAssignments() {
       socket.off("student_classrooms_update", handleRealtimeUpdate);
       socket.off("classroom_feed_update", handleRealtimeUpdate);
       socket.off("notification_update", handleRealtimeUpdate);
-      socket.disconnect();
     };
   }, []);
 
@@ -477,7 +475,7 @@ export default function StudentAssignments() {
             onSelectSuggestion={(item) => {
               setFilterClass("all");
               setFilterType("all");
-              setStatusFilter("all");
+              setActiveTab("all");
               setSearchQuery(item.title);
             }}
             recentSearchesKey="studentAllAssignmentsSearches"

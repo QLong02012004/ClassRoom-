@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Plus, User, List, Chalkboard, ClipboardText, Users, ChartBar, Clock, LockKey, Key, XCircle, MagnifyingGlass } from "phosphor-react";
 import { useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
+import { getSocket } from "../../../service/socket.service.ts";
 import { getMockDb } from "../../../utils/mockDb.ts";
 import { useToast } from "../../../components/Styles/ToastContext.tsx";
 import { useAuth } from "../../../context/AuthContext.tsx";
@@ -180,34 +180,37 @@ export default function StudentClassrooms() {
   useEffect(() => {
     loadData();
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
-    const socket = io(backendUrl, { withCredentials: true });
+    const socket = getSocket();
 
-    socket.on('student_classrooms_update', () => {
+    const handleClassUpdate = () => {
       console.log('📡 [Socket.io] Cập nhật danh sách lớp học sinh realtime...');
       loadData();
-    });
+    };
 
-    socket.on('classroom_feed_update', () => {
+    const handleFeedUpdate = () => {
       console.log('📡 [Socket.io] Lớp học có cập nhật mới realtime...');
       loadData();
-    });
+    };
 
-    socket.on('attendance_update', () => {
+    const handleAttendance = () => {
       console.log('📡 [Socket.io] Cập nhật chuyên cần lớp học sinh realtime...');
       loadData();
-    });
+    };
 
-    socket.on('notification_update', () => {
+    const handleNotif = () => {
       loadData();
-    });
+    };
+
+    socket.on('student_classrooms_update', handleClassUpdate);
+    socket.on('classroom_feed_update', handleFeedUpdate);
+    socket.on('attendance_update', handleAttendance);
+    socket.on('notification_update', handleNotif);
 
     return () => {
-      socket.off('student_classrooms_update');
-      socket.off('classroom_feed_update');
-      socket.off('attendance_update');
-      socket.off('notification_update');
-      socket.disconnect();
+      socket.off('student_classrooms_update', handleClassUpdate);
+      socket.off('classroom_feed_update', handleFeedUpdate);
+      socket.off('attendance_update', handleAttendance);
+      socket.off('notification_update', handleNotif);
     };
   }, [user?._id]);
 
