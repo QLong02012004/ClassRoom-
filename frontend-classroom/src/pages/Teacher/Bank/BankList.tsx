@@ -441,11 +441,13 @@ export default function BankList() {
                 </div>
             ) : (
                 <>
-                    <div className="mb-2">
-                        <BackButton onClick={() => navigate("/classrooms")}>
-                            Quay lại danh sách lớp
-                        </BackButton>
-                    </div>
+                    {user?.role !== 'admin' && (
+                        <div className="mb-2">
+                            <BackButton onClick={() => navigate("/classrooms")}>
+                                Quay lại danh sách lớp
+                            </BackButton>
+                        </div>
+                    )}
 
                     {/* PAGE HEADER */}
                     <div className="flex items-center justify-between gap-4 flex-wrap mb-2">

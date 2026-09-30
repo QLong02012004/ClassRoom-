@@ -27,17 +27,6 @@ export const clearAllMaterials = async (req: Request, res: Response): Promise<vo
   }
 };
 
-// Tự động dọn dẹp các tài liệu mẫu trong cơ sở dữ liệu theo yêu cầu
-(async () => {
-  try {
-    const result = await Material.deleteMany({});
-    if (result.deletedCount > 0) {
-      console.log(`🗑️ [Material] Đã xóa sạch ${result.deletedCount} tài liệu mẫu khỏi database.`);
-    }
-  } catch (e) {
-    // ignore
-  }
-})();
 
 export const getPublicMaterials = async (req: Request, res: Response): Promise<void> => {
   try {

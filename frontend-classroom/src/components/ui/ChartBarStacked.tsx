@@ -64,7 +64,7 @@ export function ChartBarStacked({
 
   if (isLoading) {
     return (
-      <Card className={`border-none ring-0 shadow-[0_10px_30px_rgba(0,0,0,0.05)] rounded-3xl bg-white p-2 ${className}`}>
+      <Card className={`border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-3xl bg-white p-2 ${className}`}>
         <CardHeader className="flex flex-row items-center pb-2 pt-4 px-6">
           <div className="grid gap-2 w-full">
             <Skeleton className="h-6 w-1/3 rounded-xl" />
@@ -86,7 +86,7 @@ export function ChartBarStacked({
   }
 
   return (
-    <Card className={`border-none ring-0 shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)] transition-all duration-300 rounded-3xl bg-white p-2 ${className}`}>
+    <Card className={`border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 rounded-3xl bg-white p-2 ${className}`}>
       <CardHeader className="flex flex-row items-center pb-2 pt-4 px-6">
         <div className="grid gap-1">
           <CardTitle className="text-lg font-bold text-slate-800">{title}</CardTitle>

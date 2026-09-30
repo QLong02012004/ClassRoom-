@@ -808,7 +808,7 @@ export default function AdminClassrooms() {
 
 
   return (
-    <div className="flex w-full bg-[#F8FAFC]">
+    <div className="flex w-full pb-12">
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col gap-6 transition-all duration-300">
 
@@ -977,9 +977,9 @@ export default function AdminClassrooms() {
           </div>
         )}
 
-        {/* TABLE TOOLBAR */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-2">
-          <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
+        {/* SEARCH AND FILTER BAR CONTAINER */}
+        <div className="bg-white border border-slate-300/80 rounded-2xl p-3.5 shadow-2xs mt-2">
+          <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center flex-wrap">
             <SmartSearchBar
               placeholder="Tìm kiếm lớp học hoặc mã lớp..."
               value={globalFilter}
@@ -989,35 +989,38 @@ export default function AdminClassrooms() {
                 setSelectedClass(item.rawData);
               }}
               recentSearchesKey="adminRecentSearches"
+              widthClass="w-full sm:w-[320px]"
             />
 
-            <DropdownFilter
-              label="Trạng thái"
-              value={statusFilter || "all"}
-              onChange={(key) => setStatusFilter(key === "all" ? "" : key)}
-              options={[
-                { id: "all", label: "Tất cả trạng thái" },
-                { id: "Active", label: "Đang hoạt động" },
-                { id: "Pending", label: "Chờ duyệt" },
-                { id: "Closed", label: "Đã đóng" },
-                { id: "Locked", label: "Đã khóa" }
-              ]}
-              minWidthClass="min-w-[180px]"
-            />
+            <div className="flex gap-2 flex-wrap sm:flex-nowrap">
+              <DropdownFilter
+                label="Trạng thái"
+                value={statusFilter || "all"}
+                onChange={(key) => setStatusFilter(key === "all" ? "" : key)}
+                options={[
+                  { id: "all", label: "Tất cả trạng thái" },
+                  { id: "Active", label: "Đang hoạt động" },
+                  { id: "Pending", label: "Chờ duyệt" },
+                  { id: "Closed", label: "Đã đóng" },
+                  { id: "Locked", label: "Đã khóa" }
+                ]}
+                minWidthClass="min-w-[180px]"
+              />
 
-            <DropdownFilter
-              label="Bộ môn"
-              value={subjectFilter}
-              onChange={(key) => setSubjectFilter(key)}
-              options={[
-                { id: "all", label: "Tất cả bộ môn" },
-                ...uniqueSubjects.map(sub => ({
-                  id: sub,
-                  label: sub
-                }))
-              ]}
-              minWidthClass="min-w-[180px]"
-            />
+              <DropdownFilter
+                label="Bộ môn"
+                value={subjectFilter}
+                onChange={(key) => setSubjectFilter(key)}
+                options={[
+                  { id: "all", label: "Tất cả bộ môn" },
+                  ...uniqueSubjects.map(sub => ({
+                    id: sub,
+                    label: sub
+                  }))
+                ]}
+                minWidthClass="min-w-[180px]"
+              />
+            </div>
           </div>
         </div>
 
@@ -1056,49 +1059,49 @@ export default function AdminClassrooms() {
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[200px] max-w-[280px]" id="name">
                     {({ sortDirection }) => (
                       <Table.SortableColumnHeader sortDirection={sortDirection}>
                         Tên lớp học & Mã lớp
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="teacher">
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[180px] whitespace-nowrap" id="teacher">
                     {({ sortDirection }) => (
                       <Table.SortableColumnHeader sortDirection={sortDirection}>
                         Giáo viên phụ trách
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="subject">
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[120px] whitespace-nowrap" id="subject">
                     {({ sortDirection }) => (
                       <Table.SortableColumnHeader sortDirection={sortDirection}>
                         Bộ môn
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="studentCount">
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[90px] whitespace-nowrap" id="studentCount">
                     {({ sortDirection }) => (
                       <Table.SortableColumnHeader sortDirection={sortDirection}>
                         Sĩ số
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="createdAt">
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[110px] whitespace-nowrap" id="createdAt">
                     {({ sortDirection }) => (
                       <Table.SortableColumnHeader sortDirection={sortDirection}>
                         Ngày tạo
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="status">
+                  <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[140px] whitespace-nowrap" id="status">
                     {({ sortDirection }) => (
                       <Table.SortableColumnHeader sortDirection={sortDirection}>
                         Trạng thái
                       </Table.SortableColumnHeader>
                     )}
                   </Table.Column>
-                  <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
+                  <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3 min-w-[110px] whitespace-nowrap" id="actions">
                     Hành động
                   </Table.Column>
                 </Table.Header>
@@ -1144,39 +1147,39 @@ export default function AdminClassrooms() {
                               </Checkbox.Content>
                             </Checkbox>
                           </Table.Cell>
-                          <Table.Cell className="font-medium text-slate-500">
+                          <Table.Cell className="font-medium text-slate-500 whitespace-nowrap">
                             #{index + 1}
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 max-w-[280px]">
                             <div className="flex items-center gap-3">
-                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${cls.status === "Locked" ? "bg-[#f47c20]/10 text-[#f47c20]" : "bg-[#2f8fa3]/10 text-[#2f8fa3]"}`}>
+                              <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${cls.status === "Locked" ? "bg-[#f47c20]/10 text-[#f47c20]" : "bg-[#2f8fa3]/10 text-[#2f8fa3]"}`}>
                                 <GraduationCap size={18} weight="fill" />
                               </div>
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-slate-900 text-[15px]">{cls.name}</span>
-                                <span className="text-xs text-slate-500 font-medium">{cls.id}</span>
+                              <div className="flex flex-col min-w-0 max-w-[220px]">
+                                <span className="font-semibold text-slate-900 text-[15px] truncate block" title={cls.name}>{cls.name}</span>
+                                <span className="text-xs text-slate-500 font-medium font-mono">{cls.id}</span>
                               </div>
                             </div>
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2 text-slate-700">
-                              <Avatar className="h-7 w-7 border border-slate-100">
+                              <Avatar className="h-7 w-7 border border-slate-100 shrink-0">
                                 <AvatarImage src={cls.teacher.avatar} alt={cls.teacher.name} />
                                 <AvatarFallback className="bg-[#2f8fa3]/10 text-[#2f8fa3] text-xs font-bold">{cls.teacher.name.charAt(0)}</AvatarFallback>
                               </Avatar>
-                              <span className="font-semibold text-sm">{cls.teacher.name}</span>
+                              <span className="font-semibold text-sm whitespace-nowrap">{cls.teacher.name}</span>
                             </div>
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 whitespace-nowrap">
                             <span className="font-semibold text-slate-700">{cls.subject}</span>
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 whitespace-nowrap">
                             <span className="font-semibold text-slate-700">{cls.studentCount} HS</span>
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 whitespace-nowrap">
                             <span className="text-slate-600 font-medium text-sm">{new Date(cls.createdAt).toLocaleDateString("vi-VN")}</span>
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 whitespace-nowrap">
                             {cls.status === "Pending" ? (
                               <button
                                 type="button"
@@ -1185,21 +1188,29 @@ export default function AdminClassrooms() {
                                   setPendingApprovalClass(cls);
                                 }}
                                 title="Nhấp để Duyệt hoặc Từ chối lớp học"
-                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 font-bold text-xs shadow-[0_0_10px_rgba(244,124,32,0.15)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                                className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 font-bold text-xs shadow-[0_0_10px_rgba(244,124,32,0.15)] hover:scale-105 active:scale-95 transition-all cursor-pointer whitespace-nowrap shrink-0"
                               >
-                                <span className="flex h-2.5 w-2.5 relative">
+                                <span className="flex h-2.5 w-2.5 relative shrink-0">
                                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
                                   <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
                                 </span>
-                                <span className="uppercase tracking-wide">Chờ duyệt</span>
+                                <span className="uppercase tracking-wide whitespace-nowrap font-bold">Chờ duyệt</span>
                               </button>
+                            ) : cls.status === "Active" ? (
+                              <Chip color="success" size="sm" variant="soft" className="font-medium whitespace-nowrap">
+                                Hoạt động
+                              </Chip>
+                            ) : cls.status === "Closed" ? (
+                              <Chip size="sm" variant="soft" className="font-medium whitespace-nowrap bg-slate-100 text-slate-600 border border-slate-200">
+                                Đã đóng
+                              </Chip>
                             ) : (
-                              <Chip color={cls.status === "Active" ? "success" : "danger"} size="sm" variant="soft" className="font-medium">
-                                {cls.status === "Active" ? "Hoạt động" : "Đã khóa"}
+                              <Chip color="danger" size="sm" variant="soft" className="font-medium whitespace-nowrap">
+                                Đã khóa
                               </Chip>
                             )}
                           </Table.Cell>
-                          <Table.Cell className="py-3">
+                          <Table.Cell className="py-3 whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
                               {cls.status === 'Pending' ? (
                                 <>

@@ -67,9 +67,9 @@ export const registerTeacherAccount = async (req: Request, res: Response, next: 
 // (Admin dùng -> Trực tiếp Active)
 export const createTeacherAccount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const { name, email, password, subject } = req.body;
+        const { name, email, password, subject, status } = req.body;
 
-        const result = await createAccountService(name, email, password, 'teacher', undefined, subject);
+        const result = await createAccountService(name, email, password, 'teacher', undefined, subject, status || 'Active');
         notifyAdminStatsUpdate();
 
         res.status(201).json({
@@ -82,21 +82,18 @@ export const createTeacherAccount = async (req: Request, res: Response, next: Ne
 };
 
 // [POST] /api/v1/auth/create-student
-// (Teacher dùng)
+// (Teacher hoặc Admin dùng)
 export const createStudentAccount = async (req: Request, res: Response, next: NextFunction): Promise<any> => {
     try {
-        const { name, email, password, parentPhone, classId } = req.body;
+        const { name, email, password, parentPhone, classId, status } = req.body;
 
-        if (!classId) {
-            res.status(400);
-            return next(new Error('Vui lòng chọn lớp học (classId) cho học sinh!'));
+        const result = await createAccountService(name, email, password, 'student', parentPhone, undefined, status || 'Active');
+
+        if (classId) {
+            await ClassModel.findByIdAndUpdate(classId, {
+                $addToSet: { students: result.id }
+            });
         }
-
-        const result = await createAccountService(name, email, password, 'student', parentPhone);
-
-        await ClassModel.findByIdAndUpdate(classId, {
-            $addToSet: { students: result.id }
-        });
         notifyAdminStatsUpdate();
 
         res.status(201).json({

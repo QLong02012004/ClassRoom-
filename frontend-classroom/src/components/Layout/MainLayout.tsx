@@ -24,7 +24,7 @@ const MainLayout: React.FC = () => {
   const isChatRoute = location.pathname.startsWith("/chat");
 
   return (
-    <div className="flex min-h-screen bg-[#f1f5f9] overflow-hidden font-sans">
+    <div className="flex min-h-screen bg-white overflow-hidden font-sans">
       {!isExamRoute && <OnboardingTour />}
 
       {/* Global Sidebar (fixed position) - Ẩn hoàn toàn khi đang thi hoặc trên mobile */}

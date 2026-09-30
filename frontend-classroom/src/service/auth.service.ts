@@ -41,11 +41,11 @@ export const authService = {
     return await api.get('/api/v1/auth/me');
   },
 
-  createTeacher: async (data: { name: string, email: string, password: string, subject?: string }): Promise<IBackendRes<IModelUser>> => {
+  createTeacher: async (data: { name: string, email: string, password: string, subject?: string, status?: 'Active' | 'Pending' | 'Locked' }): Promise<IBackendRes<IModelUser>> => {
     return await api.post('/api/v1/auth/create-teacher', data);
   },
 
-  createStudent: async (data: { name: string, email: string, password: string, parentPhone?: string, classId?: string }): Promise<any> => {
+  createStudent: async (data: { name: string, email: string, password: string, parentPhone?: string, classId?: string, status?: 'Active' | 'Pending' | 'Locked' }): Promise<any> => {
     return await api.post('/api/v1/auth/create-student', data);
   },
 

@@ -383,8 +383,10 @@ export default function AdminUsers() {
     email: "",
     password: "",
     role: "teacher" as "teacher" | "student",
+    status: "Active" as "Active" | "Pending" | "Locked",
     subject: "Toán",
     customSubject: "",
+    parentPhone: "",
   });
 
   // State cho dialog Chỉnh sửa thành viên
@@ -755,11 +757,11 @@ export default function AdminUsers() {
       if (formData.name.trim() || formData.email.trim() || formData.password.trim()) {
         if (window.confirm("Bạn có dữ liệu chưa được lưu. Bạn có chắc chắn muốn đóng hộp thoại và hủy bỏ?")) {
           setShowDialog(false);
-          setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán", customSubject: "" });
+          setFormData({ name: "", email: "", password: "", role: "teacher", status: "Active", subject: "Toán", customSubject: "", parentPhone: "" });
         }
       } else {
         setShowDialog(false);
-        setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán", customSubject: "" });
+        setFormData({ name: "", email: "", password: "", role: "teacher", status: "Active", subject: "Toán", customSubject: "", parentPhone: "" });
       }
     } else {
       setShowDialog(true);
@@ -803,12 +805,15 @@ export default function AdminUsers() {
           email: formData.email,
           password: formData.password,
           subject: formData.subject === "Khác" ? formData.customSubject : formData.subject,
+          status: formData.status,
         });
       } else {
         response = await authService.createStudent({
           name: formattedName,
           email: formData.email,
           password: formData.password,
+          parentPhone: formData.parentPhone,
+          status: formData.status,
         });
       }
 
@@ -818,7 +823,7 @@ export default function AdminUsers() {
       await fetchUsers();
 
       setShowDialog(false);
-      setFormData({ name: "", email: "", password: "", role: "teacher", subject: "Toán", customSubject: "" });
+      setFormData({ name: "", email: "", password: "", role: "teacher", status: "Active", subject: "Toán", customSubject: "", parentPhone: "" });
     } catch (error: any) {
       toast.error(error.message || "Có lỗi xảy ra khi tạo tài khoản!", 3000);
     } finally {
@@ -829,7 +834,7 @@ export default function AdminUsers() {
   // Removed @tanstack/react-table setup. Using direct HeroUI table rendering instead.
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6 w-full max-w-[1400px] mx-auto bg-[#F8FAFC] min-h-screen">
+    <div className="flex flex-col gap-6 w-full max-w-[1400px] mx-auto pb-12">
 
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -843,1044 +848,1139 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* TABLE TOOLBAR */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto">
-          <SmartSearchBar
-            placeholder="Tìm kiếm theo tên / email..."
-            value={globalFilter}
-            onChange={setGlobalFilter}
-            suggestions={searchSuggestions}
-            onSelectSuggestion={(item) => {
-              handleOpenDetail(item.rawData);
-            }}
-            recentSearchesKey="adminUserSearches"
-            widthClass="w-full md:w-72"
-          />
-          <DropdownFilter
-            label="Vai trò"
-            value={roleFilter}
-            onChange={(key) => setRoleFilter(key)}
-            options={[
-              { id: "all", label: "Tất cả vai trò" },
-              { id: "Admin", label: "Admin" },
-              { id: "Giáo viên", label: "Giáo viên" },
-              { id: "Học sinh", label: "Học sinh" }
-            ]}
-            minWidthClass="min-w-[150px]"
-          />
+      {/* SEARCH AND FILTER BAR CONTAINER */}
+      <div className="bg-white border border-slate-300/80 rounded-2xl p-3.5 shadow-2xs mb-2">
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-wrap flex-1">
+            <SmartSearchBar
+              placeholder="Tìm kiếm theo tên / email..."
+              value={globalFilter}
+              onChange={setGlobalFilter}
+              suggestions={searchSuggestions}
+              onSelectSuggestion={(item) => {
+                handleOpenDetail(item.rawData);
+              }}
+              recentSearchesKey="adminUserSearches"
+              widthClass="w-full sm:w-[300px]"
+            />
+            <DropdownFilter
+              label="Vai trò"
+              value={roleFilter}
+              onChange={(key) => setRoleFilter(key)}
+              options={[
+                { id: "all", label: "Tất cả vai trò" },
+                { id: "Admin", label: "Admin" },
+                { id: "Giáo viên", label: "Giáo viên" },
+                { id: "Học sinh", label: "Học sinh" }
+              ]}
+              minWidthClass="min-w-[150px]"
+            />
 
-          <DropdownFilter
-            label="Trạng thái"
-            value={statusFilter}
-            onChange={(key) => setStatusFilter(key)}
-            options={[
-              { id: "all", label: "Tất cả trạng thái" },
-              { id: "Active", label: "Hoạt động", icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
-              { id: "Pending", label: "Chờ phê duyệt", icon: <div className="w-2 h-2 rounded-full bg-amber-500" /> },
-              { id: "Locked", label: "Đang khóa", icon: <div className="w-2 h-2 rounded-full bg-red-500" /> }
-            ]}
-            minWidthClass="min-w-[170px]"
-          />
+            <DropdownFilter
+              label="Trạng thái"
+              value={statusFilter}
+              onChange={(key) => setStatusFilter(key)}
+              options={[
+                { id: "all", label: "Tất cả trạng thái" },
+                { id: "Active", label: "Hoạt động", icon: <div className="w-2 h-2 rounded-full bg-emerald-500" /> },
+                { id: "Pending", label: "Chờ phê duyệt", icon: <div className="w-2 h-2 rounded-full bg-amber-500" /> },
+                { id: "Locked", label: "Đang khóa", icon: <div className="w-2 h-2 rounded-full bg-red-500" /> }
+              ]}
+              minWidthClass="min-w-[170px]"
+            />
 
-          {pendingCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setStatusFilter(statusFilter === "Pending" ? "all" : "Pending")}
-              className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer border shrink-0 ${statusFilter === "Pending"
-                ? "bg-[#2f8fa3] text-white border-[#2f8fa3] shadow-sm"
-                : "bg-cyan-50/70 text-[#2f8fa3] border-cyan-200 hover:bg-cyan-100/80"
-                }`}
-            >
-              <span>⏳ Chờ duyệt</span>
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${statusFilter === "Pending" ? "bg-white text-[#2f8fa3]" : "bg-[#2f8fa3] text-white"
+            {pendingCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setStatusFilter(statusFilter === "Pending" ? "all" : "Pending")}
+                className={`px-3.5 py-2 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer border shrink-0 ${statusFilter === "Pending"
+                  ? "bg-[#2f8fa3] text-white border-[#2f8fa3] shadow-sm"
+                  : "bg-cyan-50/70 text-[#2f8fa3] border-cyan-200 hover:bg-cyan-100/80"
                   }`}
               >
-                {pendingCount}
-              </span>
-            </button>
-          )}
-
-          {selectedCount > 0 && (
-            <PrimaryButton
-              variant="destructive"
-              className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-semibold flex items-center gap-2 px-4 py-2 h-auto"
-              onClick={handleDeleteMultipleUsers}
-            >
-              <Trash size={16} weight="bold" />
-              Xóa {selectedCount} tài khoản
-            </PrimaryButton>
-          )}
-        </div>
-
-        {/* Dialog Thêm người dùng */}
-        <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
-          <DialogTrigger asChild>
-            <SecondaryButton size="lg" className="w-full md:w-auto shadow-md font-extrabold">
-              + Thêm giáo viên
-            </SecondaryButton>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleCreateUser}>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-extrabold text-[#f47c20]">Thêm người dùng mới</DialogTitle>
-                <DialogDescription className="text-slate-500">
-                  Nhập thông tin để tạo và cấp tài khoản.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="font-semibold text-slate-700">
-                    Họ và tên
-                  </Label>
-                  <HeroInput
-                    id="name"
-                    placeholder="Ví dụ: Nguyễn Văn A"
-                    required
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="font-semibold text-slate-700">
-                    Email
-                  </Label>
-                  <HeroInput
-                    id="email"
-                    type="email"
-                    placeholder="Ví dụ: nva@school.edu.vn"
-                    required
-                    autoComplete="off"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="font-semibold text-slate-700">
-                    Mật khẩu khởi tạo
-                  </Label>
-                  <div className="relative">
-                    <HeroInput
-                      id="password"
-                      type={showCreatePassword ? "text" : "password"}
-                      placeholder="Tối thiểu 6 ký tự"
-                      required
-                      autoComplete="new-password"
-                      minLength={6}
-                      value={formData.password}
-                      onChange={(e) =>
-                        setFormData({ ...formData, password: e.target.value })
-                      }
-                      className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowCreatePassword(!showCreatePassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 flex items-center justify-center z-10"
-                      title={showCreatePassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    >
-                      {showCreatePassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
-                    </button>
-                  </div>
-                </div>
-                {formData.role === "teacher" && (
-                  <div className="space-y-2 flex flex-col">
-                    <Label htmlFor="subject" className="font-semibold text-slate-700">
-                      Môn học chuyên môn
-                    </Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
-                        >
-                          <span>{formData.subject === "Khác" ? "Khác..." : `Môn ${formData.subject || "Toán"}`}</span>
-                          <CaretDown size={16} className="text-slate-400" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[377px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
-                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
-                          <DropdownMenuItem
-                            key={subj}
-                            onClick={() => setFormData({ ...formData, subject: subj, customSubject: subj === "Khác" ? "" : formData.customSubject })}
-                            className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
-                          >
-                            {subj === "Khác" ? "Khác..." : `Môn ${subj}`}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {formData.subject === "Khác" && (
-                      <HeroInput
-                        type="text"
-                        placeholder="Nhập tên môn học..."
-                        required
-                        value={formData.customSubject}
-                        onChange={(e) => setFormData({ ...formData, customSubject: e.target.value })}
-                        className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-              <DialogFooter className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 mt-4">
-                <button
-                  type="button"
-                  onClick={() => handleCloseDialog(false)}
-                  className="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 border-none cursor-pointer"
-                  disabled={isSubmitting}
+                <span>⏳ Chờ duyệt</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${statusFilter === "Pending" ? "bg-white text-[#2f8fa3]" : "bg-[#2f8fa3] text-white"
+                    }`}
                 >
-                  Hủy
-                </button>
-                <SecondaryButton
-                  type="submit"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center gap-2">
-                      <ClimbingBoxLoader color="#ffffff" size={6} />
-                      <span className="ml-2">Đang tạo...</span>
-                    </span>
-                  ) : (
-                    "Tạo tài khoản"
-                  )}
-                </SecondaryButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog Reset mật khẩu */}
-        <Dialog
-          open={showResetDialog}
-          onOpenChange={(open) => {
-            setShowResetDialog(open);
-            if (!open) setShowResetPassword(false);
-          }}
-        >
-          <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleConfirmResetPassword}>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900">
-                  Reset mật khẩu
-                </DialogTitle>
-                <DialogDescription>
-                  Đặt mật khẩu mới cho{" "}
-                  <strong>{selectedUser?.name}</strong>.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="font-semibold text-slate-700">
-                    Mật khẩu mới
-                  </Label>
-                  <div className="relative">
-                    <HeroInput
-                      id="newPassword"
-                      type={showResetPassword ? "text" : "password"}
-                      placeholder="Tối thiểu 8 ký tự..."
-                      required
-                      autoComplete="new-password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowResetPassword(!showResetPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 flex items-center justify-center z-10"
-                      title={showResetPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
-                    >
-                      {showResetPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
-                    </button>
-                  </div>
-                  <p className="text-[12px] text-slate-500">
-                    Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt.
-                  </p>
-                </div>
-              </div>
-              <DialogFooter>
-                <PrimaryButton
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowResetDialog(false)}
-                  className="font-semibold"
-                  disabled={isResetting}
-                >
-                  Hủy
-                </PrimaryButton>
-                <PrimaryButton
-                  type="submit"
-                  className="bg-primary text-white font-semibold"
-                  disabled={isResetting}
-                >
-                  {isResetting ? (
-                    <span className="flex items-center gap-2">
-                      <ClimbingBoxLoader color="#ffffff" size={6} />
-                      <span className="ml-2">Đang xử lý...</span>
-                    </span>
-                  ) : (
-                    "Xác nhận"
-                  )}
-                </PrimaryButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog Đổi quyền */}
-        <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
-          <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleConfirmChangeRole}>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900">
-                  Thay đổi vai trò
-                </DialogTitle>
-                <DialogDescription>
-                  Cập nhật vai trò cho{" "}
-                  <strong>{selectedUser?.name}</strong>.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label className="font-semibold text-slate-700">
-                    Chọn vai trò mới
-                  </Label>
-                  <div className="flex flex-col gap-2">
-                    {(
-                      [
-                        { value: "admin", label: "Admin", desc: "Toàn quyền quản trị hệ thống" },
-                        { value: "teacher", label: "Giáo viên", desc: "Quản lý lớp học và học sinh" },
-                        { value: "student", label: "Học sinh", desc: "Xem điểm và lịch học" },
-                      ] as const
-                    ).map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setSelectedRole(opt.value)}
-                        className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-colors ${selectedRole === opt.value
-                          ? "border-primary bg-primary/5"
-                          : "border-slate-200 hover:border-slate-300"
-                          }`}
-                      >
-                        <div
-                          className={`w-4 h-4 rounded-full border-2 mt-0.5 flex-shrink-0 ${selectedRole === opt.value
-                            ? "border-primary bg-primary"
-                            : "border-slate-300"
-                            }`}
-                        />
-                        <div>
-                          <p className="font-semibold text-slate-800">{opt.label}</p>
-                          <p className="text-xs text-slate-500">{opt.desc}</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <DialogFooter>
-                <PrimaryButton
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowRoleDialog(false)}
-                  className="font-semibold"
-                  disabled={isChangingRole}
-                >
-                  Hủy
-                </PrimaryButton>
-                <PrimaryButton
-                  type="submit"
-                  className="bg-primary text-white font-semibold"
-                  disabled={isChangingRole}
-                >
-                  {isChangingRole ? (
-                    <span className="flex items-center gap-2">
-                      <ClimbingBoxLoader color="#ffffff" size={6} />
-                      <span className="ml-2">Đang cập nhật...</span>
-                    </span>
-                  ) : (
-                    "Lưu thay đổi"
-                  )}
-                </PrimaryButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog Chỉnh sửa thành viên */}
-        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-          <DialogContent className="sm:max-w-[425px]">
-            <form onSubmit={handleUpdateUser}>
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold text-slate-900">Chỉnh sửa thành viên</DialogTitle>
-                <DialogDescription className="text-slate-500">
-                  Cập nhật thông tin tài khoản người dùng.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name" className="font-semibold text-slate-700">
-                    Họ và tên
-                  </Label>
-                  <HeroInput
-                    id="edit-name"
-                    required
-                    value={editFormData.name}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, name: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email" className="font-semibold text-slate-700">
-                    Email
-                  </Label>
-                  <HeroInput
-                    id="edit-email"
-                    type="email"
-                    required
-                    autoComplete="off"
-                    value={editFormData.email}
-                    onChange={(e) =>
-                      setEditFormData({ ...editFormData, email: e.target.value })
-                    }
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold text-slate-700">Vai trò</Label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
-                      >
-                        <span>{roleToVi(editFormData.role)}</span>
-                        <CaretDown size={16} className="text-slate-400" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
-                      {[
-                        { value: "admin", label: "Admin" },
-                        { value: "teacher", label: "Giáo viên" },
-                        { value: "student", label: "Học sinh" },
-                      ].map((opt) => (
-                        <DropdownMenuItem
-                          key={opt.value}
-                          onClick={() => setEditFormData({ ...editFormData, role: opt.value as any })}
-                          className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
-                        >
-                          {opt.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-                {editFormData.role === "teacher" && (
-                  <div className="space-y-2 flex flex-col">
-                    <Label htmlFor="edit-subject" className="font-semibold text-slate-700">
-                      Môn học chuyên môn
-                    </Label>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="w-full text-left px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
-                        >
-                          <span>{editFormData.subject === "Khác" ? "Khác..." : `Môn ${editFormData.subject || "Toán"}`}</span>
-                          <CaretDown size={16} className="text-slate-400" />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-[377px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
-                        {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
-                          <DropdownMenuItem
-                            key={subj}
-                            onClick={() => setEditFormData({ ...editFormData, subject: subj, customSubject: subj === "Khác" ? "" : editFormData.customSubject })}
-                            className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
-                          >
-                            {subj === "Khác" ? "Khác..." : `Môn ${subj}`}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    {editFormData.subject === "Khác" && (
-                      <HeroInput
-                        type="text"
-                        placeholder="Nhập tên môn học..."
-                        required
-                        value={editFormData.customSubject}
-                        onChange={(e) => setEditFormData({ ...editFormData, customSubject: e.target.value })}
-                        className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                <PrimaryButton
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowEditDialog(false)}
-                  className="font-semibold"
-                  disabled={isSubmitting}
-                >
-                  Hủy
-                </PrimaryButton>
-                <PrimaryButton
-                  type="submit"
-                  className="bg-primary text-white font-semibold"
-                  disabled={isSubmitting}
-                >
-                  Lưu thay đổi
-                </PrimaryButton>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* Dialog Xem Chi tiết Hồ sơ Người dùng */}
-        <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-          <DialogContent className="sm:max-w-[740px] max-h-[90vh] p-5 rounded-3xl overflow-y-auto">
-            <DialogHeader className="pb-1">
-              <DialogTitle className="text-lg font-bold text-[#f47c20] flex items-center gap-2">
-                <Eye size={22} weight="bold" />
-                <span>Thông tin chi tiết tài khoản</span>
-              </DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Hồ sơ thông tin cá nhân, bằng cấp trình độ và quyền hạn trên hệ thống ClassRoom.
-              </DialogDescription>
-            </DialogHeader>
-            {detailUser && (
-              <div className="py-2 space-y-3 font-sans text-slate-800">
-                {/* Header Card với Avatar */}
-                <div className="flex items-center gap-4 p-3 bg-slate-50/90 rounded-2xl border border-slate-200/80 shadow-2xs">
-                  <Avatar className="w-14 h-14 border-2 border-[#f47c20] shadow-sm shrink-0">
-                    <AvatarImage src={detailUser.avatar || ""} />
-                    <AvatarFallback className="bg-[#f47c20] text-white font-black text-lg">
-                      {detailUser.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <h3 className="font-black text-slate-900 text-base uppercase tracking-wide truncate">
-                      {detailUser.name}
-                    </h3>
-                    <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{detailUser.email}</p>
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      <Chip size="sm" variant="soft" className={detailUser.role === "Giáo viên" ? "bg-blue-50 text-blue-700 border-blue-200 font-bold" : "bg-slate-100 text-slate-700 font-medium"}>
-                        {detailUser.role} {detailUser.subject ? `(${detailUser.subject})` : ""}
-                      </Chip>
-                      <Chip
-                        size="sm"
-                        variant="soft"
-                        className={
-                          detailUser.status === "Active"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
-                            : detailUser.status === "Pending"
-                              ? "bg-amber-50 text-amber-700 border-amber-200 font-bold"
-                              : "bg-rose-50 text-rose-700 border-rose-200 font-bold"
-                        }
-                      >
-                        {detailUser.status === "Active" ? "Hoạt động" : detailUser.status === "Pending" ? "Chờ phê duyệt" : "Đang khóa"}
-                      </Chip>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Grid 6 trường Chi tiết (3 cột giúp giảm chiều cao) */}
-                <div className="grid grid-cols-3 gap-2.5 text-xs">
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Giới tính</span>
-                    <span className="font-bold text-slate-800 text-xs block truncate">
-                      {detailUser.gender || "Chưa cập nhật"}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Ngày sinh (DOB)</span>
-                    <span className="font-bold text-slate-800 text-xs block truncate">
-                      {detailUser.dob || "Chưa cập nhật"}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Số điện thoại / Zalo</span>
-                    <span className="font-bold text-slate-800 text-xs block truncate">
-                      {detailUser.phone || "Chưa cập nhật"}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Bằng cấp / Trình độ</span>
-                    <span className="font-bold text-slate-800 text-xs block truncate">
-                      {detailUser.degree || (detailUser.role === "Giáo viên" ? "Đại học Sư phạm" : "Chưa cập nhật")}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Môn học chuyên môn</span>
-                    <span className="font-bold text-slate-800 text-xs block truncate">
-                      {detailUser.subject || "Chưa chọn môn"}
-                    </span>
-                  </div>
-                  <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-                    <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Ngày đăng ký tham gia</span>
-                    <span className="font-bold text-slate-800 text-xs block truncate">
-                      {detailUser.createdAt || "---"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Bio Card */}
-                <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-200/80 text-xs">
-                  <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Giới thiệu bản thân (Bio)</span>
-                  <p className="font-semibold text-slate-700 text-xs leading-relaxed italic">
-                    {detailUser.bio || "Chưa có thông tin giới thiệu bản thân."}
-                  </p>
-                </div>
-              </div>
+                  {pendingCount}
+                </span>
+              </button>
             )}
 
-            {/* DialogFooter */}
-            <DialogFooter className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 mt-1">
-              {detailUser?.status === "Pending" && (
-                <>
-                  <button
-                    type="button"
-                    disabled={!!approvingUserId}
-                    onClick={() => {
-                      setShowDetailDialog(false);
-                      handleRejectUser(detailUser);
-                    }}
-                    className="px-4 py-2 rounded-xl font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all text-xs shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <XCircle size={16} weight="bold" />
-                    Từ chối
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!!approvingUserId}
-                    onClick={() => {
-                      setShowDetailDialog(false);
-                      handleApproveUser(detailUser);
-                    }}
-                    className="px-4 py-2 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all text-xs shadow-xs cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <CheckCircle size={16} weight="bold" />
-                    Phê duyệt kích hoạt
-                  </button>
-                </>
-              )}
+            {selectedCount > 0 && (
               <PrimaryButton
-                type="button"
-                variant="outline"
-                onClick={() => setShowDetailDialog(false)}
-                className="font-semibold text-xs px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+                variant="destructive"
+                className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 font-semibold flex items-center gap-2 px-4 py-2 h-auto"
+                onClick={handleDeleteMultipleUsers}
               >
-                Đóng
+                <Trash size={16} weight="bold" />
+                Xóa {selectedCount} tài khoản
               </PrimaryButton>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            )}
+          </div>
 
-        {/* Cookie-style Confirm Dialog */}
-        <CustomConfirmDialog
-          isOpen={confirmDialog.isOpen}
-          onOpenChange={(open) => {
-            if (!confirmDialog.isLoading && !approvingUserId) {
-              setConfirmDialog(prev => ({ ...prev, isOpen: open }));
-            }
-          }}
-          title={confirmDialog.title}
-          description={confirmDialog.description}
-          actionType={confirmDialog.actionType}
-          isLoading={confirmDialog.isLoading || !!approvingUserId}
-          onConfirm={confirmDialog.onConfirm}
-        />
+          {/* Dialog Thêm người dùng */}
+          <div className="shrink-0">
+            <Dialog open={showDialog} onOpenChange={handleCloseDialog}>
+              <DialogTrigger asChild>
+                <SecondaryButton size="lg" className="w-full md:w-auto shadow-md font-extrabold flex items-center justify-center gap-2">
+                  <Plus size={18} weight="bold" />
+                  Thêm người dùng
+                </SecondaryButton>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[480px]">
+                <form onSubmit={handleCreateUser}>
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-extrabold text-[#f47c20]">Thêm người dùng mới</DialogTitle>
+                    <DialogDescription className="text-slate-500">
+                      Tạo tài khoản Giáo viên hoặc Học sinh với trạng thái tùy chọn để kiểm thử & demo.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    {/* Chọn Vai trò */}
+                    <div className="space-y-1.5">
+                      <Label className="font-semibold text-slate-700 text-xs">
+                        Vai trò người dùng
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100/80 rounded-xl border border-slate-200">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, role: "teacher" })}
+                          className={`py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${
+                            formData.role === "teacher"
+                              ? "bg-white text-[#f47c20] shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 bg-transparent"
+                          }`}
+                        >
+                          <span>👨‍🏫 Giáo viên</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, role: "student" })}
+                          className={`py-2 px-3 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border-none ${
+                            formData.role === "student"
+                              ? "bg-white text-[#2f8fa3] shadow-xs"
+                              : "text-slate-600 hover:text-slate-900 bg-transparent"
+                          }`}
+                        >
+                          <span>🎓 Học sinh</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Chọn Trạng thái */}
+                    <div className="space-y-1.5">
+                      <Label className="font-semibold text-slate-700 text-xs">
+                        Trạng thái tài khoản
+                      </Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, status: "Active" })}
+                          className={`py-2 px-2 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                            formData.status === "Active"
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-500 shadow-xs"
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                          <span>Hoạt động</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, status: "Pending" })}
+                          className={`py-2 px-2 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                            formData.status === "Pending"
+                              ? "bg-amber-50 text-amber-700 border-amber-500 shadow-xs"
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-amber-500" />
+                          <span>Chờ duyệt</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, status: "Locked" })}
+                          className={`py-2 px-2 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer border ${
+                            formData.status === "Locked"
+                              ? "bg-rose-50 text-rose-700 border-rose-500 shadow-xs"
+                              : "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                          }`}
+                        >
+                          <div className="w-2 h-2 rounded-full bg-rose-500" />
+                          <span>Tạm khóa</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="name" className="font-semibold text-slate-700 text-xs">
+                        Họ và tên
+                      </Label>
+                      <HeroInput
+                        id="name"
+                        placeholder="Ví dụ: Nguyễn Văn A"
+                        required
+                        value={formData.name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, name: e.target.value })
+                        }
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="font-semibold text-slate-700 text-xs">
+                        Email
+                      </Label>
+                      <HeroInput
+                        id="email"
+                        type="email"
+                        placeholder="Ví dụ: nva@school.edu.vn"
+                        required
+                        autoComplete="off"
+                        value={formData.email}
+                        onChange={(e) =>
+                          setFormData({ ...formData, email: e.target.value })
+                        }
+                        className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="password" className="font-semibold text-slate-700 text-xs">
+                        Mật khẩu khởi tạo
+                      </Label>
+                      <div className="relative">
+                        <HeroInput
+                          id="password"
+                          type={showCreatePassword ? "text" : "password"}
+                          placeholder="Tối thiểu 8 ký tự (chữ hoa, số, ký tự đặc biệt)"
+                          required
+                          autoComplete="new-password"
+                          minLength={6}
+                          value={formData.password}
+                          onChange={(e) =>
+                            setFormData({ ...formData, password: e.target.value })
+                          }
+                          className="w-full pl-4 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCreatePassword(!showCreatePassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 flex items-center justify-center z-10"
+                          title={showCreatePassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        >
+                          {showCreatePassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {formData.role === "teacher" ? (
+                      <div className="space-y-1.5 flex flex-col">
+                        <Label htmlFor="subject" className="font-semibold text-slate-700 text-xs">
+                          Môn học chuyên môn
+                        </Label>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
+                            >
+                              <span>{formData.subject === "Khác" ? "Khác..." : `Môn ${formData.subject || "Toán"}`}</span>
+                              <CaretDown size={16} className="text-slate-400" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-[430px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                            {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
+                              <DropdownMenuItem
+                                key={subj}
+                                onClick={() => setFormData({ ...formData, subject: subj, customSubject: subj === "Khác" ? "" : formData.customSubject })}
+                                className="px-4 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
+                              >
+                                {subj === "Khác" ? "Khác..." : `Môn ${subj}`}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {formData.subject === "Khác" && (
+                          <HeroInput
+                            type="text"
+                            placeholder="Nhập tên môn học..."
+                            required
+                            value={formData.customSubject}
+                            onChange={(e) => setFormData({ ...formData, customSubject: e.target.value })}
+                            className="w-full mt-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 flex flex-col">
+                        <Label htmlFor="parentPhone" className="font-semibold text-slate-700 text-xs">
+                          Số điện thoại phụ huynh (tùy chọn)
+                        </Label>
+                        <HeroInput
+                          id="parentPhone"
+                          placeholder="Ví dụ: 0912345678"
+                          value={formData.parentPhone}
+                          onChange={(e) => setFormData({ ...formData, parentPhone: e.target.value })}
+                          className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => handleCloseDialog(false)}
+                      className="px-5 py-2.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-slate-200 border-none cursor-pointer"
+                      disabled={isSubmitting}
+                    >
+                      Hủy
+                    </button>
+                    <SecondaryButton
+                      type="submit"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <span className="flex items-center gap-2">
+                          <ClimbingBoxLoader color="#ffffff" size={6} />
+                          <span className="ml-2">Đang tạo...</span>
+                        </span>
+                      ) : (
+                        "Tạo tài khoản"
+                      )}
+                    </SecondaryButton>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog Reset mật khẩu */}
+            <Dialog
+              open={showResetDialog}
+              onOpenChange={(open) => {
+                setShowResetDialog(open);
+                if (!open) setShowResetPassword(false);
+              }}
+            >
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleConfirmResetPassword}>
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-slate-900">
+                      Reset mật khẩu
+                    </DialogTitle>
+                    <DialogDescription>
+                      Đặt mật khẩu mới cho{" "}
+                      <strong>{selectedUser?.name}</strong>.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword" className="font-semibold text-slate-700">
+                        Mật khẩu mới
+                      </Label>
+                      <div className="relative">
+                        <HeroInput
+                          id="newPassword"
+                          type={showResetPassword ? "text" : "password"}
+                          placeholder="Tối thiểu 8 ký tự..."
+                          required
+                          autoComplete="new-password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowResetPassword(!showResetPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 bg-transparent border-none cursor-pointer p-0 flex items-center justify-center z-10"
+                          title={showResetPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                        >
+                          {showResetPassword ? <EyeSlash size={18} weight="bold" /> : <Eye size={18} weight="bold" />}
+                        </button>
+                      </div>
+                      <p className="text-[12px] text-slate-500">
+                        Mật khẩu phải chứa ít nhất 8 ký tự, bao gồm cả chữ hoa, chữ thường, chữ số và ký tự đặc biệt.
+                      </p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <PrimaryButton
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowResetDialog(false)}
+                      className="font-semibold"
+                      disabled={isResetting}
+                    >
+                      Hủy
+                    </PrimaryButton>
+                    <PrimaryButton
+                      type="submit"
+                      className="bg-primary text-white font-semibold"
+                      disabled={isResetting}
+                    >
+                      {isResetting ? (
+                        <span className="flex items-center gap-2">
+                          <ClimbingBoxLoader color="#ffffff" size={6} />
+                          <span className="ml-2">Đang xử lý...</span>
+                        </span>
+                      ) : (
+                        "Xác nhận"
+                      )}
+                    </PrimaryButton>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog Đổi quyền */}
+            <Dialog open={showRoleDialog} onOpenChange={setShowRoleDialog}>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleConfirmChangeRole}>
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-slate-900">
+                      Thay đổi vai trò
+                    </DialogTitle>
+                    <DialogDescription>
+                      Cập nhật vai trò cho{" "}
+                      <strong>{selectedUser?.name}</strong>.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label className="font-semibold text-slate-700">
+                        Chọn vai trò mới
+                      </Label>
+                      <div className="flex flex-col gap-2">
+                        {(
+                          [
+                            { value: "admin", label: "Admin", desc: "Toàn quyền quản trị hệ thống" },
+                            { value: "teacher", label: "Giáo viên", desc: "Quản lý lớp học và học sinh" },
+                            { value: "student", label: "Học sinh", desc: "Xem điểm và lịch học" },
+                          ] as const
+                        ).map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setSelectedRole(opt.value)}
+                            className={`flex items-start gap-3 p-3 rounded-lg border-2 text-left transition-colors ${selectedRole === opt.value
+                              ? "border-primary bg-primary/5"
+                              : "border-slate-200 hover:border-slate-300"
+                              }`}
+                          >
+                            <div
+                              className={`w-4 h-4 rounded-full border-2 mt-0.5 flex-shrink-0 ${selectedRole === opt.value
+                                ? "border-primary bg-primary"
+                                : "border-slate-300"
+                                }`}
+                            />
+                            <div>
+                              <p className="font-semibold text-slate-800">{opt.label}</p>
+                              <p className="text-xs text-slate-500">{opt.desc}</p>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <PrimaryButton
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowRoleDialog(false)}
+                      className="font-semibold"
+                      disabled={isChangingRole}
+                    >
+                      Hủy
+                    </PrimaryButton>
+                    <PrimaryButton
+                      type="submit"
+                      className="bg-primary text-white font-semibold"
+                      disabled={isChangingRole}
+                    >
+                      {isChangingRole ? (
+                        <span className="flex items-center gap-2">
+                          <ClimbingBoxLoader color="#ffffff" size={6} />
+                          <span className="ml-2">Đang cập nhật...</span>
+                        </span>
+                      ) : (
+                        "Lưu thay đổi"
+                      )}
+                    </PrimaryButton>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog Chỉnh sửa thành viên */}
+            <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+              <DialogContent className="sm:max-w-[425px]">
+                <form onSubmit={handleUpdateUser}>
+                  <DialogHeader>
+                    <DialogTitle className="text-xl font-bold text-slate-900">Chỉnh sửa thành viên</DialogTitle>
+                    <DialogDescription className="text-slate-500">
+                      Cập nhật thông tin tài khoản người dùng.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-name" className="font-semibold text-slate-700">
+                        Họ và tên
+                      </Label>
+                      <HeroInput
+                        id="edit-name"
+                        required
+                        value={editFormData.name}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, name: e.target.value })
+                        }
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-email" className="font-semibold text-slate-700">
+                        Email
+                      </Label>
+                      <HeroInput
+                        id="edit-email"
+                        type="email"
+                        required
+                        autoComplete="off"
+                        value={editFormData.email}
+                        onChange={(e) =>
+                          setEditFormData({ ...editFormData, email: e.target.value })
+                        }
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-semibold text-slate-700">Vai trò</Label>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="w-full text-left px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-sm font-semibold flex items-center justify-between"
+                          >
+                            <span>{roleToVi(editFormData.role)}</span>
+                            <CaretDown size={16} className="text-slate-400" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="w-[377px] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                          {[
+                            { value: "admin", label: "Admin" },
+                            { value: "teacher", label: "Giáo viên" },
+                            { value: "student", label: "Học sinh" },
+                          ].map((opt) => (
+                            <DropdownMenuItem
+                              key={opt.value}
+                              onClick={() => setEditFormData({ ...editFormData, role: opt.value as any })}
+                              className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
+                            >
+                              {opt.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    {editFormData.role === "teacher" && (
+                      <div className="space-y-2 flex flex-col">
+                        <Label htmlFor="edit-subject" className="font-semibold text-slate-700">
+                          Môn học chuyên môn
+                        </Label>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="w-full text-left px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all text-sm font-semibold flex items-center justify-between"
+                            >
+                              <span>{editFormData.subject === "Khác" ? "Khác..." : `Môn ${editFormData.subject || "Toán"}`}</span>
+                              <CaretDown size={16} className="text-slate-400" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent className="w-[377px] max-h-60 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-1">
+                            {["Toán", "Ngữ văn", "Tiếng Anh", "Vật lý", "Hóa học", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học", "Thể dục", "Khác"].map((subj) => (
+                              <DropdownMenuItem
+                                key={subj}
+                                onClick={() => setEditFormData({ ...editFormData, subject: subj, customSubject: subj === "Khác" ? "" : editFormData.customSubject })}
+                                className="px-4 py-2.5 hover:bg-slate-50 rounded-md cursor-pointer text-slate-700 text-sm font-semibold transition-colors"
+                              >
+                                {subj === "Khác" ? "Khác..." : `Môn ${subj}`}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+
+                        {editFormData.subject === "Khác" && (
+                          <HeroInput
+                            type="text"
+                            placeholder="Nhập tên môn học..."
+                            required
+                            value={editFormData.customSubject}
+                            onChange={(e) => setEditFormData({ ...editFormData, customSubject: e.target.value })}
+                            className="w-full mt-2 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#f47c20]/20 focus:border-[#f47c20] transition-all"
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <DialogFooter>
+                    <PrimaryButton
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowEditDialog(false)}
+                      className="font-semibold"
+                      disabled={isSubmitting}
+                    >
+                      Hủy
+                    </PrimaryButton>
+                    <PrimaryButton
+                      type="submit"
+                      className="bg-primary text-white font-semibold"
+                      disabled={isSubmitting}
+                    >
+                      Lưu thay đổi
+                    </PrimaryButton>
+                  </DialogFooter>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* Dialog Xem Chi tiết Hồ sơ Người dùng */}
+            <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
+              <DialogContent className="sm:max-w-[740px] max-h-[90vh] p-5 rounded-3xl overflow-y-auto">
+                <DialogHeader className="pb-1">
+                  <DialogTitle className="text-lg font-bold text-[#f47c20] flex items-center gap-2">
+                    <Eye size={22} weight="bold" />
+                    <span>Thông tin chi tiết tài khoản</span>
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-slate-500">
+                    Hồ sơ thông tin cá nhân, bằng cấp trình độ và quyền hạn trên hệ thống ClassRoom.
+                  </DialogDescription>
+                </DialogHeader>
+                {detailUser && (
+                  <div className="py-2 space-y-3 font-sans text-slate-800">
+                    {/* Header Card với Avatar */}
+                    <div className="flex items-center gap-4 p-3 bg-slate-50/90 rounded-2xl border border-slate-200/80 shadow-2xs">
+                      <Avatar className="w-14 h-14 border-2 border-[#f47c20] shadow-sm shrink-0">
+                        <AvatarImage src={detailUser.avatar || ""} />
+                        <AvatarFallback className="bg-[#f47c20] text-white font-black text-lg">
+                          {detailUser.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <h3 className="font-black text-slate-900 text-base uppercase tracking-wide truncate">
+                          {detailUser.name}
+                        </h3>
+                        <p className="text-xs text-slate-500 font-medium truncate mt-0.5">{detailUser.email}</p>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          <Chip size="sm" variant="soft" className={detailUser.role === "Giáo viên" ? "bg-blue-50 text-blue-700 border-blue-200 font-bold" : "bg-slate-100 text-slate-700 font-medium"}>
+                            {detailUser.role} {detailUser.subject ? `(${detailUser.subject})` : ""}
+                          </Chip>
+                          <Chip
+                            size="sm"
+                            variant="soft"
+                            className={
+                              detailUser.status === "Active"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 font-bold"
+                                : detailUser.status === "Pending"
+                                  ? "bg-amber-50 text-amber-700 border-amber-200 font-bold"
+                                  : "bg-rose-50 text-rose-700 border-rose-200 font-bold"
+                            }
+                          >
+                            {detailUser.status === "Active" ? "Hoạt động" : detailUser.status === "Pending" ? "Chờ phê duyệt" : "Đang khóa"}
+                          </Chip>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Grid 6 trường Chi tiết (3 cột giúp giảm chiều cao) */}
+                    <div className="grid grid-cols-3 gap-2.5 text-xs">
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Giới tính</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate">
+                          {detailUser.gender || "Chưa cập nhật"}
+                        </span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Ngày sinh (DOB)</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate">
+                          {detailUser.dob || "Chưa cập nhật"}
+                        </span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Số điện thoại / Zalo</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate">
+                          {detailUser.phone || "Chưa cập nhật"}
+                        </span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Bằng cấp / Trình độ</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate">
+                          {detailUser.degree || (detailUser.role === "Giáo viên" ? "Đại học Sư phạm" : "Chưa cập nhật")}
+                        </span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Môn học chuyên môn</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate">
+                          {detailUser.subject || "Chưa chọn môn"}
+                        </span>
+                      </div>
+                      <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Ngày đăng ký tham gia</span>
+                        <span className="font-bold text-slate-800 text-xs block truncate">
+                          {detailUser.createdAt || "---"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Bio Card */}
+                    <div className="p-2.5 bg-slate-50/70 rounded-xl border border-slate-200/80 text-xs">
+                      <span className="text-slate-400 font-medium block mb-0.5 text-[11px]">Giới thiệu bản thân (Bio)</span>
+                      <p className="font-semibold text-slate-700 text-xs leading-relaxed italic">
+                        {detailUser.bio || "Chưa có thông tin giới thiệu bản thân."}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* DialogFooter */}
+                <DialogFooter className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100 mt-1">
+                  {detailUser?.status === "Pending" && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={!!approvingUserId}
+                        onClick={() => {
+                          setShowDetailDialog(false);
+                          handleRejectUser(detailUser);
+                        }}
+                        className="px-4 py-2 rounded-xl font-bold text-rose-600 bg-rose-50 border border-rose-200 hover:bg-rose-600 hover:text-white transition-all text-xs shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <XCircle size={16} weight="bold" />
+                        Từ chối
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!!approvingUserId}
+                        onClick={() => {
+                          setShowDetailDialog(false);
+                          handleApproveUser(detailUser);
+                        }}
+                        className="px-4 py-2 rounded-xl font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition-all text-xs shadow-xs cursor-pointer border-none flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <CheckCircle size={16} weight="bold" />
+                        Phê duyệt kích hoạt
+                      </button>
+                    </>
+                  )}
+                  <PrimaryButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowDetailDialog(false)}
+                    className="font-semibold text-xs px-4 py-2 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+                  >
+                    Đóng
+                  </PrimaryButton>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Cookie-style Confirm Dialog */}
+            <CustomConfirmDialog
+              isOpen={confirmDialog.isOpen}
+              onOpenChange={(open) => {
+                if (!confirmDialog.isLoading && !approvingUserId) {
+                  setConfirmDialog(prev => ({ ...prev, isOpen: open }));
+                }
+              }}
+              title={confirmDialog.title}
+              description={confirmDialog.description}
+              actionType={confirmDialog.actionType}
+              isLoading={confirmDialog.isLoading || !!approvingUserId}
+              onConfirm={confirmDialog.onConfirm}
+            />
+          </div>
+        </div>
       </div>
 
       {/* DATA TABLE */}
-      <div className="mt-4">
-        <Table>
-          <Table.ScrollContainer className="min-h-[400px]">
-            <Table.Content
-              aria-label="Danh sách người dùng"
-              className="min-w-[950px]"
-              selectedKeys={selectedKeys}
-              selectionMode="multiple"
-              selectionBehavior="toggle"
-              sortDescriptor={sortDescriptor}
-              onSelectionChange={setSelectedKeys}
-              onSortChange={setSortDescriptor}
-            >
-              <Table.Header>
-                <Table.Column className="after:hidden" id="selection">
-                  <Checkbox aria-label="Select all" slot="selection">
-                    <Checkbox.Content>
-                      <Checkbox.Control>
-                        <Checkbox.Indicator />
-                      </Checkbox.Control>
-                    </Checkbox.Content>
-                  </Checkbox>
-                </Table.Column>
-                <Table.Column allowsSorting isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">
-                  {({ sortDirection }) => (
-                    <Table.SortableColumnHeader sortDirection={sortDirection}>
-                      STT
-                    </Table.SortableColumnHeader>
-                  )}
-                </Table.Column>
-                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
-                  {({ sortDirection }) => (
-                    <Table.SortableColumnHeader sortDirection={sortDirection}>
-                      Thành viên
-                    </Table.SortableColumnHeader>
-                  )}
-                </Table.Column>
-                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="phone">
-                  {({ sortDirection }) => (
-                    <Table.SortableColumnHeader sortDirection={sortDirection}>
-                      Số điện thoại
-                    </Table.SortableColumnHeader>
-                  )}
-                </Table.Column>
-                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="role">
-                  {({ sortDirection }) => (
-                    <Table.SortableColumnHeader sortDirection={sortDirection}>
-                      Vai trò
-                    </Table.SortableColumnHeader>
-                  )}
-                </Table.Column>
-                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="createdAt">
-                  {({ sortDirection }) => (
-                    <Table.SortableColumnHeader sortDirection={sortDirection}>
-                      Ngày đăng ký
-                    </Table.SortableColumnHeader>
-                  )}
-                </Table.Column>
-                <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="status">
-                  {({ sortDirection }) => (
-                    <Table.SortableColumnHeader sortDirection={sortDirection}>
-                      Trạng thái
-                    </Table.SortableColumnHeader>
-                  )}
-                </Table.Column>
-                <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
-                  Hành động
-                </Table.Column>
-              </Table.Header>
-              <Table.Body>
-                {isLoading && filteredAndSortedUsers.length === 0 ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <Table.Row key={`skeleton-${i}`} id={`skeleton-${i}`}>
-                      <Table.Cell className="pr-0">
-                        <Skeleton className="h-4 w-4 rounded-sm" />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton className="h-4 w-6" />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <div className="flex items-center gap-3 py-2">
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <div className="flex flex-col gap-1">
-                            <Skeleton className="h-4 w-[150px]" />
-                            <Skeleton className="h-3 w-[100px]" />
-                          </div>
-                        </div>
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton className="h-4 w-24" />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton className="h-6 w-20 rounded-full" />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton className="h-4 w-20" />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                      </Table.Cell>
-                      <Table.Cell>
-                        <div className="flex justify-end">
-                          <Skeleton className="h-8 w-8 rounded-md" />
-                        </div>
-                      </Table.Cell>
-                    </Table.Row>
-                  ))
-                ) : filteredAndSortedUsers.length === 0 ? (
-                  <Table.Row key="empty" id="empty">
-                    <Table.Cell colSpan={8} className="py-12 text-center text-slate-500 font-medium">
-                      <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
-                        <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
-                        <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy người dùng</p>
-                        <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy thành viên nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                ) : (
-                  paginatedItems.map((user, idx) => {
-                    const index = (page - 1) * ROWS_PER_PAGE + idx;
-                    const isLocked = user.status === "Locked";
-                    const isPending = user.status === "Pending";
-                    const statusColorMap: Record<string, "success" | "danger" | "warning"> = {
-                      Active: "success",
-                      Locked: "danger",
-                      Pending: "warning",
-                    };
-                    const initials = user.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase();
-
-                    return (
-                      <Table.Row key={user._id} id={user._id}>
-                        <Table.Cell>
-                          <Checkbox aria-label={`Select ${user.name}`} slot="selection" variant="secondary">
-                            <Checkbox.Content>
-                              <Checkbox.Control>
-                                <Checkbox.Indicator />
-                              </Checkbox.Control>
-                            </Checkbox.Content>
-                          </Checkbox>
-                        </Table.Cell>
-                        <Table.Cell
-                          className="font-medium text-slate-500 cursor-pointer"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            handleOpenDetail(user);
-                          }}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          #{index + 1}
-                        </Table.Cell>
-                        <Table.Cell
-                          className="cursor-pointer"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            handleOpenDetail(user);
-                          }}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="w-8 h-8 shrink-0 bg-primary text-white border border-slate-100 shadow-sm">
-                              <AvatarImage src={user.avatar || ""} />
-                              <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-slate-900 text-[15px] hover:text-[#f47c20] transition-colors">
-                                {user.name}
-                              </span>
-                              <span className="text-sm font-medium text-slate-500 mt-0.5">{user.email}</span>
+          <div className="mt-4">
+            <Table>
+              <Table.ScrollContainer className="min-h-[400px]">
+                <Table.Content
+                  aria-label="Danh sách người dùng"
+                  className="min-w-[950px]"
+                  selectedKeys={selectedKeys}
+                  selectionMode="multiple"
+                  selectionBehavior="toggle"
+                  sortDescriptor={sortDescriptor}
+                  onSelectionChange={setSelectedKeys}
+                  onSortChange={setSortDescriptor}
+                >
+                  <Table.Header>
+                    <Table.Column className="after:hidden" id="selection">
+                      <Checkbox aria-label="Select all" slot="selection">
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                        </Checkbox.Content>
+                      </Checkbox>
+                    </Table.Column>
+                    <Table.Column allowsSorting isRowHeader className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="stt">
+                      {({ sortDirection }) => (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>
+                          STT
+                        </Table.SortableColumnHeader>
+                      )}
+                    </Table.Column>
+                    <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="name">
+                      {({ sortDirection }) => (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>
+                          Thành viên
+                        </Table.SortableColumnHeader>
+                      )}
+                    </Table.Column>
+                    <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="phone">
+                      {({ sortDirection }) => (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>
+                          Số điện thoại
+                        </Table.SortableColumnHeader>
+                      )}
+                    </Table.Column>
+                    <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="role">
+                      {({ sortDirection }) => (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>
+                          Vai trò
+                        </Table.SortableColumnHeader>
+                      )}
+                    </Table.Column>
+                    <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="createdAt">
+                      {({ sortDirection }) => (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>
+                          Ngày đăng ký
+                        </Table.SortableColumnHeader>
+                      )}
+                    </Table.Column>
+                    <Table.Column allowsSorting className="after:hidden text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="status">
+                      {({ sortDirection }) => (
+                        <Table.SortableColumnHeader sortDirection={sortDirection}>
+                          Trạng thái
+                        </Table.SortableColumnHeader>
+                      )}
+                    </Table.Column>
+                    <Table.Column className="after:hidden text-end text-xs font-bold uppercase text-slate-600 tracking-wider py-3" id="actions">
+                      Hành động
+                    </Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {isLoading && filteredAndSortedUsers.length === 0 ? (
+                      Array.from({ length: 5 }).map((_, i) => (
+                        <Table.Row key={`skeleton-${i}`} id={`skeleton-${i}`}>
+                          <Table.Cell className="pr-0">
+                            <Skeleton className="h-4 w-4 rounded-sm" />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Skeleton className="h-4 w-6" />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <div className="flex items-center gap-3 py-2">
+                              <Skeleton className="h-8 w-8 rounded-full" />
+                              <div className="flex flex-col gap-1">
+                                <Skeleton className="h-4 w-[150px]" />
+                                <Skeleton className="h-3 w-[100px]" />
+                              </div>
                             </div>
-                          </div>
-                        </Table.Cell>
-                        <Table.Cell
-                          className="cursor-pointer"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            handleOpenDetail(user);
-                          }}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          {user.phone ? (
-                            <span className="text-xs font-semibold text-slate-700">
-                              {user.phone}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-normal italic">Chưa cập nhật</span>
-                          )}
-                        </Table.Cell>
-                        <Table.Cell
-                          className="cursor-pointer"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            handleOpenDetail(user);
-                          }}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          {user.role === "Admin" ? (
-                            <Chip size="sm" variant="soft" className="bg-red-50 text-red-600 font-semibold border border-red-200">
-                              Admin
-                            </Chip>
-                          ) : user.role === "Giáo viên" ? (
-                            <Chip size="sm" variant="soft" className="bg-blue-50 text-blue-600 font-semibold border border-blue-200">
-                              Giáo viên {user.subject ? `(${user.subject})` : ""}
-                            </Chip>
-                          ) : (
-                            <Chip size="sm" variant="soft" className="bg-slate-100 text-slate-600 font-semibold border border-slate-200">
-                              Học sinh
-                            </Chip>
-                          )}
-                        </Table.Cell>
-                        <Table.Cell
-                          className="text-xs font-medium text-slate-500 whitespace-nowrap cursor-pointer"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            handleOpenDetail(user);
-                          }}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          {user.createdAt || "---"}
-                        </Table.Cell>
-                        <Table.Cell
-                          className="cursor-pointer"
-                          onClick={(e: any) => {
-                            e.stopPropagation();
-                            if (isPending) {
-                              setPendingApprovalUser(user);
-                            } else {
-                              handleOpenDetail(user);
-                            }
-                          }}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          {isPending ? (
-                            <button
-                              type="button"
-                              disabled={approvingUserId === user._id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPendingApprovalUser(user);
-                              }}
-                              title="Nhấp để Phê duyệt hoặc Từ chối tài khoản"
-                              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 font-bold text-xs shadow-[0_0_10px_rgba(244,124,32,0.15)] hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-                            >
-                              {approvingUserId === user._id ? (
-                                <>
-                                  <span className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
-                                  <span className="uppercase tracking-wide">Đang xử lý...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="flex h-2.5 w-2.5 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                                  </span>
-                                  <span className="uppercase tracking-wide">Chờ phê duyệt</span>
-                                </>
-                              )}
-                            </button>
-                          ) : (
-                            <Chip color={statusColorMap[user.status]} size="sm" variant="soft" className="font-medium">
-                              {user.status === "Active" ? "Hoạt động" : "Đang khóa"}
-                            </Chip>
-                          )}
-                        </Table.Cell>
-                        <Table.Cell
-                          onClick={(e: any) => e.stopPropagation()}
-                          onPointerDown={(e: any) => e.stopPropagation()}
-                        >
-                          <div className="flex items-center justify-end gap-1.5 relative">
-                            {isPending ? (
-                              <>
-                                <PrimaryButton
-                                  variant="outline"
-                                  size="icon"
-                                  disabled={approvingUserId === user._id}
-                                  className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Phê duyệt tài khoản"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleApproveUser(user);
-                                  }}
-                                >
-                                  {approvingUserId === user._id ? (
-                                    <span className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-                                  ) : (
-                                    <CheckCircle size={16} weight="bold" />
-                                  )}
-                                </PrimaryButton>
-                                <PrimaryButton
-                                  variant="outline"
-                                  size="icon"
-                                  disabled={approvingUserId === user._id}
-                                  className="h-8 w-8 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Từ chối tài khoản"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRejectUser(user);
-                                  }}
-                                >
-                                  <XCircle size={16} weight="bold" />
-                                </PrimaryButton>
-                              </>
-                            ) : (
-                              <ActionMenu
-                                isLocked={isLocked}
-                                isAdmin={user.role === "Admin"}
-                                onEdit={() => handleOpenEdit(user)}
-                                onRoleChange={() => handleOpenChangeRole(user)}
-                                onResetPassword={() => handleOpenResetPassword(user)}
-                                onToggleStatus={() => handleToggleStatus(user)}
-                                onDelete={() => handleDeleteUser(user)}
-                              />
-                            )}
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Skeleton className="h-4 w-24" />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Skeleton className="h-6 w-20 rounded-full" />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Skeleton className="h-4 w-20" />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <Skeleton className="h-6 w-24 rounded-full" />
+                          </Table.Cell>
+                          <Table.Cell>
+                            <div className="flex justify-end">
+                              <Skeleton className="h-8 w-8 rounded-md" />
+                            </div>
+                          </Table.Cell>
+                        </Table.Row>
+                      ))
+                    ) : filteredAndSortedUsers.length === 0 ? (
+                      <Table.Row key="empty" id="empty">
+                        <Table.Cell colSpan={8} className="py-12 text-center text-slate-500 font-medium">
+                          <div className="flex flex-col items-center gap-3 w-full max-w-sm mx-auto">
+                            <MagnifyingGlass size={48} weight="duotone" className="text-[#f47c20] bg-[#f47c20]/10 p-3.5 rounded-full" />
+                            <p className="font-extrabold text-slate-800 text-sm">Không tìm thấy người dùng</p>
+                            <p className="text-xs text-slate-400 font-semibold leading-relaxed">Không tìm thấy thành viên nào khớp với bộ lọc hoặc từ khóa tìm kiếm của bạn.</p>
                           </div>
                         </Table.Cell>
                       </Table.Row>
-                    );
-                  })
-                )}
-              </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-          <Table.Footer>
-            {totalPages > 0 && (
-              <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
-                <Pagination.Summary className="text-sm text-slate-500 font-medium">
-                  Hiển thị {startIdx} đến {endIdx} trong số {filteredAndSortedUsers.length} kết quả
-                </Pagination.Summary>
-                <Pagination.Content>
-                  <Pagination.Item>
-                    <Pagination.Previous
-                      isDisabled={page === 1}
-                      onPress={() => setPage((p) => Math.max(1, p - 1))}
-                    >
-                      <Pagination.PreviousIcon />
-                      Trang trước
-                    </Pagination.Previous>
-                  </Pagination.Item>
-                  {pages.map((p) => (
-                    <Pagination.Item key={p}>
-                      <Pagination.Link
-                        isActive={p === page}
-                        onPress={() => setPage(p)}
-                        className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
-                      >
-                        {p}
-                      </Pagination.Link>
-                    </Pagination.Item>
-                  ))}
-                  <Pagination.Item>
-                    <Pagination.Next
-                      isDisabled={page === totalPages}
-                      onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    >
-                      Trang sau
-                      <Pagination.NextIcon />
-                    </Pagination.Next>
-                  </Pagination.Item>
-                </Pagination.Content>
-              </Pagination>
-            )}
-          </Table.Footer>
-        </Table>
-      </div>
+                    ) : (
+                      paginatedItems.map((user, idx) => {
+                        const index = (page - 1) * ROWS_PER_PAGE + idx;
+                        const isLocked = user.status === "Locked";
+                        const isPending = user.status === "Pending";
+                        const statusColorMap: Record<string, "success" | "danger" | "warning"> = {
+                          Active: "success",
+                          Locked: "danger",
+                          Pending: "warning",
+                        };
+                        const initials = user.name.split(" ").map(n => n[0]).slice(-2).join("").toUpperCase();
 
-      {/* Dialog Phê duyệt Người dùng Pending */}
-      {pendingApprovalUser && (
-        <Dialog open={!!pendingApprovalUser} onOpenChange={(open) => !open && !approvingUserId && setPendingApprovalUser(null)}>
-          <PendingUserApprovalModal
-            user={pendingApprovalUser}
-            onClose={() => !approvingUserId && setPendingApprovalUser(null)}
-            onApprove={handleApproveUser}
-            onReject={handleRejectUser}
-            isProcessing={approvingUserId === pendingApprovalUser._id}
-          />
-        </Dialog>
-      )}
+                        return (
+                          <Table.Row key={user._id} id={user._id}>
+                            <Table.Cell>
+                              <Checkbox aria-label={`Select ${user.name}`} slot="selection" variant="secondary">
+                                <Checkbox.Content>
+                                  <Checkbox.Control>
+                                    <Checkbox.Indicator />
+                                  </Checkbox.Control>
+                                </Checkbox.Content>
+                              </Checkbox>
+                            </Table.Cell>
+                            <Table.Cell
+                              className="font-medium text-slate-500 cursor-pointer"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                handleOpenDetail(user);
+                              }}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              #{index + 1}
+                            </Table.Cell>
+                            <Table.Cell
+                              className="cursor-pointer"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                handleOpenDetail(user);
+                              }}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Avatar className="w-8 h-8 shrink-0 bg-primary text-white border border-slate-100 shadow-sm">
+                                  <AvatarImage src={user.avatar || ""} />
+                                  <AvatarFallback className="text-xs font-semibold">{initials}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-slate-900 text-[15px] hover:text-[#f47c20] transition-colors">
+                                    {user.name}
+                                  </span>
+                                  <span className="text-sm font-medium text-slate-500 mt-0.5">{user.email}</span>
+                                </div>
+                              </div>
+                            </Table.Cell>
+                            <Table.Cell
+                              className="cursor-pointer"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                handleOpenDetail(user);
+                              }}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              {user.phone ? (
+                                <span className="text-xs font-semibold text-slate-700">
+                                  {user.phone}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400 font-normal italic">Chưa cập nhật</span>
+                              )}
+                            </Table.Cell>
+                            <Table.Cell
+                              className="cursor-pointer"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                handleOpenDetail(user);
+                              }}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              {user.role === "Admin" ? (
+                                <Chip size="sm" variant="soft" className="bg-red-50 text-red-600 font-semibold border border-red-200">
+                                  Admin
+                                </Chip>
+                              ) : user.role === "Giáo viên" ? (
+                                <Chip size="sm" variant="soft" className="bg-blue-50 text-blue-600 font-semibold border border-blue-200">
+                                  Giáo viên {user.subject ? `(${user.subject})` : ""}
+                                </Chip>
+                              ) : (
+                                <Chip size="sm" variant="soft" className="bg-slate-100 text-slate-600 font-semibold border border-slate-200">
+                                  Học sinh
+                                </Chip>
+                              )}
+                            </Table.Cell>
+                            <Table.Cell
+                              className="text-xs font-medium text-slate-500 whitespace-nowrap cursor-pointer"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                handleOpenDetail(user);
+                              }}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              {user.createdAt || "---"}
+                            </Table.Cell>
+                            <Table.Cell
+                              className="cursor-pointer"
+                              onClick={(e: any) => {
+                                e.stopPropagation();
+                                if (isPending) {
+                                  setPendingApprovalUser(user);
+                                } else {
+                                  handleOpenDetail(user);
+                                }
+                              }}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              {isPending ? (
+                                <button
+                                  type="button"
+                                  disabled={approvingUserId === user._id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPendingApprovalUser(user);
+                                  }}
+                                  title="Nhấp để Phê duyệt hoặc Từ chối tài khoản"
+                                  className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-600 hover:bg-amber-500/20 font-bold text-xs shadow-[0_0_10px_rgba(244,124,32,0.15)] hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+                                >
+                                  {approvingUserId === user._id ? (
+                                    <>
+                                      <span className="w-3 h-3 border-2 border-amber-600 border-t-transparent rounded-full animate-spin" />
+                                      <span className="uppercase tracking-wide">Đang xử lý...</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="flex h-2.5 w-2.5 relative">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                                      </span>
+                                      <span className="uppercase tracking-wide">Chờ phê duyệt</span>
+                                    </>
+                                  )}
+                                </button>
+                              ) : (
+                                <Chip color={statusColorMap[user.status]} size="sm" variant="soft" className="font-medium">
+                                  {user.status === "Active" ? "Hoạt động" : "Đang khóa"}
+                                </Chip>
+                              )}
+                            </Table.Cell>
+                            <Table.Cell
+                              onClick={(e: any) => e.stopPropagation()}
+                              onPointerDown={(e: any) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center justify-end gap-1.5 relative">
+                                {isPending ? (
+                                  <>
+                                    <PrimaryButton
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={approvingUserId === user._id}
+                                      className="h-8 w-8 text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Phê duyệt tài khoản"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleApproveUser(user);
+                                      }}
+                                    >
+                                      {approvingUserId === user._id ? (
+                                        <span className="w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                        <CheckCircle size={16} weight="bold" />
+                                      )}
+                                    </PrimaryButton>
+                                    <PrimaryButton
+                                      variant="outline"
+                                      size="icon"
+                                      disabled={approvingUserId === user._id}
+                                      className="h-8 w-8 border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      title="Từ chối tài khoản"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRejectUser(user);
+                                      }}
+                                    >
+                                      <XCircle size={16} weight="bold" />
+                                    </PrimaryButton>
+                                  </>
+                                ) : (
+                                  <ActionMenu
+                                    isLocked={isLocked}
+                                    isAdmin={user.role === "Admin"}
+                                    onEdit={() => handleOpenEdit(user)}
+                                    onRoleChange={() => handleOpenChangeRole(user)}
+                                    onResetPassword={() => handleOpenResetPassword(user)}
+                                    onToggleStatus={() => handleToggleStatus(user)}
+                                    onDelete={() => handleDeleteUser(user)}
+                                  />
+                                )}
+                              </div>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })
+                    )}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
+              <Table.Footer>
+                {totalPages > 0 && (
+                  <Pagination size="sm" className="flex items-center justify-between w-full p-4 border-t border-slate-200 bg-transparent">
+                    <Pagination.Summary className="text-sm text-slate-500 font-medium">
+                      Hiển thị {startIdx} đến {endIdx} trong số {filteredAndSortedUsers.length} kết quả
+                    </Pagination.Summary>
+                    <Pagination.Content>
+                      <Pagination.Item>
+                        <Pagination.Previous
+                          isDisabled={page === 1}
+                          onPress={() => setPage((p) => Math.max(1, p - 1))}
+                        >
+                          <Pagination.PreviousIcon />
+                          Trang trước
+                        </Pagination.Previous>
+                      </Pagination.Item>
+                      {pages.map((p) => (
+                        <Pagination.Item key={p}>
+                          <Pagination.Link
+                            isActive={p === page}
+                            onPress={() => setPage(p)}
+                            className={p === page ? "bg-primary text-white font-bold border-primary" : "text-slate-600 font-medium hover:bg-slate-100"}
+                          >
+                            {p}
+                          </Pagination.Link>
+                        </Pagination.Item>
+                      ))}
+                      <Pagination.Item>
+                        <Pagination.Next
+                          isDisabled={page === totalPages}
+                          onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        >
+                          Trang sau
+                          <Pagination.NextIcon />
+                        </Pagination.Next>
+                      </Pagination.Item>
+                    </Pagination.Content>
+                  </Pagination>
+                )}
+              </Table.Footer>
+            </Table>
+          </div>
+
+          {/* Dialog Phê duyệt Người dùng Pending */}
+          {pendingApprovalUser && (
+            <Dialog open={!!pendingApprovalUser} onOpenChange={(open) => !open && !approvingUserId && setPendingApprovalUser(null)}>
+              <PendingUserApprovalModal
+                user={pendingApprovalUser}
+                onClose={() => !approvingUserId && setPendingApprovalUser(null)}
+                onApprove={handleApproveUser}
+                onReject={handleRejectUser}
+                isProcessing={approvingUserId === pendingApprovalUser._id}
+              />
+            </Dialog>
+          )}
     </div>
   );
 }

@@ -8,7 +8,10 @@
     "build": "tsc",
     "seed": "ts-node-dev --transpile-only src/scripts/seedAdmin.ts",
     "seed:classes": "ts-node-dev --transpile-only src/scripts/seedClasses.ts",
-    "seed:students": "ts-node-dev --transpile-only src/scripts/seedStudents.ts"
+    "seed:students": "ts-node-dev --transpile-only src/scripts/seedStudents.ts",
+    "seed:mock": "ts-node-dev --transpile-only src/scripts/seedFullMockData.ts",
+    "seed:users": "ts-node-dev --transpile-only src/scripts/seedUsersDemo.ts",
+    "seed:bank": "ts-node-dev --transpile-only src/scripts/seedBankItems.ts"
   },
   "keywords": [],
   "author": "",

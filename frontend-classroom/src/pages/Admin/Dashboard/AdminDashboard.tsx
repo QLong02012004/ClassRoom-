@@ -27,6 +27,8 @@ import { dashboardService, type IDashboardStats } from "../../../service/dashboa
 import { AnimatedAddButton } from "../../../components/ui/Buttons/AnimatedAddButton";
 import { ChartBarStacked } from "@/components/ui/ChartBarStacked";
 import { getSocket } from "@/service/socket.service";
+import AnimatedCounter from "@/components/ui/Counters/AnimatedCounter";
+import { motion } from "framer-motion";
 
 function StatCardSkeleton() {
   return (
@@ -141,7 +143,7 @@ function TeacherChartCard({ teacher, tIndex, isLoading = false }: { teacher: any
   const totalStudents = (teacher.classes || []).reduce((acc: any, curr: any) => acc + (curr.students || 0), 0);
 
   return (
-    <Card key={tIndex} className="flex flex-col overflow-hidden border-none ring-0 shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)] transition-all duration-300 rounded-3xl bg-white">
+    <Card key={tIndex} className="flex flex-col overflow-hidden border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 rounded-3xl bg-white">
       <CardHeader className="items-center pb-0 pt-6">
         {isLoading ? (
           <>
@@ -379,7 +381,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6 md:p-8 bg-slate-50/50 min-h-screen w-full font-sans">
+    <div className="flex flex-1 flex-col gap-6 w-full font-sans pb-12">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -410,11 +412,17 @@ export default function AdminDashboard() {
         ) : (
           <>
             {/* Card 1: Total Students */}
-            <div className="rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.07)] transition-all duration-300 bg-gradient-to-br from-cyan-50 to-cyan-100/60 border-none">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.05 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-cyan-50/90 to-cyan-100/50 border border-cyan-200/80"
+            >
               <p className="text-[10.5px] font-bold uppercase tracking-widest text-[#006064]">Tổng học sinh</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">
-                  {stats?.totalStudents?.toLocaleString() || 0}
+                  <AnimatedCounter end={stats?.totalStudents || 0} duration={1200} />
                 </p>
                 <div className="w-12 h-12 rounded-2xl bg-white/90 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Users size={26} weight="duotone" className="text-[#2f8fa3]" />
@@ -425,14 +433,20 @@ export default function AdminDashboard() {
                 <span className="text-xs font-bold">Tăng trưởng ổn định</span>
               </div>
               <p className="mt-0.5 text-[11px] font-medium text-[#006064]/70">Số liệu thống kê tháng này</p>
-            </div>
+            </motion.div>
 
             {/* Card 2: Total Teachers */}
-            <div className="rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.07)] transition-all duration-300 bg-gradient-to-br from-orange-50 to-amber-100/60 border-none">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.12 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-orange-50/90 to-amber-100/50 border border-orange-200/80"
+            >
               <p className="text-[10.5px] font-bold uppercase tracking-widest text-[#e65100]">Tổng giáo viên</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">
-                  {stats?.totalTeachers?.toLocaleString() || 0}
+                  <AnimatedCounter end={stats?.totalTeachers || 0} duration={1200} />
                 </p>
                 <div className="w-12 h-12 rounded-2xl bg-white/90 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <ChalkboardTeacher size={26} weight="duotone" className="text-[#f47c20]" />
@@ -443,14 +457,20 @@ export default function AdminDashboard() {
                 <span className="text-xs font-bold">Tuyển dụng thêm</span>
               </div>
               <p className="mt-0.5 text-[11px] font-medium text-[#e65100]/70">Giáo viên tham gia hệ thống</p>
-            </div>
+            </motion.div>
 
             {/* Card 3: Active Classes */}
-            <div className="rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.07)] transition-all duration-300 bg-gradient-to-br from-sky-50 to-teal-100/60 border-none">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.19 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-sky-50/90 to-teal-100/50 border border-sky-200/80"
+            >
               <p className="text-[10.5px] font-bold uppercase tracking-widest text-[#00838f]">Lớp đang hoạt động</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">
-                  {stats?.activeClasses?.toLocaleString() || 0}
+                  <AnimatedCounter end={stats?.activeClasses || 0} duration={1200} />
                 </p>
                 <div className="w-12 h-12 rounded-2xl bg-white/90 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Chalkboard size={26} weight="duotone" className="text-[#00acc1]" />
@@ -461,14 +481,20 @@ export default function AdminDashboard() {
                 <span className="text-xs font-bold">Lớp học mới</span>
               </div>
               <p className="mt-0.5 text-[11px] font-medium text-[#00838f]/70">Được tạo trong tuần này</p>
-            </div>
+            </motion.div>
 
             {/* Card 4: Attendance Rate */}
-            <div className="rounded-3xl p-6 shadow-[0_10px_25px_rgba(0,0,0,0.04)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.07)] transition-all duration-300 bg-gradient-to-br from-rose-50 to-orange-100/60 border-none">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.26 }}
+              whileHover={{ y: -4, transition: { duration: 0.2 } }}
+              className="rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_10px_25px_rgba(0,0,0,0.06)] transition-all duration-300 bg-gradient-to-br from-rose-50/90 to-orange-100/50 border border-rose-200/80"
+            >
               <p className="text-[10.5px] font-bold uppercase tracking-widest text-[#bf360c]">Tỷ lệ điểm danh hôm nay</p>
               <div className="mt-2 flex items-center justify-between gap-3">
                 <p className="text-3xl font-black text-slate-800 tracking-tight leading-none">
-                  {`${stats?.attendanceRate ?? 0}%`}
+                  <AnimatedCounter end={stats?.attendanceRate ?? 0} suffix="%" duration={1400} />
                 </p>
                 <div className="w-12 h-12 rounded-2xl bg-white/90 flex items-center justify-center flex-shrink-0 shadow-sm">
                   <Activity size={26} weight="duotone" className="text-[#ff7043]" />
@@ -479,7 +505,7 @@ export default function AdminDashboard() {
                 <span className="text-xs font-bold">Học sinh có mặt hôm nay</span>
               </div>
               <p className="mt-0.5 text-[11px] font-medium text-[#bf360c]/70">Ghi nhận trên toàn hệ thống</p>
-            </div>
+            </motion.div>
           </>
         )}
       </div>
@@ -495,7 +521,7 @@ export default function AdminDashboard() {
         />
 
         {/* Recent Activity List */}
-        <Card className="xl:col-span-5 border-none ring-0 shadow-[0_10px_30px_rgba(0,0,0,0.05)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.08)] transition-all duration-300 rounded-3xl bg-white p-2 flex flex-col justify-between">
+        <Card className="xl:col-span-5 border border-slate-200/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300 rounded-3xl bg-white p-2 flex flex-col justify-between">
           <CardHeader className="flex flex-row items-center pb-2 pt-4 px-6">
             <div className="grid gap-1">
               <CardTitle className="text-lg font-bold text-slate-800">Hoạt động gần đây</CardTitle>

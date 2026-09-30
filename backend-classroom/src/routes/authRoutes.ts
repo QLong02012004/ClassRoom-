@@ -27,8 +27,8 @@ router.post('/register-teacher', validateRegister, registerTeacherAccount);
 // [Admin] Tạo tài khoản giáo viên
 router.post('/create-teacher', protect, authorize('admin'), validateRegister, createTeacherAccount);
 
-// [Teacher] Tạo tài khoản học sinh
-router.post('/create-student', protect, authorize('teacher'), validateRegister, createStudentAccount);
+// [Admin & Teacher] Tạo tài khoản học sinh
+router.post('/create-student', protect, authorize('admin', 'teacher'), validateRegister, createStudentAccount);
 
 // Học sinh tự đăng ký tài khoản
 router.post('/register-student', validateRegister, registerStudentAccount);
